@@ -43,7 +43,9 @@ axiosClient.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        const isAuthRequest = originalRequest.url.includes('/auth/login') || originalRequest.url.includes('/auth/register');
+
+        if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
             if (isRefreshing) {
                 return new Promise(function(resolve, reject) {
                     failedQueue.push({ resolve, reject });
@@ -60,7 +62,12 @@ axiosClient.interceptors.response.use(
 
             try {
                 // Call refresh-token API. Cookie is automatically sent due to withCredentials
-                const { data } = await axios.post('http://localhost:5136/api/auth/refresh-token', {}, { withCredentials: true });
+                // Backend requires the expired access token in the header to identify the user
+                const accessToken = localStorage.getItem('accessToken');
+                const { data } = await axios.post('http://localhost:5136/api/auth/refresh-token', {}, { 
+                    headers: { 'Authorization': `Bearer ${accessToken}` },
+                    withCredentials: true 
+                });
                 
                 const newAccessToken = data.data.accessToken;
                 localStorage.setItem('accessToken', newAccessToken);
@@ -80,6 +87,12 @@ axiosClient.interceptors.response.use(
             } finally {
                 isRefreshing = false;
             }
+        }
+
+        if (error.response && error.response.status === 409) {
+            console.warn('Conflict detected:', error.response.data);
+            // Optionally, we could emit a global event or show a notification
+            // but for now, we'll let the component handle the catch block
         }
 
         return Promise.reject(error);

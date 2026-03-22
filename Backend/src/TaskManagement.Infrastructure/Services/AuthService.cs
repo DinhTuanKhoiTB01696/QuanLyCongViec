@@ -45,6 +45,7 @@ namespace TaskManagement.Infrastructure.Services
             var response = new AuthResponseDto
             {
                 AccessToken = accessToken,
+                Id = user.Id,
                 Email = user.Email,
                 FullName = user.FullName,
                 SystemRoles = roles.ToArray()

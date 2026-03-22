@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using TaskStatus = TaskManagement.Domain.Entities.TaskStatus;
 
 namespace TaskManagement.Domain.Entities
@@ -25,11 +26,17 @@ namespace TaskManagement.Domain.Entities
         public DateTime? PlannedEndDate { get; set; }
         public Guid ReporterId { get; set; }
         public User Reporter { get; set; } = null!;
+        public Guid? AssignedUserId { get; set; }
+        public User? AssignedUser { get; set; }
+        public DateTime? DueDate { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public bool IsDeleted { get; set; } = false;
         public double TotalEstimatedHours { get; set; }
         public double TotalActualHours { get; set; }
+        
+        [Timestamp]
+        public byte[] RowVersion { get; set; } = null!;
 
         // Navigation properties
         public ICollection<WorkTask> ChildTasks { get; set; } = new List<WorkTask>();

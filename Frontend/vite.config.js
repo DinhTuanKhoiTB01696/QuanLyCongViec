@@ -1,3 +1,5 @@
+import { fileURLToPath, URL } from 'node:url'
+
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -15,8 +17,23 @@ export default defineConfig({
       resolvers: [ElementPlusResolver()],
     }),
   ],
-
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url))
+    }
+  },
   server: {
-    allowedHosts: ['sprinta.io.vn'] 
+    allowedHosts: ['sprinta.io.vn'],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5136',
+        changeOrigin: true
+      },
+      '/kanban-hub': {
+        target: 'http://localhost:5136',
+        ws: true,
+        changeOrigin: true
+      }
+    }
   }
 })

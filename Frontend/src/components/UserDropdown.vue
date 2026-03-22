@@ -93,10 +93,25 @@ const toggleThemeSub = () => {
   themeSubVisible.value = !themeSubVisible.value
 }
 
-const handleCommand = (cmd) => {
+const handleCommand = async (cmd) => {
   if (cmd === 'profile') {
     router.push('/profile')
+  } else if (cmd === 'logout') {
+    try {
+      // Import axiosClient here or use a global instance if available
+      // For simplicity and matching axiosClient.js, I'll assume it's used elsewhere or needs import
+      const { default: axiosClient } = await import('@/api/axiosClient')
+      await axiosClient.post('/auth/logout')
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      // Always clear storage and redirect even if API fails
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('user')
+      router.push('/login')
+    }
   }
+
   if (cmd !== 'theme') {
     themeSubVisible.value = false
   }

@@ -43,7 +43,25 @@
             <el-checkbox v-model="form.remember">Ghi nhớ đăng nhập</el-checkbox>
           </div>
           
-          <el-button type="primary" native-type="submit" class="auth-btn" size="large">Đăng nhập</el-button>
+          <el-button 
+            type="primary" 
+            native-type="submit" 
+            class="auth-btn" 
+            size="large"
+            :loading="isLoading"
+          >
+            Đăng nhập
+          </el-button>
+
+          <el-button 
+            type="info" 
+            plain 
+            class="demo-btn" 
+            @click="loginAsDemo" 
+            :loading="isLoading"
+          >
+            🔑 Đăng nhập tài khoản Demo
+          </el-button>
           
           <div class="divider">
             <span>HOẶC TIẾP TỤC VỚI</span>
@@ -72,12 +90,13 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import logoImg from '../assets/logo_QLCV.png'
 import googleIcon from '../assets/Icongoogle.png'
 import githubIcon from '../assets/Icongithub.png'
-
 import { useRouter } from 'vue-router'
+import axiosClient from '../api/axiosClient'
+import { ElMessage } from 'element-plus'
 
 const form = reactive({
   email: '',
@@ -87,9 +106,45 @@ const form = reactive({
 
 const router = useRouter()
 
-const handleLogin = () => {
-  console.log('Login attempt:', form)
-  router.push('/dashboard')
+const isLoading = ref(false)
+
+const loginAsDemo = async () => {
+  form.email = 'user1@test.com'
+  form.password = 'Password123'
+  await handleLogin()
+}
+
+const handleLogin = async () => {
+  if (!form.email || !form.password) {
+    ElMessage.warning('Vui lòng nhập đầy đủ email và mật khẩu')
+    return
+  }
+
+  isLoading.value = true
+  try {
+    const response = await axiosClient.post('/auth/login', {
+      email: form.email,
+      password: form.password
+    })
+
+    const { accessToken, fullName, email, systemRoles, id } = response.data.data
+    
+    // Store in localStorage
+    localStorage.setItem('accessToken', accessToken)
+    localStorage.setItem('user', JSON.stringify({ id, fullName, email, systemRoles }))
+    
+    ElMessage.success('Đăng nhập thành công!')
+    
+    // Check if there's a redirect query param
+    const redirect = router.currentRoute.value.query.redirect
+    router.push(redirect || '/dashboard')
+  } catch (error) {
+    console.error('Login error:', error)
+    const errorMsg = error.response?.data?.message || 'Email hoặc mật khẩu không chính xác'
+    ElMessage.error(errorMsg)
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -218,6 +273,22 @@ const handleLogin = () => {
 .auth-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0, 97, 255, 0.3);
+}
+
+.demo-btn {
+  width: 100%;
+  margin-top: 12px;
+  height: 48px;
+  border-radius: 12px;
+  font-weight: 600;
+  border: 1px dashed #cbd5e1;
+  color: #475569;
+}
+
+.demo-btn:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+  color: #1e293b;
 }
 
 .divider {

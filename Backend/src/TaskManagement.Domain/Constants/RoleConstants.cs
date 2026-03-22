@@ -15,6 +15,7 @@ namespace TaskManagement.Domain.Constants
         public const string PA = "PA";
         public const string TechLead = "TechLead";
         public const string DEV = "DEV";
+        public const string Developer = "Developer";
         public const string QA = "QA";
         public const string Designer = "Designer";
         public const string DevOps = "DevOps";

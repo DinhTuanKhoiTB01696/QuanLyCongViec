@@ -19,6 +19,13 @@ namespace TaskManagement.API.Controllers
             _projectMemberService = projectMemberService;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetMembers(Guid projectId)
+        {
+            var members = await _projectMemberService.GetProjectMembersAsync(projectId);
+            return Ok(new { statusCode = 200, message = "Success", data = members });
+        }
+
         [HttpDelete("{userId}")]
         [ProjectAuthorize($"{ProjectRoles.PO},{ProjectRoles.PM},{ProjectRoles.SM},{ProjectRoles.TechLead}")]
         public async Task<IActionResult> RemoveMember(Guid projectId, Guid userId)

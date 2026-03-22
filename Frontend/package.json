@@ -9,10 +9,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@microsoft/signalr": "^10.0.0",
     "axios": "^1.13.6",
+    "dompurify": "^3.3.3",
+    "echarts": "^6.0.0",
     "lucide-vue-next": "^0.577.0",
+    "v-calendar": "^3.1.2",
     "vue": "^3.5.30",
-    "vue-router": "^4.6.4"
+    "vue-router": "^4.6.4",
+    "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
     "@element-plus/icons-vue": "^2.3.2",

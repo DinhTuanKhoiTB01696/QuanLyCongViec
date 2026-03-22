@@ -47,7 +47,7 @@
         </div>
         <ul class="side-menu">
           <li class="active"><i class="fa-solid fa-border-all"></i> Dành cho bạn</li>
-          <li @click="goToSpace('my-team')"><i class="fa-regular fa-folder-open"></i> Không gian</li>
+          <li @click="goToDefaultSpace"><i class="fa-regular fa-folder-open"></i> Không gian</li>
           <li><i class="fa-regular fa-clock"></i> Gần đây</li>
           <li class="ai-item" @click="goToAI"><i class="fa-solid fa-robot"></i> Trợ lý AI</li>
           <li><i class="fa-solid fa-ellipsis"></i> Thêm</li>
@@ -68,6 +68,9 @@
             <div v-if="spaces.length === 0" class="empty-state">
               <i class="fa-regular fa-folder-open"></i>
               <p>Chưa có không gian nào gần đây</p>
+              <el-button type="primary" plain @click="joinSampleProject" :loading="isLoading">
+                Tham gia dự án mẫu để test
+              </el-button>
             </div>
             <div v-else class="space-card jira-card" v-for="space in spaces" :key="space.id" @click="goToSpace(space.id)">
               <div class="card-left-border" :style="{ backgroundColor: space.color }"></div>
@@ -175,7 +178,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
 import logoImg from '../assets/logo_QLCV.png'
@@ -183,12 +186,15 @@ import HelpDropdown from '../components/HelpDropdown.vue'
 import SettingsDropdown from '../components/SettingsDropdown.vue'
 import NotificationsDropdown from '../components/NotificationsDropdown.vue'
 import UserDropdown from '../components/UserDropdown.vue'
+import axiosClient from '../api/axiosClient'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 
 const sidebarVisible = ref(false)
 const aiVisible = ref(false)
 const searchQuery = ref('')
+const isLoading = ref(false)
 
 const toggleSidebar = () => {
   sidebarVisible.value = !sidebarVisible.value
@@ -196,6 +202,14 @@ const toggleSidebar = () => {
 
 const toggleAI = () => {
   aiVisible.value = !aiVisible.value
+}
+
+const goToDefaultSpace = () => {
+  if (spaces.value.length > 0) {
+    router.push(`/space/${spaces.value[0].id}`)
+  } else {
+    ElMessage.warning('Bạn chưa tham gia dự án nào')
+  }
 }
 
 const goToSpace = (id) => {
@@ -206,9 +220,42 @@ const goToAI = () => {
   router.push('/ai-assistant')
 }
 
-// Emptied Data
 const spaces = ref([])
 const tasks = ref([])
+
+const fetchSpaces = async () => {
+  isLoading.value = true
+  try {
+    const response = await axiosClient.get('/projects')
+    spaces.value = response.data.map(p => ({
+      ...p,
+      gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)'
+    }))
+  } catch (error) {
+    console.error('Fetch projects error:', error)
+    if (error.response?.status !== 401) {
+        ElMessage.error('Không thể tải danh sách không gian')
+    }
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const joinSampleProject = async () => {
+  isLoading.value = true
+  try {
+    await axiosClient.get('/debug/join-sample')
+    ElMessage.success('Bạn đã tham gia dự án mẫu thành công!')
+    await fetchSpaces()
+  } catch (error) {
+    console.error('Join sample error:', error)
+    ElMessage.error('Không thể tham gia dự án mẫu')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(fetchSpaces)
 </script>
 
 <style scoped>

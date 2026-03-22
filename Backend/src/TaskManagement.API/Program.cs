@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 1. Mở tính năng Controllers (Chuẩn bị cho các API Login, Task...)
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 
 builder.Services.AddOpenApi();
 
@@ -59,5 +60,23 @@ app.UseDefaultFiles(); // Phải gọi dòng này trước
 app.UseStaticFiles();
 // 5. Nối các endpoint vào Controllers
 app.MapControllers();
+app.MapHub<TaskManagement.API.Hubs.KanbanHub>("/kanban-hub");
+
+// TỰ ĐỘNG MIGRATE VÀ SEED DỮ LIỆU KHI STARTUP (PM: Vui lòng không xóa đoạn này)
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<ApplicationDbContext>();
+    try 
+    {
+        await context.Database.MigrateAsync();
+        await DatabaseSeeder.SeedAsync(context);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Lỗi khi Migrate/Seed: " + ex.Message);
+    }
+}
+
 app.MapFallbackToFile("index.html");
 app.Run();

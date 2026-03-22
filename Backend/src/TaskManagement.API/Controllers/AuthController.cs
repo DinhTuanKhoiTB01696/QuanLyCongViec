@@ -27,7 +27,7 @@ namespace TaskManagement.API.Controllers
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = true, // Nên set true trên HTTPS
+                    Secure = Request.IsHttps, // Set true only if request is HTTPS
                     SameSite = SameSiteMode.Strict,
                     Expires = DateTime.UtcNow.AddDays(7)
                 };
@@ -83,7 +83,7 @@ namespace TaskManagement.API.Controllers
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = true,
+                    Secure = Request.IsHttps,
                     SameSite = SameSiteMode.Strict,
                     Expires = DateTime.UtcNow.AddDays(7)
                 };

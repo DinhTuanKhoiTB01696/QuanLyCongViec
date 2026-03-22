@@ -6,6 +6,7 @@ using TaskManagement.Application.Interfaces;
 using TaskManagement.Domain.Constants;
 using TaskManagement.Domain.Entities;
 using TaskManagement.Infrastructure.Data;
+using TaskManagement.Application.DTOs.Project;
 
 namespace TaskManagement.Infrastructure.Services
 {
@@ -82,6 +83,22 @@ namespace TaskManagement.Infrastructure.Services
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        public async Task<IEnumerable<ProjectMemberDto>> GetProjectMembersAsync(Guid projectId)
+        {
+            return await _context.ProjectMembers
+                .Include(pm => pm.User)
+                .Where(pm => pm.ProjectId == projectId && pm.Status)
+                .Select(pm => new ProjectMemberDto
+                {
+                    UserId = pm.UserId,
+                    FullName = pm.User.FullName,
+                    Email = pm.User.Email,
+                    ProjectRole = pm.ProjectRole,
+                    Status = pm.Status
+                })
+                .ToListAsync();
         }
     }
 }
