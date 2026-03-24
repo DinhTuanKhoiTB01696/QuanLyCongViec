@@ -56,7 +56,11 @@ namespace TaskManagement.Infrastructure.Services
 
         public async Task<(AuthResponseDto response, string refreshToken)> GoogleLoginAsync(GoogleLoginRequestDto request)
         {
-            var payload = await GoogleJsonWebSignature.ValidateAsync(request.Credential);
+            var settings = new GoogleJsonWebSignature.ValidationSettings
+            {
+                Audience = new List<string> { "1008910270642-b5ic5oo3sb2rnemts5dp9sfaq025cud8.apps.googleusercontent.com" }
+            };
+            var payload = await GoogleJsonWebSignature.ValidateAsync(request.Credential, settings);
             
             var user = await _context.Users
                 .Include(u => u.UserRoles)
@@ -80,13 +84,15 @@ namespace TaskManagement.Infrastructure.Services
                 var defaultRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Developer" || r.Name == "DEV");
                 if (defaultRole != null)
                 {
-                    _context.UserRoles.Add(new UserRole
+                    var ur = new UserRole
                     {
                         UserId = user.Id,
-                        RoleId = defaultRole.Id
-                    });
-                     // Assign for instant token generation
-                    user.UserRoles = new List<UserRole> { new UserRole { Role = defaultRole } };
+                        RoleId = defaultRole.Id,
+                        Role = defaultRole
+                    };
+                    _context.UserRoles.Add(ur);
+                     // Assign for instant token generation using the exact same tracked instance
+                    user.UserRoles = new List<UserRole> { ur };
                 }
                 
                 await _context.SaveChangesAsync();

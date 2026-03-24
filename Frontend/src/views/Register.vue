@@ -18,11 +18,16 @@
         <h1 class="auth-title">Tạo Tài Khoản</h1>
         <p class="auth-subtitle">Bắt đầu quản lý dự án và công việc của bạn với SprintA.</p>
         
-        <GoogleLogin :callback="handleGoogleLogin">
-          <el-button plain class="social-btn full-width">
-            <img :src="googleIcon" alt="Google" class="social-icon" /> Tiếp tục với Google
+        <div class="social-login">
+          <GoogleLogin :callback="handleGoogleLogin" class="social-btn-wrapper">
+            <el-button plain class="social-btn">
+              <img :src="googleIcon" alt="Google" class="social-icon" /> Google
+            </el-button>
+          </GoogleLogin>
+          <el-button plain class="social-btn">
+            <img :src="githubIcon" alt="GitHub" class="social-icon" /> GitHub
           </el-button>
-        </GoogleLogin>
+        </div>
         
         <div class="divider">
           <span>hoặc</span>
@@ -66,6 +71,7 @@ import { useRouter } from 'vue-router'
 import axiosClient from '../api/axiosClient'
 import logoImg from '../assets/logo_QLCV.png'
 import googleIcon from '../assets/Icongoogle.png'
+import githubIcon from '../assets/Icongithub.png'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -128,7 +134,13 @@ const handleRegister = async () => {
         ElMessage.success(response.data.message || 'Đăng ký thành công!');
         router.push('/login');
       } catch (error) {
-        ElMessage.error(error.response?.data?.message || 'Có lỗi xảy ra khi đăng ký.')
+        let errorMsg = error.response?.data?.message || 'Có lỗi xảy ra khi đăng ký.'
+        const errors = error.response?.data?.errors
+        if (errors) {
+          const firstKey = Object.keys(errors)[0]
+          errorMsg = errors[firstKey][0]
+        }
+        ElMessage.error(errorMsg)
         console.error('Register error:', error)
       } finally {
         isLoading.value = false;
@@ -292,8 +304,29 @@ const handleGoogleLogin = async (response) => {
   }
 }
 
-.social-btn.full-width {
+.social-login {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 640px) {
+  .social-login {
+    flex-direction: column;
+  }
+}
+
+:deep(.social-btn-wrapper) {
+  flex: 1;
+  display: flex;
+}
+
+:deep(.social-btn-wrapper > *) {
   width: 100%;
+}
+
+.social-btn {
+  flex: 1;
   height: 44px;
   border-radius: 10px;
   font-weight: 500;
