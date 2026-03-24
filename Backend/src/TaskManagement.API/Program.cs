@@ -64,7 +64,7 @@ app.UseDefaultFiles(); // Phải gọi dòng này trước
 app.UseStaticFiles();
 // 5. Nối các endpoint vào Controllers
 app.MapControllers();
-app.MapHub<TaskManagement.API.Hubs.KanbanHub>("/kanban-hub");
+// app.MapHub removed because KanbanHub was deleted
 
 // TỰ ĐỘNG MIGRATE VÀ SEED DỮ LIỆU KHI STARTUP (PM: Vui lòng không xóa đoạn này)
 using (var scope = app.Services.CreateScope())

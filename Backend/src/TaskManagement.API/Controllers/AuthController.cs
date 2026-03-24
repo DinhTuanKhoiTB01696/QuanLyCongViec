@@ -78,7 +78,7 @@ namespace TaskManagement.API.Controllers
             {
                 return BadRequest(new { statusCode = 400, message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { statusCode = 500, message = "Internal server error" });
             }
