@@ -53,22 +53,14 @@
             Đăng nhập
           </el-button>
 
-          <el-button 
-            type="info" 
-            plain 
-            class="demo-btn" 
-            @click="loginAsDemo" 
-            :loading="isLoading"
-          >
-            🔑 Đăng nhập tài khoản Demo
-          </el-button>
+
           
           <div class="divider">
             <span>HOẶC TIẾP TỤC VỚI</span>
           </div>
           
           <div class="social-login">
-            <GoogleLogin :callback="handleGoogleLogin">
+            <GoogleLogin :callback="handleGoogleLogin" class="social-btn-wrapper">
               <el-button plain class="social-btn">
                 <img :src="googleIcon" alt="Google" class="social-icon" /> Google
               </el-button>
@@ -110,11 +102,7 @@ const router = useRouter()
 
 const isLoading = ref(false)
 
-const loginAsDemo = async () => {
-  form.email = 'user1@test.com'
-  form.password = 'Password123'
-  await handleLogin()
-}
+
 
 const handleLogin = async () => {
   if (!form.email || !form.password) {
@@ -142,7 +130,12 @@ const handleLogin = async () => {
     router.push(redirect || '/dashboard')
   } catch (error) {
     console.error('Login error:', error)
-    const errorMsg = error.response?.data?.message || 'Email hoặc mật khẩu không chính xác'
+    let errorMsg = error.response?.data?.message || 'Email hoặc mật khẩu không chính xác'
+    const errors = error.response?.data?.errors
+    if (errors) {
+      const firstKey = Object.keys(errors)[0]
+      errorMsg = errors[firstKey][0]
+    }
     ElMessage.error(errorMsg)
   } finally {
     isLoading.value = false
@@ -345,6 +338,15 @@ const handleGoogleLogin = async (response) => {
   display: flex;
   gap: 16px;
   margin-bottom: 32px;
+}
+
+:deep(.social-btn-wrapper) {
+  flex: 1;
+  display: flex;
+}
+
+:deep(.social-btn-wrapper > *) {
+  width: 100%;
 }
 
 @media (max-width: 640px) {

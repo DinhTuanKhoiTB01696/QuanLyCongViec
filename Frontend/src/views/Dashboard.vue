@@ -68,9 +68,6 @@
             <div v-if="spaces.length === 0" class="empty-state">
               <i class="fa-regular fa-folder-open"></i>
               <p>Chưa có không gian nào gần đây</p>
-              <el-button type="primary" plain @click="joinSampleProject" :loading="isLoading">
-                Tham gia dự án mẫu để test
-              </el-button>
             </div>
             <div v-else class="space-card jira-card" v-for="space in spaces" :key="space.id" @click="goToSpace(space.id)">
               <div class="card-left-border" :style="{ backgroundColor: space.color }"></div>
@@ -241,19 +238,7 @@ const fetchSpaces = async () => {
   }
 }
 
-const joinSampleProject = async () => {
-  isLoading.value = true
-  try {
-    await axiosClient.get('/debug/join-sample')
-    ElMessage.success('Bạn đã tham gia dự án mẫu thành công!')
-    await fetchSpaces()
-  } catch (error) {
-    console.error('Join sample error:', error)
-    ElMessage.error('Không thể tham gia dự án mẫu')
-  } finally {
-    isLoading.value = false
-  }
-}
+
 
 onMounted(fetchSpaces)
 </script>
