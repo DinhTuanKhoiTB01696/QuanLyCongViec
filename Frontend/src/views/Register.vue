@@ -28,20 +28,8 @@
           class="auth-form" 
           label-position="top"
         >
-          <el-form-item label="Họ và tên">
-            <el-input v-model="form.name" placeholder="Nguyễn Văn A" size="large" />
-          </el-form-item>
-
           <el-form-item label="Địa chỉ Email">
             <el-input v-model="form.email" placeholder="name@email.com" size="large" />
-          </el-form-item>
-          
-          <el-form-item label="Mật khẩu">
-            <el-input v-model="form.password" type="password" placeholder="••••••••" size="large" show-password />
-          </el-form-item>
-          
-          <el-form-item label="Xác nhận Mật khẩu">
-            <el-input v-model="form.confirmPassword" type="password" placeholder="••••••••" size="large" show-password />
           </el-form-item>
           
           <el-button type="primary" class="auth-btn" size="large" @click="handleNextStep">
@@ -88,23 +76,23 @@ const step = ref(1)
 const formRef = ref(null)
 
 const form = reactive({
-  name: '',
   email: '',
-  password: '',
-  confirmPassword: '',
   otp: ''
 })
 
 const handleNextStep = () => {
-  if (!form.name || !form.email || !form.password) {
-    ElMessage.warning('Vui lòng điền đầy đủ thông tin')
-    return
-  }
-  if (form.password !== form.confirmPassword) {
-    ElMessage.error('Mật khẩu xác nhận không khớp')
+  if (!form.email) {
+    ElMessage.warning('Vui lòng nhập địa chỉ email')
     return
   }
   
+  // Kiểm tra định dạng email cơ bản
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(form.email)) {
+    ElMessage.error('Định dạng email không hợp lệ')
+    return
+  }
+
   console.log('Sending OTP to:', form.email)
   // Thực tế sẽ gọi API gửi OTP ở đây
   step.value = 2
@@ -117,9 +105,7 @@ const handleRegister = () => {
   }
 
   console.log('Registering user:', {
-    fullName: form.name,
     email: form.email,
-    password: form.password,
     otp: form.otp
   })
   
