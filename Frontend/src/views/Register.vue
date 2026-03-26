@@ -30,20 +30,7 @@
           label-position="top"
           @submit.prevent="handleNextStep"
         >
-          <div class="social-login">
-            <GoogleLogin :callback="handleGoogleLogin" class="social-btn-wrapper">
-              <el-button plain class="social-btn">
-                <img :src="googleIcon" alt="Google" class="social-icon" /> Google
-              </el-button>
-            </GoogleLogin>
-            <el-button plain class="social-btn">
-              <img :src="githubIcon" alt="GitHub" class="social-icon" /> GitHub
-            </el-button>
-          </div>
-          
-          <div class="divider">
-            <span>hoặc</span>
-          </div>
+
 
           <el-form-item label="Địa chỉ Email" prop="email">
             <el-input v-model="form.email" placeholder="name@company.com" size="large" />
@@ -88,8 +75,6 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import axiosClient from '../api/axiosClient'
-import googleIcon from '../assets/Icongoogle.png'
-import githubIcon from '../assets/Icongithub.png'
 import { ElMessage } from 'element-plus'
 import logoImg from '../assets/logo_QLCV.png'
 
@@ -128,30 +113,7 @@ const handleNextStep = async () => {
   });
 }
 
-const handleGoogleLogin = async (response) => {
-  isLoading.value = true
-  try {
-    const res = await axiosClient.post('/auth/google-login', {
-      credential: response.credential
-    })
-    
-    const { accessToken, fullName, email, systemRoles, id } = res.data.data
-    
-    localStorage.setItem('accessToken', accessToken)
-    localStorage.setItem('user', JSON.stringify({ id, fullName, email, systemRoles }))
-    
-    ElMessage.success('Đăng ký bằng Google thành công!')
-    
-    const redirect = router.currentRoute.value.query.redirect
-    router.push(redirect || '/dashboard')
-  } catch (error) {
-    console.error('Google register error:', error)
-    const errorMsg = error.response?.data?.message || 'Không thể xác thực với Google'
-    ElMessage.error(errorMsg)
-  } finally {
-    isLoading.value = false
-  }
-}
+
 </script>
 
 <style scoped>
@@ -301,65 +263,7 @@ const handleGoogleLogin = async (response) => {
   }
 }
 
-.social-login {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 32px;
-}
 
-@media (max-width: 640px) {
-  .social-login {
-    flex-direction: column;
-  }
-}
-
-:deep(.social-btn-wrapper) {
-  flex: 1;
-  display: flex;
-}
-
-:deep(.social-btn-wrapper > *) {
-  width: 100%;
-}
-
-.social-btn {
-  flex: 1;
-  height: 44px;
-  border-radius: 10px;
-  font-weight: 500;
-  color: #334155;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.social-icon {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-}
-
-.divider {
-  display: flex;
-  align-items: center;
-  text-align: center;
-  margin: 24px 0;
-}
-
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.divider span {
-  padding: 0 16px;
-  color: #94a3b8;
-  font-size: 12px;
-  font-style: italic;
-}
 
 .auth-footer-text {
   text-align: center;
