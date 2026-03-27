@@ -62,24 +62,59 @@ namespace TaskManagement.Infrastructure.Services
 
         public async Task<(AuthResponseDto response, string refreshToken)> GoogleLoginAsync(GoogleLoginRequestDto request)
         {
-            var settings = new GoogleJsonWebSignature.ValidationSettings
+            if (string.IsNullOrEmpty(request.Credential))
             {
-                Audience = new List<string> { "1008910270642-b5ic5oo3sb2rnemts5dp9sfaq025cud8.apps.googleusercontent.com" }
-            };
-            var payload = await GoogleJsonWebSignature.ValidateAsync(request.Credential, settings);
-            
+                throw new ArgumentException("Thiếu token xác thực từ Google (Credential is empty). Vui lòng thử lại.");
+            }
+
+            string email;
+            string name;
+
+            // Thử 2 luồng: JWT ID Token (One Tap) hoặc Access Token (Popup TOKEN flow)
+            try
+            {
+                // Luồng 1: Nếu Credential là JWT ID Token → validate trực tiếp
+                var settings = new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = new List<string> { "1008910270642-b5ic5oo3sb2rnemts5dp9sfaq025cud8.apps.googleusercontent.com" }
+                };
+                var jwtPayload = await GoogleJsonWebSignature.ValidateAsync(request.Credential, settings);
+                email = jwtPayload.Email;
+                name = jwtPayload.Name;
+            }
+            catch
+            {
+                // Luồng 2: Nếu Credential là Access Token → gọi Google Userinfo API
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", request.Credential);
+                
+                var userInfoResponse = await httpClient.GetAsync("https://www.googleapis.com/oauth2/v3/userinfo");
+                if (!userInfoResponse.IsSuccessStatusCode)
+                {
+                    throw new UnauthorizedAccessException("Token Google không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.");
+                }
+
+                var content = await userInfoResponse.Content.ReadAsStringAsync();
+                var userInfo = JsonSerializer.Deserialize<JsonElement>(content);
+                
+                email = userInfo.GetProperty("email").GetString() 
+                    ?? throw new UnauthorizedAccessException("Không thể lấy email từ Google.");
+                name = userInfo.TryGetProperty("name", out var nameEl) ? nameEl.GetString() ?? email : email;
+            }
+
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
-                .FirstOrDefaultAsync(u => u.Email == payload.Email && !u.IsDeleted);
+                .FirstOrDefaultAsync(u => u.Email == email && !u.IsDeleted);
 
             if (user == null)
             {
                 user = new User
                 {
                     Id = Guid.NewGuid(),
-                    Email = payload.Email,
-                    FullName = payload.Name,
+                    Email = email,
+                    FullName = name,
                     PasswordHash = string.Empty, // Empty or random hash since they login via Google
                     CreatedAt = DateTime.UtcNow,
                     IsDeleted = false

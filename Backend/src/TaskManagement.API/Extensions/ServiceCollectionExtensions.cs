@@ -15,8 +15,8 @@ namespace TaskManagement.API.Extensions
             // Đăng ký Application Services
             services.AddScoped<IJwtService, JwtService>();
             services.AddScoped<IAuthService, AuthService>();
-            // services.AddScoped<IProjectMemberService, ProjectMemberService>(); removed
-            // services.AddScoped<IWorkTaskService, WorkTaskService>(); removed
+            services.AddScoped<IProjectMemberService, ProjectMemberService>();
+            services.AddScoped<IWorkTaskService, WorkTaskService>();
             // services.AddScoped<IWorkTaskNotificationService, TaskManagement.API.Services.WorkTaskNotificationService>(); removed because it was deleted
             // services.AddScoped<IFileService, FileService>(); removed
 

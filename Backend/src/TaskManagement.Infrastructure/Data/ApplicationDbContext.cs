@@ -340,5 +340,56 @@ namespace TaskManagement.Infrastructure.Data
                 .HasForeignKey(tl => tl.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            // 1. Timezone Handling: Strictly save dates as UTC
+            var dateTimeProperties = ChangeTracker.Entries()
+                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+                .SelectMany(e => e.Properties)
+                .Where(p => p.Metadata.ClrType == typeof(DateTime) || p.Metadata.ClrType == typeof(DateTime?));
+
+            foreach (var prop in dateTimeProperties)
+            {
+                if (prop.CurrentValue is DateTime dt && dt.Kind != DateTimeKind.Utc)
+                {
+                    prop.CurrentValue = dt.ToUniversalTime();
+                }
+            }
+
+            // 2. Automatic Data Roll-up logic preparation
+            var timeLogEntries = ChangeTracker.Entries<TimeLog>()
+                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted)
+                .ToList();
+
+            // Save the logs first
+            var result = await base.SaveChangesAsync(cancellationToken);
+
+            // 3. Automatic Data Roll-up execution (Update Tasks and Parent Tasks)
+            if (timeLogEntries.Any())
+            {
+                var taskIds = timeLogEntries.Select(e => e.Entity.WorkTaskId).Distinct().ToList();
+                var tasks = await WorkTasks.Where(t => taskIds.Contains(t.Id)).ToListAsync(cancellationToken);
+
+                foreach (var task in tasks)
+                {
+                    task.TotalActualHours = await TimeLogs.Where(tl => tl.WorkTaskId == task.Id).SumAsync(tl => tl.Hours, cancellationToken);
+                }
+                await base.SaveChangesAsync(cancellationToken);
+
+                var parentIds = tasks.Where(t => t.ParentTaskId.HasValue).Select(t => t.ParentTaskId.Value).Distinct().ToList();
+                if (parentIds.Any())
+                {
+                    var parents = await WorkTasks.Where(t => parentIds.Contains(t.Id)).ToListAsync(cancellationToken);
+                    foreach (var parent in parents)
+                    {
+                        parent.TotalActualHours = await WorkTasks.Where(t => t.ParentTaskId == parent.Id).SumAsync(t => t.TotalActualHours, cancellationToken);
+                    }
+                    await base.SaveChangesAsync(cancellationToken);
+                }
+            }
+
+            return result;
+        }
     }
 }
