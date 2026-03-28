@@ -15,28 +15,32 @@
 
     <div class="auth-container">
       <div class="auth-card">
-        <h1 class="auth-title">{{ step === 1 ? 'Tạo Tài Khoản' : 'Xác thực Email' }}</h1>
+        <h1 class="auth-title">
+          {{ step === 1 ? 'Đăng Ký Tài Khoản' : step === 2 ? 'Xác thực Email' : 'Hoàn Tất Đăng Ký' }}
+        </h1>
         <p class="auth-subtitle">
-          {{ step === 1 ? 'Bắt đầu quản lý dự án và công việc của bạn với SprintA.' : 'Nhập mã xác thực đã được gửi đến email của bạn.' }}
+          {{ 
+            step === 1 ? 'Bắt đầu quản lý dự án và công việc của bạn với SprintA.' : 
+            step === 2 ? 'Nhập mã xác thực đã được gửi đến email của bạn.' :
+            'Tạo mật khẩu và tên hiển thị cho tài khoản của bạn.'
+          }}
         </p>
 
-        <!-- Step 1: Registration Information -->
+        <!-- Step 1: Email Input -->
         <el-form 
           v-if="step === 1" 
-          ref="formRef"
+          ref="emailFormRef"
           :model="form"
           :rules="rules"
           class="auth-form" 
           label-position="top"
-          @submit.prevent="handleNextStep"
+          @submit.prevent="handleSendOtp"
         >
-
-
           <el-form-item label="Địa chỉ Email" prop="email">
             <el-input v-model="form.email" placeholder="name@company.com" size="large" />
           </el-form-item>
           
-          <el-button type="primary" class="auth-btn" size="large" :loading="isLoading" @click="handleNextStep">
+          <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">
             Gửi mã OTP
           </el-button>
           
@@ -46,7 +50,7 @@
         </el-form>
 
         <!-- Step 2: OTP Verification -->
-        <el-form v-else class="auth-form" @submit.prevent="handleRegister" label-position="top">
+        <el-form v-else-if="step === 2" class="auth-form" @submit.prevent="handleVerifyOtp" label-position="top">
           <div class="otp-instruction">
             Chúng tôi đã gửi mã xác thực tới <strong>{{ form.email }}</strong>. Vui lòng kiểm tra hộp thư của bạn.
           </div>
@@ -55,12 +59,35 @@
           </el-form-item>
           
           <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">
-            Tạo Tài Khoản
+            Xác thực Mã
           </el-button>
           
           <p class="auth-footer-text">
-            Không nhận được mã? <a href="#" @click.prevent="step = 1">Quay lại</a> hoặc <a href="#">Gửi lại</a>
+            Không nhận được mã? <a href="#" @click.prevent="step = 1">Đổi email</a> hoặc <a href="#" @click.prevent="handleSendOtp">Gửi lại OTP</a>
           </p>
+        </el-form>
+
+        <!-- Step 3: Complete Profile -->
+        <el-form 
+          v-else 
+          ref="profileFormRef"
+          :model="form"
+          :rules="rules"
+          class="auth-form" 
+          label-position="top"
+          @submit.prevent="handleRegister"
+        >
+          <el-form-item label="Họ và Tên" prop="fullName">
+            <el-input v-model="form.fullName" placeholder="Nhập họ và tên" size="large" />
+          </el-form-item>
+
+          <el-form-item label="Mật khẩu" prop="password">
+            <el-input v-model="form.password" type="password" placeholder="Tạo mật khẩu" size="large" show-password />
+          </el-form-item>
+          
+          <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">
+            Hoàn Tất Đăng Ký
+          </el-button>
         </el-form>
       </div>
       
@@ -80,40 +107,117 @@ import logoImg from '../assets/logo_QLCV.png'
 
 const router = useRouter()
 const isLoading = ref(false)
-const formRef = ref(null)
+const emailFormRef = ref(null)
+const profileFormRef = ref(null)
 const step = ref(1)
+const verifiedOtpToken = ref('')
 
 const form = reactive({
   email: '',
-  otp: ''
+  otp: '',
+  fullName: '',
+  password: ''
 })
 
 const rules = reactive({
   email: [
     { required: true, message: 'Vui lòng nhập email', trigger: 'blur' },
     { type: 'email', message: 'Email không hợp lệ', trigger: ['blur', 'change'] }
+  ],
+  fullName: [
+    { required: true, message: 'Vui lòng nhập họ và tên', trigger: 'blur' },
+    { min: 2, message: 'Tên phải có ít nhất 2 ký tự', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: 'Vui lòng tạo mật khẩu', trigger: 'blur' },
+    { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự', trigger: 'blur' },
+    { 
+      pattern: /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/, 
+      message: 'Mật khẩu phải có ít nhất 1 chữ hoa, 1 số và 1 ký tự đặc biệt', 
+      trigger: 'blur' 
+    }
   ]
 })
 
-const handleNextStep = async () => {
-  if (!formRef.value) return;
-  await formRef.value.validate(async (valid) => {
+const handleSendOtp = async () => {
+  if (step.value === 1 && !emailFormRef.value) return;
+  
+  const validatePromise = step.value === 1 
+    ? emailFormRef.value.validate() 
+    : Promise.resolve(true);
+
+  try {
+    const valid = await validatePromise;
     if (valid) {
       isLoading.value = true;
       try {
-        console.log('Sending OTP to:', form.email)
-        ElMessage.success('Đã gửi mã OTP đến email của bạn');
+        const response = await axiosClient.post('/auth/send-otp', { email: form.email });
+        ElMessage.success(response.data.message || 'Đã gửi mã OTP đến email của bạn');
+        form.otp = ''; // Reset OTP field
         step.value = 2;
       } catch (error) {
-        console.error('Register error:', error)
+        console.error('Send OTP error:', error);
+        ElMessage.error(error.response?.data?.message || 'Có lỗi xảy ra khi gửi OTP');
+      } finally {
+        isLoading.value = false;
+      }
+    }
+  } catch (err) {
+    // validation failed
+  }
+}
+
+const handleVerifyOtp = async () => {
+  if (!form.otp || form.otp.length !== 6) {
+    ElMessage.error('Vui lòng nhập mã OTP 6 ký tự');
+    return;
+  }
+  
+  isLoading.value = true;
+  try {
+    const response = await axiosClient.post('/auth/verify-otp', { 
+      email: form.email, 
+      otpCode: form.otp 
+    });
+    
+    if (response.data.verified) {
+      ElMessage.success('Xác thực email thành công');
+      verifiedOtpToken.value = response.data.otpToken; // Save token for register step
+      step.value = 3;
+    }
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    ElMessage.error(error.response?.data?.message || 'Mã OTP không hợp lệ');
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+const handleRegister = async () => {
+  if (!profileFormRef.value) return;
+  
+  await profileFormRef.value.validate(async (valid) => {
+    if (valid) {
+      isLoading.value = true;
+      try {
+        const response = await axiosClient.post('/auth/register', { 
+          email: form.email,
+          fullName: form.fullName,
+          password: form.password,
+          otpCode: verifiedOtpToken.value
+        });
+        
+        ElMessage.success('Tạo tài khoản thành công! Khởi tạo phiên làm việc bằng cách đăng nhập.');
+        router.push('/login');
+      } catch (error) {
+        console.error('Register error:', error);
+        ElMessage.error(error.response?.data?.message || 'Có lỗi xảy ra khi tạo tài khoản');
       } finally {
         isLoading.value = false;
       }
     }
   });
 }
-
-
 </script>
 
 <style scoped>

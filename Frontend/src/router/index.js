@@ -23,7 +23,7 @@ router.beforeEach((to, from, next) => {
   const authRequired = !publicPages.includes(to.path)
 
   if (authRequired && !token) {
-    return next({ 
+    return next({
       path: '/login',
       query: { redirect: to.fullPath }
     })

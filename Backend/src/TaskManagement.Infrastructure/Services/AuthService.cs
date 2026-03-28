@@ -17,12 +17,14 @@ namespace TaskManagement.Infrastructure.Services
         private readonly ApplicationDbContext _context;
         private readonly IJwtService _jwtService;
         private readonly IConfiguration _configuration;
+        private readonly IOtpService _otpService;
 
-        public AuthService(ApplicationDbContext context, IJwtService jwtService, IConfiguration configuration)
+        public AuthService(ApplicationDbContext context, IJwtService jwtService, IConfiguration configuration, IOtpService otpService)
         {
             _context = context;
             _jwtService = jwtService;
             _configuration = configuration;
+            _otpService = otpService;
         }
 
         public async Task<(AuthResponseDto response, string refreshToken)> LoginAsync(LoginRequestDto request)

@@ -47,7 +47,7 @@ axiosClient.interceptors.response.use(
 
         if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
             if (isRefreshing) {
-                return new Promise(function(resolve, reject) {
+                return new Promise(function (resolve, reject) {
                     failedQueue.push({ resolve, reject });
                 }).then(token => {
                     originalRequest.headers['Authorization'] = 'Bearer ' + token;
@@ -64,17 +64,17 @@ axiosClient.interceptors.response.use(
                 // Call refresh-token API. Cookie is automatically sent due to withCredentials
                 // Backend requires the expired access token in the header to identify the user
                 const accessToken = localStorage.getItem('accessToken');
-                const { data } = await axios.post('http://localhost:5136/api/auth/refresh-token', {}, { 
+                const { data } = await axios.post('http://localhost:5136/api/auth/refresh-token', {}, {
                     headers: { 'Authorization': `Bearer ${accessToken}` },
-                    withCredentials: true 
+                    withCredentials: true
                 });
-                
+
                 const newAccessToken = data.data.accessToken;
                 localStorage.setItem('accessToken', newAccessToken);
-                
+
                 axiosClient.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
                 originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
-                
+
                 processQueue(null, newAccessToken);
                 return axiosClient(originalRequest);
             } catch (err) {

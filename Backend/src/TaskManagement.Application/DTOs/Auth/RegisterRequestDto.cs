@@ -18,5 +18,9 @@ namespace TaskManagement.Application.DTOs.Auth
         [RegularExpression(@"^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$", 
             ErrorMessage = "Mật khẩu phải có ít nhất 1 chữ hoa, 1 chữ số và 1 ký tự đặc biệt.")]
         public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Mã OTP là bắt buộc.")]
+        [StringLength(6, MinimumLength = 6, ErrorMessage = "Mã OTP phải có 6 ký tự.")]
+        public string OtpCode { get; set; } = string.Empty;
     }
 }
