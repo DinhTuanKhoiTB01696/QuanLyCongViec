@@ -1,40 +1,6 @@
 <template>
   <div class="dashboard-layout">
-    <!-- Navbar -->
-    <header class="top-nav">
-      <div class="nav-left">
-        <div class="menu-toggle mobile-only" @click="sidebarVisible = !sidebarVisible">
-          <i class="fa-solid fa-bars"></i>
-        </div>
-        <router-link to="/dashboard" class="nav-brand">
-          <img :src="logoImg" alt="SprintA Logo" class="nav-logo" />
-          <span class="desktop-only">SprintA</span>
-        </router-link>
-        <span class="nav-link desktop-only">Trợ lý AI</span>
-      </div>
-
-      <div class="nav-center desktop-only">
-        <div class="top-search-create">
-          <div class="search-input-mock">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" placeholder="Tìm kiếm công việc, tài liệu, hoặc hỏi AI..." v-model="searchQuery" />
-          </div>
-          <button class="btn-create-jira"><i class="fa-solid fa-plus"></i> Tạo mới</button>
-        </div>
-      </div>
-
-      <div class="nav-right">
-
-        <div class="nav-icon bot-icon active" @click="toggleAIView">
-          <i class="fa-solid fa-robot"></i>
-        </div>
-
-        <NotificationsDropdown class="desktop-only" />
-        <HelpDropdown class="desktop-only" />
-        <SettingsDropdown class="desktop-only" />
-        <UserDropdown />
-      </div>
-    </header>
+    <!-- Top Nav removed as per request for a cleaner AI experience -->
 
     <div class="main-body">
       <!-- Sidebar -->
@@ -44,13 +10,15 @@
           <li v-if="sidebarPreferences.spaces" @click="goToSpace"><i class="fa-regular fa-folder-open"></i> Không gian</li>
           <li v-if="sidebarPreferences.recent"><i class="fa-regular fa-clock"></i> Gần đây</li>
           <li v-if="sidebarPreferences.ai" class="active"><i class="fa-solid fa-robot"></i> Trợ lý AI</li>
+          <li v-if="sidebarPreferences.audit" @click="router.push('/audit-log')"><i class="fa-solid fa-list-check"></i> Audit Log</li>
+          <li v-if="sidebarPreferences.users" @click="router.push('/user-management')"><i class="fa-solid fa-users-gear"></i> Quản lý người dùng</li>
           <li class="more-dropdown-wrapper" style="padding: 0; background: transparent !important; margin-bottom: 4px;">
             <el-dropdown trigger="click" placement="bottom-start" popper-class="custom-sidebar-dropdown" style="width: 100%;">
               <div class="sidebar-more-trigger">
                 <i class="fa-solid fa-ellipsis"></i> Thêm
               </div>
               <template #dropdown>
-                <el-dropdown-menu class="jira-more-menu" style="background-color: #282e33; border: 1px solid #333c43; border-radius: 4px; padding: 4px 0; width: 200px;">
+                <el-dropdown-menu class="jira-more-menu" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 0; width: 200px;">
                   <!-- Unselected items mapped to Dropdown -->
                   <el-dropdown-item v-if="!sidebarPreferences.spaces">
                     <div @click="goToSpace" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
@@ -65,13 +33,24 @@
                     </div>
                   </el-dropdown-item>
                   <el-dropdown-item v-if="!sidebarPreferences.ai">
-                    <div style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
+                    <div @click="toggleAIView" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
                       <i class="fa-solid fa-robot"></i>
                       <span>Trợ lý AI</span>
                     </div>
                   </el-dropdown-item>
-
-                  <el-dropdown-item v-if="!sidebarPreferences.spaces || !sidebarPreferences.recent || !sidebarPreferences.ai" divided></el-dropdown-item>
+                  <el-dropdown-item v-if="!sidebarPreferences.audit">
+                    <div @click="router.push('/audit-log')" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
+                      <i class="fa-solid fa-list-check"></i>
+                      <span>Audit Log</span>
+                    </div>
+                  </el-dropdown-item>
+                  <el-dropdown-item v-if="!sidebarPreferences.users">
+                    <div @click="router.push('/user-management')" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
+                      <i class="fa-solid fa-users-gear"></i>
+                      <span>Quản lý người dùng</span>
+                    </div>
+                  </el-dropdown-item>
+                  <el-dropdown-item v-if="!sidebarPreferences.spaces || !sidebarPreferences.recent || !sidebarPreferences.ai || !sidebarPreferences.audit" divided></el-dropdown-item>
 
                   <el-dropdown-item>
                     <div @click="showCustomizeModal = true" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
@@ -84,22 +63,26 @@
             </el-dropdown>
           </li>
         </ul>
+        <div class="sidebar-footer">
+          <div class="user-card-mini">
+            <UserDropdown />
+            <div class="user-info">
+              <div class="name">Người dùng</div>
+              <div class="plan">Gói miễn phí</div>
+            </div>
+          </div>
+        </div>
       </aside>
 
       <!-- AI Content Area -->
       <main class="content-area">
         <div class="ai-container">
-          <!-- AI Header Tabs -->
           <div class="ai-page-header">
-            <h2 class="page-title">Trợ lý AI</h2>
-            <div class="jira-tabs">
-              <div class="jira-tab">Tổng quan</div>
-              <div class="jira-tab">Tồn đọng</div>
-              <div class="jira-tab">Bảng</div>
-              <div class="jira-tab active">Lịch</div>
-              <div class="jira-tab">Lộ trình</div>
-              <div class="jira-tab">Trang</div>
-              <div class="jira-tab">Biểu mẫu</div>
+            <div class="header-left">
+              <div class="menu-toggle mobile-only" @click="sidebarVisible = !sidebarVisible">
+                <i class="fa-solid fa-bars"></i>
+              </div>
+              <h2 class="page-title">Trợ lý AI</h2>
             </div>
           </div>
 
@@ -205,9 +188,8 @@ const showCustomizeModal = ref(false)
 const sidebarVisible = ref(true)
 
 const sidebarPreferences = ref({
-  recent: true,
-  spaces: true,
-  ai: true
+  audit: true,
+  users: true
 })
 
 onMounted(() => {
@@ -223,7 +205,7 @@ const handleSidebarSaved = (prefs) => {
   const newPrefs = { ...sidebarPreferences.value }
   if (prefs && prefs.navItems) {
     prefs.navItems.forEach(item => {
-      if (['recent', 'spaces', 'ai'].includes(item.id)) {
+      if (['recent', 'spaces', 'ai', 'audit', 'users'].includes(item.id)) {
         newPrefs[item.id] = item.checked
       }
     })
@@ -294,7 +276,7 @@ const goToSpace = () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: white;
+  color: var(--text-primary);
   text-decoration: none;
   font-weight: 800;
   font-size: 20px;
@@ -390,29 +372,50 @@ const goToSpace = () => {
 .content-area { flex: 1; background-color: var(--bg-content); display: flex; justify-content: center; padding: 0; overflow-y: auto;}
 .ai-container { width: 100%; max-width: 900px; display: flex; flex-direction: column; height: 100%; }
 
-.ai-page-header { padding: 32px 40px 0; border-bottom: 1px solid var(--border-color); }
-.page-title { font-size: 20px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); }
-
-.jira-tabs { display: flex; gap: 24px; }
-.jira-tab { padding: 8px 0 12px; color: var(--text-secondary); font-size: 14px; cursor: pointer; position: relative; }
-.jira-tab.active { color: #579dff; }
-.jira-tab.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: #579dff; }
+.ai-page-header { 
+  padding: 24px 40px; 
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.page-title { font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0; }
 
 .chat-history { flex: 1; padding: 40px; display: flex; flex-direction: column; gap: 32px; overflow-y: auto; }
 .chat-row { display: flex; gap: 16px; max-width: 85%; }
 .chat-row.user { align-self: flex-end; flex-direction: row-reverse; }
 
-.bot-icon-circle { width: 32px; height: 32px; background: #1d2a4a; border: 1px solid #334155; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #579dff; flex-shrink: 0; }
-.user-avatar-circle { width: 32px; height: 32px; background: #579dff; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #0c101a; font-weight: 700; font-size: 11px; flex-shrink: 0; }
+.bot-icon-circle { width: 32px; height: 32px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #579dff; flex-shrink: 0; }
+.user-avatar-circle { width: 32px; height: 32px; background: #579dff; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--bg-nav); font-weight: 700; font-size: 11px; flex-shrink: 0; }
 
-.bubble { background: var(--bg-secondary); padding: 16px 20px; border-radius: 4px 16px 16px 16px; color: var(--text-primary); font-size: 14px; line-height: 1.5; }
-.bubble.primary { background: #3b82f6; color: white; border-radius: 16px 4px 16px 16px; }
+.bubble { 
+  background: var(--bg-secondary); 
+  padding: 16px 20px; 
+  border-radius: 12px; 
+  color: var(--text-primary); 
+  font-size: 14px; 
+  line-height: 1.6; 
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+}
+.bubble.primary { 
+  background: #3b82f6; 
+  color: white; 
+  border: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+.chat-row { display: flex; gap: 16px; max-width: 85%; align-items: flex-start; }
 
-.draft-box { background: #0c111d; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin: 12px 0; font-family: 'Inter', sans-serif; font-size: 14px; }
+.draft-box { background: var(--bg-layout); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin: 12px 0; font-family: 'Inter', sans-serif; font-size: 14px; color: var(--text-primary); }
 
 .ai-chat-input-wrapper { padding: 24px 40px 32px; }
-.input-box { background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; align-items: center; padding: 12px 20px; gap: 12px; }
-.input-box input { flex: 1; background: transparent; border: none; color: white; outline: none; font-size: 14px; }
+.input-box { background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; align-items: center; padding: 12px 20px; gap: 12px; border-radius: 8px; }
+.input-box input { flex: 1; background: transparent; border: none; color: var(--text-primary); outline: none; font-size: 14px; }
 .attach-btn { color: #94a3b8; cursor: pointer; }
 .send-btn { background: #579dff; border: none; width: 32px; height: 32px; border-radius: 4px; color: #1d2125; cursor: pointer; }
 
@@ -421,7 +424,7 @@ const goToSpace = () => {
 /* AI Details Panel */
 .ai-details-panel { width: 320px; background: var(--bg-sidebar); border-left: 1px solid var(--border-color); padding: 32px 24px; display: flex; flex-direction: column; }
 .panel-section { margin-bottom: 40px; }
-.panel-section .section-title { font-size: 11px; color: #64748b; font-weight: 700; margin-bottom: 16px; text-transform: uppercase; }
+.panel-section .section-title { font-size: 11px; color: var(--text-muted); font-weight: 700; margin-bottom: 16px; text-transform: uppercase; }
 
 .quick-links { display: flex; flex-direction: column; gap: 8px; }
 .q-link { background: transparent; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 12px; cursor: pointer; }
@@ -436,21 +439,21 @@ const goToSpace = () => {
 .c-text .c-time { font-size: 12px; color: var(--text-secondary); }
 
 .upgrade-card-wrapper { margin-top: auto; }
-.upgrade-card { background: linear-gradient(135deg, #1e293b 0%, #0f111a 100%); border: 1px solid #579dff66; border-radius: 12px; padding: 20px; text-align: left; }
+.upgrade-card { background: var(--active-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; text-align: left; }
 .plan-label { font-size: 11px; font-weight: 800; color: #579dff; margin-bottom: 8px; }
-.plan-desc { font-size: 12px; color: #cbd5e1; line-height: 1.4; margin-bottom: 16px; }
+.plan-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 16px; }
 .btn-upgrade { width: 100%; background: #3b82f6; border: none; color: white; padding: 10px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; }
 .btn-upgrade:hover { background: #2563eb; }
 
 /* AI Popup Sidebar */
-.ai-sidebar.popup { width: 420px; background-color: #131824; border-left: 1px solid #1e293b; position: fixed; top: 56px; right: 0; bottom: 0; z-index: 100; }
-.ai-header { padding: 16px 20px; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; }
-.ai-header h4 { font-size: 14px; margin: 0; color: #f8fafc; display: flex; align-items: center; gap: 8px; }
+.ai-sidebar.popup { width: 420px; background-color: var(--bg-nav); border-left: 1px solid var(--border-color); position: fixed; top: 56px; right: 0; bottom: 0; z-index: 100; }
+.ai-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.ai-header h4 { font-size: 14px; margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
 .ai-header h4 i { color: #579dff; }
 .ai-content { padding: 20px; }
 .chat-message { display: flex; gap: 12px; }
 .avatar-bot { width: 28px; height: 28px; border-radius: 50%; background-color: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; }
-.message-bubble { background-color: #1e293b; padding: 14px; border-radius: 4px 16px 16px 16px; color: #e2e8f0; font-size: 13px; line-height: 1.5; }
+.message-bubble { background-color: var(--bg-secondary); padding: 14px; border-radius: 4px 16px 16px 16px; color: var(--text-primary); font-size: 13px; line-height: 1.5; border: 1px solid var(--border-color); }
 
 .slide-right-enter-active, .slide-right-leave-active { transition: transform 0.3s ease; }
 .slide-right-enter-from, .slide-right-leave-to { transform: translateX(100%); }
@@ -514,19 +517,20 @@ const goToSpace = () => {
 
 <style>
 .custom-sidebar-dropdown.el-popper {
-  background: #282e33 !important;
-  border: 1px solid #333c43 !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color) !important;
   border-radius: 4px !important;
 }
 .custom-sidebar-dropdown .el-dropdown-menu__item {
   background-color: transparent !important;
+  color: var(--text-primary) !important;
 }
 .custom-sidebar-dropdown .el-dropdown-menu__item:hover,
 .custom-sidebar-dropdown .el-dropdown-menu__item:focus {
-  background-color: #3b444b !important;
+  background-color: var(--hover-bg) !important;
 }
 .custom-sidebar-dropdown .el-popper__arrow::before {
-  background: #282e33 !important;
-  border: 1px solid #333c43 !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color) !important;
 }
 </style>

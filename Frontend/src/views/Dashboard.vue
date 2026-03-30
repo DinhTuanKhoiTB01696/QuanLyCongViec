@@ -47,6 +47,8 @@
           <li v-if="sidebarPreferences.spaces" @click="goToDefaultSpace"><i class="fa-solid fa-folder-open"></i> Không gian</li>
           <li v-if="sidebarPreferences.recent"><i class="fa-solid fa-clock"></i> Gần đây</li>
           <li v-if="sidebarPreferences.ai" class="ai-item" @click="goToAI"><i class="fa-solid fa-robot"></i> Trợ lý AI</li>
+          <li v-if="sidebarPreferences.audit" @click="router.push('/audit-log')"><i class="fa-solid fa-list-check"></i> Audit Log</li>
+          <li v-if="sidebarPreferences.users" @click="router.push('/user-management')"><i class="fa-solid fa-users-gear"></i> Quản lý người dùng</li>
           
           <!-- More Dropdown -->
           <li class="more-dropdown-wrapper" style="padding: 0; background: transparent !important; margin-bottom: 4px;">
@@ -75,8 +77,20 @@
                       <span>Trợ lý AI</span>
                     </div>
                   </el-dropdown-item>
+                  <el-dropdown-item v-if="!sidebarPreferences.audit">
+                    <div @click="router.push('/audit-log')" style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
+                      <i class="fa-solid fa-list-check"></i>
+                      <span>Audit Log</span>
+                    </div>
+                  </el-dropdown-item>
+                  <el-dropdown-item v-if="!sidebarPreferences.users">
+                    <div @click="router.push('/user-management')" style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
+                      <i class="fa-solid fa-users-gear"></i>
+                      <span>Quản lý người dùng</span>
+                    </div>
+                  </el-dropdown-item>
 
-                  <el-dropdown-item v-if="!sidebarPreferences.spaces || !sidebarPreferences.recent || !sidebarPreferences.ai" divided></el-dropdown-item>
+                  <el-dropdown-item v-if="!sidebarPreferences.spaces || !sidebarPreferences.recent || !sidebarPreferences.ai || !sidebarPreferences.audit" divided></el-dropdown-item>
 
                   <el-dropdown-item>
                     <div @click="showCustomizeModal = true" style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
@@ -236,9 +250,8 @@ const isLoading = ref(false)
 const showCustomizeModal = ref(false)
 
 const sidebarPreferences = ref({
-  recent: true,
-  spaces: true,
-  ai: true
+  audit: true,
+  users: true
 })
 
 onMounted(() => {
@@ -255,7 +268,7 @@ const handleSidebarSaved = (prefs) => {
   const newPrefs = { ...sidebarPreferences.value }
   if (prefs && prefs.navItems) {
     prefs.navItems.forEach(item => {
-      if (['recent', 'spaces', 'ai'].includes(item.id)) {
+      if (['recent', 'spaces', 'ai', 'audit', 'users'].includes(item.id)) {
         newPrefs[item.id] = item.checked
       }
     })
@@ -687,12 +700,12 @@ onMounted(fetchSpaces)
 
 .space-title-block span {
   font-size: 13px;
-  color: #8c9bab;
+  color: var(--text-muted);
 }
 
 .quick-links-title {
   font-size: 13px;
-  color: #8c9bab;
+  color: var(--text-muted);
   margin-bottom: 12px;
 }
 
@@ -723,7 +736,7 @@ onMounted(fetchSpaces)
 .board-dropdown {
   margin-top: 20px;
   font-size: 13px;
-  color: #8c9bab;
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -732,7 +745,7 @@ onMounted(fetchSpaces)
 .jira-tabs {
   display: flex;
   gap: 28px;
-  border-bottom: 1px solid #333c43;
+  border-bottom: 1px solid var(--border-color);
   margin-bottom: 24px;
   overflow-x: auto;
   white-space: nowrap;
@@ -744,7 +757,7 @@ onMounted(fetchSpaces)
 
 .jira-tab {
   padding: 12px 0;
-  color: #8c9bab;
+  color: var(--text-muted);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;

@@ -1,5 +1,5 @@
 <template>
-  <div class="auth-page">
+  <div class="auth-page" data-theme="light">
     <header class="auth-navbar">
       <div class="container nav-content">
         <router-link to="/" class="logo">

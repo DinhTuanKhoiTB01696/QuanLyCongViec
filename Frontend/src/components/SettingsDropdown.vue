@@ -37,9 +37,19 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
 const handleCommand = (cmd) => {
-  console.log('Settings command:', cmd);
-};
+  if (cmd === 'audit') {
+    router.push('/audit-log')
+  } else if (cmd === 'users') {
+    router.push('/user-management')
+  } else {
+    console.log('Settings command:', cmd)
+  }
+}
 </script>
 
 <style scoped>

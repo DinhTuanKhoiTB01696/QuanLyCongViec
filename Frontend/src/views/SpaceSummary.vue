@@ -231,6 +231,8 @@
           <li v-if="sidebarPreferences.spaces" class="active"><i class="fa-solid fa-folder-open"></i> Không gian</li>
           <li v-if="sidebarPreferences.recent" @click="goToDashboard"><i class="fa-solid fa-clock"></i> Gần đây</li>
           <li v-if="sidebarPreferences.ai" class="ai-item" @click="goToAI"><i class="fa-solid fa-robot"></i> Trợ lý AI</li>
+          <li v-if="sidebarPreferences.audit" @click="router.push('/audit-log')"><i class="fa-solid fa-list-check"></i> Audit Log</li>
+          <li v-if="sidebarPreferences.users" @click="router.push('/user-management')"><i class="fa-solid fa-users-gear"></i> Quản lý người dùng</li>
           <li class="more-dropdown-wrapper" style="padding: 0; background: transparent !important; margin-bottom: 4px;">
             <el-dropdown trigger="click" placement="bottom-start" popper-class="custom-sidebar-dropdown" style="width: 100%;">
               <div class="sidebar-more-trigger">
@@ -251,13 +253,25 @@
                     </div>
                   </el-dropdown-item>
                   <el-dropdown-item v-if="!sidebarPreferences.ai">
-                    <div @click="goToAI" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
+                    <div @click="goToAI" style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
                       <i class="fa-solid fa-robot"></i>
                       <span>Trợ lý AI</span>
                     </div>
                   </el-dropdown-item>
+                  <el-dropdown-item v-if="!sidebarPreferences.audit">
+                    <div @click="router.push('/audit-log')" style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
+                      <i class="fa-solid fa-list-check"></i>
+                      <span>Audit Log</span>
+                    </div>
+                  </el-dropdown-item>
+                  <el-dropdown-item v-if="!sidebarPreferences.users">
+                    <div @click="router.push('/user-management')" style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
+                      <i class="fa-solid fa-users-gear"></i>
+                      <span>Quản lý người dùng</span>
+                    </div>
+                  </el-dropdown-item>
 
-                  <el-dropdown-item v-if="!sidebarPreferences.spaces || !sidebarPreferences.recent || !sidebarPreferences.ai" divided></el-dropdown-item>
+                  <el-dropdown-item v-if="!sidebarPreferences.spaces || !sidebarPreferences.recent || !sidebarPreferences.ai || !sidebarPreferences.audit" divided></el-dropdown-item>
 
                   <el-dropdown-item>
                     <div @click="showCustomizeModal = true" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
@@ -335,7 +349,6 @@
           <!-- Tabs -->
           <div class="jira-tabs">
             <div class="jira-tab" :class="{ active: currentTab === 'list' }" @click="currentTab = 'list'">Danh sách</div>
-            <div class="jira-tab" :class="{ active: currentTab === 'board' }" @click="currentTab = 'board'">Bảng</div>
             <div class="jira-tab" :class="{ active: currentTab === 'summary' }" @click="currentTab = 'summary'">Tổng quan</div>
             <div class="jira-tab" :class="{ active: currentTab === 'backlog' }" @click="currentTab = 'backlog'">Tồn đọng</div>
             <div class="jira-tab" :class="{ active: currentTab === 'calendar' }" @click="currentTab = 'calendar'">Lịch</div>
@@ -1308,9 +1321,8 @@ const showCompleted = ref(true)
 const groupBy = ref('status') // 'status', 'priority'
 
 const sidebarPreferences = ref({
-  recent: true,
-  spaces: true,
-  ai: true
+  audit: true,
+  users: true
 })
 
 const handleSidebarSaved = (prefs) => {
@@ -1644,6 +1656,19 @@ const handleFileUploaded = (taskId, attachment) => {
   }
 }
 
+const handleSidebarSaved = (prefs) => {
+  const newPrefs = { ...sidebarPreferences.value }
+  if (prefs && prefs.navItems) {
+    prefs.navItems.forEach(item => {
+      if (['recent', 'spaces', 'ai', 'audit', 'users'].includes(item.id)) {
+        newPrefs[item.id] = item.checked
+      }
+    })
+  }
+  sidebarPreferences.value = newPrefs
+  localStorage.setItem('sidebarPreferences', JSON.stringify(newPrefs))
+}
+
 onMounted(async () => {
   const saved = localStorage.getItem('sidebarPreferences')
   if (saved) {
@@ -1917,7 +1942,7 @@ const formatDate = (dateStr) => {
 .search-input-mock {
   display: flex;
   align-items: center;
-  background-color: var(--bg-layout);
+  background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 0 12px;
@@ -2003,7 +2028,7 @@ const formatDate = (dateStr) => {
 
 .sidebar {
   width: 260px;
-  background-color: var(--bg-nav); 
+  background-color: var(--bg-sidebar); 
   border-right: 1px solid var(--border-color);
   padding: 24px 16px;
 }
@@ -2015,7 +2040,7 @@ const formatDate = (dateStr) => {
 
 .section-label {
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 700;
   letter-spacing: 0.5px;
   padding: 8px 12px;
@@ -2025,7 +2050,7 @@ const formatDate = (dateStr) => {
 .side-menu li {
   padding: 10px 12px;
   border-radius: 6px;
-  color: #cbd5e1;
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 4px;
@@ -2033,9 +2058,10 @@ const formatDate = (dateStr) => {
   display: flex;
   align-items: center;
   gap: 12px;
+  transition: all 0.2s ease;
 }
-.side-menu li:hover { background-color: #1e293b; color: white; }
-.side-menu li.active { background-color: #1e3a8a; color: #60a5fa; }
+.side-menu li:hover { background-color: var(--hover-bg); color: var(--text-primary); }
+.side-menu li.active { background-color: var(--active-bg); color: #60a5fa; }
 
 .header-breadcrumbs {
   font-size: 13px;
@@ -2710,12 +2736,12 @@ const formatDate = (dateStr) => {
   align-items: baseline;
   gap: 8px;
 }
-.user-name { font-size: 14px; font-weight: 700; color: #f1f5f9; }
-.time-stamp { font-size: 11px; color: #64748b; }
+.user-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.time-stamp { font-size: 11px; color: var(--text-muted); }
 
 .comment-text {
   font-size: 14px;
-  color: #e2e8f0;
+  color: var(--text-secondary);
   padding-left: 44px;
 }
 
@@ -2733,7 +2759,7 @@ const formatDate = (dateStr) => {
 
 .comment-input-section {
   padding: 16px 20px;
-  background-color: #161a1d;
+  background-color: var(--bg-secondary);
   border-radius: 0 0 8px 8px;
 }
 
@@ -2807,19 +2833,19 @@ const formatDate = (dateStr) => {
   width: 95%;
   max-width: 1300px;
   height: 90vh;
-  background-color: #0c0c0c;
+  background-color: var(--bg-card);
   border-radius: 12px;
-  border: 1px solid #2c333a;
+  border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
 }
 
 .modal-header {
   height: 48px;
-  background-color: #161a1d;
-  border-bottom: 1px solid #2c333a;
+  background-color: var(--bg-layout);
+  border-bottom: 1px solid var(--border-color);
   padding: 0 16px;
   display: flex;
   justify-content: space-between;
@@ -2845,13 +2871,13 @@ const formatDate = (dateStr) => {
 .modal-body-wrapper { flex: 1; display: flex; overflow: hidden; }
 
 /* Left Section */
-.modal-main { flex: 1; padding: 40px; overflow-y: auto; background-color: #0c0c0c; }
+.modal-main { flex: 1; padding: 40px; overflow-y: auto; background-color: var(--bg-card); }
 .task-id-row { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-.status-badge-small { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-.task-id-text { font-size: 12px; color: #94a3b8; font-family: monospace; }
+.status-badge-small { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.task-id-text { font-size: 12px; color: var(--text-muted); font-family: monospace; }
 .btn-ai-mini { font-size: 12px; color: #579dff; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 
-.task-modal-title { font-size: 32px; font-weight: 700; color: #f1f5f9; margin-bottom: 24px; }
+.task-modal-title { font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 24px; }
 
 .ai-prompt-bar {
   background-color: #1a1a1a;
@@ -2896,8 +2922,8 @@ const formatDate = (dateStr) => {
 /* Right Sidebar */
 .modal-sidebar {
   width: 440px;
-  background-color: #0c0c0c;
-  border-left: 1px solid #2c333a;
+  background-color: var(--bg-card);
+  border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
 }
@@ -2924,16 +2950,16 @@ const formatDate = (dateStr) => {
 .c-actions { display: flex; gap: 12px; color: #64748b; font-size: 12px; }
 .c-rep { font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; }
 
-.activity-input { padding: 20px; background-color: #0c0c0c; border-top: 1px solid #1a1a1a; }
-.input-container { background-color: #111; border: 1px solid #222; border-radius: 8px; display: flex; flex-direction: column; }
-.input-container textarea { background: transparent; border: none; padding: 12px 16px; color: #cbd5e1; font-size: 13px; resize: none; min-height: 48px; outline: none; }
+.activity-input { padding: 20px; background-color: var(--bg-card); border-top: 1px solid var(--border-color); }
+.input-container { background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; }
+.input-container textarea { background: transparent; border: none; padding: 12px 16px; color: var(--text-primary); font-size: 13px; resize: none; min-height: 48px; outline: none; }
 
 .input-actions-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  border-top: 1px solid #1a1a1a;
+  border-top: 1px solid var(--border-color);
 }
 .bar-left { display: flex; align-items: center; gap: 12px; color: #64748b; font-size: 12px; }
 .bar-left i { cursor: pointer; }
@@ -2960,7 +2986,7 @@ const formatDate = (dateStr) => {
 .calendar-month-title {
   font-size: 24px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text-primary);
   margin-right: 24px;
 }
 
@@ -2970,17 +2996,17 @@ const formatDate = (dateStr) => {
 
 .btn-group-jira {
   display: flex;
-  background-color: #22272b;
+  background-color: var(--bg-secondary);
   border-radius: 4px;
   overflow: hidden;
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
 }
 
 .jira-control-btn {
   background: transparent !important;
   border: none !important;
-  border-right: 1px solid #334155 !important;
-  color: #94a3b8 !important;
+  border-right: 1px solid var(--border-color) !important;
+  color: var(--text-secondary) !important;
   margin: 0 !important;
   height: 32px !important;
   padding: 0 12px !important;
@@ -3002,8 +3028,8 @@ const formatDate = (dateStr) => {
 
 .toggle-group-jira {
   display: flex;
-  background-color: #22272b;
-  border: 1px solid #334155;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 2px;
 }

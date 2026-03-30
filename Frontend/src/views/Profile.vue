@@ -198,9 +198,9 @@ const profileData = ref({
 
 <style scoped>
 .profile-page {
-  background-color: #0d1117;
+  background-color: var(--bg-layout);
   min-height: 100vh;
-  color: #c9d1d9;
+  color: var(--text-primary);
 }
 
 .top-nav {
@@ -209,8 +209,8 @@ const profileData = ref({
   align-items: center;
   padding: 0 16px;
   height: 60px;
-  background-color: #161b22;
-  border-bottom: 1px solid #30363d;
+  background-color: var(--bg-nav);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .nav-left { display: flex; align-items: center; gap: 12px; }
@@ -236,10 +236,10 @@ const profileData = ref({
 /* Header Section Styling */
 .profile-header-section {
   position: relative;
-  background-color: #161b22;
+  background-color: var(--bg-card);
   border-radius: 12px;
   overflow: visible;
-  border: 1px solid #30363d;
+  border: 1px solid var(--border-color);
   margin-bottom: 80px;
   width: 100%;
 }
@@ -278,7 +278,7 @@ const profileData = ref({
   font-size: 40px;
   font-weight: 700;
   color: #1d2125;
-  border: 4px solid #0d1117;
+  border: 4px solid var(--bg-layout);
 }
 
 .banner-upload-prompt {
@@ -293,7 +293,7 @@ const profileData = ref({
 }
 
 .header-footer-privacy {
-  background-color: #161b22;
+  background-color: var(--bg-card);
   border-radius: 0 0 12px 12px;
   padding: 40px 24px 12px; /* Increased top padding for avatar overlap */
 }
@@ -323,7 +323,7 @@ const profileData = ref({
 .section-title {
   font-size: 20px;
   font-weight: 600;
-  color: #f0f6fc;
+  color: var(--text-primary);
   margin-bottom: 24px;
 }
 
@@ -344,7 +344,7 @@ const profileData = ref({
 .field-label {
   font-size: 14px;
   font-weight: 600;
-  color: #f0f6fc;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -378,12 +378,8 @@ const profileData = ref({
 
 .danger-item { color: #f87171 !important; }
 
-:deep(.el-input__wrapper) {
-  background-color: transparent !important;
-  box-shadow: 0 0 0 1px #30363d !important;
-  border: none !important;
-}
-:deep(.el-input__inner) { color: #f0f6fc !important; }
+
+/* Component-specific overrides removed as they are now globalized in style.css */
 
 @media (max-width: 768px) {
   .nav-brand span {
