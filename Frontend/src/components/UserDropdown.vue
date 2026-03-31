@@ -84,9 +84,9 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { currentTheme, toggleTheme } from '@/utils/theme'
 
 const router = useRouter()
-const currentTheme = ref('dark')
 const themeSubVisible = ref(false)
 
 const toggleThemeSub = () => {
@@ -98,14 +98,11 @@ const handleCommand = async (cmd) => {
     router.push('/profile')
   } else if (cmd === 'logout') {
     try {
-      // Import axiosClient here or use a global instance if available
-      // For simplicity and matching axiosClient.js, I'll assume it's used elsewhere or needs import
       const { default: axiosClient } = await import('@/api/axiosClient')
       await axiosClient.post('/auth/logout')
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
-      // Always clear storage and redirect even if API fails
       localStorage.removeItem('accessToken')
       localStorage.removeItem('user')
       router.push('/login')
@@ -116,33 +113,38 @@ const handleCommand = async (cmd) => {
     themeSubVisible.value = false
   }
 }
+
+const selectTheme = (theme) => {
+  toggleTheme(theme)
+}
 </script>
 
 <style scoped>
 .jira-user-menu {
   width: 320px;
-  background-color: #1d2125;
+  background-color: var(--bg-content);
   border-radius: 8px;
   padding: 12px 0;
-  border: none;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.5);
 }
 .user-menu-header { display: flex; padding: 8px 16px 20px; gap: 16px; align-items: center; }
 .header-avatar { width: 50px; height: 50px; background-color: #f59e0b; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #1d2125; }
-.user-display-name { font-size: 16px; font-weight: 600; color: #ffffff; }
-.user-email { font-size: 12px; color: #94a3b8; }
-.menu-item-inner { display: flex; align-items: center; gap: 12px; color: #dee4ea; }
-.menu-item-inner i { width: 20px; text-align: center; color: #94a3b8; font-size: 16px; }
+.user-display-name { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.user-email { font-size: 12px; color: var(--text-secondary); }
+.menu-item-inner { display: flex; align-items: center; gap: 12px; color: var(--text-primary); }
+.menu-item-inner i { width: 20px; text-align: center; color: var(--text-secondary); font-size: 16px; }
 .logout-item i, .logout-item span { color: #f87171; }
-.menu-divider { height: 1px; background-color: #333c43; margin: 8px 0; }
+.menu-divider { height: 1px; background-color: var(--border-color); margin: 8px 0; }
 .theme-trigger-item { padding: 10px 16px; cursor: pointer; transition: all 0.2s; }
-.theme-trigger-item:hover { background-color: #2c333a; }
+.theme-trigger-item:hover { background-color: var(--hover-bg); }
 .arrow-icon { margin-left: auto; transition: transform 0.2s; }
 .arrow-icon.rotated { transform: rotate(90deg); }
-.theme-expanded-menu { margin-top: 8px; background-color: rgba(0, 0, 0, 0.2); border-radius: 6px; padding: 4px 0; }
-.theme-option { display: flex; align-items: center; padding: 10px 16px; gap: 16px; cursor: pointer; color: #cbd5e1; }
-.theme-option:hover { background-color: #3b444b; }
-.theme-option.active { background-color: rgba(7, 71, 166, 0.4); color: #579dff; }
-.theme-preview-box { width: 48px; height: 32px; border-radius: 3px; border: 1px solid #333c43; overflow: hidden; display: flex; flex-direction: column; }
+.theme-expanded-menu { margin-top: 8px; background-color: var(--bg-secondary); border-radius: 6px; padding: 4px 0; border: 1px solid var(--border-color); }
+.theme-option { display: flex; align-items: center; padding: 10px 16px; gap: 16px; cursor: pointer; color: var(--text-secondary); }
+.theme-option:hover { background-color: var(--hover-bg); }
+.theme-option.active { background-color: var(--active-bg); color: #579dff; }
+.theme-preview-box { width: 48px; height: 32px; border-radius: 3px; border: 1px solid var(--border-color); overflow: hidden; display: flex; flex-direction: column; }
 .light.theme-preview-box { background: #fff; border-color: #ddd; }
 .dark.theme-preview-box { background: #0d1117; border-color: #21262d; }
 .p-header { height: 8px; background: #ebecf0; }
@@ -156,8 +158,9 @@ const handleCommand = async (cmd) => {
 </style>
 
 <style>
-.user-dropdown-popper.el-popper { background: #1d2125 !important; border: 1px solid #333c43 !important; border-radius: 8px !important; padding: 0 !important; box-shadow: 0 12px 48px rgba(0,0,0,0.6) !important; }
+.user-dropdown-popper.el-popper { background: var(--bg-content) !important; border: 1px solid var(--border-color) !important; border-radius: 8px !important; padding: 0 !important; box-shadow: 0 12px 48px rgba(0,0,0,0.6) !important; }
 .user-dropdown-popper .el-dropdown-menu__item { padding: 10px 16px !important; background-color: transparent !important; }
-.user-dropdown-popper .el-dropdown-menu__item:hover { background-color: #2c333a !important; }
-.user-dropdown-popper .el-popper__arrow::before { background: #1d2125 !important; border: 1px solid #333c43 !important; }
+.user-dropdown-popper .el-dropdown-menu__item:hover { background-color: var(--hover-bg) !important; }
+.user-dropdown-popper .el-popper__arrow::before { background: var(--bg-content) !important; border: 1px solid var(--border-color) !important; }
 </style>
+

@@ -228,10 +228,61 @@
       <aside class="sidebar" :class="{ 'show': sidebarVisible }">
         <ul class="side-menu">
           <li @click="goToDashboard"><i class="fa-solid fa-border-all"></i> Dành cho bạn</li>
-          <li class="active"><i class="fa-regular fa-folder-open"></i> Không gian</li>
-          <li @click="goToDashboard"><i class="fa-regular fa-clock"></i> Gần đây</li>
-          <li class="ai-item" @click="goToAI"><i class="fa-solid fa-robot"></i> Trợ lý AI</li>
-          <li><i class="fa-solid fa-ellipsis"></i> Thêm</li>
+          <li v-if="sidebarPreferences.spaces" class="active"><i class="fa-solid fa-folder-open"></i> Không gian</li>
+          <li v-if="sidebarPreferences.recent" @click="goToDashboard"><i class="fa-solid fa-clock"></i> Gần đây</li>
+          <li v-if="sidebarPreferences.ai" class="ai-item" @click="goToAI"><i class="fa-solid fa-robot"></i> Trợ lý AI</li>
+          <li v-if="sidebarPreferences.audit" @click="router.push('/audit-log')"><i class="fa-solid fa-list-check"></i> Audit Log</li>
+          <li v-if="sidebarPreferences.users" @click="router.push('/user-management')"><i class="fa-solid fa-users-gear"></i> Quản lý người dùng</li>
+          <li class="more-dropdown-wrapper" style="padding: 0; background: transparent !important; margin-bottom: 4px;">
+            <el-dropdown trigger="click" placement="bottom-start" popper-class="custom-sidebar-dropdown" style="width: 100%;">
+              <div class="sidebar-more-trigger">
+                <i class="fa-solid fa-ellipsis"></i> Thêm
+              </div>
+              <template #dropdown>
+                <el-dropdown-menu class="jira-more-menu" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 0; width: 200px;">
+                  <el-dropdown-item v-if="!sidebarPreferences.spaces">
+                    <div style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
+                      <i class="fa-solid fa-folder-open"></i>
+                      <span>Không gian</span>
+                    </div>
+                  </el-dropdown-item>
+                  <el-dropdown-item v-if="!sidebarPreferences.recent">
+                    <div @click="goToDashboard" style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
+                      <i class="fa-solid fa-clock"></i>
+                      <span>Gần đây</span>
+                    </div>
+                  </el-dropdown-item>
+                  <el-dropdown-item v-if="!sidebarPreferences.ai">
+                    <div @click="goToAI" style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
+                      <i class="fa-solid fa-robot"></i>
+                      <span>Trợ lý AI</span>
+                    </div>
+                  </el-dropdown-item>
+                  <el-dropdown-item v-if="!sidebarPreferences.audit">
+                    <div @click="router.push('/audit-log')" style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
+                      <i class="fa-solid fa-list-check"></i>
+                      <span>Audit Log</span>
+                    </div>
+                  </el-dropdown-item>
+                  <el-dropdown-item v-if="!sidebarPreferences.users">
+                    <div @click="router.push('/user-management')" style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
+                      <i class="fa-solid fa-users-gear"></i>
+                      <span>Quản lý người dùng</span>
+                    </div>
+                  </el-dropdown-item>
+
+                  <el-dropdown-item v-if="!sidebarPreferences.spaces || !sidebarPreferences.recent || !sidebarPreferences.ai || !sidebarPreferences.audit" divided></el-dropdown-item>
+
+                  <el-dropdown-item>
+                    <div @click="showCustomizeModal = true" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
+                      <i class="fa-solid fa-sliders"></i>
+                      <span>Customize sidebar</span>
+                    </div>
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </li>
         </ul>
       </aside>
 
@@ -298,7 +349,6 @@
           <!-- Tabs -->
           <div class="jira-tabs">
             <div class="jira-tab" :class="{ active: currentTab === 'list' }" @click="currentTab = 'list'">Danh sách</div>
-            <div class="jira-tab" :class="{ active: currentTab === 'board' }" @click="currentTab = 'board'">Bảng</div>
             <div class="jira-tab" :class="{ active: currentTab === 'summary' }" @click="currentTab = 'summary'">Tổng quan</div>
             <div class="jira-tab" :class="{ active: currentTab === 'backlog' }" @click="currentTab = 'backlog'">Tồn đọng</div>
             <div class="jira-tab" :class="{ active: currentTab === 'calendar' }" @click="currentTab = 'calendar'">Lịch</div>
@@ -1248,6 +1298,8 @@
     </div>
     
     <AddPeopleModal v-model:visible="showAddPeopleModal" @added="handleAddedPeople" />
+    <!-- Customize Sidebar Modal -->
+    <CustomizeSidebarModal :visible="showCustomizeModal" @update:visible="showCustomizeModal = $event" @saved="handleSidebarSaved" />
   </div>
 </template>
 
@@ -1261,9 +1313,10 @@ import SettingsDropdown from '../components/SettingsDropdown.vue'
 import NotificationsDropdown from '../components/NotificationsDropdown.vue'
 import UserDropdown from '../components/UserDropdown.vue';
 import AddPeopleModal from '../components/AddPeopleModal.vue';
+import CustomizeSidebarModal from '../components/CustomizeSidebarModal.vue';
+import axiosClient from '../api/axiosClient';
 import draggable from 'vuedraggable'
 import * as echarts from 'echarts'
-import axiosClient from '@/api/axiosClient'
 import { signalRService } from '@/api/signalrService'
 import { ElNotification, ElMessageBox, ElMessage } from 'element-plus'
 
@@ -1284,6 +1337,7 @@ const showAddPeopleDialog = ref(false)
 const showSettingsDialog = ref(false)
 const addPeopleEmail = ref('')
 const addPeopleRole = ref('DEV')
+const sidebarVisible = ref(true)
 
 const toggleAI = () => {
   aiVisible.value = !aiVisible.value
@@ -1380,6 +1434,11 @@ const sortBy = ref(null)
 const showCompleted = ref(true)
 const groupBy = ref('status') // 'status', 'priority'
 
+const sidebarPreferences = ref({
+  audit: true,
+  users: true
+})
+
 const filteredTasks = computed(() => {
   let result = [...tasks.value]
 
@@ -1418,6 +1477,7 @@ const filteredTasks = computed(() => {
 // Tasks state
 const tasks = ref([])
 const comments = ref([])
+const showCustomizeModal = ref(false)
 
 const taskGroups = computed(() => {
   const allTasks = filteredTasks.value
@@ -1461,7 +1521,6 @@ const taskGroups = computed(() => {
       }
     ]
   } else {
-    // ... (Keep existing priority grouping but use allTasks)
     const priorities = [
       { val: 1, text: 'URGENT', bg: '#ef4444' },
       { val: 2, text: 'HIGH', bg: '#f97316' },
@@ -1591,11 +1650,6 @@ const goToAI = () => {
   router.push('/ai-assistant')
 }
 
-const sidebarVisible = ref(false)
-
-
-// Fetch tasks
-
 // Fetch tasks
 const fetchTasks = async () => {
   try {
@@ -1705,8 +1759,6 @@ const handleCommentAdded = (taskId, comment) => {
 
 const handleFileUploaded = (taskId, attachment) => {
   if (selectedTask.value && selectedTask.value.id === taskId) {
-    // If we have an attachments list, push it there. 
-    // For now, just notifying or refreshing might be enough if the UI doesn't have a list ref.
     ElNotification({ title: 'Tệp mới', message: `Đã tải lên: ${attachment.fileName}`, type: 'info' })
   }
 }
@@ -1773,7 +1825,27 @@ const handleSpaceMenuCommand = async (command) => {
   }
 }
 
+const handleSidebarSaved = (prefs) => {
+  const newPrefs = { ...sidebarPreferences.value }
+  if (prefs && prefs.navItems) {
+    prefs.navItems.forEach(item => {
+      if (['recent', 'spaces', 'ai', 'audit', 'users'].includes(item.id)) {
+        newPrefs[item.id] = item.checked
+      }
+    })
+  }
+  sidebarPreferences.value = newPrefs
+  localStorage.setItem('sidebarPreferences', JSON.stringify(newPrefs))
+}
+
 onMounted(async () => {
+  const saved = localStorage.getItem('sidebarPreferences')
+  if (saved) {
+    try {
+      Object.assign(sidebarPreferences.value, JSON.parse(saved))
+    } catch (e) {}
+  }
+
   await fetchTasks()
   await fetchProjectMembers()
   if (projectId.value) {
@@ -1802,8 +1874,6 @@ const moveTask = async (taskId, newStatusId, rowVersion, statusName) => {
       statusName: statusName,
       rowVersion: rowVersion
     })
-    // The SignalR hub will broadcast TaskMoved, but we can also fetchTasks() to be safe
-    // fetchTasks() is called inside handleTaskMoved via SignalR
   } catch (error) {
     if (error.response?.status === 409) {
       ElNotification({ title: 'Conflict', message: 'Task was moved by someone else. Refreshing...', type: 'warning' })
@@ -1999,15 +2069,15 @@ const formatDate = (dateStr) => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #0c101a; 
-  color: #f1f5f9; 
+  background-color: var(--bg-layout); 
+  color: var(--text-primary); 
   overflow: hidden;
 }
 
 .top-nav {
   height: 56px;
-  background-color: #0c101a; 
-  border-bottom: 1px solid #1e293b;
+  background-color: var(--bg-nav); 
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2042,8 +2112,8 @@ const formatDate = (dateStr) => {
 .search-input-mock {
   display: flex;
   align-items: center;
-  background-color: #22272b;
-  border: 1px solid #738496; 
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 0 12px;
   width: 550px;
@@ -2052,14 +2122,14 @@ const formatDate = (dateStr) => {
 }
 
 .search-input-mock:focus-within {
-  background-color: #2c333a;
-  border-color: #579dff;
+  background-color: var(--hover-bg);
+  border-color: #3b82f6;
 }
 
 .search-input-mock input {
   background: transparent;
   border: none;
-  color: #f4f5f7;
+  color: var(--text-primary);
   font-size: 14px;
   width: 100%;
   outline: none;
@@ -2090,7 +2160,7 @@ const formatDate = (dateStr) => {
 }
 
 .nav-icon {
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 18px;
   cursor: pointer;
   width: 32px;
@@ -2100,8 +2170,8 @@ const formatDate = (dateStr) => {
   justify-content: center;
   border-radius: 50%;
 }
-.nav-icon:hover { background-color: #1e293b; color: white; }
-.nav-icon.active { color: #60a5fa; background-color: #1e293b; }
+.nav-icon:hover { background-color: var(--hover-bg); color: var(--text-primary); }
+.nav-icon.active { color: #3b82f6; background-color: var(--hover-bg); }
 
 .user-avatar {
   background: #fdbba7; 
@@ -2128,8 +2198,8 @@ const formatDate = (dateStr) => {
 
 .sidebar {
   width: 260px;
-  background-color: #0c101a; 
-  border-right: 1px solid #1e293b;
+  background-color: var(--bg-sidebar); 
+  border-right: 1px solid var(--border-color);
   padding: 24px 16px;
 }
 
@@ -2140,7 +2210,7 @@ const formatDate = (dateStr) => {
 
 .section-label {
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 700;
   letter-spacing: 0.5px;
   padding: 8px 12px;
@@ -2150,7 +2220,7 @@ const formatDate = (dateStr) => {
 .side-menu li {
   padding: 10px 12px;
   border-radius: 6px;
-  color: #cbd5e1;
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 4px;
@@ -2158,13 +2228,14 @@ const formatDate = (dateStr) => {
   display: flex;
   align-items: center;
   gap: 12px;
+  transition: all 0.2s ease;
 }
-.side-menu li:hover { background-color: #1e293b; color: white; }
-.side-menu li.active { background-color: #1e3a8a; color: #60a5fa; }
+.side-menu li:hover { background-color: var(--hover-bg); color: var(--text-primary); }
+.side-menu li.active { background-color: var(--active-bg); color: #60a5fa; }
 
 .header-breadcrumbs {
   font-size: 13px;
-  color: #8c8c8c;
+  color: var(--text-secondary);
   font-weight: 500;
   text-decoration: underline;
   margin-bottom: 2px;
@@ -2218,7 +2289,7 @@ const formatDate = (dateStr) => {
 
 .page-title {
   font-size: 28px !important;
-  color: #f1f5f9;
+  color: var(--text-primary);
   font-weight: 700 !important;
   margin: 0 !important;
   letter-spacing: -0.5px;
@@ -2228,42 +2299,42 @@ const formatDate = (dateStr) => {
   display: flex;
   align-items: center;
   gap: 20px;
-  color: #8c8c8c;
+  color: var(--text-secondary);
 }
 
 .users-icon-box {
   width: 36px;
   height: 36px;
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #cbd5e1;
+  background: var(--bg-card);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .users-icon-box:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: #475569;
+  background: var(--hover-bg);
+  border-color: var(--text-muted);
 }
 
 .more-icon-box .fa-ellipsis {
   font-size: 20px;
   cursor: pointer;
-  color: #8c8c8c;
+  color: var(--text-secondary);
   transition: color 0.1s;
 }
 
 .more-icon-box:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--hover-bg);
 }
 
 .more-icon-box:hover .fa-ellipsis {
-  color: white;
+  color: var(--text-primary);
 }
 
 /* Force Dropdown to be Dark Mode and Sync with System Colors */
@@ -2399,7 +2470,7 @@ const formatDate = (dateStr) => {
 .space-name {
   font-weight: 700;
   font-size: 16px;
-  color: #f1f5f9;
+  color: var(--text-primary);
 }
 
 .space-item-right {
@@ -2453,7 +2524,7 @@ const formatDate = (dateStr) => {
 ========================================== */
 .content-area {
   flex: 1;
-  background-color: #0f111a; 
+  background-color: var(--bg-content); 
   padding: 32px 40px;
   overflow-y: auto;
 }
@@ -2477,13 +2548,13 @@ const formatDate = (dateStr) => {
 
 .jira-tab {
   padding: 12px 0;
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   position: relative;
 }
-.jira-tab:hover { color: #e2e8f0; }
+.jira-tab:hover { color: var(--text-primary); }
 .jira-tab.active { color: #579dff; font-weight: 600; }
 .jira-tab.active::after {
   content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
@@ -2511,25 +2582,25 @@ const formatDate = (dateStr) => {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
 }
 .widget {
-  background-color: #1e2430;
-  border: 1px solid #2d3748;
+  background-color: var(--bg-nav);
+  border: 1px solid var(--border-color);
   border-radius: 8px; padding: 16px;
   display: flex; align-items: center; gap: 16px;
 }
 .widget-icon { font-size: 20px; }
-.widget-number { font-size: 16px; font-weight: 600; color: #f8fafc; margin-bottom: 2px;}
-.widget-sub { font-size: 11px; color: #94a3b8; }
+.widget-number { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;}
+.widget-sub { font-size: 11px; color: var(--text-secondary); }
 
 .charts-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
 }
 .chart-card {
-  background-color: #1e2430;
-  border: 1px solid #2d3748;
+  background-color: var(--bg-nav);
+  border: 1px solid var(--border-color);
   border-radius: 8px; padding: 20px;
 }
-.chart-header h4 { margin: 0 0 4px; font-size: 15px; color: #f8fafc; }
-.chart-header p { margin: 0; font-size: 12px; color: #94a3b8; }
+.chart-header h4 { margin: 0 0 4px; font-size: 15px; color: var(--text-primary); }
+.chart-header p { margin: 0; font-size: 12px; color: var(--text-secondary); }
 .chart-header a { color: #579dff; text-decoration: none; }
 
 .empty-card {
@@ -2583,12 +2654,12 @@ const formatDate = (dateStr) => {
 .toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 12px; }
 .toolbar-btn {
   display: flex; align-items: center; gap: 8px;
-  background-color: transparent; border: 1px solid #3f3f46; border-radius: 20px;
-  padding: 6px 12px; color: #d4d4d8; font-size: 13px; cursor: pointer; transition: all 0.2s;
+  background-color: transparent; border: 1px solid var(--border-color); border-radius: 20px;
+  padding: 6px 12px; color: var(--text-secondary); font-size: 13px; cursor: pointer; transition: all 0.2s;
 }
-.toolbar-btn:hover { background-color: #27272a; color: white;}
+.toolbar-btn:hover { background-color: var(--hover-bg); color: var(--text-primary);}
 .toolbar-btn.primary-tint { background-color: #3b0764; border-color: #6b21a8; color: #d8b4fe; }
-.toolbar-icon { color: #a1a1aa; cursor: pointer; padding: 0 8px; font-size: 14px;}
+.toolbar-icon { color: var(--text-secondary); cursor: pointer; padding: 0 8px; font-size: 14px;}
 .avatar-tiny { background:#f8fafc; color:#0c101a; border-radius:50%; width:16px; height:16px; display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:bold; margin-left:4px; }
 .add-task-white-btn {
   background-color: #f8fafc; color: #0f172a; border: none; border-radius: 6px;
@@ -2835,12 +2906,12 @@ const formatDate = (dateStr) => {
   align-items: baseline;
   gap: 8px;
 }
-.user-name { font-size: 14px; font-weight: 700; color: #f1f5f9; }
-.time-stamp { font-size: 11px; color: #64748b; }
+.user-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.time-stamp { font-size: 11px; color: var(--text-muted); }
 
 .comment-text {
   font-size: 14px;
-  color: #e2e8f0;
+  color: var(--text-secondary);
   padding-left: 44px;
 }
 
@@ -2858,7 +2929,7 @@ const formatDate = (dateStr) => {
 
 .comment-input-section {
   padding: 16px 20px;
-  background-color: #161a1d;
+  background-color: var(--bg-secondary);
   border-radius: 0 0 8px 8px;
 }
 
@@ -2932,19 +3003,19 @@ const formatDate = (dateStr) => {
   width: 95%;
   max-width: 1300px;
   height: 90vh;
-  background-color: #0c0c0c;
+  background-color: var(--bg-card);
   border-radius: 12px;
-  border: 1px solid #2c333a;
+  border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
 }
 
 .modal-header {
   height: 48px;
-  background-color: #161a1d;
-  border-bottom: 1px solid #2c333a;
+  background-color: var(--bg-layout);
+  border-bottom: 1px solid var(--border-color);
   padding: 0 16px;
   display: flex;
   justify-content: space-between;
@@ -2970,13 +3041,13 @@ const formatDate = (dateStr) => {
 .modal-body-wrapper { flex: 1; display: flex; overflow: hidden; }
 
 /* Left Section */
-.modal-main { flex: 1; padding: 40px; overflow-y: auto; background-color: #0c0c0c; }
+.modal-main { flex: 1; padding: 40px; overflow-y: auto; background-color: var(--bg-card); }
 .task-id-row { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-.status-badge-small { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-.task-id-text { font-size: 12px; color: #94a3b8; font-family: monospace; }
+.status-badge-small { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.task-id-text { font-size: 12px; color: var(--text-muted); font-family: monospace; }
 .btn-ai-mini { font-size: 12px; color: #579dff; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 
-.task-modal-title { font-size: 32px; font-weight: 700; color: #f1f5f9; margin-bottom: 24px; }
+.task-modal-title { font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 24px; }
 
 .ai-prompt-bar {
   background-color: #1a1a1a;
@@ -3021,8 +3092,8 @@ const formatDate = (dateStr) => {
 /* Right Sidebar */
 .modal-sidebar {
   width: 440px;
-  background-color: #0c0c0c;
-  border-left: 1px solid #2c333a;
+  background-color: var(--bg-card);
+  border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
 }
@@ -3049,16 +3120,16 @@ const formatDate = (dateStr) => {
 .c-actions { display: flex; gap: 12px; color: #64748b; font-size: 12px; }
 .c-rep { font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; }
 
-.activity-input { padding: 20px; background-color: #0c0c0c; border-top: 1px solid #1a1a1a; }
-.input-container { background-color: #111; border: 1px solid #222; border-radius: 8px; display: flex; flex-direction: column; }
-.input-container textarea { background: transparent; border: none; padding: 12px 16px; color: #cbd5e1; font-size: 13px; resize: none; min-height: 48px; outline: none; }
+.activity-input { padding: 20px; background-color: var(--bg-card); border-top: 1px solid var(--border-color); }
+.input-container { background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; }
+.input-container textarea { background: transparent; border: none; padding: 12px 16px; color: var(--text-primary); font-size: 13px; resize: none; min-height: 48px; outline: none; }
 
 .input-actions-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  border-top: 1px solid #1a1a1a;
+  border-top: 1px solid var(--border-color);
 }
 .bar-left { display: flex; align-items: center; gap: 12px; color: #64748b; font-size: 12px; }
 .bar-left i { cursor: pointer; }
@@ -3085,7 +3156,7 @@ const formatDate = (dateStr) => {
 .calendar-month-title {
   font-size: 24px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text-primary);
   margin-right: 24px;
 }
 
@@ -3095,17 +3166,17 @@ const formatDate = (dateStr) => {
 
 .btn-group-jira {
   display: flex;
-  background-color: #22272b;
+  background-color: var(--bg-secondary);
   border-radius: 4px;
   overflow: hidden;
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
 }
 
 .jira-control-btn {
   background: transparent !important;
   border: none !important;
-  border-right: 1px solid #334155 !important;
-  color: #94a3b8 !important;
+  border-right: 1px solid var(--border-color) !important;
+  color: var(--text-secondary) !important;
   margin: 0 !important;
   height: 32px !important;
   padding: 0 12px !important;
@@ -3127,8 +3198,8 @@ const formatDate = (dateStr) => {
 
 .toggle-group-jira {
   display: flex;
-  background-color: #22272b;
-  border: 1px solid #334155;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 2px;
 }
@@ -4414,7 +4485,7 @@ const formatDate = (dateStr) => {
 ========================================== */
 .backlog-content {
   padding: 24px;
-  background-color: #0f172a;
+  background-color: var(--bg-content);
   min-height: 100%;
 }
 .backlog-header-jira {
@@ -4423,11 +4494,11 @@ const formatDate = (dateStr) => {
 .backlog-title {
   font-size: 24px;
   font-weight: 600;
-  color: #f1f5f9;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 .muted-text {
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 .backlog-list-container {
@@ -4477,13 +4548,13 @@ const formatDate = (dateStr) => {
   gap: 12px;
 }
 .bi-key {
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
   min-width: 70px;
 }
 .bi-title {
-  color: #f1f5f9;
+  color: var(--text-primary);
   font-size: 14px;
 }
 .bi-right {
@@ -4575,5 +4646,49 @@ const formatDate = (dateStr) => {
   font-size: 10px;
   font-weight: bold;
 }
+
+.sidebar-more-trigger {
+  padding: 10px 12px;
+  border-radius: 6px;
+  color: #cbd5e1;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sidebar-more-trigger i {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+.sidebar-more-trigger:hover {
+  background-color: var(--hover-bg);
+  color: var(--text-primary);
+}
 </style>
 
+<style>
+.custom-sidebar-dropdown.el-popper {
+  background: #282e33 !important;
+  border: 1px solid #333c43 !important;
+  border-radius: 4px !important;
+}
+.custom-sidebar-dropdown .el-dropdown-menu__item {
+  background-color: transparent !important;
+}
+.custom-sidebar-dropdown .el-dropdown-menu__item:hover,
+.custom-sidebar-dropdown .el-dropdown-menu__item:focus {
+  background-color: #3b444b !important;
+}
+.custom-sidebar-dropdown .el-popper__arrow::before {
+  background: #282e33 !important;
+  border: 1px solid #333c43 !important;
+}
+</style>

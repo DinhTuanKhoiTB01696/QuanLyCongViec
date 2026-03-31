@@ -37,18 +37,28 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
 const handleCommand = (cmd) => {
-  console.log('Settings command:', cmd);
-};
+  if (cmd === 'audit') {
+    router.push('/audit-log')
+  } else if (cmd === 'users') {
+    router.push('/user-management')
+  } else {
+    console.log('Settings command:', cmd)
+  }
+}
 </script>
 
 <style scoped>
 .jira-settings-menu {
   width: 320px !important;
-  background-color: #1d2125 !important;
+  background-color: var(--bg-card) !important;
   border: none !important;
   padding: 8px 0 !important;
-  color: #8c9bab;
+  color: var(--text-secondary);
 }
 
 .settings-content-wrapper {
@@ -60,7 +70,7 @@ const handleCommand = (cmd) => {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--text-muted);
   margin-bottom: 8px;
   letter-spacing: 0.5px;
 }
@@ -74,7 +84,7 @@ const handleCommand = (cmd) => {
 }
 
 .settings-item:hover {
-  background-color: #2c333a;
+  background-color: var(--hover-bg);
 }
 
 .settings-item-icon {
@@ -84,7 +94,7 @@ const handleCommand = (cmd) => {
   justify-content: center;
   margin-top: 2px;
   font-size: 16px;
-  color: #8c9bab;
+  color: var(--text-secondary);
 }
 
 .settings-item-info {
@@ -94,14 +104,14 @@ const handleCommand = (cmd) => {
 .item-name {
   font-size: 13px;
   font-weight: 500;
-  color: #f4f5f7;
+  color: var(--text-primary);
   margin-bottom: 2px;
 }
 
 .item-desc {
   font-size: 11px;
   line-height: 1.4;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .external-icon {
@@ -109,7 +119,7 @@ const handleCommand = (cmd) => {
   right: 16px;
   top: 12px;
   font-size: 10px;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .settings-nav-icon {
@@ -119,33 +129,32 @@ const handleCommand = (cmd) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #f8fafc; /* Brighter for better visibility */
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .settings-nav-icon i {
-  font-size: 18px; /* Standard navbar size */
+  font-size: 18px;
 }
 
 .settings-nav-icon:hover {
-  background-color: #1e293b;
-  color: white;
+  background-color: var(--hover-bg);
+  color: var(--text-primary);
 }
 </style>
 
 <style>
-/* High z-index popper to stay on top of AI popups */
 .el-popper.settings-dropdown-popper {
-  background: #1d2125 !important;
-  border: 1px solid #333c43 !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
   padding: 0 !important;
-  z-index: 100001 !important; /* Extremely high z-index */
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
+  z-index: 100001 !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important;
 }
 
 .el-popper.settings-dropdown-popper .el-popper__arrow::before {
-  background: #1d2125 !important;
-  border-color: #333c43 !important;
+  background: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
 }
 </style>

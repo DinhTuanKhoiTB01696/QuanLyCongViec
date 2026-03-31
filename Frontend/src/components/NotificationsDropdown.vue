@@ -2,7 +2,7 @@
   <el-dropdown trigger="click" popper-class="notifications-dropdown-popper">
     <div class="nav-icon notification-trigger">
       <el-badge :value="0" class="notification-badge" :hidden="true">
-        <i class="fa-regular fa-bell"></i>
+        <i class="fa-solid fa-bell"></i>
       </el-badge>
     </div>
     <template #dropdown>
@@ -54,8 +54,8 @@ const onlyUnread = ref(false)
 <style scoped>
 .jira-notifications-menu {
   width: 480px;
-  background-color: #1d2125;
-  color: #f4f5f7;
+  background-color: var(--bg-card);
+  color: var(--text-primary);
   display: flex;
   flex-direction: column;
   max-height: 85vh;
@@ -83,36 +83,36 @@ const onlyUnread = ref(false)
 .unread-toggle-label {
   font-size: 11px;
   font-weight: 700;
-  color: #8c9bab;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .icon-btn {
-  color: #8c9bab;
+  color: var(--text-secondary);
   font-size: 14px;
   cursor: pointer;
   padding: 4px;
 }
-.icon-btn:hover { color: white; }
+.icon-btn:hover { color: var(--text-primary); }
 
 .notif-tabs {
   display: flex;
   padding: 0 20px;
-  border-bottom: 2px solid #2c333a;
+  border-bottom: 2px solid var(--border-color);
   gap: 24px;
 }
 
 .notif-tab {
   padding: 8px 0 12px;
   font-size: 14px;
-  color: #8c9bab;
+  color: var(--text-secondary);
   cursor: pointer;
   position: relative;
 }
 
 .notif-tab.active {
-  color: #579dff;
+  color: #3b82f6;
   font-weight: 600;
 }
 
@@ -123,7 +123,7 @@ const onlyUnread = ref(false)
   left: 0;
   right: 0;
   height: 2px;
-  background-color: #579dff;
+  background-color: #3b82f6;
 }
 
 .notif-scroll-area {
@@ -140,7 +140,7 @@ const onlyUnread = ref(false)
   padding: 0 20px 8px;
   font-size: 12px;
   font-weight: 600;
-  color: #8c9bab;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -154,7 +154,7 @@ const onlyUnread = ref(false)
 }
 
 .notif-item:hover {
-  background-color: #2c333a;
+  background-color: var(--hover-bg);
 }
 
 .notif-item.unread {
@@ -181,17 +181,17 @@ const onlyUnread = ref(false)
 .notif-text {
   font-size: 14px;
   line-height: 1.5;
-  color: #dee4ea;
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
 .user-name {
   font-weight: 600;
-  color: #f4f5f7;
+  color: var(--text-primary);
 }
 
 .time-ago {
-  color: #8c9bab;
+  color: var(--text-muted);
   font-size: 12px;
   margin-left: 4px;
 }
@@ -201,13 +201,13 @@ const onlyUnread = ref(false)
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #8c9bab;
+  color: var(--text-muted);
 }
 
 .unread-dot {
   width: 6px;
   height: 6px;
-  background-color: #579dff;
+  background-color: #3b82f6;
   border-radius: 50%;
   margin-top: 8px;
 }
@@ -219,12 +219,12 @@ const onlyUnread = ref(false)
   justify-content: center;
   padding: 40px 20px;
   text-align: center;
-  color: #8c9bab;
+  color: var(--text-secondary);
 }
 
 .empty-icon {
   font-size: 32px;
-  color: #44546f;
+  color: var(--text-muted);
   margin-bottom: 16px;
   opacity: 0.5;
 }
@@ -239,7 +239,7 @@ const onlyUnread = ref(false)
 
 .notif-footer {
   padding: 16px 20px;
-  border-top: 1px solid #2c333a;
+  border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -247,15 +247,15 @@ const onlyUnread = ref(false)
 
 .shortcuts-info {
   font-size: 13px;
-  color: #8c9bab;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
 .key-badge {
-  background-color: #2c333a;
-  border: 1px solid #444;
+  background-color: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 3px;
   padding: 1px 6px;
   font-size: 11px;
@@ -263,15 +263,15 @@ const onlyUnread = ref(false)
 
 .btn-all-shortcuts {
   background: transparent;
-  border: 1px solid #444;
-  color: #dee4ea;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
   padding: 6px 12px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
 }
-.btn-all-shortcuts:hover { background: #2c333a; }
+.btn-all-shortcuts:hover { background: var(--hover-bg); }
 
 /* Navbar Icon Style */
 .nav-icon {
@@ -281,13 +281,13 @@ const onlyUnread = ref(false)
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .nav-icon i { font-size: 18px; }
-.nav-icon:hover { background-color: #1e293b; color: white; }
+.nav-icon:hover { background-color: var(--hover-bg); color: var(--text-primary); }
 
 .notification-badge :deep(.el-badge__content) {
   background-color: #f87171;
@@ -302,10 +302,10 @@ const onlyUnread = ref(false)
 
 <style>
 .el-popper.notifications-dropdown-popper {
-  background: #1d2125 !important;
-  border: 1px solid #333c43 !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
   padding: 0 !important;
   border-radius: 8px !important;
-  box-shadow: 0 12px 32px rgba(0,0,0,0.6) !important;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.2) !important;
 }
 </style>

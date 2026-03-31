@@ -1,7 +1,7 @@
 <template>
   <el-dropdown trigger="click" popper-class="help-dropdown-popper global-help-popper">
     <div class="help-trigger-btn">
-      <i class="fa-regular fa-circle-question"></i>
+      <i class="fa-solid fa-circle-question"></i>
     </div>
     <template #dropdown>
       <el-dropdown-menu class="dark-help-menu">
@@ -9,13 +9,13 @@
           <h3>Trợ giúp</h3>
           <i class="fa-solid fa-xmark close-btn"></i>
         </div>
-        <el-dropdown-item><i class="fa-regular fa-lightbulb"></i> Tìm hiểu cập nhật mới</el-dropdown-item>
-        <el-dropdown-item><i class="fa-regular fa-file-lines"></i> Đọc về điều hướng mới</el-dropdown-item>
+        <el-dropdown-item><i class="fa-solid fa-lightbulb"></i> Tìm hiểu cập nhật mới</el-dropdown-item>
+        <el-dropdown-item><i class="fa-solid fa-file-lines"></i> Đọc về điều hướng mới</el-dropdown-item>
         <el-dropdown-item><i class="fa-solid fa-book"></i> Duyệt tài liệu hướng dẫn</el-dropdown-item>
         <el-dropdown-item><i class="fa-solid fa-desktop"></i> Học kỹ năng điều hành dự án</el-dropdown-item>
-        <el-dropdown-item divided><i class="fa-regular fa-comment"></i> Hỏi cộng đồng trực tuyến</el-dropdown-item>
+        <el-dropdown-item divided><i class="fa-solid fa-comment"></i> Hỏi cộng đồng trực tuyến</el-dropdown-item>
         <el-dropdown-item><i class="fa-solid fa-triangle-exclamation"></i> Liên hệ hỗ trợ</el-dropdown-item>
-        <el-dropdown-item><i class="fa-regular fa-comments"></i> Phản hồi về SprintA</el-dropdown-item>
+        <el-dropdown-item><i class="fa-solid fa-comments"></i> Phản hồi về SprintA</el-dropdown-item>
         <el-dropdown-item><i class="fa-solid fa-keyboard"></i> Phím tắt</el-dropdown-item>
         <el-dropdown-item><i class="fa-solid fa-paper-plane"></i> Tải ứng dụng Mobile</el-dropdown-item>
         <div class="help-footer">
@@ -34,7 +34,7 @@
 
 <style scoped>
 .help-trigger-btn {
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 18px;
   cursor: pointer;
   width: 32px;
@@ -47,13 +47,12 @@
 }
 
 .help-trigger-btn:hover {
-  color: white;
-  background-color: #1e293b;
+  color: var(--text-primary);
+  background-color: var(--hover-bg);
 }
 
-/* Specific styles that were in the views */
 .dark-help-menu {
-  background: #22272b;
+  background: var(--bg-card);
   border: none;
   width: 320px;
   padding: 0;
@@ -64,8 +63,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  color: #b3bac5;
-  border-bottom: 1px solid #333;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .help-header h3 {
@@ -77,15 +76,15 @@
 .close-btn {
   cursor: pointer;
   font-size: 14px;
-  opacity: 0.6;
+  color: var(--text-secondary);
 }
 
 .close-btn:hover {
-  opacity: 1;
+  color: var(--text-primary);
 }
 
 :deep(.el-dropdown-menu__item) {
-  color: #b3bac5 !important;
+  color: var(--text-secondary) !important;
   padding: 10px 20px !important;
   font-size: 14px !important;
   display: flex;
@@ -100,47 +99,46 @@
 }
 
 :deep(.el-dropdown-menu__item:hover) {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  color: white !important;
+  background-color: var(--hover-bg) !important;
+  color: var(--text-primary) !important;
 }
 
 :deep(.el-dropdown-menu__item--divided) {
-  border-top-color: #333 !important;
+  border-top-color: var(--border-color) !important;
 }
 
 .help-footer {
   display: flex;
   justify-content: space-evenly;
   padding: 16px 20px;
-  background-color: #1d2125;
-  border-top: 1px solid #333;
+  background-color: var(--bg-card);
+  border-top: 1px solid var(--border-color);
   margin-top: 8px;
 }
 
 .help-footer a {
-  color: #8c9bab;
+  color: var(--text-secondary);
   font-size: 12px;
   text-decoration: none;
 }
 
 .help-footer a:hover {
-  color: white;
+  color: var(--text-primary);
   text-decoration: underline;
 }
 </style>
 
 <style>
-/* Global popper styles to override Element Plus defaults */
 .el-popper.help-dropdown-popper.global-help-popper {
-  background: #22272b !important;
-  border: 1px solid #333 !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
   border-radius: 8px !important;
   padding: 0 !important;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.6) !important;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
 }
 
 .el-popper.help-dropdown-popper.global-help-popper .el-popper__arrow::before {
-  background: #22272b !important;
-  border-color: #333 !important;
+  background: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
 }
 </style>

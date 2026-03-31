@@ -1,12 +1,45 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
 :root {
   --el-color-primary: #0061ff;
   --el-color-primary-light-3: #4d91ff;
   --el-color-primary-dark-2: #004ecc;
-  --bg-gradient: linear-gradient(180deg, #f8faff 0%, #ffffff 100%);
-  --footer-bg: #0d121f;
   --border-radius-xl: 24px;
+}
+
+/* Default to light theme styles */
+:root, [data-theme='light'] {
+  --bg-layout: #f4f5f7;
+  --bg-nav: #ffffff;
+  --bg-sidebar: #f4f5f7;
+  --bg-content: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-card: #ffffff;
+  --text-primary: #172b4d;
+  --text-secondary: #44546f;
+  --text-muted: #626f84;
+  --border-color: #dfe1e6;
+  --hover-bg: #ebecf0;
+  --active-bg: #e9f2ff;
+  --input-bg: #ffffff;
+  --scrollbar-bg: #f4f5f7;
+  --scrollbar-thumb: #dcdfe4;
+}
+
+/* Dark theme styles */
+[data-theme='dark'] {
+  --bg-layout: #020617;
+  --bg-nav: #020617;
+  --bg-sidebar: #020617;
+  --bg-content: #1d2125;
+  --bg-secondary: #22272b;
+  --bg-card: #22272b;
+  --text-primary: #f4f5f7;
+  --text-secondary: #8c9bab;
+  --text-muted: #738496;
+  --border-color: #334155;
+  --hover-bg: #2c333a;
+  --active-bg: #1e293b;
+  --scrollbar-bg: #1d2125;
+  --scrollbar-thumb: #3e4c5b;
 }
 
 * {
@@ -17,9 +50,10 @@
 
 body {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: #1a1a1a;
-  background-color: #fff;
+  color: var(--text-primary);
+  background-color: var(--bg-content);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .section-padding {
@@ -41,26 +75,73 @@ h1, h2, h3 {
   color: var(--el-color-primary);
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--border-radius-xl);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+/* Jira-inspired Card */
+.jira-card, .glass-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
-/* Animations */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-bg); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* Global Element Plus Theme Styling */
+:root {
+  --el-bg-color: var(--bg-content);
+  --el-bg-color-overlay: var(--bg-card);
+  --el-text-color-primary: var(--text-primary);
+  --el-text-color-regular: var(--text-secondary);
+  --el-text-color-placeholder: var(--text-muted);
+  --el-border-color: var(--border-color);
+  --el-border-color-lighter: var(--border-color);
+  --el-fill-color-blank: var(--bg-secondary);
 }
 
-.animate-fade-up {
-  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+/* Table theme variables that components can inherit */
+.el-table {
+  --el-table-bg-color: var(--bg-card);
+  --el-table-tr-bg-color: var(--bg-card);
+  --el-table-header-bg-color: var(--bg-layout);
+  --el-table-header-text-color: var(--text-secondary);
+  --el-table-text-color: var(--text-primary);
+  --el-table-border-color: var(--border-color);
+  --el-table-row-hover-bg-color: var(--hover-bg);
+}
+
+.el-input__wrapper, .el-select__wrapper {
+  background-color: var(--bg-secondary) !important;
+  box-shadow: 0 0 0 1px var(--border-color) inset !important;
+}
+
+.el-dropdown-menu {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+}
+
+.el-dropdown-menu__item {
+  color: var(--text-secondary) !important;
+}
+
+.el-dropdown-menu__item:hover {
+  background-color: var(--hover-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+.el-tabs__item {
+  color: var(--text-secondary) !important;
+}
+
+.el-tabs__item.is-active {
+  color: #3b82f6 !important;
+}
+
+.el-pagination {
+  --el-pagination-bg-color: transparent !important;
+  --el-pagination-hover-color: #3b82f6 !important;
+  color: var(--text-secondary) !important;
 }

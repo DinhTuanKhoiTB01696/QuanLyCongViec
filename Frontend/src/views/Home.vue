@@ -81,7 +81,7 @@ const kanbanColumns = [
 </script>
 
 <template>
-  <div class="landing-page">
+  <div class="landing-page" data-theme="light">
     <!-- Navbar -->
     <header class="navbar">
       <div class="container nav-content">
@@ -310,6 +310,9 @@ const kanbanColumns = [
 
 <style scoped>
 .landing-page {
+  background-color: #ffffff;
+  color: #1a1a1a;
+  min-height: 100vh;
   overflow-x: hidden;
 }
 
@@ -474,24 +477,25 @@ const kanbanColumns = [
 }
 
 .cta-card {
-  background: var(--footer-bg);
+  background: #0d121f;
   padding: 80px 40px;
   border-radius: 32px;
   text-align: center;
-  color: white;
+  color: #ffffff;
   box-shadow: 0 20px 40px rgba(0,0,0,0.1);
 }
 
 .cta-card h2 {
   font-size: 2.5rem;
   margin-bottom: 24px;
+  color: #ffffff;
 }
 
 /* Footer */
 .footer {
-  background: var(--footer-bg);
+  background: #0d121f;
   padding: 80px 0 40px;
-  color: white;
+  color: #ffffff;
 }
 
 .footer-row {
@@ -519,7 +523,7 @@ const kanbanColumns = [
 }
 
 .footer ul li a {
-  color: white;
+  color: #ffffff;
   opacity: 0.7;
   text-decoration: none;
 }
