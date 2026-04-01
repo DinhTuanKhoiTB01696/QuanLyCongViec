@@ -58,11 +58,40 @@ namespace TaskManagement.API.Controllers
             }
         }
 
+        public class CreateCommentRequest {
+            public Guid WorkTaskId { get; set; }
+            public string Content { get; set; } = string.Empty;
+        }
+
         [HttpPost("{id}/Comments")]
-        public IActionResult CreateComment(Guid id, [FromBody] object request)
+        public async Task<IActionResult> CreateComment(Guid id, [FromBody] CreateCommentRequest request, [FromServices] TaskManagement.Infrastructure.Data.ApplicationDbContext context)
         {
-            // Placeholder to prevent 405 error
-            return Ok(ApiResponse<object>.Success(null!, "Comment created successfully."));
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
+                return Unauthorized(ApiResponse<object>.Error("Unauthorized.", 401));
+
+            var comment = new TaskManagement.Domain.Entities.Comment
+            {
+                Id = Guid.NewGuid(),
+                WorkTaskId = request.WorkTaskId,
+                Content = request.Content,
+                UserId = userId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            context.Comments.Add(comment);
+            await context.SaveChangesAsync();
+
+            var user = await context.Users.FindAsync(userId);
+            return Ok(new { statusCode = 200, message = "Success", data = new {
+                comment.Id,
+                comment.Content,
+                comment.CreatedAt,
+                UserId = userId,
+                FullName = user?.FullName ?? user?.Email,
+                Avatar = user?.FullName != null ? user.FullName.Substring(0, 1) : "U"
+            }});
         }
 
         [HttpPut("{id}")]

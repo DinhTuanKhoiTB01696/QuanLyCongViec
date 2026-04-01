@@ -160,6 +160,35 @@ namespace TaskManagement.API.Controllers
                 return StatusCode(500, new { statusCode = 500, message = "Lỗi máy chủ nội bộ: " + ex.Message });
             }
         }
+
+        [HttpGet("{id}/comments")]
+        public async Task<IActionResult> GetComments(Guid projectId, Guid id, [FromServices] TaskManagement.Infrastructure.Data.ApplicationDbContext context)
+        {
+            try
+            {
+                var comments = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+                    System.Linq.Queryable.OrderBy(
+                        System.Linq.Queryable.Select(
+                            System.Linq.Queryable.Where(context.Comments, c => c.WorkTaskId == id && !c.IsDeleted),
+                            c => new {
+                                c.Id,
+                                c.Content,
+                                c.CreatedAt,
+                                UserId = c.UserId,
+                                FullName = c.User.FullName ?? c.User.Email,
+                                Avatar = c.User.FullName != null ? c.User.FullName.Substring(0, 1) : "U"
+                            }
+                        ),
+                        c => c.CreatedAt
+                    )
+                );
+                return Ok(new { statusCode = 200, message = "Success", data = comments });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { statusCode = 500, message = ex.Message });
+            }
+        }
     }
 }
 

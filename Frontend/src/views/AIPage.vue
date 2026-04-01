@@ -10,7 +10,7 @@
           <li v-if="sidebarPreferences.spaces" @click="goToSpace"><i class="fa-regular fa-folder-open"></i> Không gian</li>
           <li v-if="sidebarPreferences.recent"><i class="fa-regular fa-clock"></i> Gần đây</li>
           <li v-if="sidebarPreferences.ai" class="active"><i class="fa-solid fa-robot"></i> Trợ lý AI</li>
-          <li v-if="sidebarPreferences.audit" @click="router.push('/audit-log')"><i class="fa-solid fa-list-check"></i> Audit Log</li>
+          <li v-if="sidebarPreferences.audit && isAdmin" @click="router.push('/audit-log')"><i class="fa-solid fa-list-check"></i> Audit Log</li>
           <li v-if="sidebarPreferences.users" @click="router.push('/user-management')"><i class="fa-solid fa-users-gear"></i> Quản lý người dùng</li>
           <li class="more-dropdown-wrapper" style="padding: 0; background: transparent !important; margin-bottom: 4px;">
             <el-dropdown trigger="click" placement="bottom-start" popper-class="custom-sidebar-dropdown" style="width: 100%;">
@@ -38,7 +38,7 @@
                       <span>Trợ lý AI</span>
                     </div>
                   </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.audit">
+                  <el-dropdown-item v-if="!sidebarPreferences.audit && isAdmin">
                     <div @click="router.push('/audit-log')" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
                       <i class="fa-solid fa-list-check"></i>
                       <span>Audit Log</span>
@@ -172,7 +172,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import logoImg from '../assets/logo_QLCV.png'
 import HelpDropdown from '../components/HelpDropdown.vue'
@@ -182,6 +182,11 @@ import UserDropdown from '../components/UserDropdown.vue'
 import CustomizeSidebarModal from '../components/CustomizeSidebarModal.vue'
 
 const router = useRouter()
+const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+const isAdmin = computed(() => {
+  const roles = currentUser.systemRoles || []
+  return roles.includes('Admin') || roles.includes('admin')
+})
 const searchQuery = ref('')
 const aiVisible = ref(false)
 const showCustomizeModal = ref(false)

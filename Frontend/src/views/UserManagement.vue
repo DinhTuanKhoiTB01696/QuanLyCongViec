@@ -26,7 +26,7 @@
           <li v-if="sidebarPreferences.spaces" @click="router.push('/dashboard')"><i class="fa-solid fa-folder-open"></i> Không gian</li>
           <li v-if="sidebarPreferences.recent" @click="router.push('/dashboard')"><i class="fa-solid fa-clock"></i> Gần đây</li>
           <li v-if="sidebarPreferences.ai" @click="router.push('/ai-assistant')"><i class="fa-solid fa-robot"></i> Trợ lý AI</li>
-          <li v-if="sidebarPreferences.audit" @click="router.push('/audit-log')"><i class="fa-solid fa-list-check"></i> Audit Log</li>
+          <li v-if="sidebarPreferences.audit && isAdmin" @click="router.push('/audit-log')"><i class="fa-solid fa-list-check"></i> Audit Log</li>
           <li v-if="sidebarPreferences.users" class="active"><i class="fa-solid fa-users-gear"></i> Quản lý người dùng</li>
 
           <li class="more-dropdown-wrapper" style="padding: 0; background: transparent !important; margin-bottom: 4px;">
@@ -54,7 +54,7 @@
                       <span>Trợ lý AI</span>
                     </div>
                   </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.audit">
+                  <el-dropdown-item v-if="!sidebarPreferences.audit && isAdmin">
                     <div @click="router.push('/audit-log')" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
                       <i class="fa-solid fa-list-check"></i>
                       <span>Audit Log</span>
@@ -337,6 +337,11 @@ import { Plus, Search, Edit, Delete, Key, More, ArrowDown, User, Monitor, Folder
 import { onMounted } from 'vue'
 
 const router = useRouter()
+const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+const isAdmin = computed(() => {
+  const roles = currentUser.systemRoles || []
+  return roles.includes('Admin') || roles.includes('admin')
+})
 const sidebarVisible = ref(false)
 const activeTab = ref('users')
 const loading = ref(false)
@@ -432,6 +437,8 @@ const resetFilters = () => {
 const handleBulkRoleChange = () => ElMessage.info('Thay đổi role hàng loạt')
 const handleBulkDeactivate = () => ElMessage.warning('Vô hiệu hóa hàng loạt')
 const handleBulkDelete = () => ElMessage.error('Xóa hàng loạt')
+
+const handleManageGroup = (group) => ElMessage.info(`Quản lý thành viên nhóm ${group.name}`)
 
 onMounted(() => {
   const saved = localStorage.getItem('sidebarPreferences')

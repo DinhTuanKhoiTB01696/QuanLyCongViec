@@ -103,8 +103,9 @@
                         <template #dropdown>
                           <el-dropdown-menu>
                              <el-dropdown-item :command="null">Chưa phân công</el-dropdown-item>
-                             <el-dropdown-item command="1a2f082d-72a2-b281-0081-8b9cad0e1f20">Danh Nguyễn</el-dropdown-item>
-                             <el-dropdown-item command="f81d4fae-7dec-11d0-a765-00a0c91e6bf6">Admin</el-dropdown-item>
+                             <el-dropdown-item v-for="member in projectMembers" :key="member.userId" :command="member.userId">
+                               {{ member.fullName }}
+                             </el-dropdown-item>
                           </el-dropdown-menu>
                         </template>
                       </el-dropdown>
@@ -168,12 +169,12 @@
                 </div>
 
                 <div class="activity-scroll">
-                  <div class="comment-card">
+                  <div class="comment-card" v-for="c in comments" :key="c.id">
                     <div class="c-head">
-                      <div class="avatar-sm">DN</div>
-                      <div class="c-user">Danh Nguyễn <span class="c-time">13 phút trước</span></div>
+                      <div class="avatar-sm">{{ c.avatar || 'U' }}</div>
+                      <div class="c-user">{{ c.fullName }} <span class="c-time">{{ formatDate(c.createdAt) }}</span></div>
                     </div>
-                    <div class="c-body">dsa</div>
+                    <div class="c-body">{{ c.content }}</div>
                     <div class="c-foot">
                        <div class="c-actions">
                          <i class="fa-regular fa-thumbs-up"></i>
@@ -231,7 +232,7 @@
           <li v-if="sidebarPreferences.spaces" class="active"><i class="fa-solid fa-folder-open"></i> Không gian</li>
           <li v-if="sidebarPreferences.recent" @click="goToDashboard"><i class="fa-solid fa-clock"></i> Gần đây</li>
           <li v-if="sidebarPreferences.ai" class="ai-item" @click="goToAI"><i class="fa-solid fa-robot"></i> Trợ lý AI</li>
-          <li v-if="sidebarPreferences.audit" @click="router.push('/audit-log')"><i class="fa-solid fa-list-check"></i> Audit Log</li>
+          <li v-if="sidebarPreferences.audit && isAdmin" @click="router.push('/audit-log')"><i class="fa-solid fa-list-check"></i> Audit Log</li>
           <li v-if="sidebarPreferences.users" @click="router.push('/user-management')"><i class="fa-solid fa-users-gear"></i> Quản lý người dùng</li>
           <li class="more-dropdown-wrapper" style="padding: 0; background: transparent !important; margin-bottom: 4px;">
             <el-dropdown trigger="click" placement="bottom-start" popper-class="custom-sidebar-dropdown" style="width: 100%;">
@@ -258,7 +259,7 @@
                       <span>Trợ lý AI</span>
                     </div>
                   </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.audit">
+                  <el-dropdown-item v-if="!sidebarPreferences.audit && isAdmin">
                     <div @click="router.push('/audit-log')" style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
                       <i class="fa-solid fa-list-check"></i>
                       <span>Audit Log</span>
@@ -958,15 +959,17 @@
                           <span>{{ task.title }}</span>
                         </div>
                         <div class="col-assignee">
-                          <el-dropdown trigger="click" @command="(val) => updateTaskField(task, 'reporterName', val)">
+                          <el-dropdown trigger="click" @command="(val) => updateTaskField(task, 'assignedUserId', val)">
                             <div class="assignee-trigger">
-                              <div class="avatar-tiny" v-if="task.reporterName">{{ task.reporterName[0] }}</div>
+                              <div class="avatar-tiny" v-if="task.assigneeName">{{ task.assigneeName[0] }}</div>
                               <i class="fa-solid fa-user-plus icon-btn" v-else></i>
                             </div>
                             <template #dropdown>
                               <el-dropdown-menu>
-                                <el-dropdown-item command="Danh Nguyễn">Danh Nguyễn</el-dropdown-item>
-                                <el-dropdown-item command="Admin">Admin</el-dropdown-item>
+                                <el-dropdown-item :command="null">Chưa phân công</el-dropdown-item>
+                                <el-dropdown-item v-for="member in projectMembers" :key="member.userId" :command="member.userId">
+                                  {{ member.fullName }}
+                                </el-dropdown-item>
                               </el-dropdown-menu>
                             </template>
                           </el-dropdown>
@@ -1348,6 +1351,10 @@ const showTaskModal = ref(false)
 const selectedTask = ref(null)
 const showCreateModal = ref(false)
 const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+const isAdmin = computed(() => {
+  const roles = currentUser.systemRoles || []
+  return roles.includes('Admin') || roles.includes('admin')
+})
 const newTask = ref({
   title: '',
   description: '',
@@ -1677,9 +1684,13 @@ const fetchTasks = async () => {
   }
 }
 
-// Fetch comments for a task
 const fetchComments = async (taskId) => {
-  // Logic to fetch comments if needed
+  try {
+    const { data } = await axiosClient.get(`/projects/${projectId.value}/WorkTasks/${taskId}/comments`)
+    comments.value = data.data || []
+  } catch (error) {
+    console.error('Fetch comments error:', error)
+  }
 }
 
 const seedTestTasks = async () => {
@@ -1896,9 +1907,8 @@ onUnmounted(() => {
 
 const moveTask = async (taskId, newStatusId, rowVersion, statusName) => {
   try {
-    await axiosClient.patch(`/projects/${projectId.value}/WorkTasks/${taskId}/move`, {
+    await axiosClient.put(`/projects/${projectId.value}/WorkTasks/${taskId}/status`, {
       taskStatusId: newStatusId || '00000000-0000-0000-0000-000000000000',
-      statusName: statusName,
       rowVersion: rowVersion
     })
   } catch (error) {
@@ -1915,12 +1925,12 @@ const submitComment = async () => {
   if (!newComment.value || !selectedTask.value) return
   
   try {
-    await axiosClient.post(`/projects/${projectId.value}/Comments`, {
+    const { data } = await axiosClient.post(`/projects/${projectId.value}/Comments`, {
       workTaskId: selectedTask.value.id,
       content: newComment.value
     })
     newComment.value = ''
-    // Real-time update will be handled by SignalR (CommentAdded event)
+    comments.value.push(data.data)
   } catch (error) {
     console.error('Submit comment error:', error)
   }

@@ -265,11 +265,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import logoImg from '../assets/logo_QLCV.png'
 import UserDropdown from '../components/UserDropdown.vue'
 import NotificationsDropdown from '../components/NotificationsDropdown.vue'
 import CustomizeSidebarModal from '../components/CustomizeSidebarModal.vue'
-
+import axiosClient from '../api/axiosClient'
 
 const router = useRouter()
 const sidebarVisible = ref(false)
@@ -293,14 +294,65 @@ const filters = ref({
   keyword: ''
 })
 
-// Mock Data
-const auditLogs = ref([
-  { id: 'LOG-001', timestamp: '2026-03-30 14:20:05', user: 'Admin', action: 'update', resource: 'Project', targetId: 'PRJ-101', status: 'success', summary: 'Cập nhật cấu hình bảo mật dự án "SprintA"', details: { old: { visibility: 'public' }, new: { visibility: 'private' } } },
-  { id: 'LOG-002', timestamp: '2026-03-30 15:10:12', user: 'Manager', action: 'create', resource: 'Task', targetId: 'TASK-552', status: 'success', summary: 'Tạo công việc "Thiết kế trang Audit Log"', details: { title: 'Thiết kế trang Audit Log', priority: 'High', assignee: 'Dev-01' } },
-  { id: 'LOG-003', timestamp: '2026-03-30 15:45:00', user: 'Developer', action: 'delete', resource: 'Task', targetId: 'TASK-102', status: 'failure', summary: 'Thử xóa công việc không có quyền hạn', details: { error: 'Permission Denied', errorCode: 403 } },
-  { id: 'LOG-004', timestamp: '2026-03-30 16:05:22', user: 'Admin', action: 'login', resource: 'Auth', targetId: 'USR-AD1', status: 'success', summary: 'Đăng nhập từ IP 192.168.1.10', details: { ip: '192.168.1.10', browser: 'Chrome', os: 'Windows 11' } },
-  { id: 'LOG-005', timestamp: '2026-03-30 16:30:15', user: 'Dev-01', action: 'update', resource: 'Member', targetId: 'MB-05', status: 'success', summary: 'Thay đổi vai trò thành viên sang Developer', details: { prevRole: 'Guest', newRole: 'Developer' } },
-])
+// // Mock Data
+// const auditLogs = ref([
+//   { id: 'LOG-001', timestamp: '2026-03-30 14:20:05', user: 'Admin', action: 'update', resource: 'Project', targetId: 'PRJ-101', status: 'success', summary: 'Cập nhật cấu hình bảo mật dự án "SprintA"', details: { old: { visibility: 'public' }, new: { visibility: 'private' } } },
+//   { id: 'LOG-002', timestamp: '2026-03-30 15:10:12', user: 'Manager', action: 'create', resource: 'Task', targetId: 'TASK-552', status: 'success', summary: 'Tạo công việc "Thiết kế trang Audit Log"', details: { title: 'Thiết kế trang Audit Log', priority: 'High', assignee: 'Dev-01' } },
+//   { id: 'LOG-003', timestamp: '2026-03-30 15:45:00', user: 'Developer', action: 'delete', resource: 'Task', targetId: 'TASK-102', status: 'failure', summary: 'Thử xóa công việc không có quyền hạn', details: { error: 'Permission Denied', errorCode: 403 } },
+//   { id: 'LOG-004', timestamp: '2026-03-30 16:05:22', user: 'Admin', action: 'login', resource: 'Auth', targetId: 'USR-AD1', status: 'success', summary: 'Đăng nhập từ IP 192.168.1.10', details: { ip: '192.168.1.10', browser: 'Chrome', os: 'Windows 11' } },
+//   { id: 'LOG-005', timestamp: '2026-03-30 16:30:15', user: 'Dev-01', action: 'update', resource: 'Member', targetId: 'MB-05', status: 'success', summary: 'Thay đổi vai trò thành viên sang Developer', details: { prevRole: 'Guest', newRole: 'Developer' } },
+// ])
+
+const auditLogs = ref([])
+
+onMounted(async () => {
+  // Admin guard - chỉ Admin mới được truy cập trang này
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+  const roles = currentUser.systemRoles || []
+  if (!roles.includes('Admin') && !roles.includes('admin')) {
+    ElMessage.error('Bạn không có quyền truy cập trang Audit Log.')
+    router.push('/dashboard')
+    return
+  }
+
+  // restore sidebar settings
+  const saved = localStorage.getItem('sidebarPreferences')
+  if (saved) {
+    try {
+      const prefs = JSON.parse(saved)
+      const newPrefs = { ...sidebarPreferences.value }
+      if (prefs && prefs.navItems) {
+        prefs.navItems.forEach(item => {
+          if (['recent', 'spaces', 'ai', 'audit', 'users'].includes(item.id)) {
+            newPrefs[item.id] = item.checked
+          }
+        })
+      } else {
+        Object.assign(newPrefs, prefs)
+      }
+      sidebarPreferences.value = newPrefs
+    } catch (e) {
+      console.error('Error parsing sidebar:', e)
+    }
+  }
+
+  // fetch logs
+  await fetchLogs()
+})
+
+
+
+const fetchLogs = async () => {
+  loading.value = true
+  try {
+    const { data } = await axiosClient.get('/auditlogs')
+    auditLogs.value = data.data.items || []
+  } catch (error) {
+    console.error('Lỗi khi tải Audit Logs', error)
+  } finally {
+    loading.value = false
+  }
+}
 
 const filteredLogs = computed(() => {
   return auditLogs.value.filter(log => {
@@ -348,27 +400,7 @@ const exportToCSV = () => {
   // Placeholder for real export logic
 }
 
-onMounted(() => {
-  const saved = localStorage.getItem('sidebarPreferences')
-  if (saved) {
-    try {
-      const prefs = JSON.parse(saved)
-      const newPrefs = { ...sidebarPreferences.value }
-      if (prefs && prefs.navItems) {
-        prefs.navItems.forEach(item => {
-          if (['recent', 'spaces', 'ai', 'audit', 'users'].includes(item.id)) {
-            newPrefs[item.id] = item.checked
-          }
-        })
-      } else {
-        Object.assign(newPrefs, prefs)
-      }
-      sidebarPreferences.value = newPrefs
-    } catch (e) {
-      console.error('Error parsing sidebar preferences:', e)
-    }
-  }
-})
+
 
 const handleSidebarSaved = (prefs) => {
   const newPrefs = { ...sidebarPreferences.value }

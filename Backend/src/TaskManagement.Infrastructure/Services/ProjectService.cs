@@ -107,6 +107,14 @@ namespace TaskManagement.Infrastructure.Services
             };
 
             _context.Projects.Add(project);
+
+            // Seed default Task Statuses for the new project
+            _context.TaskStatuses.AddRange(
+                new TaskManagement.Domain.Entities.TaskStatus { Id = Guid.NewGuid(), ProjectId = project.Id, Name = "TO DO", Position = 1 },
+                new TaskManagement.Domain.Entities.TaskStatus { Id = Guid.NewGuid(), ProjectId = project.Id, Name = "IN PROGRESS", Position = 2 },
+                new TaskManagement.Domain.Entities.TaskStatus { Id = Guid.NewGuid(), ProjectId = project.Id, Name = "DONE", Position = 3 }
+            );
+
             await _context.SaveChangesAsync();
 
             return (await GetByIdAsync(project.Id))!;

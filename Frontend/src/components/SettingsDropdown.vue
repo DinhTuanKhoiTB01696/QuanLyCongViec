@@ -9,7 +9,7 @@
           <div class="settings-section">
             <h4 class="settings-section-title">Cài đặt quản trị Jira</h4>
             
-            <div class="settings-item" @click="handleCommand('audit')">
+            <div class="settings-item" v-if="isAdmin" @click="handleCommand('audit')">
               <div class="settings-item-icon">
                 <i class="fa-solid fa-clock-rotate-left"></i>
               </div>
@@ -37,12 +37,24 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 
+const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+const isAdmin = computed(() => {
+  const roles = currentUser.systemRoles || []
+  return roles.includes('Admin') || roles.includes('admin')
+})
+
 const handleCommand = (cmd) => {
   if (cmd === 'audit') {
+    if (!isAdmin.value) {
+      ElMessage.error('Bạn không có quyền truy cập trang Audit Log.')
+      return
+    }
     router.push('/audit-log')
   } else if (cmd === 'users') {
     router.push('/user-management')

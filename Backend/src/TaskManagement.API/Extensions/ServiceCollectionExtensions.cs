@@ -63,6 +63,17 @@ namespace TaskManagement.API.Extensions
             services.AddScoped<ISprintService, SprintService>();
             return services;
         }
+
+        /// <summary>
+        /// Module 6: System Audit & Logging — DI Registration
+        /// </summary>
+        public static IServiceCollection AddAuditLogServices(this IServiceCollection services)
+        {
+            services.AddHttpContextAccessor();
+            services.AddSingleton<IAuditLogQueue, AuditLogQueue>();
+            services.AddHostedService<AuditLogWorker>();
+            return services;
+        }
     }
 }
 

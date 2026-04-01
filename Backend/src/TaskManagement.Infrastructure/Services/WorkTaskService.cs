@@ -408,31 +408,47 @@ namespace TaskManagement.Infrastructure.Services
         {
             TaskManagement.Domain.Entities.TaskStatus? taskStatus = null;
 
-            // Try exact match
+            // Try exact match on the specific project first
             if (!string.IsNullOrEmpty(statusName))
             {
                 taskStatus = await _context.TaskStatuses
-                    .FirstOrDefaultAsync(ts => ts.Name.ToUpper().Replace(" ", "") == statusName.ToUpper().Replace(" ", ""));
-            }
-            // Try known default names
-            if (taskStatus == null)
-            {
-                taskStatus = await _context.TaskStatuses
-                    .FirstOrDefaultAsync(ts => ts.Name.Contains("To Do") || ts.Name.Contains("Cần làm"));
-            }
-            // Fallback: first status in project
-            if (taskStatus == null)
-            {
-                taskStatus = await _context.TaskStatuses
-                    .FirstOrDefaultAsync(ts => ts.ProjectId == projectId);
-            }
-            // Ultimate fallback: any status
-            if (taskStatus == null)
-            {
-                taskStatus = await _context.TaskStatuses.FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(ts => ts.ProjectId == projectId && ts.Name.ToUpper().Replace(" ", "") == statusName.ToUpper().Replace(" ", ""));
             }
 
-            return taskStatus ?? throw new InvalidOperationException("Không tìm thấy trạng thái nào. Vui lòng tạo trạng thái trước.");
+            // If still not found, check globally just in case (e.g. template statuses)
+            if (taskStatus == null && !string.IsNullOrEmpty(statusName))
+            {
+                taskStatus = await _context.TaskStatuses
+                    .FirstOrDefaultAsync(ts => ts.Name.ToUpper().Replace(" ", "") == statusName.ToUpper().Replace(" ", ""));
+                
+                // If it's a global match but not in this project, create a new one for this project
+                if (taskStatus != null || !string.IsNullOrEmpty(statusName))
+                {
+                    taskStatus = new TaskManagement.Domain.Entities.TaskStatus
+                    {
+                        Id = Guid.NewGuid(),
+                        ProjectId = projectId,
+                        Name = statusName ?? "TO DO",
+                        Position = 1
+                    };
+                    _context.TaskStatuses.Add(taskStatus);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            // Ultimate fallback if statusName was empty
+            if (taskStatus == null)
+            {
+                taskStatus = await _context.TaskStatuses.FirstOrDefaultAsync(ts => ts.ProjectId == projectId);
+                if (taskStatus == null) 
+                {
+                    taskStatus = new TaskManagement.Domain.Entities.TaskStatus { Id = Guid.NewGuid(), ProjectId = projectId, Name = "TO DO", Position = 1 };
+                    _context.TaskStatuses.Add(taskStatus);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            return taskStatus;
         }
 
         private async Task<Guid> ResolveTaskTypeIdAsync(Guid? taskTypeId, string? typeName, Guid projectId)

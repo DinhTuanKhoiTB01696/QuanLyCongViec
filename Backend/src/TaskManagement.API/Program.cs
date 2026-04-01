@@ -17,6 +17,7 @@ builder.Services.AddOpenApi();
 // Đăng ký Custom Services từ Extension Methods
 builder.Services.AddAuthServices(builder.Configuration);
 builder.Services.AddWorkspaceServices();
+builder.Services.AddAuditLogServices();
 
 // 2. Khai báo Policy CORS
 var myAllowSpecificOrigins = "_myAllowSpecificOrigins";
