@@ -34,8 +34,18 @@ namespace TaskManagement.API.Controllers
                     .FirstOrDefaultAsync(u => u.Id == userId);
                 
                 var isAdmin = user?.UserRoles?.Any(ur => ur.Role.Name == "Admin") ?? false;
-                if (!isAdmin)
-                    return StatusCode(403, new { statusCode = 403, message = "Chỉ Admin mới được phép xem Audit Log." });
+                
+                // Also allow PM/PO project roles to view audit logs
+                var isPMOrPO = false;
+                if (!isAdmin && user != null)
+                {
+                    isPMOrPO = await _context.ProjectMembers
+                        .AnyAsync(pm => pm.UserId == userId && 
+                            (pm.ProjectRole == "PM" || pm.ProjectRole == "PO" || pm.ProjectRole == "Admin"));
+                }
+                
+                if (!isAdmin && !isPMOrPO)
+                    return StatusCode(403, new { statusCode = 403, message = "Chỉ Admin hoặc PM mới được phép xem Audit Log." });
 
                 var skip = (page - 1) * limit;
 

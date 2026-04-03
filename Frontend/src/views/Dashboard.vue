@@ -47,7 +47,7 @@
           <li v-if="sidebarPreferences.spaces" @click="goToDefaultSpace"><i class="fa-solid fa-folder-open"></i> Không gian</li>
           <li v-if="sidebarPreferences.recent"><i class="fa-solid fa-clock"></i> Gần đây</li>
           <li v-if="sidebarPreferences.ai" class="ai-item" @click="goToAI"><i class="fa-solid fa-robot"></i> Trợ lý AI</li>
-          <li v-if="sidebarPreferences.audit && isAdmin" @click="router.push('/audit-log')"><i class="fa-solid fa-list-check"></i> Audit Log</li>
+          <li v-if="sidebarPreferences.audit" @click="router.push('/audit-log')"><i class="fa-solid fa-list-check"></i> Audit Log</li>
           <li v-if="sidebarPreferences.users" @click="router.push('/user-management')"><i class="fa-solid fa-users-gear"></i> Quản lý người dùng</li>
           
           <!-- More Dropdown -->
@@ -77,7 +77,7 @@
                       <span>Trợ lý AI</span>
                     </div>
                   </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.audit && isAdmin">
+                  <el-dropdown-item v-if="!sidebarPreferences.audit">
                     <div @click="router.push('/audit-log')" style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
                       <i class="fa-solid fa-list-check"></i>
                       <span>Audit Log</span>
@@ -244,7 +244,6 @@ import UserDropdown from '../components/UserDropdown.vue'
 import CustomizeSidebarModal from '../components/CustomizeSidebarModal.vue'
 import axiosClient from '../api/axiosClient'
 import { ElMessage } from 'element-plus'
-import { computed } from 'vue'
 
 const router = useRouter()
 const currentUser = JSON.parse(localStorage.getItem('user') || '{}')

@@ -1671,7 +1671,7 @@ const goToAI = () => {
 const fetchTasks = async () => {
   try {
     const { data } = await axiosClient.get(`/projects/${projectId.value}/WorkTasks`)
-    tasks.value = data
+    tasks.value = data.data || data || []
   } catch (error) {
     if (error.response && error.response.status === 403) {
       ElMessage.error(error.response.data?.message || 'Bạn không có quyền truy cập dự án này.')

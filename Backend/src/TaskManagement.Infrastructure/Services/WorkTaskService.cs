@@ -408,45 +408,37 @@ namespace TaskManagement.Infrastructure.Services
         {
             TaskManagement.Domain.Entities.TaskStatus? taskStatus = null;
 
-            // Try exact match on the specific project first
-            if (!string.IsNullOrEmpty(statusName))
-            {
-                taskStatus = await _context.TaskStatuses
-                    .FirstOrDefaultAsync(ts => ts.ProjectId == projectId && ts.Name.ToUpper().Replace(" ", "") == statusName.ToUpper().Replace(" ", ""));
-            }
+            // Normalize the requested status name to one of the 3 standard names
+            string normalizedName = NormalizeStatusName(statusName);
 
-            // If still not found, check globally just in case (e.g. template statuses)
-            if (taskStatus == null && !string.IsNullOrEmpty(statusName))
-            {
-                taskStatus = await _context.TaskStatuses
-                    .FirstOrDefaultAsync(ts => ts.Name.ToUpper().Replace(" ", "") == statusName.ToUpper().Replace(" ", ""));
-                
-                // If it's a global match but not in this project, create a new one for this project
-                if (taskStatus != null || !string.IsNullOrEmpty(statusName))
-                {
-                    taskStatus = new TaskManagement.Domain.Entities.TaskStatus
-                    {
-                        Id = Guid.NewGuid(),
-                        ProjectId = projectId,
-                        Name = statusName ?? "TO DO",
-                        Position = 1
-                    };
-                    _context.TaskStatuses.Add(taskStatus);
-                    await _context.SaveChangesAsync();
-                }
-            }
+            // Try to find an existing status in this project that matches the normalized name
+            var projectStatuses = await _context.TaskStatuses
+                .Where(ts => ts.ProjectId == projectId)
+                .ToListAsync();
 
-            // Ultimate fallback if statusName was empty
-            if (taskStatus == null)
+            taskStatus = projectStatuses.FirstOrDefault(ts =>
+                NormalizeStatusName(ts.Name) == normalizedName);
+
+            if (taskStatus != null)
+                return taskStatus;
+
+            // No matching status found in this project - create one
+            int position = normalizedName switch
             {
-                taskStatus = await _context.TaskStatuses.FirstOrDefaultAsync(ts => ts.ProjectId == projectId);
-                if (taskStatus == null) 
-                {
-                    taskStatus = new TaskManagement.Domain.Entities.TaskStatus { Id = Guid.NewGuid(), ProjectId = projectId, Name = "TO DO", Position = 1 };
-                    _context.TaskStatuses.Add(taskStatus);
-                    await _context.SaveChangesAsync();
-                }
-            }
+                "IN PROGRESS" => 2,
+                "DONE" => 3,
+                _ => 1 // TO DO
+            };
+
+            taskStatus = new TaskManagement.Domain.Entities.TaskStatus
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = projectId,
+                Name = normalizedName,
+                Position = position
+            };
+            _context.TaskStatuses.Add(taskStatus);
+            await _context.SaveChangesAsync();
 
             return taskStatus;
         }
