@@ -13,5 +13,10 @@ export default [
     path: '/user-management',
     name: 'UserManagement',
     component: () => import('../views/UserManagement.vue')
+  },
+  {
+    path: '/recent',
+    name: 'Recent',
+    component: () => import('../views/Recent.vue')
   }
 ]

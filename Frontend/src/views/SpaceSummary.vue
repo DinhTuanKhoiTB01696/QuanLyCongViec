@@ -1,27 +1,6 @@
 <template>
-  <div class="dashboard-layout">
-    <!-- Navbar -->
-    <header class="top-nav">
-      <div class="nav-left">
-        <div class="menu-toggle mobile-only" @click="sidebarVisible = !sidebarVisible">
-          <i class="fa-solid fa-bars"></i>
-        </div>
-        <router-link to="/dashboard" class="nav-brand">
-          <img :src="logoImg" alt="SprintA Logo" class="nav-logo" />
-          <span class="desktop-only">SprintA</span>
-        </router-link>
-        <span class="nav-link active desktop-only">Dự án</span>
-      </div>
+  <NexusLayout>
 
-      <div class="nav-center desktop-only">
-        <div class="top-search-create">
-          <div class="search-input-mock">
-            <i class="fa-solid fa-magnifying-glass" style="margin-right: 8px;"></i>
-            <input type="text" placeholder="Tìm kiếm" v-model="searchQuery" />
-          </div>
-          <button class="btn-create-jira" v-if="canEditBoard"><i class="fa-solid fa-plus"></i> Tạo mới</button>
-        </div>
-      </div>
 
       <!-- Task Detail Modal Overlay -->
       <transition name="fade">
@@ -212,83 +191,7 @@
         </div>
       </transition>
 
-      <div class="nav-right">
-        <div class="nav-icon bot-icon" @click="toggleAI" :class="{ 'active': aiVisible }">
-          <i class="fa-solid fa-robot"></i>
-        </div>
-
-        <NotificationsDropdown class="desktop-only" />
-        <SettingsDropdown class="desktop-only" />
-        <HelpDropdown class="desktop-only" />
-        <UserDropdown />
-      </div>
-    </header>
-
-    <div class="main-body">
-      <!-- Sidebar -->
-      <aside class="sidebar" :class="{ 'show': sidebarVisible }">
-        <ul class="side-menu">
-          <li @click="goToDashboard"><i class="fa-solid fa-border-all"></i> Dành cho bạn</li>
-          <li v-if="sidebarPreferences.spaces" class="active"><i class="fa-solid fa-folder-open"></i> Không gian</li>
-          <li v-if="sidebarPreferences.recent" @click="goToDashboard"><i class="fa-solid fa-clock"></i> Gần đây</li>
-          <li v-if="sidebarPreferences.ai" class="ai-item" @click="goToAI"><i class="fa-solid fa-robot"></i> Trợ lý AI</li>
-          <li v-if="sidebarPreferences.audit && isAdmin" @click="router.push('/audit-log')"><i class="fa-solid fa-list-check"></i> Audit Log</li>
-          <li v-if="sidebarPreferences.users" @click="router.push('/user-management')"><i class="fa-solid fa-users-gear"></i> Quản lý người dùng</li>
-          <li class="more-dropdown-wrapper" style="padding: 0; background: transparent !important; margin-bottom: 4px;">
-            <el-dropdown trigger="click" placement="bottom-start" popper-class="custom-sidebar-dropdown" style="width: 100%;">
-              <div class="sidebar-more-trigger">
-                <i class="fa-solid fa-ellipsis"></i> Thêm
-              </div>
-              <template #dropdown>
-                <el-dropdown-menu class="jira-more-menu" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 0; width: 200px;">
-                  <el-dropdown-item v-if="!sidebarPreferences.spaces">
-                    <div style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-folder-open"></i>
-                      <span>Không gian</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.recent">
-                    <div @click="goToDashboard" style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-clock"></i>
-                      <span>Gần đây</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.ai">
-                    <div @click="goToAI" style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-robot"></i>
-                      <span>Trợ lý AI</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.audit && isAdmin">
-                    <div @click="router.push('/audit-log')" style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-list-check"></i>
-                      <span>Audit Log</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.users">
-                    <div @click="router.push('/user-management')" style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-users-gear"></i>
-                      <span>Quản lý người dùng</span>
-                    </div>
-                  </el-dropdown-item>
-
-                  <el-dropdown-item v-if="!sidebarPreferences.spaces || !sidebarPreferences.recent || !sidebarPreferences.ai || !sidebarPreferences.audit" divided></el-dropdown-item>
-
-                  <el-dropdown-item>
-                    <div @click="showCustomizeModal = true" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-sliders"></i>
-                      <span>Customize sidebar</span>
-                    </div>
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </li>
-        </ul>
-      </aside>
-
-      <main class="content-area">
-        <div class="content-wrapper">
+      <!-- Nexus Layout handles Topbar and Sidebar -->
           <div class="page-header">
             <div class="header-breadcrumbs">Spaces</div>
             <div class="header-main-title">
@@ -1064,8 +967,7 @@
               </div> <!-- Closes task-group (Line 774) -->
             </div> <!-- Closes list-view-container (Line 773) -->
           </div> <!-- Closes list-tab-wrapper (Line 703) -->
-        </div>
-      </main>
+        <!-- Main Layout tags handled by Nexus Layout -->
 
       <!-- Members Management Dialog -->
       <el-dialog
@@ -1303,7 +1205,7 @@
     <AddPeopleModal v-model:visible="showAddPeopleModal" @added="handleAddedPeople" />
     <!-- Customize Sidebar Modal -->
     <CustomizeSidebarModal :visible="showCustomizeModal" @update:visible="showCustomizeModal = $event" @saved="handleSidebarSaved" />
-  </div>
+  </NexusLayout>
 </template>
 
 <script setup>
@@ -1314,10 +1216,11 @@ import logoImg from '../assets/logo_QLCV.png'
 import HelpDropdown from '../components/HelpDropdown.vue'
 import SettingsDropdown from '../components/SettingsDropdown.vue'
 import NotificationsDropdown from '../components/NotificationsDropdown.vue'
-import UserDropdown from '../components/UserDropdown.vue';
-import AddPeopleModal from '../components/AddPeopleModal.vue';
-import CustomizeSidebarModal from '../components/CustomizeSidebarModal.vue';
-import axiosClient from '../api/axiosClient';
+import UserDropdown from '../components/UserDropdown.vue'
+import AddPeopleModal from '../components/AddPeopleModal.vue'
+import CustomizeSidebarModal from '../components/CustomizeSidebarModal.vue'
+import NexusLayout from '@/components/layout/NexusLayout.vue'
+import axiosClient from '../api/axiosClient'
 import draggable from 'vuedraggable'
 import * as echarts from 'echarts'
 import { signalRService } from '@/api/signalrService'
@@ -1558,97 +1461,142 @@ const taskGroups = computed(() => {
   }
 })
 
-// Charts refs
+// Charts instances
 let statusChart = null
 let priorityChart = null
 let typeChart = null
 
 const initCharts = () => {
+  const isDark = document.documentElement.classList.contains('dark')
+  const textColor = isDark ? '#f1f5f9' : '#1e293b'
+  const splitLineColor = isDark ? '#334155' : '#e2e8f0'
+
   const statusDom = document.getElementById('status-donut-chart')
   if (statusDom) {
+    if (statusChart) statusChart.dispose()
     statusChart = echarts.init(statusDom)
-    updateStatusChart()
+    updateStatusChart(textColor)
   }
 
   const priorityDom = document.getElementById('priority-bar-chart')
   if (priorityDom) {
+    if (priorityChart) priorityChart.dispose()
     priorityChart = echarts.init(priorityDom)
-    updatePriorityChart()
+    updatePriorityChart(textColor, splitLineColor)
   }
 
   const typeDom = document.getElementById('type-pie-chart')
   if (typeDom) {
+    if (typeChart) typeChart.dispose()
     typeChart = echarts.init(typeDom)
-    updateTypeChart()
+    updateTypeChart(textColor)
   }
 }
 
-const updateStatusChart = () => {
+const updateStatusChart = (textColor) => {
   if (!statusChart) return
   const counts = {
-    'TODO': tasks.value.filter(t => t.statusName === 'TO DO').length,
-    'IN PROGRESS': tasks.value.filter(t => t.statusName === 'IN PROGRESS').length,
-    'DONE': tasks.value.filter(t => t.statusName === 'DONE').length
+    'TODO': tasks.value.filter(t => {
+      const s = (t.statusName || '').toUpperCase().replace(/\s/g, '')
+      return s !== 'INPROGRESS' && s !== 'DONE'
+    }).length,
+    'IN PROGRESS': tasks.value.filter(t => (t.statusName || '').toUpperCase().replace(/\s/g, '') === 'INPROGRESS').length,
+    'DONE': tasks.value.filter(t => (t.statusName || '').toUpperCase() === 'DONE').length
   }
 
   statusChart.setOption({
     tooltip: { trigger: 'item' },
+    legend: { bottom: '0', textStyle: { color: textColor } },
     series: [{
       type: 'pie',
-      radius: ['50%', '70%'],
+      radius: ['50%', '75%'],
       avoidLabelOverlap: false,
+      itemStyle: { borderRadius: 10, borderColor: 'transparent', borderWidth: 2 },
       label: { show: false, position: 'center' },
-      emphasis: { label: { show: true, fontSize: '18', fontWeight: 'bold' } },
+      emphasis: { label: { show: true, fontSize: '16', fontWeight: 'bold', color: textColor } },
       data: [
-        { value: counts['TODO'], name: 'Cần làm', itemStyle: { color: '#374151' } },
-        { value: counts['IN PROGRESS'], name: 'Đang thực hiện', itemStyle: { color: '#6b21a8' } },
-        { value: counts['DONE'], name: 'Hoàn thành', itemStyle: { color: '#166534' } }
+        { value: counts['TODO'], name: 'Cần làm', itemStyle: { color: '#64748b' } },
+        { value: counts['IN PROGRESS'], name: 'Đang thực hiện', itemStyle: { color: '#a855f7' } },
+        { value: counts['DONE'], name: 'Hoàn thành', itemStyle: { color: '#22c55e' } }
       ]
     }]
   })
 }
 
-const updatePriorityChart = () => {
+const updatePriorityChart = (textColor, splitLineColor) => {
   if (!priorityChart) return
-  const priorityCounts = [0, 0, 0, 0, 0] // Mocking priority levels 1-5
-  tasks.value.forEach(t => { if (t.priority >= 1 && t.priority <= 5) priorityCounts[t.priority - 1]++ })
+  const pCounts = [
+    tasks.value.filter(t => t.priority === 1).length,
+    tasks.value.filter(t => t.priority === 2).length,
+    tasks.value.filter(t => t.priority === 3).length,
+    tasks.value.filter(t => t.priority === 4).length
+  ]
 
   priorityChart.setOption({
-    xAxis: { type: 'category', data: ['Thấp nhất', 'Thấp', 'Trung bình', 'Cao', 'Cao nhất'] },
-    yAxis: { type: 'value' },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: '3%', right: '4%', bottom: '15%', top: '5%', containLabel: true },
+    xAxis: { 
+      type: 'category', 
+      data: ['Urgent', 'High', 'Normal', 'Low'],
+      axisLabel: { color: textColor },
+      axisLine: { lineStyle: { color: splitLineColor } }
+    },
+    yAxis: { 
+      type: 'value',
+      axisLabel: { color: textColor },
+      splitLine: { lineStyle: { color: splitLineColor, type: 'dashed' } }
+    },
     series: [{
-      data: priorityCounts,
+      data: pCounts,
       type: 'bar',
-      itemStyle: { color: '#579dff' }
+      barWidth: '40%',
+      itemStyle: {
+        borderRadius: [4, 4, 0, 0],
+        color: (params) => {
+          const colors = ['#ef4444', '#f97316', '#3b82f6', '#94a3b8']
+          return colors[params.dataIndex]
+        }
+      }
     }]
   })
 }
 
-const updateTypeChart = () => {
+const updateTypeChart = (textColor) => {
   if (!typeChart) return
   const types = {}
   tasks.value.forEach(t => {
-    types[t.typeName] = (types[t.typeName] || 0) + 1
+    const typeName = t.typeName || 'Task'
+    types[typeName] = (types[typeName] || 0) + 1
   })
 
   typeChart.setOption({
+    tooltip: { trigger: 'item' },
+    legend: { bottom: '0', textStyle: { color: textColor }, icon: 'circle' },
     series: [{
       type: 'pie',
       radius: '60%',
-      data: Object.entries(types).map(([name, value]) => ({ name, value }))
+      data: Object.entries(types).map(([name, value]) => ({ 
+        name, 
+        value,
+        itemStyle: { color: name === 'Bug' ? '#ef4444' : '#3b82f6' }
+      })),
+      label: { color: textColor, formatter: '{b}: {c}' }
     }]
   })
 }
 
 watch(tasks, () => {
-  updateStatusChart()
-  updatePriorityChart()
-  updateTypeChart()
+  const isDark = document.documentElement.classList.contains('dark')
+  const textColor = isDark ? '#f1f5f9' : '#1e293b'
+  const splitLineColor = isDark ? '#334155' : '#e2e8f0'
+  updateStatusChart(textColor)
+  updatePriorityChart(textColor, splitLineColor)
+  updateTypeChart(textColor)
 }, { deep: true })
 
 watch(currentTab, (newTab) => {
   if (newTab === 'summary') {
-    setTimeout(initCharts, 0)
+    setTimeout(initCharts, 200)
   }
 })
 
@@ -1899,10 +1847,36 @@ onMounted(async () => {
       console.warn('SignalR không khả dụng, tính năng real-time bị tạm tắt:', err.message)
     }
   }
+
+  // Handle theme changes for charts
+  setTimeout(() => {
+    initCharts()
+    window.addEventListener('resize', handleResize)
+    themeObserver.observe(document.documentElement, { attributes: true })
+  }, 300)
+})
+
+const handleResize = () => {
+  statusChart?.resize()
+  priorityChart?.resize()
+  typeChart?.resize()
+}
+
+const themeObserver = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => {
+    if (mutation.attributeName === 'class') {
+      initCharts()
+    }
+  })
 })
 
 onUnmounted(() => {
   signalRService.stopConnection()
+  window.removeEventListener('resize', handleResize)
+  themeObserver.disconnect()
+  statusChart?.dispose()
+  priorityChart?.dispose()
+  typeChart?.dispose()
 })
 
 const moveTask = async (taskId, newStatusId, rowVersion, statusName) => {
@@ -2582,7 +2556,7 @@ const formatDate = (dateStr) => {
   display: flex;
   align-items: center;
   gap: 24px;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--border-color);
   margin-bottom: 24px;
 }
 
@@ -2595,15 +2569,15 @@ const formatDate = (dateStr) => {
   position: relative;
 }
 .jira-tab:hover { color: var(--text-primary); }
-.jira-tab.active { color: #579dff; font-weight: 600; }
+.jira-tab.active { color: #3b82f6; font-weight: 600; }
 .jira-tab.active::after {
   content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
-  height: 2px; background-color: #579dff;
+  height: 2px; background-color: #3b82f6;
 }
 
 .tab-spacer { flex: 1; }
 .jira-tab-icon {
-  color: #94a3b8; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  color: var(--text-secondary); font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px;
 }
 
 /* =========================================
@@ -2711,12 +2685,12 @@ const formatDate = (dateStr) => {
 .group-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; padding-left: 8px;}
 .toggle-icon { color: #a1a1aa; cursor: pointer; font-size: 14px; transition: transform 0.2s; }
 .group-badge { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 4px; font-weight: 700; font-size: 11px; }
-.group-count { color: #a1a1aa; font-size: 13px; }
+.group-count { color: var(--text-secondary); font-size: 13px; }
 
 .list-row { display: flex; align-items: center; padding: 0 16px; border-bottom: 1px dashed #27272a;}
-.header-row { color: #71717a; font-size: 12px; height: 36px; border-bottom: none !important;}
-.task-row { height: 48px; transition: background 0.2s; cursor: pointer; background-color: transparent; border-bottom: 1px solid #1e293b;}
-.task-row:hover { background-color: #1e2430; }
+.header-row { color: var(--text-secondary); font-size: 12px; height: 36px; border-bottom: none !important;}
+.task-row { height: 48px; transition: background 0.2s; cursor: pointer; background-color: transparent; border-bottom: 1px solid var(--border-color);}
+.task-row:hover { background-color: var(--hover-bg); }
 
 .nav-center {
   flex: 1;
@@ -2724,13 +2698,13 @@ const formatDate = (dateStr) => {
   justify-content: center;
   align-items: center;
 }
-.col-name { display: flex; align-items: center; gap: 12px; color: #f8fafc; font-size: 14px; font-weight: 500; padding-left: 24px; flex: 1; min-width: 250px;}
-.col-assignee { width: 120px; font-size: 13px; color: #cbd5e1; }
-.col-date { width: 120px; font-size: 13px; color: #cbd5e1; }
+.col-name { display: flex; align-items: center; gap: 12px; color: var(--text-primary); font-size: 14px; font-weight: 500; padding-left: 24px; flex: 1; min-width: 250px;}
+.col-assignee { width: 120px; font-size: 13px; color: var(--text-secondary); }
+.col-date { width: 120px; font-size: 13px; color: var(--text-secondary); }
 .col-priority { width: 100px; font-size: 14px; }
 .col-status { width: 140px; }
-.col-comments { width: 80px; text-align: left; color: #a1a1aa; font-size: 14px; }
-.col-add { width: 40px; text-align: right; color: #a1a1aa; font-size: 14px;}
+.col-comments { width: 80px; text-align: left; color: var(--text-secondary); font-size: 14px; }
+.col-add { width: 40px; text-align: right; color: var(--text-secondary); font-size: 14px;}
 
 .check-icon { font-size: 16px; color: #52525b; }
 .icon-btn { color: #a1a1aa; font-size: 14px; cursor: pointer;}
@@ -3260,17 +3234,17 @@ const formatDate = (dateStr) => {
 }
 
 .calendar-grid-container {
-  border: 1px solid #1e293b;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   overflow: hidden;
-  background-color: #0c101a;
+  background-color: var(--bg-layout);
 }
 
 .calendar-week-labels {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  background-color: #161a1d;
-  border-bottom: 1px solid #1e293b;
+  background-color: var(--bg-layout);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .weekday-label {
@@ -3290,10 +3264,10 @@ const formatDate = (dateStr) => {
 }
 
 .day-cell {
-  border-right: 1px solid #1e293b;
-  border-bottom: 1px solid #1e293b;
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
   padding: 10px;
-  color: #f1f5f9;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 500;
   position: relative;
@@ -3362,8 +3336,8 @@ const formatDate = (dateStr) => {
 .timeline-search {
   display: flex;
   align-items: center;
-  background-color: #22272b;
-  border: 1px solid #334155;
+  background-color: var(--bg-layout);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 0 10px;
   width: 200px;
@@ -3396,10 +3370,10 @@ const formatDate = (dateStr) => {
 .timeline-grid-wrapper {
   flex: 1;
   display: flex;
-  border: 1px solid #1e293b;
+  border: 1px solid var(--border-color);
   border-radius: 5px;
   overflow: hidden;
-  background-color: #161a1d;
+  background-color: var(--bg-card);
 }
 
 .timeline-left-panel {
@@ -3413,16 +3387,16 @@ const formatDate = (dateStr) => {
   padding: 12px 16px;
   font-size: 13px;
   font-weight: 700;
-  color: #f1f5f9;
-  background-color: #111;
-  border-bottom: 1px solid #1e293b;
+  color: var(--text-primary);
+  background-color: var(--bg-layout);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .panel-sub-header {
   padding: 8px 16px;
   font-size: 11px;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-secondary);
   text-transform: uppercase;
 }
 
@@ -3460,8 +3434,8 @@ const formatDate = (dateStr) => {
 
 .timeline-months-row {
   display: flex;
-  background-color: #111;
-  border-bottom: 1px solid #1e293b;
+  background-color: var(--bg-layout);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .month-col {
@@ -3470,9 +3444,9 @@ const formatDate = (dateStr) => {
   padding: 12px;
   font-size: 12px;
   font-weight: 500;
-  color: #94a3b8;
+  color: var(--text-secondary);
   text-align: center;
-  border-right: 1px solid #1e293b;
+  border-right: 1px solid var(--border-color);
 }
 
 .timeline-rows-container {
@@ -3483,14 +3457,14 @@ const formatDate = (dateStr) => {
 .timeline-task-row {
   height: 48px;
   display: flex;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
+  border-bottom: 1px solid var(--border-color);
   position: relative;
 }
 
 .grid-line {
   min-width: 200px;
   flex: 1;
-  border-right: 1px solid rgba(255,255,255,0.03);
+  border-right: 1px solid var(--border-color);
   height: 100%;
 }
 
@@ -3589,19 +3563,19 @@ const formatDate = (dateStr) => {
 
 /* Editor Window Mockup */
 .editor-window {
-  background-color: #1d2125;
+  background-color: var(--bg-card);
   border-radius: 8px 8px 0 0;
-  border: 1px solid #333c43;
+  border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   flex: 1;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
 }
 
 .editor-window-header {
   height: 32px;
-  background-color: #2c333a;
-  border-bottom: 1px solid #333c43;
+  background-color: var(--bg-layout);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   padding: 0 16px;
@@ -3694,20 +3668,20 @@ const formatDate = (dateStr) => {
 
 .editor-content-area {
   padding: 60px 100px;
-  color: #f1f5f9;
+  color: var(--text-primary);
 }
 
 .editor-main-heading { font-size: 32px; font-weight: 700; margin-bottom: 24px; }
 .editor-main-p { font-size: 16px; color: #94a3b8; line-height: 1.6; margin-bottom: 24px; }
 .editor-tip { font-size: 14px; color: #94a3b8; }
-.mention-tag { background-color: #1e293b; color: #8c9bab; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+.mention-tag { background-color: var(--bg-secondary); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
 
 /* Template Sidebar */
 .pages-template-sidebar {
   width: 300px;
   padding: 24px;
-  background-color: #0c101a;
-  border-left: 1px solid #1e293b;
+  background-color: var(--bg-card);
+  border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
 }
@@ -3816,8 +3790,8 @@ const formatDate = (dateStr) => {
 .visual-card {
   width: 180px;
   height: 160px;
-  background-color: #1d2125;
-  border: 1px solid #333c43;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -3897,8 +3871,8 @@ const formatDate = (dateStr) => {
 .board-search {
   display: flex;
   align-items: center;
-  background-color: #22272b;
-  border: 1px solid #333c43;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 0 10px;
   width: 240px;
@@ -3980,7 +3954,7 @@ const formatDate = (dateStr) => {
 }
 
 .kanban-column {
-  background-color: #161a1d;
+  background-color: var(--bg-layout);
   width: 280px;
   min-width: 280px;
   border-radius: 8px;
@@ -4027,8 +4001,8 @@ const formatDate = (dateStr) => {
 }
 
 .kanban-card {
-  background-color: #22272b;
-  border: 1px solid #333c43;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 12px;
   cursor: pointer;
@@ -4037,7 +4011,7 @@ const formatDate = (dateStr) => {
 }
 
 .kanban-card:hover {
-  background-color: #2c333a;
+  background-color: var(--hover-bg);
 }
 
 .kanban-card.active-card {
@@ -4176,8 +4150,8 @@ const formatDate = (dateStr) => {
 /* AI SIDEBAR */
 .ai-sidebar {
   width: 420px;
-  background-color: #0c101a;
-  border-left: 1px solid #1e293b;
+  background-color: var(--bg-card);
+  border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -4185,7 +4159,7 @@ const formatDate = (dateStr) => {
 
 .ai-header {
   padding: 24px;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .ai-header h4 {
@@ -4239,10 +4213,10 @@ const formatDate = (dateStr) => {
 }
 
 .message-bubble {
-  background-color: #1e293b;
+  background-color: var(--bg-layout);
   padding: 16px;
   border-radius: 12px 12px 12px 0;
-  color: #e2e8f0;
+  color: var(--text-primary);
   font-size: 14px;
   line-height: 1.5;
   margin-bottom: 8px;
@@ -4256,13 +4230,13 @@ const formatDate = (dateStr) => {
 
 .ai-input-area {
   padding: 20px;
-  background-color: #0c101a;
-  border-top: 1px solid #1e293b;
+  background-color: var(--bg-card);
+  border-top: 1px solid var(--border-color);
 }
 
 .ai-input-wrapper {
-  background-color: #1e293b;
-  border: 1px solid #334155;
+  background-color: var(--bg-layout);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -4347,7 +4321,7 @@ const formatDate = (dateStr) => {
 
 .teams-dialog-header {
   height: 180px;
-  background-color: #1d2125;
+  background-color: var(--bg-layout);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4367,14 +4341,14 @@ const formatDate = (dateStr) => {
 }
 
 .team-banner {
-  background: #161a1d;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 10px 16px;
   display: flex;
   align-items: center;
   gap: 40px;
-  border: 1px solid #333;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
   z-index: 2;
   position: relative;
 }
@@ -4471,15 +4445,15 @@ const formatDate = (dateStr) => {
 }
 
 .dialog-subtitle {
-  color: #94a3b8 !important;
+  color: var(--text-secondary) !important;
   font-size: 14px !important;
   line-height: 1.5 !important;
   margin-bottom: 24px !important;
 }
 
 .search-teams-box {
-  background-color: #22272b;
-  border: 2px solid #334155;
+  background-color: var(--bg-layout);
+  border: 2px solid var(--border-color);
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -4525,7 +4499,7 @@ const formatDate = (dateStr) => {
 ========================================== */
 .backlog-content {
   padding: 24px;
-  background-color: var(--bg-content);
+  background-color: var(--bg-layout);
   min-height: 100%;
 }
 .backlog-header-jira {
@@ -4547,25 +4521,27 @@ const formatDate = (dateStr) => {
   gap: 16px;
 }
 .backlog-group {
-  background-color: #1e293b50;
+  background-color: var(--bg-card);
   border-radius: 8px;
   overflow: hidden;
+  border: 1px solid var(--border-color);
 }
 .backlog-group-header {
   padding: 8px 16px;
-  background-color: #1e293b;
+  background-color: var(--bg-layout);
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #f1f5f9;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
 }
 .bg-header-count {
-  background-color: #334155;
+  background-color: var(--bg-secondary);
   padding: 2px 8px;
   border-radius: 10px;
   font-size: 11px;
+  color: var(--text-secondary);
 }
 .backlog-items-area {
   min-height: 40px;
@@ -4575,7 +4551,7 @@ const formatDate = (dateStr) => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
-  border-bottom: 1px solid #33415540;
+  border-bottom: 1px solid var(--border-color);
   cursor: pointer;
   transition: background-color 0.1s;
 }
@@ -4716,19 +4692,20 @@ const formatDate = (dateStr) => {
 
 <style>
 .custom-sidebar-dropdown.el-popper {
-  background: #282e33 !important;
-  border: 1px solid #333c43 !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
   border-radius: 4px !important;
 }
 .custom-sidebar-dropdown .el-dropdown-menu__item {
   background-color: transparent !important;
+  color: var(--text-primary) !important;
 }
 .custom-sidebar-dropdown .el-dropdown-menu__item:hover,
 .custom-sidebar-dropdown .el-dropdown-menu__item:focus {
-  background-color: #3b444b !important;
+  background-color: var(--hover-bg) !important;
 }
 .custom-sidebar-dropdown .el-popper__arrow::before {
-  background: #282e33 !important;
-  border: 1px solid #333c43 !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
 }
 </style>

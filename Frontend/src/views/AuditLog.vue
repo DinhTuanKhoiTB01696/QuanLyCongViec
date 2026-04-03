@@ -1,90 +1,5 @@
 <template>
-  <div class="dashboard-layout">
-    <!-- Navbar -->
-    <header class="top-nav">
-      <div class="nav-left">
-        <button class="menu-toggle" @click="sidebarVisible = !sidebarVisible">
-          <i class="fa-solid fa-bars"></i>
-        </button>
-        <router-link to="/dashboard" class="nav-brand">
-          <img :src="logoImg" alt="SprintA Logo" class="nav-logo" />
-          <span>SprintA</span>
-        </router-link>
-        <span class="nav-link active desktop-only">Audit Log</span>
-      </div>
-
-      <div class="nav-right">
-        <NotificationsDropdown class="desktop-only" />
-        <UserDropdown />
-      </div>
-    </header>
-
-    <div class="main-body">
-      <!-- Sidebar (Consistent with Dashboard) -->
-      <aside class="sidebar" :class="{ 'mobile-show': sidebarVisible }">
-        <ul class="side-menu">
-          <li @click="router.push('/dashboard')"><i class="fa-solid fa-border-all"></i> Dành cho bạn</li>
-          <li v-if="sidebarPreferences.spaces" @click="router.push('/dashboard')"><i class="fa-solid fa-folder-open"></i> Không gian</li>
-          <li v-if="sidebarPreferences.recent" @click="router.push('/dashboard')"><i class="fa-solid fa-clock"></i> Gần đây</li>
-          <li v-if="sidebarPreferences.ai" @click="router.push('/ai-assistant')"><i class="fa-solid fa-robot"></i> Trợ lý AI</li>
-          <li v-if="sidebarPreferences.audit" class="active"><i class="fa-solid fa-list-check"></i> Audit Log</li>
-          <li v-if="sidebarPreferences.users" @click="router.push('/user-management')"><i class="fa-solid fa-users-gear"></i> Quản lý người dùng</li>
-
-          <li class="more-dropdown-wrapper" style="padding: 0; background: transparent !important; margin-bottom: 4px;">
-            <el-dropdown trigger="click" placement="bottom-start" popper-class="custom-sidebar-dropdown" style="width: 100%;">
-              <div class="sidebar-more-trigger">
-                <i class="fa-solid fa-ellipsis"></i> Thêm
-              </div>
-              <template #dropdown>
-                <el-dropdown-menu class="jira-more-menu" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 0; width: 220px;">
-                  <el-dropdown-item v-if="!sidebarPreferences.spaces">
-                    <div @click="router.push('/dashboard')" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-folder-open"></i>
-                      <span>Không gian</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.recent">
-                    <div @click="router.push('/dashboard')" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-clock"></i>
-                      <span>Gần đây</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.ai">
-                    <div @click="router.push('/ai-assistant')" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-robot"></i>
-                      <span>Trợ lý AI</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.audit">
-                    <div @click="router.push('/audit-log')" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-list-check"></i>
-                      <span>Audit Log</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.users">
-                    <div @click="router.push('/user-management')" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-users-gear"></i>
-                      <span>Quản lý người dùng</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.spaces || !sidebarPreferences.recent || !sidebarPreferences.ai || !sidebarPreferences.audit" divided></el-dropdown-item>
-
-                  <el-dropdown-item>
-                    <div @click="showCustomizeModal = true" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-sliders"></i>
-                      <span>Kiểm soát thanh bên</span>
-                    </div>
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </li>
-        </ul>
-      </aside>
-
-      <!-- Main Content -->
-      <main class="content-area">
-        <div class="content-wrapper">
+  <NexusLayout>
           <div class="page-header-flex">
             <h1 class="page-title">Giao diện trang Audit Log</h1>
             <div class="page-actions">
@@ -204,9 +119,7 @@
               />
             </div>
           </div>
-        </div>
-      </main>
-    </div>
+
 
     <!-- Details Drawer -->
     <el-drawer
@@ -258,7 +171,7 @@
 
     <!-- Customize Sidebar Modal -->
     <CustomizeSidebarModal :visible="showCustomizeModal" @update:visible="showCustomizeModal = $event" @saved="handleSidebarSaved" />
-  </div>
+  </NexusLayout>
 </template>
 
 <script setup>
@@ -270,6 +183,7 @@ import logoImg from '../assets/logo_QLCV.png'
 import UserDropdown from '../components/UserDropdown.vue'
 import NotificationsDropdown from '../components/NotificationsDropdown.vue'
 import CustomizeSidebarModal from '../components/CustomizeSidebarModal.vue'
+import NexusLayout from '@/components/layout/NexusLayout.vue'
 import axiosClient from '../api/axiosClient'
 
 const router = useRouter()
@@ -423,52 +337,7 @@ const handleSidebarSaved = (prefs) => {
 </script>
 
 <style scoped>
-.dashboard-layout {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--bg-layout);
-  color: var(--text-primary);
-  overflow: hidden;
-}
 
-.top-nav {
-  height: 56px;
-  background-color: var(--bg-nav);
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  flex-shrink: 0;
-}
-
-.nav-left { display: flex; align-items: center; gap: 12px; }
-.nav-brand { display: flex; align-items: center; gap: 8px; color: var(--text-primary); text-decoration: none; font-weight: 800; font-size: 20px; }
-.nav-logo { height: 28px; }
-.nav-link { color: var(--text-secondary); font-size: 14px; font-weight: 600; padding-left: 16px; border-left: 1px solid var(--border-color); }
-
-.nav-right { display: flex; align-items: center; gap: 16px; }
-
-.main-body { display: flex; flex: 1; overflow: hidden; }
-
-.sidebar {
-  width: 240px;
-  background-color: var(--bg-sidebar);
-  border-right: 1px solid var(--border-color);
-  padding: 24px 16px;
-  flex-shrink: 0;
-}
-
-.side-menu { list-style: none; padding: 0; margin: 0; }
-.side-menu li {
-  padding: 10px 12px; border-radius: 6px; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 4px; cursor: pointer; display: flex; align-items: center; gap: 12px;
-}
-.side-menu li:hover { background-color: var(--hover-bg); color: var(--text-primary); }
-.side-menu li.active { background-color: var(--active-bg); color: #3b82f6; }
-
-.content-area { flex: 1; background-color: var(--bg-content); padding: 40px; overflow-y: auto; }
-.content-wrapper { max-width: 1400px; margin: 0 auto; }
 
 .page-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
 .page-title { font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0; }
@@ -541,11 +410,5 @@ const handleSidebarSaved = (prefs) => {
 }
 .json-viewer pre { color: #10b981; font-family: 'Fira Code', 'Courier New', monospace; font-size: 13px; margin: 0; }
 
-.menu-toggle { display: none; background: transparent; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; }
 
-@media (max-width: 1024px) {
-  .sidebar { position: fixed; left: -240px; top: 56px; bottom: 0; z-index: 1001; transition: left 0.3s ease; }
-  .sidebar.mobile-show { left: 0; }
-  .menu-toggle { display: block; }
-}
 </style>

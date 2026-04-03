@@ -17,6 +17,12 @@ export const toggleTheme = (theme) => {
 }
 
 watch(currentTheme, (newTheme) => {
-  document.documentElement.setAttribute('data-theme', newTheme)
+  if (newTheme === 'dark') {
+    document.documentElement.classList.add('dark')
+    document.documentElement.setAttribute('data-theme', 'dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+    document.documentElement.setAttribute('data-theme', 'light')
+  }
   localStorage.setItem('theme', newTheme)
 }, { immediate: true })
