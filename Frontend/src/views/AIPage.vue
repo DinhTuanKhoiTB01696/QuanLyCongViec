@@ -160,7 +160,6 @@ const goToSpace = () => {
 </script>
 
 <style scoped>
-<style scoped>
 .ai-container { width: 100%; display: flex; flex-direction: column; height: 100%; }
 
 .ai-page-header { 
