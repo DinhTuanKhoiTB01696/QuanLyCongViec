@@ -17,10 +17,12 @@
         <div class="menu-divider"></div>
 
         <el-dropdown-item command="profile">
-          <div class="menu-item-inner">
-            <i class="fa-regular fa-user"></i>
-            <span>Hồ sơ</span>
-          </div>
+          <router-link to="/profile" style="text-decoration: none; color: inherit; display: block; width: 100%;">
+            <div class="menu-item-inner">
+              <i class="fa-regular fa-user"></i>
+              <span>Hồ sơ</span>
+            </div>
+          </router-link>
         </el-dropdown-item>
 
         <!-- Theme Sub-menu -->

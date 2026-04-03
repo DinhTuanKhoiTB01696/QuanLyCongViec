@@ -1,23 +1,6 @@
 <template>
-  <div class="dashboard-layout profile-page">
-    <!-- Navbar -->
-    <header class="top-nav">
-      <div class="nav-left">
-        <router-link to="/dashboard" class="nav-brand">
-          <img :src="logoImg" alt="SprintA Logo" class="nav-logo" />
-          <span>SprintA</span>
-        </router-link>
-        <span class="nav-link">Hồ sơ</span>
-      </div>
-      <div class="nav-right">
-        <NotificationsDropdown />
-        <SettingsDropdown />
-        <HelpDropdown />
-        <UserDropdown />
-      </div>
-    </header>
-
-    <div class="main-body">
+  <NexusLayout class="profile-page">
+    <div class="profile-body-container" style="padding: 40px 0; display: flex; justify-content: center;">
       <div class="profile-container">
         <!-- Header Banner & Avatar Section -->
         <div class="profile-header-section">
@@ -173,18 +156,15 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
+      </div> <!-- Closes profile-container -->
+    </div> <!-- Closes profile-body-container -->
+  </NexusLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import logoImg from '../assets/logo_QLCV.png'
-import HelpDropdown from '../components/HelpDropdown.vue'
-import SettingsDropdown from '../components/SettingsDropdown.vue'
-import NotificationsDropdown from '../components/NotificationsDropdown.vue'
-import UserDropdown from '../components/UserDropdown.vue'
+import NexusLayout from '@/components/layout/NexusLayout.vue'
 
 const profileData = ref({
   fullName: '',
@@ -197,34 +177,7 @@ const profileData = ref({
 </script>
 
 <style scoped>
-.profile-page {
-  background-color: var(--bg-layout);
-  min-height: 100vh;
-  color: var(--text-primary);
-}
 
-.top-nav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 16px;
-  height: 60px;
-  background-color: var(--bg-nav);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.nav-left { display: flex; align-items: center; gap: 12px; }
-.nav-brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: #579dff; font-weight: 700; font-size: 18px; }
-.nav-logo { height: 32px; }
-.nav-link { color: #8b949e; font-size: 14px; font-weight: 500; }
-
-.nav-right { display: flex; align-items: center; gap: 16px; }
-
-.main-body {
-  padding: 40px 0;
-  display: flex;
-  justify-content: center;
-}
 
 .profile-container {
   width: 100%;

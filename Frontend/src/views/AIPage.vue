@@ -1,87 +1,9 @@
 <template>
-  <div class="dashboard-layout">
-    <!-- Top Nav removed as per request for a cleaner AI experience -->
-
-    <div class="main-body">
-      <!-- Sidebar -->
-      <aside class="sidebar" :class="{ 'show': sidebarVisible }">
-        <ul class="side-menu">
-          <li @click="goToDashboard"><i class="fa-solid fa-border-all"></i> Dành cho bạn</li>
-          <li v-if="sidebarPreferences.spaces" @click="goToSpace"><i class="fa-regular fa-folder-open"></i> Không gian</li>
-          <li v-if="sidebarPreferences.recent"><i class="fa-regular fa-clock"></i> Gần đây</li>
-          <li v-if="sidebarPreferences.ai" class="active"><i class="fa-solid fa-robot"></i> Trợ lý AI</li>
-          <li v-if="sidebarPreferences.audit && isAdmin" @click="router.push('/audit-log')"><i class="fa-solid fa-list-check"></i> Audit Log</li>
-          <li v-if="sidebarPreferences.users" @click="router.push('/user-management')"><i class="fa-solid fa-users-gear"></i> Quản lý người dùng</li>
-          <li class="more-dropdown-wrapper" style="padding: 0; background: transparent !important; margin-bottom: 4px;">
-            <el-dropdown trigger="click" placement="bottom-start" popper-class="custom-sidebar-dropdown" style="width: 100%;">
-              <div class="sidebar-more-trigger">
-                <i class="fa-solid fa-ellipsis"></i> Thêm
-              </div>
-              <template #dropdown>
-                <el-dropdown-menu class="jira-more-menu" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 0; width: 200px;">
-                  <!-- Unselected items mapped to Dropdown -->
-                  <el-dropdown-item v-if="!sidebarPreferences.spaces">
-                    <div @click="goToSpace" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-regular fa-folder-open"></i>
-                      <span>Không gian</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.recent">
-                    <div @click="goToDashboard" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-regular fa-clock"></i>
-                      <span>Gần đây</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.ai">
-                    <div @click="toggleAIView" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-robot"></i>
-                      <span>Trợ lý AI</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.audit && isAdmin">
-                    <div @click="router.push('/audit-log')" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-list-check"></i>
-                      <span>Audit Log</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.users">
-                    <div @click="router.push('/user-management')" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-users-gear"></i>
-                      <span>Quản lý người dùng</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.spaces || !sidebarPreferences.recent || !sidebarPreferences.ai || !sidebarPreferences.audit" divided></el-dropdown-item>
-
-                  <el-dropdown-item>
-                    <div @click="showCustomizeModal = true" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-sliders"></i>
-                      <span>Customize sidebar</span>
-                    </div>
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </li>
-        </ul>
-        <div class="sidebar-footer">
-          <div class="user-card-mini">
-            <UserDropdown />
-            <div class="user-info">
-              <div class="name">Người dùng</div>
-              <div class="plan">Gói miễn phí</div>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <!-- AI Content Area -->
-      <main class="content-area">
-        <div class="ai-container">
-          <div class="ai-page-header">
+  <NexusLayout>
+    <div class="ai-page-flex-wrapper" style="display: flex; height: calc(100vh - 56px); width: calc(100% + 80px); margin: -40px;">
+      <div class="ai-container" style="flex: 1; overflow-y: auto;">
+        <div class="ai-page-header">
             <div class="header-left">
-              <div class="menu-toggle mobile-only" @click="sidebarVisible = !sidebarVisible">
-                <i class="fa-solid fa-bars"></i>
-              </div>
               <h2 class="page-title">Trợ lý AI</h2>
             </div>
           </div>
@@ -106,11 +28,10 @@
             </div>
             <div class="ai-disclaimer">SprintA AI có thể mắc sai sót. Hãy kiểm tra lại các thông tin quan trọng.</div>
           </div>
-        </div>
-      </main>
+      </div> <!-- Closes ai-container -->
 
       <!-- Right Sidebar: AI Details -->
-      <aside class="ai-details-panel">
+      <aside class="ai-details-panel" style="overflow-y: auto;">
         <div class="panel-section">
           <div class="section-label">Trợ lý AI</div>
           <div class="section-title">HÀNH ĐỘNG NHANH</div>
@@ -148,8 +69,7 @@
           </div>
         </div>
       </aside>
-    </div>
-
+    </div> <!-- Closes ai-page-flex-wrapper -->
     <!-- AI Sidebar (Reuse Popup component logic) -->
     <transition name="slide-right">
       <aside class="ai-sidebar popup" v-if="aiVisible">
@@ -168,7 +88,7 @@
 
     <!-- Customize Sidebar Modal -->
     <CustomizeSidebarModal :visible="showCustomizeModal" @update:visible="showCustomizeModal = $event" @saved="handleSidebarSaved" />
-  </div>
+  </NexusLayout>
 </template>
 
 <script setup>
@@ -180,6 +100,7 @@ import SettingsDropdown from '../components/SettingsDropdown.vue'
 import NotificationsDropdown from '../components/NotificationsDropdown.vue'
 import UserDropdown from '../components/UserDropdown.vue'
 import CustomizeSidebarModal from '../components/CustomizeSidebarModal.vue'
+import NexusLayout from '@/components/layout/NexusLayout.vue'
 
 const router = useRouter()
 const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
@@ -239,143 +160,8 @@ const goToSpace = () => {
 </script>
 
 <style scoped>
-.dashboard-layout {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--bg-layout); 
-  color: var(--text-primary); 
-  overflow: hidden;
-}
-
-.top-nav {
-  height: 56px;
-  background-color: var(--bg-nav); 
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  flex-shrink: 0;
-}
-
-.nav-left, .nav-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 300px; /* Keep sides fixed width to help center */
-}
-
-.nav-right {
-  justify-content: flex-end;
-}
-
-.nav-center {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-primary);
-  text-decoration: none;
-  font-weight: 800;
-  font-size: 20px;
-}
-.nav-logo { height: 28px; }
-
-.nav-link { font-size: 14px; color: var(--text-secondary); border-left: 1px solid var(--border-color); padding-left: 16px; }
-
-.top-search-create {
-  display: flex;
-  align-items: center;
-  gap: 8px; 
-}
-
-.search-input-mock {
-  display: flex;
-  align-items: center;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color); 
-  border-radius: 4px;
-  padding: 0 12px;
-  width: 550px;
-  height: 32px;
-}
-.search-input-mock i { color: var(--text-secondary); font-size: 14px; margin-right: 8px; }
-.search-input-mock input { background: transparent; border: none; color: var(--text-primary); font-size: 14px; width: 100%; outline: none; }
-
-.btn-create-jira {
-  background-color: #579dff; color: #1d2125; border: none; border-radius: 4px;
-  padding: 0 16px; height: 32px; font-size: 14px; font-weight: 500; cursor: pointer;
-}
-
-.nav-icon {
-  color: var(--text-secondary); font-size: 18px; cursor: pointer; width: 32px; height: 32px;
-  display: flex; align-items: center; justify-content: center; border-radius: 50%;
-}
-.nav-icon:hover { background-color: var(--hover-bg); color: var(--text-primary); }
-.nav-icon.active { color: #3b82f6; background-color: var(--hover-bg); }
-
-.user-avatar {
-  background: #fdbba7; color: #1d2125; width: 32px; height: 32px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;
-}
-
-.main-body { display: flex; flex: 1; overflow: hidden; }
-
-.sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); padding: 16px; display: flex; flex-direction: column;}
-.side-menu { list-style: none; padding: 0; margin: 0 0 20px 0; }
-.side-menu li { padding: 10px 12px; border-radius: 6px; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 4px; cursor: pointer; display: flex; align-items: center; gap: 12px; }
-.side-menu li:hover { background-color: var(--hover-bg); color: var(--text-primary); }
-.side-menu li.active { background-color: var(--active-bg); color: #579dff; }
-
-.sidebar-more-trigger {
-  padding: 10px 12px;
-  border-radius: 6px;
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: all 0.2s;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.sidebar-more-trigger i {
-  font-size: 16px;
-  width: 20px;
-  text-align: center;
-}
-
-.sidebar-more-trigger:hover {
-  background-color: var(--hover-bg);
-  color: var(--text-primary);
-}
-
-.sidebar-section { margin-top: 20px; }
-.section-label { font-size: 11px; color: var(--text-secondary); font-weight: 700; letter-spacing: 0.5px; padding: 8px 12px; text-transform: uppercase; }
-.dot { width: 8px; height: 8px; border-radius: 50%; }
-.dot.blue { background: #3b82f6; }
-.dot.orange { background: #f97316; }
-
-.sidebar-footer { margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 16px; }
-.user-card-mini { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 8px; cursor: pointer; }
-.user-card-mini:hover { background: var(--hover-bg); }
-.user-avatar-small { width: 28px; height: 28px; background: #579dff; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #1d2125; }
-.user-info { flex: 1; }
-.user-info .name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-.user-info .plan { font-size: 11px; color: var(--text-secondary); }
-
-.content-area { flex: 1; background-color: var(--bg-content); display: flex; justify-content: center; padding: 0; overflow-y: auto;}
-.ai-container { width: 100%; max-width: 900px; display: flex; flex-direction: column; height: 100%; }
+<style scoped>
+.ai-container { width: 100%; display: flex; flex-direction: column; height: 100%; }
 
 .ai-page-header { 
   padding: 24px 40px; 

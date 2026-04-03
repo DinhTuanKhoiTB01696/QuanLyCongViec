@@ -1,90 +1,6 @@
 <template>
-  <div class="dashboard-layout">
-    <!-- Navbar (Reuse logic or keep simple) -->
-    <header class="top-nav">
-      <div class="nav-left">
-        <button class="menu-toggle" @click="sidebarVisible = !sidebarVisible">
-          <i class="fa-solid fa-bars"></i>
-        </button>
-        <router-link to="/dashboard" class="nav-brand">
-          <img :src="logoImg" alt="SprintA Logo" class="nav-logo" />
-          <span>SprintA</span>
-        </router-link>
-        <span class="nav-link active desktop-only">Quản lý người dùng</span>
-      </div>
-      <div class="nav-right">
-        <NotificationsDropdown />
-        <UserDropdown />
-      </div>
-    </header>
-
-    <div class="main-body">
-      <!-- Sidebar (Consistent) -->
-      <aside class="sidebar" :class="{ 'mobile-show': sidebarVisible }">
-        <ul class="side-menu">
-          <li @click="router.push('/dashboard')"><i class="fa-solid fa-border-all"></i> Dành cho bạn</li>
-          <li v-if="sidebarPreferences.spaces" @click="router.push('/dashboard')"><i class="fa-solid fa-folder-open"></i> Không gian</li>
-          <li v-if="sidebarPreferences.recent" @click="router.push('/dashboard')"><i class="fa-solid fa-clock"></i> Gần đây</li>
-          <li v-if="sidebarPreferences.ai" @click="router.push('/ai-assistant')"><i class="fa-solid fa-robot"></i> Trợ lý AI</li>
-          <li v-if="sidebarPreferences.audit && isAdmin" @click="router.push('/audit-log')"><i class="fa-solid fa-list-check"></i> Audit Log</li>
-          <li v-if="sidebarPreferences.users" class="active"><i class="fa-solid fa-users-gear"></i> Quản lý người dùng</li>
-
-          <li class="more-dropdown-wrapper" style="padding: 0; background: transparent !important; margin-bottom: 4px;">
-            <el-dropdown trigger="click" placement="bottom-start" popper-class="custom-sidebar-dropdown" style="width: 100%;">
-              <div class="sidebar-more-trigger">
-                <i class="fa-solid fa-ellipsis"></i> Thêm
-              </div>
-              <template #dropdown>
-                <el-dropdown-menu class="jira-more-menu" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 0; width: 220px;">
-                  <el-dropdown-item v-if="!sidebarPreferences.spaces">
-                    <div @click="router.push('/dashboard')" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-folder-open"></i>
-                      <span>Không gian</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.recent">
-                    <div @click="router.push('/dashboard')" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-clock"></i>
-                      <span>Gần đây</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.ai">
-                    <div @click="router.push('/ai-assistant')" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-robot"></i>
-                      <span>Trợ lý AI</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.audit && isAdmin">
-                    <div @click="router.push('/audit-log')" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-list-check"></i>
-                      <span>Audit Log</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.users">
-                    <div @click="router.push('/user-management')" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-users-gear"></i>
-                      <span>Quản lý người dùng</span>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!sidebarPreferences.spaces || !sidebarPreferences.recent || !sidebarPreferences.ai || !sidebarPreferences.audit" divided></el-dropdown-item>
-
-                  <el-dropdown-item>
-                    <div @click="showCustomizeModal = true" style="display: flex; align-items: center; gap: 12px; color: #b3bac5; font-size: 14px; padding: 4px 8px; width: 100%;">
-                      <i class="fa-solid fa-sliders"></i>
-                      <span>Kiểm soát thanh bên</span>
-                    </div>
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </li>
-        </ul>
-      </aside>
-
-      <!-- Main Content -->
-      <main class="content-area">
-        <div class="content-wrapper">
-          <div class="page-header-flex">
+  <NexusLayout>
+    <div class="page-header-flex">
             <h1 class="page-title">Quản trị người dùng & Nhóm</h1>
             <div class="page-actions">
               <el-button-group>
@@ -275,12 +191,7 @@
                 </div>
               </div>
             </el-tab-pane>
-          </el-tabs>
-        </div>
-      </main>
-    </div>
-
-    <!-- Edit User Drawer (Reuse detailed requirement 4) -->
+          </el-tabs>    <!-- Edit User Drawer (Reuse detailed requirement 4) -->
     <el-drawer v-model="editDrawerVisible" title="Chi tiết người dùng" size="450px">
       <div v-if="editingUser" class="drawer-content">
         <div class="profile-header">
@@ -322,9 +233,8 @@
 
     <!-- Customize Sidebar Modal -->
     <CustomizeSidebarModal :visible="showCustomizeModal" @update:visible="showCustomizeModal = $event" @saved="handleSidebarSaved" />
-  </div>
+  </NexusLayout>
 </template>
-
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
@@ -333,6 +243,7 @@ import UserDropdown from '../components/UserDropdown.vue'
 import NotificationsDropdown from '../components/NotificationsDropdown.vue'
 import CustomizeSidebarModal from '../components/CustomizeSidebarModal.vue'
 import { Plus, Search, Edit, Delete, Key, More, ArrowDown, User, Monitor, Folder } from '@element-plus/icons-vue'
+import NexusLayout from '@/components/layout/NexusLayout.vue'
 
 import { onMounted } from 'vue'
 
@@ -342,7 +253,6 @@ const isAdmin = computed(() => {
   const roles = currentUser.systemRoles || []
   return roles.includes('Admin') || roles.includes('admin')
 })
-const sidebarVisible = ref(false)
 const activeTab = ref('users')
 const loading = ref(false)
 const searchQuery = ref('')
@@ -478,52 +388,94 @@ const handleSidebarSaved = (prefs) => {
 </script>
 
 <style scoped>
-.dashboard-layout {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--bg-layout);
-  color: var(--text-primary);
-  overflow: hidden;
-}
+.page-header-flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+.page-title { font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0; }
 
-.top-nav {
-  height: 56px;
-  background-color: var(--bg-nav);
-  border-bottom: 1px solid var(--border-color);
+.toolbar { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.search-box { width: 300px; }
+.filter-group { display: flex; gap: 12px; }
+
+.bulk-actions-bar {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  padding: 8px 16px;
+  border-radius: 6px;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  flex-shrink: 0;
+  gap: 12px;
+}
+.selected-count { font-size: 13px; font-weight: 600; color: #3b82f6; }
+
+.table-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+
+.user-cell { display: flex; align-items: center; gap: 12px; }
+.user-avatar-circle { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 13px; }
+.user-name { font-weight: 600; font-size: 14px; color: var(--text-primary); }
+.user-email { font-size: 12px; }
+
+.status-cell { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot.active { background: #10b981; }
+.dot.pending { background: #f59e0b; }
+.dot.inactive { background: #64748b; }
+
+.pagination-footer { padding: 16px; display: flex; justify-content: flex-end; }
+
+/* Groups Tab Styling */
+.groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+.group-card { 
+  background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; cursor: pointer; transition: transform 0.2s;
+}
+.group-card:hover { border-color: #3b82f6; transform: translateY(-2px); }
+.group-card.create-card { 
+  border: 2px dashed var(--border-color); background: transparent; display: flex; align-items: center; justify-content: center; min-height: 180px; color: var(--text-secondary);
+}
+.create-content { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.group-name { font-size: 16px; font-weight: 700; margin: 0; color: var(--text-primary); }
+.group-meta { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+.avatar-stack { display: flex; margin-left: 8px; }
+.small-avatar { 
+    width: 24px; height: 24px; background: var(--hover-bg); border: 2px solid var(--bg-card); border-radius: 50%; margin-left: -8px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700;
+}
+.small-avatar.more { background: var(--bg-layout); }
+
+/* Settings Styling */
+.settings-grid { max-width: 800px; }
+.setting-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border-color); }
+.setting-label { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.setting-desc { font-size: 12px; color: var(--text-muted); }
+.oauth-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; background: var(--bg-secondary); margin-top: 12px; }
+.oauth-item i { font-size: 20px; }
+
+/* Drawer */
+.profile-header { text-align: center; margin-bottom: 32px; }
+.large-avatar { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; color: white; margin: 0 auto 16px; }
+.drawer-content { padding: 0 24px; }
+.danger-zone { margin-top: 32px; padding: 16px; border: 1px solid #ef444433; border-radius: 8px; display: flex; flex-direction: column; gap: 12px; }
+.danger-zone h4 { color: #ef4444; margin: 0 0 8px 0; font-size: 14px; }
+
+/* Custom Element Plus theme styles local to this component */
+:deep(.el-table) {
+  --el-table-bg-color: var(--bg-card);
+  --el-table-tr-bg-color: var(--bg-card);
+  --el-table-header-bg-color: var(--bg-layout);
+  --el-table-header-text-color: var(--text-secondary);
+  --el-table-text-color: var(--text-primary);
+  --el-table-border-color: var(--border-color);
+  --el-table-row-hover-bg-color: var(--hover-bg);
 }
 
-.nav-left, .nav-right { display: flex; align-items: center; gap: 16px; }
-.nav-brand { display: flex; align-items: center; gap: 8px; color: var(--text-primary); text-decoration: none; font-weight: 800; font-size: 20px; }
-.nav-logo { height: 28px; }
-.nav-link { color: var(--text-secondary); font-size: 14px; font-weight: 600; padding-left: 16px; border-left: 1px solid var(--border-color); }
-
-.main-body { display: flex; flex: 1; overflow: hidden; }
-
-.sidebar {
-  width: 240px;
-  background-color: var(--bg-sidebar);
-  border-right: 1px solid var(--border-color);
-  padding: 24px 16px;
-  flex-shrink: 0;
+:deep(.el-input__wrapper), :deep(.el-select__wrapper) {
+  background-color: var(--bg-secondary) !important;
+  box-shadow: 0 0 0 1px var(--border-color) inset !important;
 }
 
-.side-menu { list-style: none; padding: 0; margin: 0; }
-.side-menu li {
-  padding: 10px 12px; border-radius: 6px; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 4px; cursor: pointer; display: flex; align-items: center; gap: 12px;
+:deep(.el-input__inner) {
+  color: var(--text-primary) !important;
 }
-.side-menu li:hover { background-color: var(--hover-bg); color: var(--text-primary); }
-.side-menu li.active { background-color: var(--active-bg); color: #3b82f6; }
 
-.content-area { flex: 1; background-color: var(--bg-content); padding: 40px; overflow-y: auto; }
-.content-wrapper { max-width: 1400px; margin: 0 auto; }
-
-.page-header-flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
 .page-title { font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0; }
 
 .toolbar { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -613,11 +565,5 @@ const handleSidebarSaved = (prefs) => {
 
 :deep(.el-table td.el-table__cell), :deep(.el-table th.el-table__cell) {
   border-bottom: 1px solid var(--border-color) !important;
-}
-
-@media (max-width: 1024px) {
-  .sidebar { position: fixed; left: -240px; top: 56px; bottom: 0; z-index: 1001; transition: left 0.3s ease; }
-  .sidebar.mobile-show { left: 0; }
-  .menu-toggle { display: block; }
 }
 </style>
