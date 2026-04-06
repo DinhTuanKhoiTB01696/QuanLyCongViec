@@ -98,6 +98,12 @@ namespace TaskManagement.Infrastructure.Data
             modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
             modelBuilder.Entity<Permission>().HasIndex(p => p.Code).IsUnique();
 
+            // Group 3 Core Management Indexes
+            modelBuilder.Entity<WorkTask>().HasIndex(wt => new { wt.ProjectId, wt.IsDeleted });
+            modelBuilder.Entity<WorkTask>().HasIndex(wt => wt.ReporterId);
+            modelBuilder.Entity<WorkTask>().HasIndex(wt => wt.AssignedUserId);
+            modelBuilder.Entity<ProjectMember>().HasIndex(pm => pm.UserId);
+
             // =============================================
             // 3. Relationships - Group 1: System & Access
             // =============================================

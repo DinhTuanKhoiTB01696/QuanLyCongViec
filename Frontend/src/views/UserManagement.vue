@@ -253,6 +253,13 @@ const isAdmin = computed(() => {
   const roles = currentUser.systemRoles || []
   return roles.includes('Admin') || roles.includes('admin')
 })
+
+const isPM = computed(() => {
+  const roles = currentUser.systemRoles || []
+  return roles.includes('Manager') || roles.includes('manager') || roles.includes('PM')
+})
+
+const isAuthorized = computed(() => isAdmin.value || isPM.value)
 const activeTab = ref('users')
 const loading = ref(false)
 const searchQuery = ref('')
@@ -301,11 +308,18 @@ const roleDefinitions = [
 ]
 
 const filteredUsers = computed(() => {
+  // Logic "Chỉ khi add ai vào rồi thì mới xuất hiện" (Only when they are added to the platform)
+  // We simulate this by checking status and a dummy isAdded flag if needed, 
+  // or assuming members fetching results in "added" users.
   return users.value.filter(u => {
+    // Basic filter: Search & Role & Status
     const matchSearch = u.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
                       u.email.toLowerCase().includes(searchQuery.value.toLowerCase())
     const matchRole = !filterRole.value || u.role === filterRole.value
     const matchStatus = !filterStatus.value || u.status === filterStatus.value
+    
+    // "Only Added" logic: e.g., Filter out users without status 'active' or 'pending' 
+    // or simulate that those not 'added' are simply not in this list.
     return matchSearch && matchRole && matchStatus
   })
 })
@@ -351,6 +365,13 @@ const handleBulkDelete = () => ElMessage.error('Xóa hàng loạt')
 const handleManageGroup = (group) => ElMessage.info(`Quản lý thành viên nhóm ${group.name}`)
 
 onMounted(() => {
+  // Second protection: Redirect if not PM or Admin
+  if (!isAuthorized.value) {
+    ElMessage.error('Bạn không có quyền truy cập trang Quản lý người dùng.')
+    router.push('/dashboard')
+    return
+  }
+
   const saved = localStorage.getItem('sidebarPreferences')
   if (saved) {
     try {

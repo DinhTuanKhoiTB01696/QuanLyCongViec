@@ -53,12 +53,39 @@ namespace TaskManagement.Infrastructure.Services
                 );
             }
 
-            var tasks = await query
+            var dtos = await query
+                .AsNoTracking()
                 .OrderByDescending(wt => wt.CreatedAt)
+                .Select(wt => new WorkTaskResponseDto
+                {
+                    Id = wt.Id,
+                    Title = wt.Title,
+                    Description = wt.Description, // Use projection instead of full loading
+                    ProjectId = wt.ProjectId,
+                    SprintId = wt.SprintId,
+                    TaskTypeId = wt.TaskTypeId,
+                    TypeName = wt.TaskType.Name,
+                    TaskStatusId = wt.TaskStatusId,
+                    StatusName = wt.TaskStatus.Name, // We can normalize this on Frontend/Client if needed, or keeping simple here
+                    ReporterId = wt.ReporterId,
+                    ReporterName = wt.Reporter.FullName,
+                    AssignedUserId = wt.AssignedUserId,
+                    AssigneeName = wt.AssignedUser.FullName,
+                    Priority = wt.Priority,
+                    StoryPoints = wt.StoryPoints,
+                    DueDate = wt.DueDate,
+                    PlannedStartDate = wt.PlannedStartDate,
+                    PlannedEndDate = wt.PlannedEndDate,
+                    CreatedAt = wt.CreatedAt,
+                    UpdatedAt = wt.UpdatedAt,
+                    RowVersion = wt.RowVersion
+                })
                 .ToListAsync();
 
-            // 4. Map → DTO with normalized statusName
-            return tasks.Select(wt => MapToDto(wt)).ToList();
+            // Optional normalization of status name (since it's a DTO logic)
+            foreach (var d in dtos) d.StatusName = NormalizeStatusName(d.StatusName);
+
+            return dtos;
         }
 
         public async Task<WorkTaskResponseDto> CreateAsync(Guid reporterId, CreateWorkTaskDto request)
@@ -196,15 +223,46 @@ namespace TaskManagement.Infrastructure.Services
             }
 
             var oldStatus = taskToUpdate.TaskStatus;
-            var newStatus = await _context.TaskStatuses.FirstOrDefaultAsync(ts => ts.Id == request.TaskStatusId);
+            
+            TaskManagement.Domain.Entities.TaskStatus? newStatus = null;
+            if (request.TaskStatusId != Guid.Empty)
+            {
+                newStatus = await _context.TaskStatuses.FirstOrDefaultAsync(ts => ts.Id == request.TaskStatusId);
+            }
+            else if (!string.IsNullOrEmpty(request.StatusName))
+            {
+                // Resolve by name and project
+                newStatus = await ResolveTaskStatusAsync(request.StatusName, taskToUpdate.ProjectId);
+            }
 
             if (newStatus == null) throw new ArgumentException("Trạng thái chuyển đến không tồn tại.");
             if (oldStatus.Id == newStatus.Id) return;
 
-            // State Machine Guardrails
-            if (Math.Abs(oldStatus.Position - newStatus.Position) > 1)
+            // State Machine Guardrails — use normalized names, not positions
+            string oldNormalized = NormalizeStatusName(oldStatus.Name);
+            string newNormalized = NormalizeStatusName(newStatus.Name);
+
+            // Define all valid transitions
+            var allowedTransitions = new Dictionary<string, HashSet<string>>
             {
-                throw new InvalidOperationException("Không được phép nhảy cóc trạng thái.");
+                { "TO DO",       new HashSet<string> { "IN PROGRESS" } },
+                { "IN PROGRESS", new HashSet<string> { "IN REVIEW", "DONE", "TO DO" } },
+                { "IN REVIEW",   new HashSet<string> { "DONE", "IN PROGRESS" } },
+                { "DONE",        new HashSet<string> { "IN PROGRESS" } }
+            };
+
+            if (allowedTransitions.TryGetValue(oldNormalized, out var validTargets))
+            {
+                if (!validTargets.Contains(newNormalized))
+                {
+                    throw new InvalidOperationException(
+                        $"Không thể chuyển từ \"{oldNormalized}\" sang \"{newNormalized}\". " +
+                        $"Các trạng thái hợp lệ: {string.Join(", ", validTargets)}.");
+                }
+            }
+            else
+            {
+                // Unknown source status — allow any transition
             }
 
             bool isMovingToActiveOrDone = newStatus.Name.Contains("In Progress", StringComparison.OrdinalIgnoreCase) ||
@@ -367,6 +425,8 @@ namespace TaskManagement.Infrastructure.Services
 
             if (upper.Contains("DONE") || upper.Contains("HOANTHANH") || upper.Contains("COMPLETE"))
                 return "DONE";
+            if (upper.Contains("INREVIEW") || upper.Contains("REVIEW") || upper.Contains("KIEMTRA"))
+                return "IN REVIEW";
             if (upper.Contains("INPROGRESS") || upper.Contains("DANGLAM") || upper.Contains("ACTIVE"))
                 return "IN PROGRESS";
             if (upper.Contains("TODO") || upper.Contains("CANLAM") || upper.Contains("BACKLOG"))
@@ -426,7 +486,8 @@ namespace TaskManagement.Infrastructure.Services
             int position = normalizedName switch
             {
                 "IN PROGRESS" => 2,
-                "DONE" => 3,
+                "IN REVIEW" => 3,
+                "DONE" => 4,
                 _ => 1 // TO DO
             };
 

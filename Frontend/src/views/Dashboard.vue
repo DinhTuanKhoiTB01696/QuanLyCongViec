@@ -127,12 +127,17 @@ const spaces = ref([])
 const chartRef = ref(null)
 let chartInstance = null
 
-// Mock Data
 const stats = ref([
-  { id: 2, title: 'Active Projects', value: '0', trend: 0, icon: 'fa-solid fa-folder' },
-  { id: 3, title: 'Tasks Completed', value: '0', trend: 0, icon: 'fa-solid fa-check-double' },
-  { id: 4, title: 'Team Members', value: '0', trend: 0, icon: 'fa-solid fa-users' }
+  { id: 2, title: 'Active Projects', value: '...', trend: 0, icon: 'fa-solid fa-folder' },
+  { id: 3, title: 'Tasks Completed', value: '...', trend: 0, icon: 'fa-solid fa-check-double' },
+  { id: 4, title: 'Team Members', value: '...', trend: 0, icon: 'fa-solid fa-users' }
 ])
+
+const chartData = ref({
+  days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  created: [0, 0, 0, 0, 0, 0, 0],
+  completed: [0, 0, 0, 0, 0, 0, 0]
+})
 
 const getWeekDays = () => {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -144,7 +149,7 @@ const getWeekDays = () => {
     const d = new Date()
     d.setDate(today.getDate() - todayDay + i)
     week.push({
-      name: days[i],
+      name: days[d.getDay()],
       date: d.getDate().toString(),
       active: i === todayDay
     })
@@ -182,11 +187,101 @@ const fetchSpaces = async () => {
     const response = await axiosClient.get('/projects')
     const projectList = response.data.data || response.data || []
     spaces.value = projectList
+    
+    // Calculate stats based on project list
+    const activeProjects = projectList.filter(p => p.status !== false).length
+    stats.value[0].value = activeProjects.toString()
+    stats.value[2].value = projectList.reduce((acc, p) => acc + (p.activeMemberCount || 0), 0).toString()
+
+    // Fetch tasks for the user to determine dashboard chart and schedule logic
+    const tasksRes = await axiosClient.get('/tasks/my-tasks')
+    const tasks = tasksRes.data.data || tasksRes.data || []
+    
+    processTasksForDashboard(tasks)
   } catch (error) {
-    console.error('Fetch projects error:', error)
+    console.error('Fetch projects or tasks error:', error)
   } finally {
     isLoading.value = false
   }
+}
+
+const processTasksForDashboard = (tasks) => {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  
+  const days = []
+  const dates = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(today.getDate() - i)
+    days.push(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()])
+    dates.push(d)
+  }
+
+  const createdCounts = [0, 0, 0, 0, 0, 0, 0]
+  const completedCounts = [0, 0, 0, 0, 0, 0, 0]
+  const upcomingEventsList = []
+  let totalTasksCompleted = 0
+
+  tasks.forEach(task => {
+    // Determine overall completed count
+    if (task.statusName === 'DONE' || task.status === 'Completed') {
+      totalTasksCompleted++;
+    }
+
+    // Created distribution
+    if (task.createdAt) {
+      let cd = new Date(task.createdAt)
+      cd = new Date(cd.getFullYear(), cd.getMonth(), cd.getDate())
+      const diffIndex = Math.floor((cd - dates[0]) / (1000 * 60 * 60 * 24))
+      if (diffIndex >= 0 && diffIndex <= 6) {
+        createdCounts[diffIndex]++
+      }
+    }
+
+    // Completed distribution
+    if ((task.statusName === 'DONE' || task.status === 'Completed') && task.updatedAt) {
+      let ud = new Date(task.updatedAt)
+      ud = new Date(ud.getFullYear(), ud.getMonth(), ud.getDate())
+      const diffIndex = Math.floor((ud - dates[0]) / (1000 * 60 * 60 * 24))
+      if (diffIndex >= 0 && diffIndex <= 6) {
+        completedCounts[diffIndex]++
+      }
+    }
+
+    // Upcoming schedule items (focus on tasks due in the future week)
+    let targetDate = task.dueDate || task.plannedEndDate
+    if (targetDate && task.statusName !== 'DONE') {
+      let dDate = new Date(targetDate)
+      const diffDays = Math.floor((dDate - today) / (1000 * 60 * 60 * 24))
+      
+      // Events in the span of next 7 days
+      if (diffDays >= 0 && diffDays <= 7) {
+        upcomingEventsList.push({
+          id: task.id,
+          title: task.title,
+          time: dDate.toLocaleDateString('vi-VN') + ' ' + dDate.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}),
+          color: task.priority === 'High' ? '#ef4444' : (task.priority === 'Medium' ? '#f59e0b' : '#3b82f6'),
+          realDate: dDate
+        })
+      }
+    }
+  })
+
+  upcomingEventsList.sort((a, b) => a.realDate - b.realDate)
+  events.value = upcomingEventsList
+
+  chartData.value = {
+    days: days,
+    created: createdCounts,
+    completed: completedCounts
+  }
+
+  // Update total completed stat card
+  stats.value[1].value = totalTasksCompleted.toString()
+
+  // Re-render chart with new data
+  initChart()
 }
 
 const initChart = () => {
@@ -205,7 +300,7 @@ const initChart = () => {
     const option = {
       tooltip: { trigger: 'axis' },
       legend: { 
-        data: ['Metric A', 'Metric B'],
+        data: ['Tasks Created', 'Tasks Completed'],
         bottom: 0,
         textStyle: { color: textColor }
       },
@@ -213,18 +308,19 @@ const initChart = () => {
       xAxis: {
         type: 'category',
         boundaryGap: false,
-        data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        data: chartData.value.days,
         axisLabel: { color: textColor },
         axisLine: { lineStyle: { color: splitLineColor } }
       },
       yAxis: {
         type: 'value',
         axisLabel: { color: textColor },
-        splitLine: { lineStyle: { color: splitLineColor, type: 'dashed' } }
+        splitLine: { lineStyle: { color: splitLineColor, type: 'dashed' } },
+        minInterval: 1
       },
       series: [
         {
-          name: 'Metric A',
+          name: 'Tasks Created',
           type: 'line',
           smooth: true,
           itemStyle: { color: '#3b82f6' },
@@ -234,14 +330,20 @@ const initChart = () => {
               { offset: 1, color: 'rgba(59, 130, 246, 0.05)' }
             ])
           },
-          data: [0, 0, 0, 0, 0, 0, 0]
+          data: chartData.value.created
         },
         {
-          name: 'Metric B',
+          name: 'Tasks Completed',
           type: 'line',
           smooth: true,
-          itemStyle: { color: '#8b5cf6' },
-          data: [0, 0, 0, 0, 0, 0, 0]
+          itemStyle: { color: '#10b981' }, // green for completed
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(16, 185, 129, 0.3)' },
+              { offset: 1, color: 'rgba(16, 185, 129, 0.05)' }
+            ])
+          },
+          data: chartData.value.completed
         }
       ]
     }

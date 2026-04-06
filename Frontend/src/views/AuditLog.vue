@@ -220,14 +220,16 @@ const filters = ref({
 const auditLogs = ref([])
 
 onMounted(async () => {
-  //   // Admin guard - chỉ Admin mới được truy cập trang này
-  // const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-  // const roles = currentUser.systemRoles || []
-  // if (!roles.includes('Admin') && !roles.includes('admin')) {
-  //   ElMessage.error('Bạn không có quyền truy cập trang Audit Log.')
-  //   router.push('/dashboard')
-  //   return
-  // }
+  // Admin/PM guard - chỉ Admin và PM mới được truy cập trang này
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+  const roles = currentUser.systemRoles || []
+  const isAuthorized = roles.some(r => ['Admin', 'admin', 'Manager', 'manager', 'PM'].includes(r))
+  
+  if (!isAuthorized) {
+    ElMessage.error('Bạn không có quyền truy cập trang Audit Log.')
+    router.push('/dashboard')
+    return
+  }
 
   
   // restore sidebar settings

@@ -17,7 +17,7 @@
       ></div>
 
       <!-- Sidebar -->
-      <NexusSidebar :isVisible="sidebarVisible" @close-mobile="sidebarVisible = false" />
+      <NexusSidebar :isVisible="sidebarVisible" @close-mobile="sidebarVisible = false" @open-create-modal="toggleCreateSpace" />
 
       <!-- Main Content -->
       <main class="content-area">
@@ -60,7 +60,10 @@
       </aside>
     </transition>
 
-    <!-- Project Creation Modal -->
+    <!-- Space Creation Modal -->
+    <CreateSpaceModal v-model:visible="createSpaceVisible" @created="handleSpaceCreated" />
+
+    <!-- Project/Task Creation Modal -->
     <CreateProjectModal v-model:visible="createVisible" @created="handleProjectCreated" />
   </div>
 </template>
@@ -68,12 +71,14 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import CreateProjectModal from '../CreateProjectModal.vue'
+import CreateSpaceModal from '../CreateSpaceModal.vue'
 import NexusTopbar from './NexusTopbar.vue'
 import NexusSidebar from './NexusSidebar.vue'
 
 const sidebarVisible = ref(window.innerWidth > 1024)
 const aiVisible = ref(false)
 const createVisible = ref(false)
+const createSpaceVisible = ref(false)
 const isMobile = ref(window.innerWidth <= 1024)
 
 const updateSize = () => {
@@ -103,8 +108,17 @@ const toggleCreate = () => {
   createVisible.value = !createVisible.value
 }
 
+const toggleCreateSpace = () => {
+  createSpaceVisible.value = !createSpaceVisible.value
+}
+
+const handleSpaceCreated = () => {
+  // Reload viewport to fetch latest spaces
+  window.location.reload()
+}
+
 const handleProjectCreated = (newProject) => {
-  console.log('Project created:', newProject)
+  console.log('Task/Project created:', newProject)
 }
 </script>
 

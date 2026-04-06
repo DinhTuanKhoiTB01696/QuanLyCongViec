@@ -131,7 +131,13 @@ const handleClose = () => {
 }
 
 const saveChanges = () => {
-  // In a real app, save to user preferences
+  const prefs = {}
+  navItems.value.forEach(item => {
+    prefs[item.id] = item.checked
+  })
+  localStorage.setItem('sidebarPreferences', JSON.stringify(prefs))
+  window.dispatchEvent(new Event('sidebar-updated'))
+  
   emit('saved', { navItems: navItems.value, appItems: appItems.value })
   emit('update:visible', false)
 }
