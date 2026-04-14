@@ -108,20 +108,20 @@ namespace TaskManagement.API.Controllers
 
                 var rawTaskLogs = await query
                     .OrderByDescending(al => al.CreatedAt)
+                    .Take(limit * page)
                     .Select(al => new LogItemModel {
                         Id = al.Id,
                         CreatedAt = al.CreatedAt,
-                        FullName = al.User.FullName,
-                        Email = al.User.Email,
+                        FullName = al.User != null ? al.User.FullName : "Unknown",
+                        Email = al.User != null ? al.User.Email : "Unknown",
                         OldValue = al.OldValue,
                         NewValue = al.NewValue,
                         FieldChanged = al.FieldChanged,
-                        TaskTitle = al.WorkTask.Title,
+                        TaskTitle = al.WorkTask != null ? al.WorkTask.Title : "Deleted Task",
                         TaskId = al.WorkTaskId,
-                        ProjectName = al.WorkTask.Project.Name,
+                        ProjectName = (al.WorkTask != null && al.WorkTask.Project != null) ? al.WorkTask.Project.Name : "System",
                         Type = "Task"
                     })
-                    .Take(limit * page)
                     .ToListAsync();
 
                 var allRawLogs = new List<LogItemModel>(rawTaskLogs);
@@ -144,11 +144,12 @@ namespace TaskManagement.API.Controllers
                     totalSystemLogs = await sysQuery.CountAsync();
                     var rawSysLogs = await sysQuery
                         .OrderByDescending(al => al.CreatedAt)
+                        .Take(limit * page)
                         .Select(al => new LogItemModel {
                             Id = al.Id,
                             CreatedAt = al.CreatedAt,
-                            FullName = al.User != null ? al.User.FullName : null,
-                            Email = al.User != null ? al.User.Email : null,
+                            FullName = al.User != null ? al.User.FullName : "System",
+                            Email = al.User != null ? al.User.Email : "System",
                             OldValue = "",
                             NewValue = "",
                             FieldChanged = al.Details ?? al.Action,
@@ -159,7 +160,6 @@ namespace TaskManagement.API.Controllers
                             Action = al.Action,
                             Status = al.Status
                         })
-                        .Take(limit * page)
                         .ToListAsync();
                     allRawLogs.AddRange(rawSysLogs);
                 }
@@ -176,25 +176,25 @@ namespace TaskManagement.API.Controllers
                         return new {
                             id = "LOG-" + al.Id.ToString().Substring(0, 8).ToUpper(),
                             timestamp = al.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"),
-                            user = al.FullName ?? al.Email,
+                            user = (string?)(al.FullName ?? al.Email),
                             action = string.IsNullOrEmpty(al.OldValue) && al.NewValue != null ? "create" : "update",
-                            resource = $"[{al.ProjectName}] {al.TaskTitle}",
+                            resource = (string?)($"[{al.ProjectName}] {al.TaskTitle}"),
                             targetId = !string.IsNullOrEmpty(al.TaskTitle) && al.TaskTitle.Length > 10 ? "TASK-" + al.TaskTitle.Substring(0, 10) : "TASK-" + al.TaskTitle,
                             projectName = al.ProjectName,
                             status = "success",
-                            summary = $"Thay đổi trường '{al.FieldChanged}'"
+                            summary = (string?)($"Thay đổi trường '{al.FieldChanged}'")
                         };
                     } else {
                         return new {
                             id = "SYS-" + al.Id.ToString().Substring(0, 8).ToUpper(),
                             timestamp = al.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"),
-                            user = al.FullName ?? al.Email ?? "System",
-                            action = al.Action?.ToLower() ?? "system",
-                            resource = al.TaskTitle,
+                            user = (string?)(al.FullName ?? al.Email ?? "System"),
+                            action = al.Action ?? "system",
+                            resource = (string?)al.TaskTitle,
                             targetId = "SYSTEM",
                             projectName = al.ProjectName,
-                            status = al.Status?.ToLower() ?? "success",
-                            summary = al.FieldChanged
+                            status = al.Status ?? "success",
+                            summary = (string?)al.FieldChanged
                         };
                     }
                 }).ToList();

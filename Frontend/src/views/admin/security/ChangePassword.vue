@@ -12,22 +12,32 @@
       <div class="form-container">
         <div class="settings-card">
           <div style="max-width: 600px;">
-            <div class="form-group" v-if="hasPassword">
-              <label class="form-label">Mật khẩu hiện tại</label>
-              <el-input type="password" v-model="form.oldPassword" show-password placeholder="Nhập mật khẩu hiện tại..." class="glass-input" />
-            </div>
-
-            <div class="form-group mb-24" v-if="!hasPassword && hasLoaded" style="display: flex; gap: 12px; align-items: flex-end;">
-              <div style="flex: 1">
-                 <label class="form-label">Mã xác nhận (OTP) gửi qua Email</label>
-                 <el-input v-model="form.otpCode" placeholder="Nhập mã OTP..." class="glass-input" />
+            
+            <!-- STEP 1: XÁC THỰC EMAIL & OTP -->
+            <div v-show="currentStep === 1" class="step-container">
+              <div class="form-group mb-24">
+                <label class="form-label">Email xác thực tài khoản</label>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                   <el-input v-model="form.email" placeholder="Nhập địa chỉ email của bạn..." class="glass-input" style="flex: 1" />
+                   <el-button type="primary" plain @click="sendChangeOtp" :loading="isSendingOtp" style="height: 38px">Gửi mã xác thực</el-button>
+                </div>
               </div>
-              <el-button type="primary" plain @click="sendOtp" :loading="isSendingOtp" style="height: 38px">Lấy mã OTP</el-button>
+
+              <div class="form-group mb-24">
+                <label class="form-label">Mã xác nhận (OTP) gửi qua Email</label>
+                <el-input v-model="form.otpCode" maxlength="6" placeholder="Nhập 6 số mã OTP..." class="glass-input" />
+              </div>
+
+              <div class="action-footer mt-32" style="display: flex; justify-content: flex-end;">
+                <el-button type="primary" :disabled="form.otpCode.length < 6" @click="currentStep = 2" style="padding: 20px 24px; font-weight: 500;">
+                  Xác nhận & Tiếp tục
+                </el-button>
+              </div>
             </div>
 
-            <div class="divider"></div>
-
-            <div class="form-group mt-24">
+            <!-- STEP 2: NHẬP MẬT KHẨU MỚI -->
+            <div v-show="currentStep === 2" class="step-container">
+              <div class="form-group mt-24">
               <label class="form-label">Mật khẩu mới</label>
               <el-input type="password" v-model="form.newPassword" @input="checkStrength" show-password placeholder="Tạo mật khẩu mới..." class="glass-input" />
               
@@ -72,11 +82,16 @@
               </el-checkbox>
             </div>
 
-            <div class="action-footer mt-32" style="display: flex; justify-content: flex-end;">
+            <div class="action-footer mt-32" style="display: flex; gap: 12px; justify-content: flex-end;">
+              <el-button plain @click="currentStep = 1" style="padding: 20px 24px; font-weight: 500;">
+                Quay lại
+              </el-button>
               <el-button type="primary" :disabled="!isValid" :loading="isSaving" @click="submitPassword" style="padding: 20px 24px; font-weight: 500;">
                 {{ hasPassword ? 'Cập nhật mật khẩu' : 'Tạo mật khẩu an toàn' }}
               </el-button>
             </div>
+            
+            </div> <!-- Kết thúc step 2 -->
           </div>
         </div>
       </div>
@@ -94,6 +109,7 @@ const isSaving = ref(false)
 const isSendingOtp = ref(false)
 const hasPassword = ref(true)
 const hasLoaded = ref(false)
+const currentStep = ref(1)
 
 const loadProfile = async () => {
   try {
@@ -110,7 +126,7 @@ onMounted(() => {
 })
 
 const form = reactive({
-  oldPassword: '',
+  email: '',
   otpCode: '',
   newPassword: '',
   confirmPassword: '',
@@ -161,13 +177,18 @@ const checkStrength = () => {
 
 const isValid = computed(() => {
   const commonValid = strength.value === 4 && form.newPassword === form.confirmPassword;
-  return hasPassword.value ? (form.oldPassword && commonValid) : (form.otpCode && commonValid);
+  return form.email && form.otpCode.length >= 6 && commonValid;
 })
 
-const sendOtp = async () => {
+const sendChangeOtp = async () => {
+  if (!form.email) {
+    ElMessage.warning('Vui lòng nhập email trước khi gửi mã OTP.');
+    return;
+  }
   isSendingOtp.value = true;
   try {
-    const { data } = await axiosClient.post('/users/send-set-password-otp')
+    const endpoint = hasPassword.value ? '/users/send-change-password-otp' : '/users/send-set-password-otp';
+    const { data } = await axiosClient.post(endpoint, { email: form.email })
     ElMessage.success(data.message)
   } catch (err) {
     ElMessage.error(err.response?.data?.message || 'Không thể gửi mã OTP')
@@ -181,8 +202,9 @@ const submitPassword = async () => {
     isSaving.value = true;
     
     if (hasPassword.value) {
-      await axiosClient.put('/users/change-password', {
-        oldPassword: form.oldPassword,
+      await axiosClient.put('/users/change-password-with-otp', {
+        email: form.email,
+        otpCode: form.otpCode,
         newPassword: form.newPassword,
         logoutOthers: form.logoutOthers
       })
@@ -196,16 +218,19 @@ const submitPassword = async () => {
       hasPassword.value = true;
     }
 
-    form.oldPassword = '';
+    form.otpCode = '';
     form.newPassword = '';
     form.confirmPassword = '';
+    form.email = '';
+    currentStep.value = 1;
     strength.value = 0;
     hints.length = false;
     hints.uppercase = false;
     hints.number = false;
     hints.special = false;
   } catch (err) {
-    ElMessage.error(err.response?.data?.message || 'Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu cũ.');
+    ElMessage.error(err.response?.data?.message || 'Thao tác thất bại. Vui lòng kiểm tra lại mã xác thực.');
+    currentStep.value = 1;
   } finally {
     isSaving.value = false;
   }

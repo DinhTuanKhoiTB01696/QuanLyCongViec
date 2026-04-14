@@ -17,7 +17,7 @@
             </div>
             <div class="switch-wrapper">
                <span class="switch-label">Kích hoạt bảo vệ bằng IP:</span>
-               <el-switch v-model="isEnabled" active-color="#10b981" inactive-color="#475569" />
+               <el-switch v-model="isEnabled" active-color="#10b981" inactive-color="#475569" @change="saveIpWhitelist" />
             </div>
          </div>
 
@@ -77,16 +77,56 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { ElMessage } from 'element-plus'
+import axiosClient from '@/api/axiosClient'
 
 const isEnabled = ref(false)
+const isLoading = ref(false)
 
-const whitelistedIps = ref([
-  { ip: '113.160.100.22', note: 'Văn phòng chính (Hà Nội)', addedBy: 'Quản trị viên', date: '10/04/2026' },
-  { ip: '14.161.40.112', note: 'Nhà riêng (Giám đốc)', addedBy: 'Quản trị viên', date: '05/04/2026' }
-])
+const whitelistedIps = ref([])
+
+onMounted(async () => {
+   await fetchIpWhitelist()
+})
+
+const fetchIpWhitelist = async () => {
+    isLoading.value = true
+    try {
+        const res = await axiosClient.get('/settings/IpWhitelist')
+        const data = res.data.data || {}
+        
+        isEnabled.value = data.isEnabled === 'true'
+        
+        if (data.whitelistedIps) {
+            try {
+                whitelistedIps.value = JSON.parse(data.whitelistedIps)
+            } catch (e) {
+                whitelistedIps.value = []
+            }
+        }
+    } catch (err) {
+        console.error(err)
+    } finally {
+        isLoading.value = false
+    }
+}
+
+const saveIpWhitelist = async () => {
+    try {
+        const payload = {
+            Settings: {
+                isEnabled: isEnabled.value ? 'true' : 'false',
+                whitelistedIps: JSON.stringify(whitelistedIps.value)
+            }
+        }
+        await axiosClient.put('/settings/IpWhitelist', payload)
+    } catch (err) {
+        console.error(err)
+        ElMessage.error('Có lỗi xảy ra khi lưu cấu hình.')
+    }
+}
 
 const accessLogs = ref([
   { time: '11/04/2026 08:30:12', ip: '113.160.100.22', location: 'Hanoi, VN', device: 'Chrome / Windows', risk: 'An Toàn' },
@@ -94,7 +134,7 @@ const accessLogs = ref([
   { time: '09/04/2026 02:11:05', ip: '43.224.23.11', location: 'Singapore, SG', device: 'Firefox / Linux', risk: 'IP Mới' },
 ])
 
-const addCurrentIp = () => {
+const addCurrentIp = async () => {
   if (!isEnabled.value) {
     ElMessage.warning('Vui lòng kích hoạt tính năng IP Whitelisting trước.');
     return;
@@ -105,16 +145,18 @@ const addCurrentIp = () => {
       ip: '113.160.100.22',
       note: 'Thêm tự động (Thiết bị hiện tại)',
       addedBy: 'Bạn',
-      date: '11/04/2026'
+      date: new Date().toLocaleDateString('vi-VN')
     })
+    await saveIpWhitelist()
     ElMessage.success('Đã thêm IP hiện tại vào danh sách an toàn.');
   } else {
     ElMessage.info('IP hiện tại đã có trong danh sách.');
   }
 }
 
-const removeIp = (idx) => {
+const removeIp = async (idx) => {
   whitelistedIps.value.splice(idx, 1);
+  await saveIpWhitelist()
   ElMessage.success('Đã xóa IP khỏi danh sách.');
 }
 </script>

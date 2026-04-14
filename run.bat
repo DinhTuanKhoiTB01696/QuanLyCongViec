@@ -25,7 +25,7 @@ if /I "%resetDB%"=="Y" (
     dotnet ef database update --project ../TaskManagement.Infrastructure --startup-project .
     
     echo 5. Dang chay data ban dau seed_data.sql va cac bang moi...
-    sqlcmd -S "CUONGCODER\SQLEXPRESS" -d "TaskManagementDB" -i "..\..\seed_data.sql" -E -C
+    sqlcmd -S "KHOI\SQLEXPRESS" -d "TaskManagementDB" -i "..\..\seed_data.sql" -E -C
     
     cd ..\..\..
     echo --- RESET DATABASE THANH CONG ---

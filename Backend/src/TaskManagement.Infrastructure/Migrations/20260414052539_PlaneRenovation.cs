@@ -104,6 +104,25 @@ namespace TaskManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "TenantConfigs",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    Domain = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    LogoUrl = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    Require2FA = table.Column<bool>(type: "bit", nullable: false),
+                    AllowContact = table.Column<bool>(type: "bit", nullable: false),
+                    PublicProfile = table.Column<bool>(type: "bit", nullable: false),
+                    AllowedContactTopics = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IpWhitelist = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TenantConfigs", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
@@ -255,11 +274,20 @@ namespace TaskManagement.Infrastructure.Migrations
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     LinkUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     IsRead = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    NotificationType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    RelatedTaskId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    RelatedProjectId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    TriggeredByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Notifications", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Notifications_Users_TriggeredByUserId",
+                        column: x => x.TriggeredByUserId,
+                        principalTable: "Users",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Notifications_Users_UserId",
                         column: x => x.UserId,
@@ -295,6 +323,28 @@ namespace TaskManagement.Infrastructure.Migrations
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RefreshTokens",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Token = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    DeviceId = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    ExpiryTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsRevoked = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RefreshTokens", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_RefreshTokens_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -1097,6 +1147,35 @@ namespace TaskManagement.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "CommentAttachments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CommentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UploadedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FileUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ContentType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FileSize = table.Column<long>(type: "bigint", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CommentAttachments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CommentAttachments_Comments_CommentId",
+                        column: x => x.CommentId,
+                        principalTable: "Comments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CommentAttachments_Users_UploadedByUserId",
+                        column: x => x.UploadedByUserId,
+                        principalTable: "Users",
+                        principalColumn: "Id");
+                });
+
             migrationBuilder.InsertData(
                 table: "ProjectTemplates",
                 columns: new[] { "Id", "DefaultNavigationConfig", "Description", "Name", "TemplateCode" },
@@ -1105,6 +1184,11 @@ namespace TaskManagement.Infrastructure.Migrations
                     { new Guid("11111111-1111-1111-1111-111111111111"), null, "Dành cho Helpdesk, cung cấp sẵn các Issue Types về Service Request, Incident.", "Basic IT service management", "IT_SERVICE" },
                     { new Guid("22222222-2222-2222-2222-222222222222"), null, "Dành cho Dev Team, cung cấp Scrum Board mặc định.", "Software Development", "SOFTWARE_DEV" }
                 });
+
+            migrationBuilder.InsertData(
+                table: "TenantConfigs",
+                columns: new[] { "Id", "AllowContact", "AllowedContactTopics", "Domain", "IpWhitelist", "LogoUrl", "OrganizationName", "PublicProfile", "Require2FA" },
+                values: new object[] { new Guid("10000000-0000-0000-0000-000000000001"), true, null, null, null, null, "Global Organization", false, false });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AIFeedbacks_UserId",
@@ -1140,6 +1224,16 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "IX_AuditLogs_WorkTaskId",
                 table: "AuditLogs",
                 column: "WorkTaskId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CommentAttachments_CommentId",
+                table: "CommentAttachments",
+                column: "CommentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CommentAttachments_UploadedByUserId",
+                table: "CommentAttachments",
+                column: "UploadedByUserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Comments_ParentCommentId",
@@ -1217,6 +1311,11 @@ namespace TaskManagement.Infrastructure.Migrations
                 column: "ProjectId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Notifications_TriggeredByUserId",
+                table: "Notifications",
+                column: "TriggeredByUserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Notifications_UserId",
                 table: "Notifications",
                 column: "UserId");
@@ -1287,6 +1386,11 @@ namespace TaskManagement.Infrastructure.Migrations
                 table: "Projects",
                 columns: new[] { "WorkspaceId", "Identifier" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RefreshTokens_UserId",
+                table: "RefreshTokens",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RolePermissions_PermissionId",
@@ -1433,7 +1537,7 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "AuditLogs");
 
             migrationBuilder.DropTable(
-                name: "Comments");
+                name: "CommentAttachments");
 
             migrationBuilder.DropTable(
                 name: "DepartmentMembers");
@@ -1466,6 +1570,9 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "ProjectMembers");
 
             migrationBuilder.DropTable(
+                name: "RefreshTokens");
+
+            migrationBuilder.DropTable(
                 name: "RolePermissions");
 
             migrationBuilder.DropTable(
@@ -1484,6 +1591,9 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "TaskVectorEmbeddings");
 
             migrationBuilder.DropTable(
+                name: "TenantConfigs");
+
+            migrationBuilder.DropTable(
                 name: "TimeLogs");
 
             migrationBuilder.DropTable(
@@ -1491,6 +1601,9 @@ namespace TaskManagement.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "WorkspaceMembers");
+
+            migrationBuilder.DropTable(
+                name: "Comments");
 
             migrationBuilder.DropTable(
                 name: "Labels");
@@ -1505,10 +1618,10 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "Permissions");
 
             migrationBuilder.DropTable(
-                name: "WorkTasks");
+                name: "Roles");
 
             migrationBuilder.DropTable(
-                name: "Roles");
+                name: "WorkTasks");
 
             migrationBuilder.DropTable(
                 name: "Sprints");

@@ -12,7 +12,7 @@ using TaskManagement.Infrastructure.Data;
 namespace TaskManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260412094101_PlaneRenovation")]
+    [Migration("20260414052539_PlaneRenovation")]
     partial class PlaneRenovation
     {
         /// <inheritdoc />
@@ -246,6 +246,45 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.HasIndex("WorkTaskId");
 
                     b.ToTable("Comments");
+                });
+
+            modelBuilder.Entity("TaskManagement.Domain.Entities.CommentAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CommentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommentId");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.ToTable("CommentAttachments");
                 });
 
             modelBuilder.Entity("TaskManagement.Domain.Entities.Department", b =>
@@ -487,14 +526,29 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Property<string>("LinkUrl")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("NotificationType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("RelatedProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("RelatedTaskId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("TriggeredByUserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TriggeredByUserId");
 
                     b.HasIndex("UserId");
 
@@ -832,6 +886,37 @@ namespace TaskManagement.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("TaskManagement.Domain.Entities.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("ExpiryTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens");
+                });
+
             modelBuilder.Entity("TaskManagement.Domain.Entities.Role", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1084,6 +1169,55 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.HasKey("WorkTaskId");
 
                     b.ToTable("TaskVectorEmbeddings");
+                });
+
+            modelBuilder.Entity("TaskManagement.Domain.Entities.TenantConfig", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("AllowContact")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("AllowedContactTopics")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Domain")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("IpWhitelist")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("OrganizationName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("PublicProfile")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("Require2FA")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TenantConfigs");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000001"),
+                            AllowContact = true,
+                            OrganizationName = "Global Organization",
+                            PublicProfile = false,
+                            Require2FA = false
+                        });
                 });
 
             modelBuilder.Entity("TaskManagement.Domain.Entities.TimeLog", b =>
@@ -1473,6 +1607,25 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("WorkTask");
                 });
 
+            modelBuilder.Entity("TaskManagement.Domain.Entities.CommentAttachment", b =>
+                {
+                    b.HasOne("TaskManagement.Domain.Entities.Comment", "Comment")
+                        .WithMany("CommentAttachments")
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TaskManagement.Domain.Entities.User", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Comment");
+
+                    b.Navigation("UploadedByUser");
+                });
+
             modelBuilder.Entity("TaskManagement.Domain.Entities.Department", b =>
                 {
                     b.HasOne("TaskManagement.Domain.Entities.User", "Manager")
@@ -1610,11 +1763,18 @@ namespace TaskManagement.Infrastructure.Migrations
 
             modelBuilder.Entity("TaskManagement.Domain.Entities.Notification", b =>
                 {
+                    b.HasOne("TaskManagement.Domain.Entities.User", "TriggeredByUser")
+                        .WithMany()
+                        .HasForeignKey("TriggeredByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("TaskManagement.Domain.Entities.User", "User")
                         .WithMany("Notifications")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("TriggeredByUser");
 
                     b.Navigation("User");
                 });
@@ -1741,6 +1901,17 @@ namespace TaskManagement.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Project");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TaskManagement.Domain.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("TaskManagement.Domain.Entities.User", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -2000,6 +2171,8 @@ namespace TaskManagement.Infrastructure.Migrations
             modelBuilder.Entity("TaskManagement.Domain.Entities.Comment", b =>
                 {
                     b.Navigation("ChildComments");
+
+                    b.Navigation("CommentAttachments");
                 });
 
             modelBuilder.Entity("TaskManagement.Domain.Entities.Department", b =>
@@ -2101,6 +2274,8 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("OwnedWorkspaces");
 
                     b.Navigation("ProjectMemberships");
+
+                    b.Navigation("RefreshTokens");
 
                     b.Navigation("ReportedTasks");
 

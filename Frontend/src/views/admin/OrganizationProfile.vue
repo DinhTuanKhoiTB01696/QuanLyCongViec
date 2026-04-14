@@ -75,13 +75,13 @@
 import { ref, onMounted } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { ElMessage } from 'element-plus'
+import axiosClient from '@/api/axiosClient'
 
 const activeTab = ref('profile')
 const isLoading = ref(false)
 const isSaving = ref(false)
 
 const form = ref({
-   id: '',
    organizationName: '',
    domain: '',
    logoUrl: '',
@@ -91,27 +91,40 @@ const form = ref({
 
 onMounted(async () => {
    isLoading.value = true;
-   setTimeout(() => {
-     form.value = {
-       organizationName: 'Global Organization',
-       domain: 'acme.com',
-       logoUrl: '',
-       require2FA: false,
-       ipWhitelist: ''
-     }
+   try {
+     const res = await axiosClient.get('/settings/Organization');
+     const data = res.data.data || {};
+     form.value.organizationName = data.organizationName || 'Global Organization';
+     form.value.domain = data.domain || 'acme.com';
+     form.value.logoUrl = data.logoUrl || '';
+     form.value.require2FA = data.require2FA === 'true';
+     form.value.ipWhitelist = data.ipWhitelist || '';
+   } catch (err) {
+     console.error(err);
+     ElMessage.error('Không thể tải cấu hình Tenant.');
+   } finally {
      isLoading.value = false;
-   }, 500);
+   }
 })
 
 const saveConfig = async () => {
   try {
      isSaving.value = true;
-     setTimeout(() => {
-        ElMessage.success('Đã lưu cấu hình Tenant & Bảo mật thành công!');
-        isSaving.value = false;
-     }, 400);
+     const payload = {
+       Settings: {
+         organizationName: form.value.organizationName,
+         domain: form.value.domain,
+         logoUrl: form.value.logoUrl,
+         require2FA: form.value.require2FA ? 'true' : 'false',
+         ipWhitelist: form.value.ipWhitelist
+       }
+     };
+     await axiosClient.put('/settings/Organization', payload);
+     ElMessage.success('Đã lưu cấu hình Tenant & Bảo mật thành công!');
   } catch (err) {
+     console.error(err);
      ElMessage.error('Lỗi khi lưu cấu hình.');
+  } finally {
      isSaving.value = false;
   }
 }

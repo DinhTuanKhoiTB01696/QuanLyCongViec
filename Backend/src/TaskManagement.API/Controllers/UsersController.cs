@@ -215,6 +215,61 @@ namespace TaskManagement.API.Controllers
             return Ok(new { statusCode = 200, message = "Tạo mật khẩu thành công." });
         }
 
+        public class SendOtpRequest { public string Email { get; set; } = string.Empty; }
+
+        [HttpPost("send-change-password-otp")]
+        public async Task<IActionResult> SendChangePasswordOtp([FromBody] SendOtpRequest request)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "Unauthorized." });
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return NotFound(new { message = "User not found" });
+
+            if (user.Email != request.Email)
+                return BadRequest(new { message = "Email không khớp với tài khoản hiện tại." });
+
+            var otpCode = _otpService.GenerateOtp();
+            _otpService.StoreOtp(user.Email, otpCode);
+            await _emailService.SendOtpEmailAsync(user.Email, otpCode);
+
+            return Ok(new { statusCode = 200, message = "Đã gửi mã OTP đến email của bạn." });
+        }
+
+        public class ChangePasswordWithOtpRequest
+        {
+            public string Email { get; set; } = string.Empty;
+            public string OtpCode { get; set; } = string.Empty;
+            public string NewPassword { get; set; } = string.Empty;
+            public bool LogoutOthers { get; set; } = false;
+        }
+
+        [HttpPut("change-password-with-otp")]
+        public async Task<IActionResult> ChangePasswordWithOtp([FromBody] ChangePasswordWithOtpRequest request)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "Unauthorized." });
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return NotFound(new { message = "User not found" });
+
+            if (user.Email != request.Email)
+                return BadRequest(new { message = "Email không hợp lệ." });
+
+            var isValid = _otpService.ValidateOtp(user.Email, request.OtpCode);
+            if (!isValid)
+                return BadRequest(new { statusCode = 400, message = "Mã OTP không hợp lệ hoặc đã hết hạn." });
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "Cập nhật mật khẩu thành công." });
+        }
+
         public class Toggle2FARequest { public bool Enable { get; set; } }
 
         [HttpPost("toggle-2fa")]
