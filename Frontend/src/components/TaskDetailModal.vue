@@ -1,488 +1,302 @@
-<script setup>
-import { ref, computed, watch } from 'vue'
-import axiosClient from '@/api/axiosClient'
-
-const props = defineProps({
-  visible: { type: Boolean, default: false },
-  task: { type: Object, default: null },
-  projectId: { type: String, required: true },
-  members: { type: Array, default: () => [] },
-  statuses: { type: Array, default: () => [] },
-  taskTypes: { type: Array, default: () => [] }
-})
-
-const emit = defineEmits(['close', 'updated', 'deleted'])
-
-const editForm = ref({})
-const isEditing = ref(false)
-const saving = ref(false)
-const newComment = ref('')
-const comments = ref([])
-const loadingComments = ref(false)
-
-watch(() => props.task, (val) => {
-  if (val) {
-    editForm.value = { ...val }
-    loadComments()
-  }
-}, { immediate: true, deep: true })
-
-async function loadComments() {
-  if (!props.task?.id) return
-  loadingComments.value = true
-  try {
-    const res = await axiosClient.get(`/${props.task.id}/comments`)
-    comments.value = res.data?.data || []
-  } catch (e) {
-    console.error('Failed to load comments', e)
-  } finally {
-    loadingComments.value = false
-  }
-}
-
-async function saveTask() {
-  saving.value = true
-  try {
-    await axiosClient.put(`/projects/${props.projectId}/WorkTasks/${props.task.id}`, {
-      title: editForm.value.title,
-      description: editForm.value.description,
-      priority: editForm.value.priority,
-      storyPoints: editForm.value.storyPoints,
-      assignedUserId: editForm.value.assignedUserId,
-      dueDate: editForm.value.dueDate,
-      plannedStartDate: editForm.value.plannedStartDate,
-      plannedEndDate: editForm.value.plannedEndDate,
-      taskTypeId: editForm.value.taskTypeId,
-      rowVersion: editForm.value.rowVersion
-    })
-    isEditing.value = false
-    emit('updated')
-  } catch (e) {
-    if (e.response?.status === 409) {
-      alert('Dữ liệu đã bị người khác sửa. Vui lòng tải lại!')
-    } else {
-      alert(e.response?.data?.message || 'Lỗi khi cập nhật')
-    }
-  } finally {
-    saving.value = false
-  }
-}
-
-async function addComment() {
-  if (!newComment.value.trim()) return
-  try {
-    await axiosClient.post(`/projects/${props.projectId}/WorkTasks/${props.task.id}/comments`, {
-      content: newComment.value
-    })
-    newComment.value = ''
-    loadComments()
-  } catch (e) {
-    console.error('Failed to add comment', e)
-  }
-}
-
-function getPriorityOptions() {
-  return [
-    { value: 0, label: 'Không', color: '#94a3b8' },
-    { value: 1, label: 'Thấp', color: '#22c55e' },
-    { value: 2, label: 'Trung bình', color: '#f59e0b' },
-    { value: 3, label: 'Cao', color: '#ef4444' },
-    { value: 4, label: 'Khẩn cấp', color: '#dc2626' }
-  ]
-}
-
-function formatDateTime(date) {
-  if (!date) return '—'
-  return new Date(date).toLocaleString('vi-VN', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  })
-}
-
-function getInitials(name) {
-  if (!name) return '?'
-  return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase()
-}
-</script>
-
 <template>
-  <el-drawer
-    :model-value="visible"
-    @close="emit('close')"
-    size="600px"
-    direction="rtl"
-    :show-close="true"
-    class="task-drawer"
-    :with-header="false"
-  >
-    <div v-if="task" class="task-detail">
-      <!-- Header -->
-      <div class="detail-header">
-        <div class="detail-header-left">
-          <span class="detail-seq">{{ task.sequenceId || task.id?.substring(0, 8) }}</span>
-          <span class="detail-status-badge" :class="'status-' + (task.statusName || 'todo').toLowerCase().replace(/\s/g, '-')">
-            {{ task.statusName || 'TO DO' }}
-          </span>
-        </div>
-        <div class="detail-actions">
-          <el-button v-if="!isEditing" size="small" type="primary" plain @click="isEditing = true">
-            ✏️ Chỉnh sửa
-          </el-button>
-          <template v-else>
-            <el-button size="small" @click="isEditing = false">Hủy</el-button>
-            <el-button size="small" type="primary" :loading="saving" @click="saveTask">Lưu</el-button>
-          </template>
-        </div>
-      </div>
-
-      <!-- Title -->
-      <div class="detail-title-section">
-        <input
-          v-if="isEditing"
-          v-model="editForm.title"
-          class="detail-title-input"
-          placeholder="Tiêu đề công việc..."
-        />
-        <h2 v-else class="detail-title">{{ task.title }}</h2>
-      </div>
-
-      <!-- Properties Grid -->
-      <div class="detail-props">
-        <div class="prop-row">
-          <span class="prop-label">Người phụ trách</span>
-          <el-select
-            v-if="isEditing"
-            v-model="editForm.assignedUserId"
-            placeholder="Chọn người"
-            clearable
-            size="small"
-            class="prop-value-select"
-          >
-            <el-option
-              v-for="m in members"
-              :key="m.userId"
-              :value="m.userId"
-              :label="m.fullName"
-            />
-          </el-select>
-          <span v-else class="prop-value">{{ task.assigneeName || 'Chưa gán' }}</span>
-        </div>
-
-        <div class="prop-row">
-          <span class="prop-label">Độ ưu tiên</span>
-          <el-select
-            v-if="isEditing"
-            v-model="editForm.priority"
-            size="small"
-            class="prop-value-select"
-          >
-            <el-option
-              v-for="p in getPriorityOptions()"
-              :key="p.value"
-              :value="p.value"
-              :label="p.label"
-            />
-          </el-select>
-          <span v-else class="prop-value priority-badge" :style="{ color: getPriorityOptions()[task.priority]?.color }">
-            {{ getPriorityOptions()[task.priority]?.label || 'Không' }}
-          </span>
-        </div>
-
-        <div class="prop-row">
-          <span class="prop-label">Story Points</span>
-          <el-input-number
-            v-if="isEditing"
-            v-model="editForm.storyPoints"
-            :min="0"
-            :max="100"
-            size="small"
-          />
-          <span v-else class="prop-value">{{ task.storyPoints || 0 }}</span>
-        </div>
-
-        <div class="prop-row">
-          <span class="prop-label">Hạn chót</span>
-          <el-date-picker
-            v-if="isEditing"
-            v-model="editForm.dueDate"
-            type="date"
-            size="small"
-            format="DD/MM/YYYY"
-          />
-          <span v-else class="prop-value">{{ formatDateTime(task.dueDate) }}</span>
-        </div>
-
-        <div class="prop-row">
-          <span class="prop-label">Người báo cáo</span>
-          <span class="prop-value">{{ task.reporterName || '—' }}</span>
-        </div>
-
-        <div class="prop-row">
-          <span class="prop-label">Tạo lúc</span>
-          <span class="prop-value">{{ formatDateTime(task.createdAt) }}</span>
-        </div>
-
-        <div class="prop-row">
-          <span class="prop-label">Cập nhật lúc</span>
-          <span class="prop-value">{{ formatDateTime(task.updatedAt) }}</span>
-        </div>
-      </div>
-
-      <!-- Description -->
-      <div class="detail-section">
-        <h3 class="section-title">Mô tả</h3>
-        <textarea
-          v-if="isEditing"
-          v-model="editForm.description"
-          class="detail-description-input"
-          rows="4"
-          placeholder="Thêm mô tả..."
-        ></textarea>
-        <p v-else class="detail-description">{{ task.description || 'Chưa có mô tả.' }}</p>
-      </div>
-
-      <!-- Comments -->
-      <div class="detail-section">
-        <h3 class="section-title">Bình luận ({{ comments.length }})</h3>
-        <div class="comments-list">
-          <div v-for="c in comments" :key="c.id" class="comment-item">
-            <div class="comment-avatar" :style="{ backgroundColor: '#6366f1' }">
-              {{ c.avatar || getInitials(c.fullName) }}
-            </div>
-            <div class="comment-body">
-              <div class="comment-header">
-                <span class="comment-author">{{ c.fullName }}</span>
-                <span class="comment-time">{{ formatDateTime(c.createdAt) }}</span>
+<transition name="fade">
+        <div class="task-modal-overlay" v-if="showTaskModal" @click.self="showTaskModal = false">
+          <div class="task-modal">
+            <!-- Modal Header -->
+            <header class="modal-header">
+              <div class="header-left">
+                <i class="fa-solid fa-table-columns"></i>
+                <span class="m-crumb">Không gian nhóm</span>
+                <i class="fa-solid fa-chevron-right separator"></i>
+                <span class="m-crumb">Dự án</span>
+                <i class="fa-solid fa-chevron-right separator"></i>
+                <span class="m-crumb current">Dự án 1</span>
+                <i class="fa-solid fa-plus add-crumb"></i>
+                <i class="fa-solid fa-copy copy-crumb"></i>
               </div>
-              <div class="comment-content">{{ c.content }}</div>
+              <div class="header-right">
+                <span class="created-at">Đã tạo vào 18 tháng 3</span>
+                <div class="btn-ai-header"><i class="fa-solid fa-microchip"></i> Hỏi AI</div>
+                <div class="btn-share"><i class="fa-solid fa-share-nodes"></i> Chia sẻ</div>
+                <i class="fa-solid fa-ellipsis m-more"></i>
+                <i class="fa-solid fa-star m-fav"></i>
+                <i class="fa-solid fa-thumbtack m-pin"></i>
+                <i class="fa-solid fa-chevron-right m-side-toggle"></i>
+                <i class="fa-solid fa-xmark m-close" @click="showTaskModal = false"></i>
+              </div>
+            </header>
+
+            <div class="modal-body-wrapper">
+              <!-- Left Content -->
+              <div class="modal-main">
+                <div class="task-id-row">
+                  <div class="status-badge-small"><i class="fa-solid fa-circle"></i> Trạng thái</div>
+                  <span class="task-id-text">SprintA-123</span>
+                  <div class="btn-ai-mini"><i class="fa-solid fa-wand-magic-sparkles"></i> Hỏi AI</div>
+                </div>
+
+                <h1 class="task-modal-title">{{ selectedTask?.title }}</h1>
+
+                <div class="ai-prompt-bar">
+                   <div class="sparkle-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                   <input type="text" placeholder="Yêu cầu Brain viết mô tả, tạo công việc con hoặc tìm các công việc tương tự" />
+                </div>
+
+                <!-- Attributes Grid -->
+                <div class="attributes-grid">
+                  <div class="attr-item">
+                    <div class="attr-label"><i class="fa-solid fa-circle-half-stroke"></i> Trạng thái</div>
+                    <div class="attr-value">
+                      <div class="status-pill in-progress">
+                        <i class="fa-solid fa-circle-half-stroke"></i> {{ selectedTask?.statusName.toUpperCase() }} <i class="fa-solid fa-chevron-down"></i>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="attr-item">
+                    <div class="attr-label"><i class="fa-regular fa-user"></i> Người báo cáo</div>
+                    <div class="attr-value">{{ selectedTask?.reporterName }}</div>
+                  </div>
+                  <div class="attr-item">
+                    <div class="attr-label"><i class="fa-regular fa-calendar"></i> Ngày tháng</div>
+                    <div class="attr-value">
+                      <span v-if="selectedTask?.plannedStartDate">{{ formatDate(selectedTask.plannedStartDate) }}</span>
+                      <i class="fa-solid fa-arrow-right" v-if="selectedTask?.plannedStartDate && selectedTask?.plannedEndDate"></i>
+                      <span v-if="selectedTask?.plannedEndDate">{{ formatDate(selectedTask.plannedEndDate) }}</span>
+                      <span v-if="!selectedTask?.plannedStartDate && !selectedTask?.plannedEndDate">Trống</span>
+                    </div>
+                  </div>
+                  <div class="attr-item">
+                    <div class="attr-label"><i class="fa-regular fa-flag"></i> Độ ưu tiên</div>
+                    <div class="attr-value">{{ selectedTask?.priority || 'Trống' }}</div>
+                  </div>
+                  <div class="attr-item">
+                    <div class="attr-label"><i class="fa-solid fa-user-check"></i> Người thực hiện</div>
+                    <div class="attr-value">
+                      <el-dropdown trigger="click" @command="(val) => updateTaskField(selectedTask, 'assignedUserId', val)">
+                        <span class="cursor-pointer" v-if="selectedTask?.assigneeName">{{ selectedTask.assigneeName }}</span>
+                        <span class="cursor-pointer muted" v-else>Chưa phân công</span>
+                        <template #dropdown>
+                          <el-dropdown-menu>
+                             <el-dropdown-item :command="null">Chưa phân công</el-dropdown-item>
+                             <el-dropdown-item v-for="member in projectMembers" :key="member.userId" :command="member.userId">
+                               {{ member.fullName }}
+                             </el-dropdown-item>
+                          </el-dropdown-menu>
+                        </template>
+                      </el-dropdown>
+                    </div>
+                  </div>
+                  <div class="attr-item">
+                    <div class="attr-label"><i class="fa-solid fa-calendar-day"></i> Ngày hết hạn</div>
+                    <div class="attr-value">
+                       <el-date-picker
+                        v-model="selectedTask.dueDate"
+                        type="date"
+                        placeholder="Chọn ngày"
+                        size="small"
+                        format="YYYY-MM-DD"
+                        value-format="YYYY-MM-DD"
+                        @change="(val) => updateTaskField(selectedTask, 'dueDate', val)"
+                        class="inline-date-picker"
+                      />
+                    </div>
+                  </div>
+                  <div class="attr-item">
+                    <div class="attr-label"><i class="fa-regular fa-star"></i> Story Points</div>
+                    <div class="attr-value">{{ selectedTask?.storyPoints || '0' }}</div>
+                  </div>
+                  <div class="attr-item">
+                    <div class="attr-label"><i class="fa-regular fa-clock"></i> Theo dõi thời gian</div>
+                    <div class="attr-value"><i class="fa-regular fa-circle-play"></i> Thêm thời gian</div>
+                  </div>
+                  <div class="attr-item">
+                    <div class="attr-label"><i class="fa-solid fa-tag"></i> Thẻ</div>
+                    <div class="attr-value muted">Trống</div>
+                  </div>
+                  <div class="attr-item">
+                    <div class="attr-label"><i class="fa-solid fa-share-nodes"></i> Mối quan hệ</div>
+                    <div class="attr-value muted">Trống</div>
+                  </div>
+                </div>
+
+                <!-- Description Areas -->
+                <div class="content-section">
+                  <div class="section-link"><i class="fa-regular fa-file-lines"></i> Thêm mô tả</div>
+                  <div class="section-link ai-link"><i class="fa-solid fa-wand-magic-sparkles"></i> Viết bằng AI</div>
+                </div>
+
+                <div class="fields-section">
+                  <h3>Thêm trường dữ liệu</h3>
+                  <button class="add-field-btn"><i class="fa-solid fa-plus"></i> Tạo một trường trong danh sách này</button>
+                </div>
+              </div>
+
+              <!-- Right Activity Panel -->
+              <div class="modal-sidebar">
+                <div class="sidebar-header">
+                  <h2>Hoạt động</h2>
+                  <div class="header-tools">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <i class="fa-solid fa-arrow-down-wide-short"></i>
+                    <i class="fa-solid fa-comments"></i> 1
+                    <i class="fa-solid fa-bars-staggered"></i>
+                  </div>
+                </div>
+
+                <div class="activity-scroll">
+                  <div class="comment-card" v-for="c in topLevelComments" :key="c.id">
+                    <div class="c-head">
+                      <div class="avatar-sm">{{ c.avatar || 'U' }}</div>
+                      <div class="c-user">{{ c.fullName }} <span class="c-time">{{ formatDate(c.createdAt) }}</span></div>
+                    </div>
+                    <div class="c-body">{{ c.content }}</div>
+                    <div class="c-foot">
+                       <div class="c-actions">
+                         <i class="fa-regular fa-thumbs-up"></i>
+                         <i class="fa-regular fa-face-smile"></i>
+                       </div>
+                       <div class="c-rep" @click="startReply(c)">Trả lời</div>
+                    </div>
+                    <div class="replies-container" v-if="(c.childComments && c.childComments.length > 0) || replyingToCommentId === c.id">
+                      <div class="comment-card reply-card" v-for="reply in c.childComments" :key="reply.id">
+                        <div class="c-head">
+                          <div class="avatar-sm" style="width: 20px; height: 20px; font-size: 9px;">{{ reply.avatar || 'U' }}</div>
+                          <div class="c-user" style="font-size: 12px;">{{ reply.fullName }} <span class="c-time">{{ formatDate(reply.createdAt) }}</span></div>
+                        </div>
+                        <div class="c-body" style="font-size: 13px;">{{ reply.content }}</div>
+                      </div>
+                      
+                      <div class="inline-reply-box" v-if="replyingToCommentId === c.id">
+                        <div class="avatar-sm" style="width: 20px; height: 20px; font-size: 9px; align-self: flex-start; margin-top: 6px;">{{ currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U' }}</div>
+                        <div class="inline-input-wrapper">
+                           <textarea 
+                              :id="'reply-textarea-' + c.id" 
+                              placeholder="Viết phản hồi công khai..." 
+                              v-model="newComment" 
+                              @keyup.enter.ctrl="submitComment"
+                           ></textarea>
+                           <div class="inline-actions">
+                             <i class="fa-solid fa-paper-plane" :class="{ 'send-enabled': !!newComment }" @click="submitComment"></i>
+                             <i class="fa-solid fa-xmark cancel-btn" @click="cancelReply" title="Hủy"></i>
+                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="activity-input" v-show="!replyingToCommentId">
+                  <div class="input-container">
+                    <textarea id="comment-textarea" placeholder="Viết bình luận..." v-model="newComment" @keyup.enter.ctrl="submitComment"></textarea>
+                    <div class="input-actions-bar">
+                      <div class="bar-left">
+                        <i class="fa-solid fa-plus"></i>
+                        <button class="btn-comment-type">Bình luận <i class="fa-solid fa-chevron-down"></i></button>
+                        <i class="fa-solid fa-wand-magic-sparkles ai"></i>
+                        <i class="fa-solid fa-at"></i>
+                        <i class="fa-solid fa-paperclip" @click="triggerFileUpload"></i>
+                        <i class="fa-solid fa-at"></i>
+                        <i class="fa-regular fa-face-smile"></i>
+                        <i class="fa-solid fa-ellipsis"></i>
+                      </div>
+                      <div class="bar-right">
+                        <i class="fa-solid fa-paper-plane" :class="{ 'send-enabled': !!newComment }" @click="submitComment"></i>
+                        <i class="fa-solid fa-chevron-down"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-
-        <div class="comment-input-area">
-          <textarea
-            v-model="newComment"
-            placeholder="Viết bình luận..."
-            rows="2"
-            class="comment-textarea"
-            @keydown.enter.ctrl="addComment"
-          ></textarea>
-          <el-button type="primary" size="small" @click="addComment" :disabled="!newComment.trim()">
-            Gửi
-          </el-button>
-        </div>
-      </div>
-    </div>
-  </el-drawer>
+      </transition>
 </template>
 
-<style scoped>
-.task-detail {
-  padding: 20px;
-  height: 100%;
-  overflow-y: auto;
-}
 
-.detail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
+<script setup>
+import { ref, watch, computed } from 'vue';
+import { ElMessage, ElNotification } from 'element-plus';
+import axiosClient from '@/api/axiosClient';
 
-.detail-header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+const props = defineProps({
+  selectedTask: { type: Object, default: null },
+  projectId: { type: [String, Number], required: true },
+  projectMembers: { type: Array, default: () => [] },
+  currentUser: { type: Object, default: () => ({}) }
+});
 
-.detail-seq {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  font-family: 'JetBrains Mono', monospace;
-}
+const emit = defineEmits(['updateTask', 'close', 'open-task', 'create-subtask', 'refresh-tasks']);
 
-.detail-status-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
+const showTaskModal = ref(true);
 
-.status-to-do { background: #f1f5f9; color: #64748b; }
-.status-in-progress { background: #dbeafe; color: #2563eb; }
-.status-in-review { background: #fef3c7; color: #d97706; }
-.status-done { background: #dcfce7; color: #16a34a; }
+watch(showTaskModal, (val) => {
+  if (!val) emit('close');
+});
 
-.detail-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 20px;
-  line-height: 1.3;
-}
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('vi-VN');
+};
 
-.detail-title-input {
-  width: 100%;
-  font-size: 20px;
-  font-weight: 700;
-  border: none;
-  border-bottom: 2px solid var(--el-color-primary);
-  padding: 8px 0;
-  margin-bottom: 20px;
-  background: transparent;
-  color: var(--text-primary);
-  outline: none;
-}
+const updateTaskField = (task, field, value) => {
+  emit('updateTask', task, field, value);
+};
 
-.detail-props {
-  display: grid;
-  gap: 1px;
-  background: var(--border-color, #e5e7eb);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 8px;
-  overflow: hidden;
-  margin-bottom: 24px;
-}
+const openTaskDetail = (task) => emit('open-task', task);
+const createSubtask = (task) => emit('create-subtask', task);
 
-.prop-row {
-  display: flex;
-  align-items: center;
-  padding: 10px 14px;
-  background: var(--bg-card, #fff);
-}
+// Comments logic
+const comments = ref([]);
+const replyingToCommentId = ref(null);
+const newComment = ref('');
+const pendingAttachments = ref([]);
+const commentFileInput = ref(null);
 
-.prop-label {
-  width: 140px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
+const fetchComments = async () => {
+  if (!props.selectedTask || !props.selectedTask.id) return;
+  try {
+    const res = await axiosClient.get(`/projects/${props.projectId}/tasks/${props.selectedTask.id}/comments`);
+    comments.value = res.data?.data || [];
+  } catch (err) { }
+};
 
-.prop-value {
-  font-size: 13px;
-  color: var(--text-primary);
-}
+watch(() => props.selectedTask, (newTask) => {
+  if (newTask) {
+    fetchComments();
+    replyingToCommentId.value = null;
+    newComment.value = '';
+    showTaskModal.value = true;
+  }
+}, { immediate: true });
 
-.prop-value-select {
-  flex: 1;
-}
+const topLevelComments = computed(() => {
+  if (!comments.value) return [];
+  const map = {};
+  comments.value.forEach(c => { c.childComments = []; map[c.id] = c; });
+  const roots = [];
+  comments.value.forEach(c => {
+    if (c.parentCommentId && map[c.parentCommentId]) {
+      map[c.parentCommentId].childComments.push(c);
+    } else {
+      roots.push(c);
+    }
+  });
+  return roots;
+});
 
-.detail-section {
-  margin-bottom: 24px;
-}
-
-.section-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.detail-description {
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  white-space: pre-wrap;
-}
-
-.detail-description-input {
-  width: 100%;
-  font-size: 13px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 10px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  resize: vertical;
-  outline: none;
-}
-
-.detail-description-input:focus {
-  border-color: var(--el-color-primary);
-}
-
-.comments-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.comment-item {
-  display: flex;
-  gap: 10px;
-}
-
-.comment-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  color: white;
-  flex-shrink: 0;
-}
-
-.comment-body {
-  flex: 1;
-}
-
-.comment-header {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.comment-author {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.comment-time {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.comment-content {
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  background: var(--bg-secondary);
-  padding: 8px 12px;
-  border-radius: 8px;
-}
-
-.comment-input-area {
-  display: flex;
-  gap: 8px;
-  align-items: flex-end;
-}
-
-.comment-textarea {
-  flex: 1;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 13px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  resize: none;
-  outline: none;
-}
-
-.comment-textarea:focus {
-  border-color: var(--el-color-primary);
-}
-</style>
+const triggerFileUpload = () => { if (commentFileInput.value) commentFileInput.value.click(); };
+const startReply = (c) => { replyingToCommentId.value = c.id; newComment.value = ''; pendingAttachments.value = []; };
+const cancelReply = () => { replyingToCommentId.value = null; newComment.value = ''; pendingAttachments.value = []; };
+const submitComment = async () => {
+    if (!newComment.value.trim()) return;
+    try {
+        const payload = { content: newComment.value.trim(), parentCommentId: replyingToCommentId.value || null };
+        await axiosClient.post(`/projects/${props.projectId}/tasks/${props.selectedTask.id}/comments`, payload);
+        newComment.value = '';
+        replyingToCommentId.value = null;
+        fetchComments();
+    } catch(e) {}
+};
+</script>

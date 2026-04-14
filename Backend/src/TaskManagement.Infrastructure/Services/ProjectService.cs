@@ -57,6 +57,43 @@ namespace TaskManagement.Infrastructure.Services
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// Returns ALL active projects with a flag indicating whether the current user is a member.
+        /// Used by Dashboard/ManageSpaces to show "Tham gia" for non-member projects.
+        /// </summary>
+        public async Task<List<ProjectDiscoveryDto>> GetAllForDiscoveryAsync()
+        {
+            var userIdString = _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            Guid? userId = Guid.TryParse(userIdString, out Guid uid) ? uid : null;
+
+            return await _context.Projects
+                .AsNoTracking()
+                .Include(p => p.Creator)
+                .Include(p => p.Department)
+                .Where(p => !p.IsDeleted && p.Status)
+                .Select(p => new ProjectDiscoveryDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    StartDate = p.StartDate,
+                    EndDate = p.EndDate,
+                    Status = p.Status,
+                    CreatorName = p.Creator.FullName,
+                    DepartmentId = p.DepartmentId,
+                    DepartmentName = p.Department != null ? p.Department.Name : null,
+                    ActiveMemberCount = p.ProjectMembers.Count(m => m.Status == true),
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
+                    IsMember = userId.HasValue && p.ProjectMembers.Any(pm => pm.UserId == userId.Value && pm.Status),
+                    MyRole = userId.HasValue
+                        ? p.ProjectMembers.Where(pm => pm.UserId == userId.Value && pm.Status).Select(pm => pm.ProjectRole).FirstOrDefault()
+                        : null
+                })
+                .ToListAsync();
+        }
+
+
         public async Task<ProjectResponseDto?> GetByIdAsync(Guid id)
         {
             return await _context.Projects

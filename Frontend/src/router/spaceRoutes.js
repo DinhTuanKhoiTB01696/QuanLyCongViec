@@ -8,5 +8,25 @@ export default [
     path: '/space/:id',
     name: 'SpaceSummary',
     component: () => import('../views/SpaceSummary.vue')
+  },
+  {
+    path: '/space/:id/cycles',
+    name: 'CyclesView',
+    component: () => import('../views/CyclesView.vue')
+  },
+  {
+    path: '/space/:id/modules',
+    name: 'ModulesView',
+    component: () => import('../views/ModulesView.vue')
+  },
+  {
+    path: '/space/:id/views',
+    name: 'ViewsView',
+    component: () => import('../views/ViewsView.vue')
+  },
+  {
+    path: '/space/:id/pages',
+    name: 'PagesView',
+    component: () => import('../views/PagesView.vue')
   }
 ]

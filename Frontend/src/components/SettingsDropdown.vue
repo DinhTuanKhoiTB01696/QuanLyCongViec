@@ -1,5 +1,5 @@
 <template>
-  <el-dropdown trigger="click" popper-class="settings-dropdown-popper">
+  <el-dropdown v-if="canAccessAdmin" trigger="click" popper-class="settings-dropdown-popper">
     <div class="settings-nav-icon setting-trigger">
       <i class="fa-solid fa-gear"></i>
     </div>
@@ -51,12 +51,18 @@ import { ElMessage } from 'element-plus'
 const router = useRouter()
 
 const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-const isAdmin = computed(() => {
+
+// Chỉ System Admin, PM, PO mới thấy nút Settings (Admin)
+const canAccessAdmin = computed(() => {
   const roles = currentUser.systemRoles || []
-  return roles.includes('Admin') || roles.includes('admin')
+  return roles.includes('System Admin') || roles.includes('PM') || roles.includes('PO')
 })
 
 const handleCommand = (path) => {
+  if (!canAccessAdmin.value) {
+    ElMessage.warning('Bạn không có quyền truy cập trang quản trị.')
+    return
+  }
   // Use a named target so the browser reuses the same tab for all Admin links
   const routeData = router.resolve({ path })
   window.open(routeData.href, 'NexusAdminWindow')

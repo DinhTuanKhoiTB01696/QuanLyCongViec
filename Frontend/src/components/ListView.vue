@@ -1,207 +1,265 @@
+<template>
+  <div class="plane-list-view">
+    <!-- Header Controls omitted here as they are managed by SpaceSummary.vue -->
+
+    <div v-for="(group, key) in groupedTasks" :key="key" class="list-group">
+      <!-- Group Header -->
+      <div class="group-header" @click="toggleGroup(key)">
+        <div class="gh-left">
+           <i class="gh-chevron fa-solid" :class="collapsedGroups[key] ? 'fa-chevron-right' : 'fa-chevron-down'"></i>
+           <i class="status-icon" :class="group.iconClass" :style="{ color: group.color }"></i>
+           <span class="group-name">{{ group.name }}</span>
+           <span class="group-count">{{ group.tasks.length }}</span>
+        </div>
+        <div class="gh-right">
+           <i class="fa-solid fa-plus add-icon"></i>
+        </div>
+      </div>
+
+      <!-- Group Tasks -->
+      <div class="group-content" v-show="!collapsedGroups[key]">
+        <div class="task-row" v-for="task in group.tasks" :key="task.id" @click="emit('task-click', task)">
+          <div class="tr-left">
+            <span class="task-id">{{ task.sequenceId || task.id.substring(0,8).toUpperCase() }}</span>
+            <span class="task-title" :style="group.name === 'Done' ? { textDecoration: 'line-through', color: '#71717A' } : {}">
+               {{ task.title }}
+               <span v-if="task.description" style="margin-left: 6px; font-size: 13px;">{{ task.description.includes('đ') ? '🐶' : '📝' }}</span>
+            </span>
+          </div>
+          <div class="tr-right">
+            <!-- Properties pills -->
+            <div class="pill-group">
+              <div class="pill pill-status">
+                 <i class="status-icon-sm" :class="group.iconClass" :style="{ color: group.color }"></i>
+                 {{ group.name }}
+              </div>
+              <div class="pill pill-priority">
+                 <i class="fa-solid fa-signal" v-if="task.priority === 3" style="color: #F59E0B"></i>
+                 <i class="fa-solid fa-arrow-down" v-else style="color: #71717A"></i>
+              </div>
+              <div class="pill pill-user">
+                 <div class="avatar-xxs">
+                    <i class="fa-regular fa-user" v-if="!task.assigneeName"></i>
+                    <span v-else>{{ task.assigneeName.substring(0,1).toUpperCase() }}</span>
+                 </div>
+              </div>
+            </div>
+            <div class="row-action">
+              <i class="fa-solid fa-ellipsis"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="add-row-placeholder">
+          <i class="fa-solid fa-plus"></i> New work item
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
-  tasks: { type: Array, default: () => [] },
-  loading: { type: Boolean, default: false }
+  tasks: { type: Array, default: () => [] }
 })
 
 const emit = defineEmits(['task-click'])
 
-function getPriorityInfo(priority) {
-  const map = {
-    0: { label: 'Không', color: '#94a3b8', icon: '—' },
-    1: { label: 'Thấp', color: '#22c55e', icon: '↓' },
-    2: { label: 'Trung bình', color: '#f59e0b', icon: '→' },
-    3: { label: 'Cao', color: '#ef4444', icon: '↑' },
-    4: { label: 'Khẩn cấp', color: '#dc2626', icon: '⚡' }
+const collapsedGroups = ref({})
+
+const toggleGroup = (key) => {
+  collapsedGroups.value[key] = !collapsedGroups.value[key]
+}
+
+const groupedTasks = computed(() => {
+  const groups = {
+    backlog: { name: 'Backlog', iconClass: 'fa-regular fa-circle-dashed', color: '#71717A', tasks: [] },
+    todo: { name: 'Todo', iconClass: 'fa-regular fa-circle', color: '#A1A1AA', tasks: [] },
+    inprogress: { name: 'In Progress', iconClass: 'fa-solid fa-circle-half-stroke', color: '#F59E0B', tasks: [] },
+    done: { name: 'Done', iconClass: 'fa-solid fa-circle-check', color: '#10B981', tasks: [] }
   }
-  return map[priority] || map[0]
-}
 
-function getStatusClass(statusName) {
-  const s = (statusName || '').toUpperCase().replace(/\s/g, '-')
-  return 'status-' + s.toLowerCase()
-}
-
-function formatDate(date) {
-  if (!date) return '—'
-  return new Date(date).toLocaleDateString('vi-VN', {
-    day: '2-digit', month: '2-digit', year: 'numeric'
+  props.tasks.forEach(task => {
+    const s = (task.statusName || '').toUpperCase()
+    if (s === 'IN PROGRESS') groups.inprogress.tasks.push(task)
+    else if (s === 'DONE') groups.done.tasks.push(task)
+    else if (s === 'BACKLOG') groups.backlog.tasks.push(task)
+    else groups.todo.tasks.push(task)
   })
-}
 
-function getInitials(name) {
-  if (!name) return '?'
-  return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase()
-}
-
-function getAvatarColor(name) {
-  if (!name) return '#6b7280'
-  let hash = 0
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  return `hsl(${Math.abs(hash % 360)}, 55%, 50%)`
-}
+  // Filter out empty groups if you want, but often they are kept. Let's keep them.
+  return groups
+})
 </script>
 
-<template>
-  <div class="list-view-container">
-    <el-table
-      :data="tasks"
-      v-loading="loading"
-      stripe
-      class="task-table"
-      @row-click="(row) => emit('task-click', row)"
-      empty-text="Chưa có công việc nào"
-      row-class-name="task-row"
-    >
-      <el-table-column label="ID" width="100" prop="sequenceId">
-        <template #default="{ row }">
-          <span class="seq-id">{{ row.sequenceId || row.id?.substring(0, 8) }}</span>
-        </template>
-      </el-table-column>
-
-      <el-table-column label="Tiêu đề" min-width="250">
-        <template #default="{ row }">
-          <div class="task-title-cell">
-            <span class="task-title-text">{{ row.title }}</span>
-          </div>
-        </template>
-      </el-table-column>
-
-      <el-table-column label="Trạng thái" width="130">
-        <template #default="{ row }">
-          <span class="status-badge" :class="getStatusClass(row.statusName)">
-            {{ row.statusName || 'TO DO' }}
-          </span>
-        </template>
-      </el-table-column>
-
-      <el-table-column label="Ưu tiên" width="110">
-        <template #default="{ row }">
-          <span class="priority-cell" :style="{ color: getPriorityInfo(row.priority).color }">
-            {{ getPriorityInfo(row.priority).icon }} {{ getPriorityInfo(row.priority).label }}
-          </span>
-        </template>
-      </el-table-column>
-
-      <el-table-column label="Phụ trách" width="160">
-        <template #default="{ row }">
-          <div class="assignee-cell" v-if="row.assigneeName">
-            <div class="mini-avatar" :style="{ backgroundColor: getAvatarColor(row.assigneeName) }">
-              {{ getInitials(row.assigneeName) }}
-            </div>
-            <span>{{ row.assigneeName }}</span>
-          </div>
-          <span v-else class="text-muted">Chưa gán</span>
-        </template>
-      </el-table-column>
-
-      <el-table-column label="SP" width="60" align="center" prop="storyPoints" />
-
-      <el-table-column label="Hạn chót" width="110">
-        <template #default="{ row }">
-          <span :class="{ 'overdue-text': row.dueDate && new Date(row.dueDate) < new Date() }">
-            {{ formatDate(row.dueDate) }}
-          </span>
-        </template>
-      </el-table-column>
-
-      <el-table-column label="Cập nhật" width="110">
-        <template #default="{ row }">
-          {{ formatDate(row.updatedAt) }}
-        </template>
-      </el-table-column>
-    </el-table>
-  </div>
-</template>
-
 <style scoped>
-.list-view-container {
-  border-radius: 8px;
-  overflow: hidden;
+.plane-list-view {
+  display: flex;
+  flex-direction: column;
+  color: #E4E4E7;
+  font-family: 'Inter', sans-serif;
 }
 
-.task-table {
-  width: 100%;
+.list-group {
+  margin-bottom: 24px;
+}
+
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  cursor: pointer;
+  border-bottom: 1px solid #1E2025;
+  margin-bottom: 8px;
+}
+
+.group-header:hover .add-icon { opacity: 1; }
+
+.gh-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gh-chevron {
+  font-size: 10px;
+  color: #71717A;
+  width: 14px;
+  text-align: center;
+}
+
+.status-icon {
+  font-size: 14px;
+}
+
+.group-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #E4E4E7;
+}
+
+.group-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: #71717A;
+  margin-left: 4px;
+}
+
+.gh-right {
+  display: flex;
+  align-items: center;
+}
+
+.add-icon {
+  color: #71717A;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  padding: 4px;
+}
+
+.group-content {
+  display: flex;
+  flex-direction: column;
 }
 
 .task-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0 10px 24px;
+  border-bottom: 1px solid #1E2025;
   cursor: pointer;
 }
-
 .task-row:hover {
-  background-color: var(--active-bg, #eff6ff) !important;
+  background-color: #16181D;
 }
 
-.seq-id {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.task-title-cell {
+.tr-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
 }
 
-.task-title-text {
-  font-weight: 500;
-  font-size: 13px;
-  color: var(--text-primary);
-}
-
-.status-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-}
-
-.status-to-do { background: #f1f5f9; color: #64748b; }
-.status-in-progress { background: #dbeafe; color: #2563eb; }
-.status-in-review { background: #fef3c7; color: #d97706; }
-.status-done { background: #dcfce7; color: #16a34a; }
-
-.priority-cell {
+.task-id {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
+  color: #71717A;
+  width: 50px;
 }
 
-.assignee-cell {
+.task-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #D4D4D8;
+}
+
+.tr-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pill-group {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
+.task-row:hover .pill-group { opacity: 1; }
 
-.mini-avatar {
-  width: 22px;
-  height: 22px;
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid #27272A;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #A1A1AA;
+}
+.pill i { font-size: 12px; }
+
+.status-icon-sm { font-size: 12px; }
+
+.avatar-xxs {
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
+  border: 1px dashed #3F3F46;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 9px;
-  font-weight: 700;
-  color: white;
-  flex-shrink: 0;
-}
-
-.text-muted {
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.overdue-text {
-  color: #ef4444;
   font-weight: 600;
 }
+
+.row-action {
+  color: #71717A;
+  padding: 4px 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.row-action:hover { color: #E4E4E7; }
+.task-row:hover .row-action { opacity: 1; }
+
+.add-row-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0 12px 24px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #71717A;
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+}
+.add-row-placeholder:hover {
+  color: #E4E4E7;
+}
+
 </style>

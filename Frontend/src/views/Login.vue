@@ -85,6 +85,18 @@
               <img :src="githubIcon" alt="GitHub" class="social-icon" /> GitHub
             </el-button>
           </div>
+
+          <!-- Dev Login Button -->
+          <el-button 
+            type="warning" 
+            class="auth-btn" 
+            size="large" 
+            style="margin-bottom: 16px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none;"
+            :loading="isLoading"
+            @click="handleDevLogin"
+          >
+            🚀 Dev Login (Bỏ qua đăng nhập)
+          </el-button>
           
           <p class="auth-footer-text">
             Chưa có tài khoản? <router-link to="/register">Đăng ký</router-link>
@@ -227,6 +239,25 @@ const handleGitHubLogin = () => {
   const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user:email`
   
   window.location.href = githubAuthUrl
+}
+
+const handleDevLogin = async () => {
+  isLoading.value = true
+  try {
+    const response = await axiosClient.post('/auth/dev-login')
+    const { accessToken, fullName, email, systemRoles, id } = response.data.data
+    
+    localStorage.setItem('accessToken', accessToken)
+    localStorage.setItem('user', JSON.stringify({ id, fullName, email, systemRoles }))
+    
+    ElMessage.success('Dev Login thành công!')
+    router.push('/dashboard')
+  } catch (error) {
+    console.error('Dev login error:', error)
+    ElMessage.error(error.response?.data?.message || 'Dev login thất bại')
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 

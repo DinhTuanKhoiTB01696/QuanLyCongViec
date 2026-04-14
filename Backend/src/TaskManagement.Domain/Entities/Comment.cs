@@ -17,6 +17,8 @@ namespace TaskManagement.Domain.Entities
         public DateTime UpdatedAt { get; set; }
         public bool IsDeleted { get; set; } = false;
 
+        // Navigation
         public ICollection<Comment> ChildComments { get; set; } = new List<Comment>();
+        public ICollection<CommentAttachment> CommentAttachments { get; set; } = new List<CommentAttachment>();
     }
 }

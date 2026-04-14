@@ -83,8 +83,6 @@ const navItems = ref([
   { id: 'recent', label: 'Recent', icon: 'fa-regular fa-clock', checked: true },
   { id: 'spaces', label: 'Spaces', icon: 'fa-regular fa-folder-open', checked: true },
   { id: 'ai', label: 'Trợ lý AI', icon: 'fa-solid fa-robot', checked: true },
-  { id: 'audit', label: 'Audit Log', icon: 'fa-solid fa-list-check', checked: true },
-  { id: 'users', label: 'Quản lý người dùng', icon: 'fa-solid fa-users-gear', checked: true },
 ])
 
 onMounted(() => {

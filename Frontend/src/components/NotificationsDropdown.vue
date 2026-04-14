@@ -1,7 +1,7 @@
 <template>
-  <el-dropdown trigger="click" popper-class="notifications-dropdown-popper">
+  <el-dropdown trigger="click" popper-class="notifications-dropdown-popper" @visible-change="handleDropdownOpen">
     <div class="nav-icon notification-trigger">
-      <el-badge :value="0" class="notification-badge" :hidden="true">
+      <el-badge :value="unreadCount" class="notification-badge" :hidden="unreadCount === 0">
         <i class="fa-solid fa-bell"></i>
       </el-badge>
     </div>
@@ -12,8 +12,7 @@
           <div class="header-actions">
             <span class="unread-toggle-label">Chỉ hiện chưa đọc</span>
             <el-switch v-model="onlyUnread" size="small" />
-            <i class="fa-solid fa-arrow-up-right-from-square icon-btn"></i>
-            <i class="fa-solid fa-ellipsis icon-btn"></i>
+            <el-button type="primary" link size="small" @click="markAllAsRead" v-if="unreadCount > 0">Đánh dấu đã đọc</el-button>
           </div>
         </div>
 
@@ -23,14 +22,27 @@
         </div>
 
         <div class="notif-scroll-area">
-          <!-- Notifications are empty by default -->
-
-          <!-- Empty State -->
-          <div class="notif-empty-state">
-            <div class="empty-icon">
-              <i class="fa-solid fa-flag"></i>
-            </div>
+          <div v-if="filteredNotifications.length === 0" class="notif-empty-state">
+            <div class="empty-icon"><i class="fa-solid fa-flag"></i></div>
             <p>Đó là tất cả thông báo của bạn từ 30 ngày qua.</p>
+          </div>
+          <div v-else class="notif-section">
+            <div v-for="n in filteredNotifications" :key="n.id" class="notif-item" :class="{ unread: !n.isRead }" @click="markAsRead(n)">
+              <div class="notif-avatar" :style="n.triggeredByAvatar ? `background-image: url(${getBaseUrl()}${n.triggeredByAvatar}); background-size: cover; color: transparent;` : ''">
+                {{ n.triggeredByAvatar ? '' : getInitials(n.triggeredByName || 'HT') }}
+              </div>
+              <div class="notif-content">
+                <div class="notif-text">
+                  <span class="user-name">{{ n.triggeredByName || 'Hệ thống' }}</span> {{ n.content.replace((n.triggeredByName || 'Ai đó') + ' ', '') }}
+                </div>
+                <div class="notif-context">
+                  <i class="fa-solid fa-bell"></i>
+                  <span>{{ n.title }}</span>
+                  <span class="time-ago">{{ formatTimeAgo(n.createdAt) }}</span>
+                </div>
+              </div>
+              <div class="unread-dot" v-if="!n.isRead"></div>
+            </div>
           </div>
         </div>
 
@@ -46,9 +58,110 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import axiosClient from '@/api/axiosClient'
+import * as signalR from '@microsoft/signalr'
+import { useRouter } from 'vue-router'
 
 const onlyUnread = ref(false)
+const notifications = ref([])
+const connection = ref(null)
+const router = useRouter()
+
+const unreadCount = computed(() => notifications.value.filter(n => !n.isRead).length)
+
+const filteredNotifications = computed(() => {
+  if (onlyUnread.value) return notifications.value.filter(n => !n.isRead)
+  return notifications.value
+})
+
+const getBaseUrl = () => 'http://localhost:5136'
+
+const getInitials = (name) => {
+  if (!name) return '?'
+  return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase()
+}
+
+const formatTimeAgo = (dateStr) => {
+  const diffMs = new Date() - new Date(dateStr)
+  if (diffMs < 60000) return 'Vừa xong'
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 60) return `${diffMins} phút trước`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours} giờ trước`
+  return `${Math.floor(diffHours / 24)} ngày trước`
+}
+
+const fetchNotifications = async () => {
+  try {
+    const res = await axiosClient.get('/notifications')
+    notifications.value = res.data.data
+  } catch(e) {
+    console.error('Cannot load notifications', e)
+  }
+}
+
+const markAsRead = async (n) => {
+  if (n.isRead) return
+  n.isRead = true
+  try {
+    await axiosClient.put(`/notifications/${n.id}/read`)
+    if (n.linkUrl) {
+      router.push(n.linkUrl)
+    }
+  } catch(e) {
+    console.error('Lỗi khi đánh dấu đã đọc')
+  }
+}
+
+const markAllAsRead = async () => {
+  notifications.value.forEach(n => n.isRead = true)
+  try {
+    await axiosClient.put('/notifications/read-all')
+  } catch(e) {}
+}
+
+const handleDropdownOpen = (visible) => {
+  if (visible) {
+    fetchNotifications()
+  }
+}
+
+const initSignalR = () => {
+  const token = localStorage.getItem('accessToken')
+  if (!token) return
+
+  connection.value = new signalR.HubConnectionBuilder()
+    .withUrl('http://localhost:5136/notification-hub', {
+      accessTokenFactory: () => token
+    })
+    .withAutomaticReconnect()
+    .build()
+
+  connection.value.on('ReceiveNotification', (notif) => {
+    notifications.value.unshift({ ...notif, isRead: false })
+  })
+
+  connection.value.start()
+    .then(() => {
+      const user = JSON.parse(localStorage.getItem('user'))
+      if (user && user.id) {
+        connection.value.invoke('JoinUserChannel', user.id)
+      }
+    })
+    .catch(err => console.error('SignalR Err:', err))
+}
+
+onMounted(() => {
+  fetchNotifications()
+  initSignalR()
+})
+
+onUnmounted(() => {
+  if (connection.value) {
+    connection.value.stop()
+  }
+})
 </script>
 
 <style scoped>

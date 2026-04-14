@@ -10,13 +10,34 @@ export default [
     component: () => import('../views/Profile.vue')
   },
   {
-    path: '/user-management',
-    name: 'UserManagement',
-    component: () => import('../views/UserManagement.vue')
+    path: '/your-work',
+    name: 'YourWork',
+    component: () => import('../views/YourWorkView.vue')
   },
   {
-    path: '/recent',
-    name: 'Recent',
-    component: () => import('../views/Recent.vue')
+    path: '/stickies',
+    name: 'Stickies',
+    component: () => import('../views/StickiesView.vue')
+  },
+  {
+    path: '/drafts',
+    name: 'Drafts',
+    component: () => import('../views/DraftsView.vue')
+  },
+  {
+    path: '/views',
+    name: 'Views',
+    component: () => import('../views/GlobalViewsView.vue')
+  },
+  {
+    path: '/analytics',
+    name: 'Analytics',
+    component: () => import('../views/GlobalAnalyticsView.vue')
+  },
+  {
+    path: '/archives',
+    name: 'Archives',
+    component: () => import('../views/GlobalArchivesView.vue')
   }
+  // Recent route ĐÃ XÓA - Module chỉ chứa dữ liệu Mock, không có giá trị nghiệp vụ
 ]

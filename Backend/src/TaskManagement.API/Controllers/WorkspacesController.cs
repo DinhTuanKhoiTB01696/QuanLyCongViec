@@ -207,6 +207,142 @@ namespace TaskManagement.API.Controllers
 
             return Ok(new { statusCode = 200, message = "Success", data = members });
         }
+
+        /// <summary>
+        /// Cập nhật thông tin workspace
+        /// </summary>
+        [HttpPut("{workspaceId}")]
+        public async Task<IActionResult> UpdateWorkspace(Guid workspaceId, [FromBody] UpdateWorkspaceRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userId, out Guid parsedUserId))
+                return Unauthorized(new { statusCode = 401, message = "Vui lòng đăng nhập." });
+
+            var membership = await _context.WorkspaceMembers
+                .FirstOrDefaultAsync(wm => wm.WorkspaceId == workspaceId && wm.UserId == parsedUserId && wm.IsActive);
+
+            if (membership == null || (membership.WorkspaceRole != "OWNER" && membership.WorkspaceRole != "ADMIN"))
+                return StatusCode(403, new { statusCode = 403, message = "Bạn không có quyền cập nhật workspace này." });
+
+            var workspace = await _context.Workspaces.FindAsync(workspaceId);
+            if (workspace == null || workspace.IsDeleted)
+                return NotFound(new { statusCode = 404, message = "Workspace không tồn tại." });
+
+            if (!string.IsNullOrEmpty(request.Slug) && request.Slug != workspace.Slug)
+            {
+                var slugExists = await _context.Workspaces.AnyAsync(w => w.Slug == request.Slug && w.Id != workspaceId);
+                if (slugExists) return BadRequest(new { statusCode = 400, message = "Slug đã tồn tại." });
+                workspace.Slug = request.Slug.ToLower().Trim();
+            }
+
+            if (!string.IsNullOrEmpty(request.Name)) workspace.Name = request.Name;
+            if (request.Logo != null) workspace.Logo = request.Logo;
+            if (!string.IsNullOrEmpty(request.Timezone)) workspace.Timezone = request.Timezone;
+
+            workspace.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "Cập nhật thành công.", data = workspace });
+        }
+
+        /// <summary>
+        /// Xóa workspace
+        /// </summary>
+        [HttpDelete("{workspaceId}")]
+        public async Task<IActionResult> DeleteWorkspace(Guid workspaceId)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userId, out Guid parsedUserId))
+                return Unauthorized(new { statusCode = 401, message = "Vui lòng đăng nhập." });
+
+            var membership = await _context.WorkspaceMembers
+                .FirstOrDefaultAsync(wm => wm.WorkspaceId == workspaceId && wm.UserId == parsedUserId && wm.IsActive);
+
+            if (membership == null || membership.WorkspaceRole != "OWNER")
+                return StatusCode(403, new { statusCode = 403, message = "Chỉ OWNER mới có thể xóa workspace." });
+
+            var workspace = await _context.Workspaces.FindAsync(workspaceId);
+            if (workspace == null)
+                return NotFound(new { statusCode = 404, message = "Workspace không tồn tại." });
+
+            workspace.IsDeleted = true;
+            workspace.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "Xóa workspace thành công." });
+        }
+
+        /// <summary>
+        /// Cập nhật vai trò thành viên
+        /// </summary>
+        [HttpPut("{workspaceId}/members/{memberId}")]
+        public async Task<IActionResult> UpdateMemberRole(Guid workspaceId, Guid memberId, [FromBody] UpdateMemberRoleRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userId, out Guid parsedUserId))
+                return Unauthorized(new { statusCode = 401, message = "Vui lòng đăng nhập." });
+
+            var requester = await _context.WorkspaceMembers
+                .FirstOrDefaultAsync(wm => wm.WorkspaceId == workspaceId && wm.UserId == parsedUserId && wm.IsActive);
+
+            if (requester == null || (requester.WorkspaceRole != "OWNER" && requester.WorkspaceRole != "ADMIN"))
+                return StatusCode(403, new { statusCode = 403, message = "Bạn không có quyền." });
+
+            var targetMember = await _context.WorkspaceMembers
+                .FirstOrDefaultAsync(wm => wm.WorkspaceId == workspaceId && wm.UserId == memberId && wm.IsActive);
+
+            if (targetMember == null)
+                return NotFound(new { statusCode = 404, message = "Thành viên không tồn tại." });
+            
+            // Limit: ADMIN cannot modify OWNER
+            if (requester.WorkspaceRole == "ADMIN" && targetMember.WorkspaceRole == "OWNER")
+                return StatusCode(403, new { statusCode = 403, message = "Admin không thể sửa quyền của Owner." });
+
+            targetMember.WorkspaceRole = request.Role.ToUpper();
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "Cập nhật vai trò thành công." });
+        }
+
+        /// <summary>
+        /// Xóa thành viên
+        /// </summary>
+        [HttpDelete("{workspaceId}/members/{memberId}")]
+        public async Task<IActionResult> RemoveMember(Guid workspaceId, Guid memberId)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userId, out Guid parsedUserId))
+                return Unauthorized(new { statusCode = 401, message = "Vui lòng đăng nhập." });
+
+            var requester = await _context.WorkspaceMembers
+                .FirstOrDefaultAsync(wm => wm.WorkspaceId == workspaceId && wm.UserId == parsedUserId && wm.IsActive);
+
+            if (requester == null)
+                return NotFound(new { statusCode = 404, message = "Workspace không tồn tại." });
+
+            // People can remove themselves, or OWNER/ADMIN can remove others.
+            if (parsedUserId != memberId && requester.WorkspaceRole != "OWNER" && requester.WorkspaceRole != "ADMIN")
+                return StatusCode(403, new { statusCode = 403, message = "Bạn không có quyền xóa thành viên này." });
+
+            var targetMember = await _context.WorkspaceMembers
+                .FirstOrDefaultAsync(wm => wm.WorkspaceId == workspaceId && wm.UserId == memberId && wm.IsActive);
+
+            if (targetMember == null)
+                return NotFound(new { statusCode = 404, message = "Thành viên không tồn tại." });
+
+            // Prevent removing the last OWNER
+            if (targetMember.WorkspaceRole == "OWNER")
+            {
+                var ownerCount = await _context.WorkspaceMembers.CountAsync(wm => wm.WorkspaceId == workspaceId && wm.WorkspaceRole == "OWNER" && wm.IsActive);
+                if (ownerCount <= 1)
+                    return BadRequest(new { statusCode = 400, message = "Không thể xóa Owner duy nhất. Cần chỉ định Owner mới trước." });
+            }
+
+            targetMember.IsActive = false;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "Xóa thành viên thành công." });
+        }
     }
 
     public class CreateWorkspaceRequest
@@ -220,5 +356,18 @@ namespace TaskManagement.API.Controllers
     {
         public string Email { get; set; } = string.Empty;
         public string? Role { get; set; }
+    }
+
+    public class UpdateWorkspaceRequest
+    {
+        public string? Name { get; set; }
+        public string? Slug { get; set; }
+        public string? Logo { get; set; }
+        public string? Timezone { get; set; }
+    }
+
+    public class UpdateMemberRoleRequest
+    {
+        public string Role { get; set; } = string.Empty;
     }
 }

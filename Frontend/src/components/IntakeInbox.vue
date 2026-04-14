@@ -6,6 +6,8 @@ const props = defineProps({
   projectId: { type: String, required: true }
 })
 
+const emit = defineEmits(['task-created'])
+
 const intakes = ref([])
 const loading = ref(false)
 const showCreate = ref(false)
@@ -42,6 +44,10 @@ async function updateStatus(id, status) {
   try {
     await axiosClient.put(`/projects/${props.projectId}/intakes/${id}/review`, { status })
     loadIntakes()
+    // When accepted, backend auto-creates a WorkTask. Notify parent to refresh task lists.
+    if (status === 'Accepted') {
+      emit('task-created')
+    }
   } catch (e) {
     alert(e.response?.data?.message || 'Lỗi khi cập nhật trạng thái')
   }

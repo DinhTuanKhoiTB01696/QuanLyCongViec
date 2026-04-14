@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TaskManagement.Application.DTOs.Common;
 using TaskManagement.Application.DTOs.Project;
 using TaskManagement.Application.Interfaces;
@@ -28,6 +29,18 @@ namespace TaskManagement.API.Controllers
             var projects = await _projectService.GetAllAsync();
             return Ok(ApiResponse<List<ProjectResponseDto>>.Success(projects));
         }
+
+        /// <summary>
+        /// Returns ALL active projects with IsMember flag per current user.
+        /// Dashboard uses this to show "Tham gia" (Join) for non-member projects.
+        /// </summary>
+        [HttpGet("discovery")]
+        public async Task<IActionResult> GetAllForDiscovery()
+        {
+            var projects = await _projectService.GetAllForDiscoveryAsync();
+            return Ok(ApiResponse<List<ProjectDiscoveryDto>>.Success(projects));
+        }
+
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
@@ -70,6 +83,13 @@ namespace TaskManagement.API.Controllers
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
                 return Unauthorized(ApiResponse<object>.Error("Unauthorized.", 401));
+
+            // Vá lỗi IDOR: Đảm bảo WorkTaskId này thuộc về đúng projectId trên tham số URL
+            var taskNode = await context.WorkTasks.FirstOrDefaultAsync(wt => wt.Id == request.WorkTaskId && !wt.IsDeleted);
+            if (taskNode == null || taskNode.ProjectId != id)
+            {
+                return StatusCode(403, ApiResponse<object>.Error("Forbidden: Việc cần làm không tồn tại hoặc không thuộc dự án này."));
+            }
 
             var comment = new TaskManagement.Domain.Entities.Comment
             {

@@ -261,6 +261,117 @@ namespace TaskManagement.API.Controllers
             }
         }
 
+        /// <summary>
+        /// DEV ONLY: Auto-login without OTP/OAuth. Creates a test user if needed and returns JWT token.
+        /// </summary>
+        [HttpPost("dev-login")]
+        public async Task<IActionResult> DevLogin([FromServices] TaskManagement.Application.Interfaces.IJwtService jwtService,
+            [FromServices] TaskManagement.Infrastructure.Data.ApplicationDbContext context,
+            [FromServices] IWebHostEnvironment env)
+        {
+            if (!env.IsDevelopment())
+                return NotFound();
+
+            try
+            {
+                var email = "dev@sprinta.local";
+                var user = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+                    .FirstOrDefaultAsync(
+                        Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+                            .ThenInclude(
+                                Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+                                    .Include(context.Users, u => u.UserRoles),
+                                ur => ur.Role),
+                        u => u.Email == email && !u.IsDeleted);
+
+                if (user == null)
+                {
+                    user = new TaskManagement.Domain.Entities.User
+                    {
+                        Id = Guid.NewGuid(),
+                        Email = email,
+                        FullName = "Dev User",
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("dev123"),
+                        CreatedAt = DateTime.UtcNow,
+                        IsDeleted = false,
+                        IsActive = true
+                    };
+                    context.Users.Add(user);
+
+                    // Ensure Admin role exists
+                    var adminRole = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+                        .FirstOrDefaultAsync(context.Roles, r => r.Name == "Admin");
+                    if (adminRole == null)
+                    {
+                        adminRole = new TaskManagement.Domain.Entities.Role 
+                        { 
+                            Id = Guid.NewGuid(), 
+                            Name = "Admin", 
+                            Description = "System Administrator" 
+                        };
+                        context.Roles.Add(adminRole);
+                    }
+
+                    var ur = new TaskManagement.Domain.Entities.UserRole
+                    {
+                        UserId = user.Id,
+                        RoleId = adminRole.Id,
+                        Role = adminRole
+                    };
+                    context.UserRoles.Add(ur);
+                    user.UserRoles = new List<TaskManagement.Domain.Entities.UserRole> { ur };
+
+                    await context.SaveChangesAsync();
+                }
+
+                var roles = user.UserRoles?.Select(ur => ur.Role.Name).ToList() ?? new List<string> { "Admin" };
+                var accessToken = jwtService.GenerateAccessToken(user, roles);
+                var refreshToken = jwtService.GenerateRefreshToken();
+
+                user.RefreshToken = refreshToken;
+                user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+
+                context.RefreshTokens.Add(new TaskManagement.Domain.Entities.RefreshToken
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = user.Id,
+                    Token = refreshToken,
+                    DeviceId = "DevMode",
+                    ExpiryTime = DateTime.UtcNow.AddDays(7),
+                    IsRevoked = false
+                });
+
+                await context.SaveChangesAsync();
+
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = false,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTime.UtcNow.AddDays(7)
+                };
+                Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
+
+                return Ok(new
+                {
+                    statusCode = 200,
+                    message = "Dev login thành công",
+                    data = new TaskManagement.Application.DTOs.Auth.AuthResponseDto
+                    {
+                        AccessToken = accessToken,
+                        Id = user.Id,
+                        Email = user.Email,
+                        FullName = user.FullName,
+                        SystemRoles = roles.ToArray()
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { statusCode = 500, message = "Dev login lỗi: " + ex.Message });
+            }
+        }
+
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {

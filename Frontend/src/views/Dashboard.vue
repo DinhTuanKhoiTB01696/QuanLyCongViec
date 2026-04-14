@@ -1,110 +1,83 @@
 <template>
   <NexusLayout>
-    <div class="dashboard-header">
-      <div class="header-content">
-        <h1>Welcome back, {{ currentUser?.name || 'User' }}! 👋</h1>
-        <p class="text-muted">Here's what's happening with your projects today.</p>
-      </div>
+    <div class="plane-dashboard">
+      <div class="dashboard-inner">
+        <!-- Dashboard Header Layer -->
+        <header class="db-header">
+          <div class="header-content">
+            <h1 class="greeting">Good morning, {{ currentUser?.fullName || 'Alo' }}</h1>
+            <p class="greeting-sub">🌤️ {{ currentDateTime }}</p>
+          </div>
+        </header>
 
-    </div>
-
-    <!-- 4.1 Statistical Cards -->
-    <div class="stats-grid">
-      <div class="stat-card" v-for="stat in stats" :key="stat.id">
-        <div class="stat-header">
-          <span class="stat-title">{{ stat.title }}</span>
-          <div class="stat-icon"><i :class="stat.icon"></i></div>
-        </div>
-        <div class="stat-body">
-          <h2 class="stat-value">{{ stat.value }}</h2>
-          <div class="stat-trend" :class="stat.trend > 0 ? 'positive' : 'negative'">
-            <i :class="stat.trend > 0 ? 'fa-solid fa-arrow-up' : 'fa-solid fa-arrow-down'"></i>
-            <span>{{ Math.abs(stat.trend) }}%</span>
-            <span class="trend-text">from last month</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Content Grid -->
-    <div class="dashboard-grid">
-      <!-- 4.2 Campaign Chart -->
-      <div class="chart-section dashboard-panel">
-        <div class="panel-header">
-          <h3>Activity Overview</h3>
-          <div class="panel-actions">
-            <select class="action-select">
-              <option>Last 7 days</option>
-              <option>Last 30 days</option>
-            </select>
-          </div>
-        </div>
-        <div class="chart-container" ref="chartRef">
-          <!-- Echarts will mount here -->
-        </div>
-      </div>
-
-      <!-- 4.3 Schedule & Events -->
-      <div class="schedule-section dashboard-panel">
-        <div class="panel-header">
-          <h3>Upcoming Schedule</h3>
-          <div class="schedule-nav">
-            <button class="nav-btn"><i class="fa-solid fa-chevron-left"></i></button>
-            <button class="nav-btn"><i class="fa-solid fa-chevron-right"></i></button>
-          </div>
-        </div>
-        <div class="weekly-calendar">
-          <div class="day" v-for="day in weekDays" :key="day.date" :class="{ active: day.active }">
-            <span class="day-name">{{ day.name }}</span>
-            <span class="day-num">{{ day.date }}</span>
-          </div>
-        </div>
-        <div class="events-list">
-          <div v-if="events.length === 0" class="empty-events">
-            <p>No upcoming events</p>
-          </div>
-          <div class="event-item" v-for="event in events" :key="event.id" v-else>
-            <div class="event-dot" :style="{ backgroundColor: event.color }"></div>
-            <div class="event-info">
-              <h4>{{ event.title }}</h4>
-              <span class="event-time">{{ event.time }}</span>
+        <!-- Main Content Grid -->
+        <div class="dashboard-widgets">
+          <!-- Setup Guide / Quickstart -->
+          <section class="widget-section">
+            <div class="section-top">
+              <h2 class="section-title">Your quickstart guide</h2>
+              <div class="header-action-text"><i class="fa-solid fa-xmark"></i> Not right now</div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Recent Spaces -->
-    <div class="recent-spaces-section">
-      <div class="section-header">
-        <h3>Không gian gần đây</h3>
-      </div>
-      <div v-if="isLoading" class="loading-state">
-        <i class="fa-solid fa-spinner fa-spin"></i> Đang tải...
-      </div>
-      <div v-else-if="spaces.length === 0" class="empty-state">
-        <i class="fa-regular fa-folder-open"></i>
-        <p>Chưa có không gian nào</p>
-      </div>
-      <div v-else class="recent-spaces-grid">
-        <div class="space-card" v-for="(space, index) in spaces" :key="space.id" @click="goToSpace(space.id)">
-          <div class="space-icon-box" :style="{ background: spaceGradients[index % spaceGradients.length] }">
-            <i :class="spaceIcons[index % spaceIcons.length]"></i>
-          </div>
-          <div class="space-details">
-            <h4>{{ space.name }}</h4>
-            <span>{{ space.description || 'Workspace' }}</span>
-            <div class="space-meta">
-              <span class="meta-item"><i class="fa-solid fa-users"></i> {{ space.activeMemberCount || 0 }}</span>
-              <span class="meta-item" :class="space.status ? 'active-status' : 'archived-status'">
-                <i :class="space.status ? 'fa-solid fa-circle-check' : 'fa-solid fa-archive'"></i>
-                {{ space.status ? 'Hoạt động' : 'Đã lưu trữ' }}
-              </span>
+            <div class="guide-grid">
+              <!-- Card 1 -->
+              <div class="guide-card completed">
+                <div class="guide-icon"><i class="fa-solid fa-briefcase"></i></div>
+                <div class="guide-info">
+                  <h3>Create a project</h3>
+                  <p>Most things start with a project in Plane.</p>
+                </div>
+                <div class="guide-action"><i class="fa-solid fa-circle-check" style="color: #10b981; font-size: 16px;"></i></div>
+              </div>
+
+              <!-- Card 2 -->
+              <div class="guide-card">
+                <div class="guide-icon" style="color: #0ea5e9;"><i class="fa-solid fa-user-group"></i></div>
+                <div class="guide-info">
+                  <h3>Invite your team</h3>
+                  <p>Build, ship, and manage with coworkers.</p>
+                  <a href="#" class="guide-link">Get them in</a>
+                </div>
+              </div>
+
+              <!-- Card 3 -->
+              <div class="guide-card">
+                <div class="guide-icon" style="color: #3b82f6;"><i class="fa-solid fa-laptop"></i></div>
+                <div class="guide-info">
+                  <h3>Set up your workspace.</h3>
+                  <p>Turn features on or off or go beyond that.</p>
+                  <a href="#" class="guide-link">Configure this workspace</a>
+                </div>
+              </div>
+
+              <!-- Card 4 -->
+              <div class="guide-card">
+                <div class="guide-icon" style="color: #10b981;">C</div>
+                <div class="guide-info">
+                  <h3>Make Plane yours.</h3>
+                  <p>Choose your picture, colors, and more.</p>
+                  <a href="#" class="guide-link">Personalize now</a>
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="space-arrow">
-            <i class="fa-solid fa-arrow-right"></i>
-          </div>
+          </section>
+
+          <!-- Quicklinks -->
+          <section class="widget-section">
+            <div class="section-top">
+              <h2 class="section-title">Quicklinks</h2>
+              <div class="header-action-text text-blue"><i class="fa-solid fa-plus"></i> Add quick link</div>
+            </div>
+            
+            <div class="empty-quicklinks">
+              <div class="empty-icon-stack">
+                <i class="fa-solid fa-layer-group"></i>
+                <i class="fa-solid fa-link chain-icon"></i>
+              </div>
+              <p>Keep important references, resources, or docs handy for your work</p>
+            </div>
+          </section>
+
         </div>
       </div>
     </div>
@@ -112,588 +85,216 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
-import * as echarts from 'echarts'
-import axiosClient from '@/api/axiosClient'
+import { ref, onMounted } from 'vue'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
-import { ElMessage } from 'element-plus'
 
-const router = useRouter()
-const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+const currentUser = ref(null)
+const currentDateTime = ref('')
 
-const isLoading = ref(false)
-const spaces = ref([])
-const chartRef = ref(null)
-let chartInstance = null
-
-const stats = ref([
-  { id: 2, title: 'Active Projects', value: '...', trend: 0, icon: 'fa-solid fa-folder' },
-  { id: 3, title: 'Tasks Completed', value: '...', trend: 0, icon: 'fa-solid fa-check-double' },
-  { id: 4, title: 'Team Members', value: '...', trend: 0, icon: 'fa-solid fa-users' }
-])
-
-const chartData = ref({
-  days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-  created: [0, 0, 0, 0, 0, 0, 0],
-  completed: [0, 0, 0, 0, 0, 0, 0]
-})
-
-const getWeekDays = () => {
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const today = new Date()
-  const todayDay = today.getDay()
-  const week = []
-  
-  for (let i = 0; i < 7; i++) {
-    const d = new Date()
-    d.setDate(today.getDate() - todayDay + i)
-    week.push({
-      name: days[d.getDay()],
-      date: d.getDate().toString(),
-      active: i === todayDay
-    })
-  }
-  return week
+const updateTime = () => {
+    const now = new Date()
+    const options = { weekday: 'long', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }
+    currentDateTime.value = now.toLocaleDateString('en-US', options)
 }
-
-const weekDays = ref(getWeekDays())
-
-const events = ref([])
-
-const goToSpace = (id) => { router.push(`/space/${id}`) }
-
-const spaceGradients = [
-  'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-  'linear-gradient(135deg, #10b981, #059669)',
-  'linear-gradient(135deg, #f59e0b, #ef4444)',
-  'linear-gradient(135deg, #8b5cf6, #ec4899)',
-  'linear-gradient(135deg, #06b6d4, #3b82f6)',
-  'linear-gradient(135deg, #f97316, #eab308)'
-]
-
-const spaceIcons = [
-  'fa-solid fa-rocket',
-  'fa-solid fa-code',
-  'fa-solid fa-palette',
-  'fa-solid fa-chart-line',
-  'fa-solid fa-gear',
-  'fa-solid fa-bolt'
-]
-
-const fetchSpaces = async () => {
-  isLoading.value = true
-  try {
-    const response = await axiosClient.get('/projects')
-    const projectList = response.data.data || response.data || []
-    spaces.value = projectList
-    
-    // Calculate stats based on project list
-    const activeProjects = projectList.filter(p => p.status !== false).length
-    stats.value[0].value = activeProjects.toString()
-    stats.value[2].value = projectList.reduce((acc, p) => acc + (p.activeMemberCount || 0), 0).toString()
-
-    // Fetch tasks for the user to determine dashboard chart and schedule logic
-    const tasksRes = await axiosClient.get('/tasks/my-tasks')
-    const tasks = tasksRes.data.data || tasksRes.data || []
-    
-    processTasksForDashboard(tasks)
-  } catch (error) {
-    console.error('Fetch projects or tasks error:', error)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const processTasksForDashboard = (tasks) => {
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  
-  const days = []
-  const dates = []
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(today)
-    d.setDate(today.getDate() - i)
-    days.push(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()])
-    dates.push(d)
-  }
-
-  const createdCounts = [0, 0, 0, 0, 0, 0, 0]
-  const completedCounts = [0, 0, 0, 0, 0, 0, 0]
-  const upcomingEventsList = []
-  let totalTasksCompleted = 0
-
-  tasks.forEach(task => {
-    // Determine overall completed count
-    if (task.statusName === 'DONE' || task.status === 'Completed') {
-      totalTasksCompleted++;
-    }
-
-    // Created distribution
-    if (task.createdAt) {
-      let cd = new Date(task.createdAt)
-      cd = new Date(cd.getFullYear(), cd.getMonth(), cd.getDate())
-      const diffIndex = Math.floor((cd - dates[0]) / (1000 * 60 * 60 * 24))
-      if (diffIndex >= 0 && diffIndex <= 6) {
-        createdCounts[diffIndex]++
-      }
-    }
-
-    // Completed distribution
-    if ((task.statusName === 'DONE' || task.status === 'Completed') && task.updatedAt) {
-      let ud = new Date(task.updatedAt)
-      ud = new Date(ud.getFullYear(), ud.getMonth(), ud.getDate())
-      const diffIndex = Math.floor((ud - dates[0]) / (1000 * 60 * 60 * 24))
-      if (diffIndex >= 0 && diffIndex <= 6) {
-        completedCounts[diffIndex]++
-      }
-    }
-
-    // Upcoming schedule items (focus on tasks due in the future week)
-    let targetDate = task.dueDate || task.plannedEndDate
-    if (targetDate && task.statusName !== 'DONE') {
-      let dDate = new Date(targetDate)
-      const diffDays = Math.floor((dDate - today) / (1000 * 60 * 60 * 24))
-      
-      // Events in the span of next 7 days
-      if (diffDays >= 0 && diffDays <= 7) {
-        upcomingEventsList.push({
-          id: task.id,
-          title: task.title,
-          time: dDate.toLocaleDateString('vi-VN') + ' ' + dDate.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}),
-          color: task.priority === 'High' ? '#ef4444' : (task.priority === 'Medium' ? '#f59e0b' : '#3b82f6'),
-          realDate: dDate
-        })
-      }
-    }
-  })
-
-  upcomingEventsList.sort((a, b) => a.realDate - b.realDate)
-  events.value = upcomingEventsList
-
-  chartData.value = {
-    days: days,
-    created: createdCounts,
-    completed: completedCounts
-  }
-
-  // Update total completed stat card
-  stats.value[1].value = totalTasksCompleted.toString()
-
-  // Re-render chart with new data
-  initChart()
-}
-
-const initChart = () => {
-  if (chartRef.value) {
-    chartInstance = echarts.init(chartRef.value)
-    
-    let textColor = '#64748b'
-    let splitLineColor = '#e2e8f0'
-    let isDark = document.documentElement.classList.contains('dark')
-
-    if (isDark) {
-      textColor = '#94a3b8'
-      splitLineColor = '#334155'
-    }
-
-    const option = {
-      tooltip: { trigger: 'axis' },
-      legend: { 
-        data: ['Tasks Created', 'Tasks Completed'],
-        bottom: 0,
-        textStyle: { color: textColor }
-      },
-      grid: { left: '3%', right: '4%', bottom: '15%', top: '5%', containLabel: true },
-      xAxis: {
-        type: 'category',
-        boundaryGap: false,
-        data: chartData.value.days,
-        axisLabel: { color: textColor },
-        axisLine: { lineStyle: { color: splitLineColor } }
-      },
-      yAxis: {
-        type: 'value',
-        axisLabel: { color: textColor },
-        splitLine: { lineStyle: { color: splitLineColor, type: 'dashed' } },
-        minInterval: 1
-      },
-      series: [
-        {
-          name: 'Tasks Created',
-          type: 'line',
-          smooth: true,
-          itemStyle: { color: '#3b82f6' },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
-              { offset: 1, color: 'rgba(59, 130, 246, 0.05)' }
-            ])
-          },
-          data: chartData.value.created
-        },
-        {
-          name: 'Tasks Completed',
-          type: 'line',
-          smooth: true,
-          itemStyle: { color: '#10b981' }, // green for completed
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(16, 185, 129, 0.3)' },
-              { offset: 1, color: 'rgba(16, 185, 129, 0.05)' }
-            ])
-          },
-          data: chartData.value.completed
-        }
-      ]
-    }
-    chartInstance.setOption(option)
-  }
-}
-
-const handleResize = () => {
-  if (chartInstance) chartInstance.resize()
-}
-
-const observer = new MutationObserver((mutations) => {
-  mutations.forEach((mutation) => {
-    if (mutation.attributeName === 'class' && chartInstance) {
-      initChart()
-    }
-  })
-})
 
 onMounted(() => {
-  fetchSpaces()
-  setTimeout(() => {
-    initChart()
-    window.addEventListener('resize', handleResize)
-    observer.observe(document.documentElement, { attributes: true })
-  }, 300)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleResize)
-  observer.disconnect()
-  if (chartInstance) chartInstance.dispose()
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      currentUser.value = JSON.parse(userStr);
+    }
+    updateTime()
+    setInterval(updateTime, 60000) // Update minute by minute
 })
 </script>
 
 <style scoped>
-/* Dashboard Specific Layout */
-.dashboard-header {
+.plane-dashboard {
+  background-color: #0d0f11;
+  min-height: 100vh;
+  color: #e4e4e7;
+  font-family: 'Inter', -apple-system, sans-serif;
+  padding: 48px 64px;
+}
+
+.dashboard-inner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.db-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
+  text-align: center;
   align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: 60px;
 }
 
-.dashboard-header h1 {
-  font-size: 28px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-  color: var(--text-primary);
-}
-
-.btn-primary {
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
+.greeting {
+  font-size: 20px;
   font-weight: 600;
-  cursor: pointer;
+  color: #FFFFFF;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.3px;
+}
+
+.greeting-sub {
+  font-size: 13px;
+  color: #a1a1aa;
+  margin: 0;
+  font-weight: 500;
+}
+
+.dashboard-widgets {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s;
-}
-.btn-primary:hover {
-  background-color: #2563eb;
+  flex-direction: column;
+  gap: 40px;
 }
 
-/* Stats Cards */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 24px;
-  margin-bottom: 32px;
-}
-
-.stat-card {
-  background: var(--bg-card);
-  border-radius: 24px;
-  padding: 24px;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-  transition: transform 0.2s;
-}
-
-.dark .stat-card { box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-.stat-card:hover { transform: translateY(-3px); }
-
-.stat-header {
+.section-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
 }
 
-.stat-title {
-  color: var(--text-muted);
+.section-title {
   font-size: 14px;
   font-weight: 500;
-}
-
-.stat-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background-color: var(--bg-layout);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-primary);
-  font-size: 18px;
-}
-
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 8px 0;
-}
-
-.stat-trend {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-}
-.stat-trend.positive { color: #10b981; }
-.stat-trend.negative { color: #ef4444; }
-.trend-text { color: var(--text-muted); font-weight: 400; }
-
-/* Dashboard Grid Component */
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 24px;
-  margin-bottom: 32px;
-}
-
-@media (max-width: 1024px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.dashboard-panel {
-  background: var(--bg-card);
-  border-radius: 24px;
-  padding: 24px;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-}
-.dark .dashboard-panel { box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.panel-header h3 {
+  color: #e4e4e7;
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
 }
 
-.action-select {
-  background: var(--bg-layout);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  padding: 6px 12px;
-  border-radius: 8px;
+.header-action-text {
   font-size: 13px;
-  outline: none;
-}
-
-.chart-container {
-  width: 100%;
-  height: 300px;
-}
-
-/* Schedule Section */
-.schedule-nav {
+  color: #a1a1aa;
+  cursor: pointer;
   display: flex;
+  align-items: center;
   gap: 8px;
 }
-.nav-btn {
-  background: var(--bg-layout);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
+.header-action-text:hover {
+  color: #e4e4e7;
+}
+
+.text-blue {
+  color: #0ea5e9;
+}
+.text-blue:hover {
+  color: #38bdf8;
+}
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.guide-card {
+  background-color: #16181d;
+  border: 1px solid #1e2025;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.guide-icon {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.nav-btn:hover { background: var(--hover-bg); }
-
-.weekly-calendar {
+  border-radius: 8px;
+  background: #1e2025;
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-.day {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 12px 8px;
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.day:hover { background: var(--bg-layout); }
-
-.day.active {
-  background: #3b82f6;
-}
-
-.day.active .day-name, .day.active .day-num {
-  color: white;
-}
-
-.day-name { font-size: 12px; color: var(--text-muted); font-weight: 500; }
-.day-num { font-size: 16px; color: var(--text-primary); font-weight: 700; }
-
-.events-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.event-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 12px;
-  border-radius: 12px;
-  background: var(--bg-layout);
-  border: 1px solid transparent;
-  transition: border-color 0.2s;
-}
-.event-item:hover { border-color: var(--border-color); }
-
-.event-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin-top: 4px;
-}
-
-.event-info h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: var(--text-primary); }
-.event-time { font-size: 12px; color: var(--text-muted); }
-
-.empty-events {
-  text-align: center;
-  padding: 20px;
-  color: var(--text-muted);
+  justify-content: center;
   font-size: 14px;
+  color: #a1a1aa;
 }
 
-/* Recent Spaces Grid */
-.section-header h3 { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
-
-.recent-spaces-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+.guide-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #e4e4e7;
 }
 
-.space-card {
-  display: flex;
-  align-items: center;
-  padding: 20px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.space-card:hover {
-  transform: translateY(-2px);
-  border-color: #3b82f6;
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.1);
-}
-
-
-.space-details h4 { margin: 0 0 4px 0; font-size: 16px; font-weight: 600; }
-.space-details > span { font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
-
-.space-meta {
-  display: flex;
-  gap: 12px;
-  margin-top: 4px;
-}
-
-.meta-item {
+.guide-info p {
+  margin: 0 0 12px 0;
   font-size: 12px;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  color: #71717a;
+  line-height: 1.5;
 }
 
-.meta-item.active-status {
-  color: #10b981;
+.guide-link {
+  font-size: 13px;
+  color: #0ea5e9;
+  text-decoration: none;
+  font-weight: 500;
+}
+.guide-link:hover {
+  text-decoration: underline;
 }
 
-.meta-item.archived-status {
-  color: #94a3b8;
+.guide-action {
+  position: absolute;
+  top: 24px;
+  right: 24px;
 }
 
-.space-icon-box {
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  border-radius: 12px;
+.completed-check {
+  background: #10b981;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 20px;
-  margin-right: 16px;
+  font-size: 10px;
 }
 
-.space-arrow {
-  margin-left: auto;
-  color: var(--text-muted);
-}
-.space-card:hover .space-arrow { color: #3b82f6; }
-
-.loading-state {
-  text-align: center;
-  color: var(--text-muted);
-  padding: 20px;
-}
-
-.empty-state {
-  text-align: center;
-  color: var(--text-muted);
+/* Empty Quicklinks */
+.empty-quicklinks {
+  background-color: #16181d;
+  border: 1px dashed #27272a;
+  border-radius: 12px;
   padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
-.empty-state i {
+
+.empty-icon-stack {
+  position: relative;
   font-size: 32px;
-  margin-bottom: 12px;
-  display: block;
-  opacity: 0.5;
+  color: #27272a;
+  margin-bottom: 16px;
+}
+
+.chain-icon {
+  position: absolute;
+  bottom: -4px;
+  right: -8px;
+  font-size: 16px;
+  color: #71717a;
+  background: #16181d;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.empty-quicklinks p {
+  margin: 0;
+  font-size: 13px;
+  color: #a1a1aa;
+}
+
+@media (max-width: 768px) {
+  .guide-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -8,13 +8,15 @@
             <div class="header-image-box">
               <div class="avatar-inside-wrapper">
                 <el-dropdown trigger="click">
-                  <div class="large-profile-avatar">DN</div>
+                  <div class="large-profile-avatar" :style="profileData.avatarUrl ? `background-image: url(${getBaseUrl()}${profileData.avatarUrl}); background-size: cover; color: transparent; background-position: center;` : ''">
+                    {{ profileData.avatarUrl ? '' : getInitials(profileData.fullName) }}
+                  </div>
                   <template #dropdown>
                     <el-dropdown-menu>
-                      <el-dropdown-item><i class="fa-solid fa-plus"></i> Thêm ảnh hồ sơ</el-dropdown-item>
-                      <el-dropdown-item><i class="fa-solid fa-signature"></i> Tạo hình đại diện có tên viết tắt</el-dropdown-item>
+                      <el-dropdown-item @click="$refs.avatarInput.click()"><i class="fa-solid fa-plus"></i> Thêm ảnh hồ sơ</el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
+                  <input type="file" ref="avatarInput" style="display: none" accept="image/*" @change="uploadAvatar" />
                 </el-dropdown>
               </div>
               
@@ -186,8 +188,34 @@ const profileData = ref({
   department: '',
   organization: '',
   email: '',
-  collaboration: ''
+  collaboration: '',
+  avatarUrl: ''
 })
+
+const avatarInput = ref(null)
+
+const getBaseUrl = () => 'http://localhost:5136'
+
+const getInitials = (name) => {
+  if (!name) return '?'
+  return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase()
+}
+
+const uploadAvatar = async (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+  const formData = new FormData()
+  formData.append('file', file)
+  try {
+    const res = await axiosClient.put('/users/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    profileData.value.avatarUrl = res.data.data.avatarUrl
+    ElMessage.success('Đã cập nhật ảnh đại diện')
+  } catch(err) {
+    ElMessage.error(err.response?.data?.message || 'Lỗi khi tải ảnh')
+  }
+}
 
 onMounted(async () => {
   await fetchProfile()
@@ -205,9 +233,9 @@ const fetchProfile = async () => {
       department: data.departmentName,
       organization: data.organizationName,
       email: data.email,
-      collaboration: data.collaborationRules
+      collaboration: data.collaborationRules,
+      avatarUrl: data.avatarUrl || ''
     }
-    // Update avatar display if needed
   } catch (err) {
     console.error('Lỗi khi tải profile', err)
     ElMessage.error('Không thể tải thông tin cá nhân.')

@@ -36,17 +36,9 @@ builder.Services.AddCors(options =>
 });
 
 // 3. CẤU HÌNH CODE-FIRST (ENTITY FRAMEWORK CORE)
-// Nếu có connection string sẽ dùng SQL Server; nếu không (ví dụ môi trường dev nhanh),
-// fallback sang InMemory DB để bạn có thể thử register/login dễ dàng.
+// Luôn dùng SQL Server để dữ liệu được lưu trữ vĩnh viễn (comment, notification, v.v.)
 var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
-if (builder.Environment.IsDevelopment())
-{
-    // For local development, prefer an in-memory DB so you can test register/login
-    // without having a local SQL Server instance configured.
-    builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseInMemoryDatabase("DevInMemoryDb"));
-}
-else if (!string.IsNullOrWhiteSpace(defaultConnection))
+if (!string.IsNullOrWhiteSpace(defaultConnection))
 {
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
        options.UseSqlServer(defaultConnection,
@@ -57,7 +49,7 @@ else if (!string.IsNullOrWhiteSpace(defaultConnection))
 }
 else
 {
-    // Fallback to InMemory if nothing else
+    // Fallback to InMemory chỉ khi không có connection string
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseInMemoryDatabase("DevInMemoryDb"));
 }
@@ -98,9 +90,20 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseDefaultFiles(); // Phải gọi dòng này trước
 app.UseStaticFiles();
+
+// Serve uploaded files from /uploads
+var uploadsPath = Path.Combine(builder.Environment.ContentRootPath, "uploads");
+if (!Directory.Exists(uploadsPath)) Directory.CreateDirectory(uploadsPath);
+app.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads"
+});
+
 // 5. Nối các endpoint vào Controllers
 app.MapControllers();
 app.MapHub<TaskManagement.API.Hubs.KanbanHub>("/kanban-hub");
+app.MapHub<TaskManagement.API.Hubs.NotificationHub>("/notification-hub");
 
 // TỰ ĐỘNG MIGRATE VÀ SEED DỮ LIỆU KHI STARTUP (PM: Vui lòng không xóa đoạn này)
 using (var scope = app.Services.CreateScope())
@@ -113,7 +116,7 @@ using (var scope = app.Services.CreateScope())
         // await context.Database.EnsureDeletedAsync();
         // await context.Database.EnsureCreatedAsync();
         // await context.Database.MigrateAsync();
-        // await DatabaseSeeder.SeedAsync(context); removed
+        await TaskManagement.Infrastructure.Data.DataSeeder.SeedMockDataAsync(context);
     }
     catch (Exception ex)
     {

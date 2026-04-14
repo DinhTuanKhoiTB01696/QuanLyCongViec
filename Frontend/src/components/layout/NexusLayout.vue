@@ -156,12 +156,12 @@ const handleProjectCreated = (newProject) => {
 
 .content-area {
   flex: 1;
-  background: transparent;
-  padding: 24px;
-  overflow-y: auto;
-  border-top-left-radius: 20px;
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.02);
+  background: #0D0F11;
+  padding: 0;
+  overflow-y: hidden;
   transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
 }
 
 .dark .content-area {
@@ -169,15 +169,16 @@ const handleProjectCreated = (newProject) => {
 }
 
 .content-wrapper {
-  max-width: 1400px;
   width: 100%;
-  margin: 0 auto;
+  height: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (max-width: 1024px) {
   .content-area {
-    padding: 16px;
-    border-top-left-radius: 0;
+    padding: 0;
   }
 }
 

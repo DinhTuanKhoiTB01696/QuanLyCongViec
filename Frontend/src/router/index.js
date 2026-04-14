@@ -33,6 +33,22 @@ router.beforeEach((to, from, next) => {
     })
   }
 
+  // Kiểm tra phân quyền theo role cho các route admin
+  if (to.meta.requiredRoles && to.meta.requiredRoles.length > 0) {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      const userRoles = user.systemRoles || []
+      const hasPermission = to.meta.requiredRoles.some(role => userRoles.includes(role))
+
+      if (!hasPermission) {
+        // Tạm thời tắt chặn để vào trang admin tự do
+        // return next({ path: '/dashboard' })
+      }
+    } catch (e) {
+      return next({ path: '/dashboard' })
+    }
+  }
+
   next()
 })
 

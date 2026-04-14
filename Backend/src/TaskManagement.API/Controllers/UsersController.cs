@@ -233,5 +233,47 @@ namespace TaskManagement.API.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { statusCode = 200, message = request.Enable ? "Đã bật 2FA." : "Đã tắt 2FA.", is2FaEnabled = user.Is2FAEnabled });
         }
+
+        /// <summary>
+        /// PUT /api/users/avatar — Upload avatar image
+        /// </summary>
+        [HttpPut("avatar")]
+        public async Task<IActionResult> UploadAvatar([FromForm] IFormFile file, [FromServices] IWebHostEnvironment env)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized();
+
+            if (file == null || file.Length == 0)
+                return BadRequest(new { message = "Chưa chọn file." });
+
+            if (file.Length > 5 * 1024 * 1024)
+                return BadRequest(new { message = "File quá lớn (tối đa 5MB)." });
+
+            var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+            if (!allowedTypes.Contains(file.ContentType))
+                return BadRequest(new { message = "Chỉ chấp nhận file ảnh (JPEG, PNG, GIF, WebP)." });
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return NotFound();
+
+            var uploadsDir = Path.Combine(env.ContentRootPath, "uploads", "avatars");
+            if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
+
+            var ext = Path.GetExtension(file.FileName);
+            var uniqueName = $"{userId}{ext}";
+            var filePath = Path.Combine(uploadsDir, uniqueName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            user.AvatarUrl = $"/uploads/avatars/{uniqueName}";
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "Cập nhật ảnh đại diện thành công.", data = new { avatarUrl = user.AvatarUrl } });
+        }
     }
 }

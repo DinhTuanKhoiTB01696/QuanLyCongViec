@@ -296,7 +296,7 @@ namespace TaskManagement.Infrastructure.Services
                 var blockers = await _context.TaskDependencies
                     .Include(td => td.PredecessorTask)
                     .ThenInclude(pt => pt.TaskStatus)
-                    .Where(td => td.SuccessorTaskId == taskId)
+                    .Where(td => td.SuccessorTaskId == taskId && td.DependencyType == 1) // Only check "blocks" type
                     .Select(td => td.PredecessorTask)
                     .ToListAsync();
 

@@ -48,6 +48,7 @@ namespace TaskManagement.Infrastructure.Data
 
         // Group 4: Collaboration & Tracking
         public DbSet<Comment> Comments { get; set; }
+        public DbSet<CommentAttachment> CommentAttachments { get; set; }
         public DbSet<Attachment> Attachments { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<Notification> Notifications { get; set; }
@@ -325,11 +326,30 @@ namespace TaskManagement.Infrastructure.Data
                 .HasForeignKey(al => al.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // CommentAttachment -> Comment, User
+            modelBuilder.Entity<CommentAttachment>()
+                .HasOne(ca => ca.Comment)
+                .WithMany(c => c.CommentAttachments)
+                .HasForeignKey(ca => ca.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CommentAttachment>()
+                .HasOne(ca => ca.UploadedByUser)
+                .WithMany()
+                .HasForeignKey(ca => ca.UploadedByUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
             modelBuilder.Entity<Notification>()
                 .HasOne(n => n.User)
                 .WithMany(u => u.Notifications)
                 .HasForeignKey(n => n.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.TriggeredByUser)
+                .WithMany()
+                .HasForeignKey(n => n.TriggeredByUserId)
+                .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<SystemAuditLog>()
                 .HasOne(sal => sal.User)

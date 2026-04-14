@@ -1,35 +1,31 @@
 <template>
-  <header class="nexus-topbar">
+  <header class="plane-topbar">
     <div class="nav-left">
+      <div class="workspace-switcher" @click="$router.push('/spaces')">
+        <div class="ws-icon">C</div>
+        <span class="ws-name">Cun</span>
+        <i class="fa-solid fa-chevron-down"></i>
+      </div>
       <button class="menu-toggle" @click="$emit('toggle-sidebar')">
-        <i class="fa-solid fa-bars"></i>
+        <i class="fa-solid fa-bars-staggered"></i>
       </button>
-      <router-link to="/dashboard" class="nav-brand">
-        <img :src="logoImg" alt="SprintA Logo" class="nav-logo" />
-        <span>SprintA</span>
-      </router-link>
     </div>
 
     <div class="nav-center">
       <div class="search-input-wrapper">
         <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        <input type="text" placeholder="Search..." v-model="searchQuery" />
+        <input type="text" placeholder="Search commands..." v-model="searchQuery" />
       </div>
     </div>
 
     <div class="nav-right">
-      <button class="btn-create-topbar" @click="$emit('toggle-create')">
-        <i class="fa-solid fa-plus"></i>
-        <span class="btn-text">Tạo mới</span>
-      </button>
-      
-      <button class="btn-ai-topbar" @click="$emit('toggle-ai')">
-        <i class="fa-solid fa-robot"></i>
-        <span class="btn-text">Ask AI</span>
-      </button>
-
-      <NotificationsDropdown class="nav-item" />
-      <SettingsDropdown class="nav-item" />
+      <div class="help-btn" @click="$emit('toggle-ai')">
+         <i class="fa-solid fa-robot"></i>
+      </div>
+      <a href="https://github.com/plane" target="_blank" class="github-btn">
+         <i class="fa-brands fa-github"></i>
+         Star us on GitHub
+      </a>
       <UserDropdown class="nav-item" />
     </div>
   </header>
@@ -38,9 +34,6 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import logoImg from '@/assets/logo_QLCV.png'
-import NotificationsDropdown from '@/components/NotificationsDropdown.vue'
-import SettingsDropdown from '@/components/SettingsDropdown.vue'
 import UserDropdown from '@/components/UserDropdown.vue'
 
 const router = useRouter()
@@ -48,129 +41,149 @@ const searchQuery = ref('')
 </script>
 
 <style scoped>
-.nexus-topbar {
-  height: 64px;
-  background-color: var(--bg-nav);
+.plane-topbar {
+  height: 52px;
+  background-color: #0d0f11;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 16px;
   flex-shrink: 0;
   z-index: 1001;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #1e2025;
 }
 
 .nav-left {
   display: flex;
   align-items: center;
   gap: 16px;
-  width: 240px;
+  width: 250px;
 }
 
-.menu-toggle {
+.workspace-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.workspace-switcher:hover {
+  background: #1e2025;
+}
+
+.ws-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: #0ea5e9;
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  font-size: 16px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ws-name {
+  color: #e4e4e7;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.workspace-switcher i {
+  color: #71717a;
+  font-size: 10px;
+  margin-left: 2px;
+}
+
+.menu-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
   cursor: pointer;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s ease;
+  padding: 4px;
 }
-
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text-primary);
-  text-decoration: none;
-  font-weight: 700;
-  font-size: 20px;
-}
-
-.nav-logo { height: 28px; width: auto; }
 
 .nav-center {
   flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  max-width: 500px;
-  padding: 0 24px;
 }
 
 .search-input-wrapper {
   display: flex;
   align-items: center;
-  background-color: var(--bg-secondary);
-  border-radius: 9999px;
-  padding: 0 16px;
-  flex: 1;
-  height: 40px;
+  background-color: #1e2025;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  padding: 0 12px;
+  width: 480px;
+  height: 32px;
   transition: all 0.2s ease;
 }
+
 .search-input-wrapper:focus-within {
-  background-color: var(--bg-nav);
-  border: 1px solid #3b82f6;
+  border-color: #3f3f46;
+  background-color: #181a1f;
 }
-.search-icon { color: var(--text-muted); font-size: 14px; margin-right: 12px; }
-.search-input-wrapper input { background: transparent; border: none; color: var(--text-primary); font-size: 14px; width: 100%; outline: none; }
+
+.search-icon { 
+  color: #71717a; 
+  font-size: 13px; 
+  margin-right: 8px; 
+}
+
+.search-input-wrapper input { 
+  background: transparent; 
+  border: none; 
+  color: #e4e4e7; 
+  font-size: 13px; 
+  width: 100%; 
+  outline: none; 
+}
 
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
-.btn-create-topbar {
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0 16px;
-  height: 36px;
-  font-size: 14px;
-  font-weight: 600;
+.help-btn {
+  color: #a1a1aa;
+  font-size: 15px;
+  cursor: pointer;
+}
+.help-btn:hover {
+  color: #e4e4e7;
+}
+
+.github-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
+  color: #e4e4e7;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #27272a;
+  background: #1e2025;
+  transition: background 0.2s;
 }
-.btn-create-topbar:hover { background-color: #2563eb; transform: translateY(-1px); }
 
-.btn-ai-topbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0 12px;
-  height: 32px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);
+.github-btn:hover {
+  background: #27272a;
 }
+.github-btn i { font-size: 14px; }
 
 @media (max-width: 1024px) {
-  .nav-left { width: auto; }
+  .menu-toggle { display: block; }
   .nav-center { display: none; }
-  .nexus-topbar { padding: 0 16px; }
-}
-
-@media (max-width: 640px) {
-  .btn-text { display: none; } /* Hide text, keep icon */
-  .btn-create-topbar, .btn-ai-topbar { padding: 0; width: 36px; height: 36px; justify-content: center; }
-  .btn-create-topbar i, .btn-ai-topbar i { margin: 0; font-size: 16px; }
-  .nav-brand span { display: none; } /* Hide "SprintA" text */
 }
 </style>
