@@ -9,5 +9,8 @@ export const adminUserApi = {
   },
   createUser(data) {
     return axiosClient.post('/admin/users', data);
+  },
+  removeUser(userId) {
+    return axiosClient.delete(`/admin/users/${userId}`);
   }
 };

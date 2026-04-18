@@ -106,23 +106,26 @@ namespace TaskManagement.API.Controllers
                         query = query.Where(al => al.CreatedAt >= now.AddDays(-30));
                 }
 
-                var rawTaskLogs = await query
+                var taskEntities = await query
                     .OrderByDescending(al => al.CreatedAt)
+                    .Take(limit * page)
+                    .ToListAsync();
+
+                var rawTaskLogs = taskEntities
                     .Select(al => new LogItemModel {
                         Id = al.Id,
                         CreatedAt = al.CreatedAt,
-                        FullName = al.User.FullName,
-                        Email = al.User.Email,
+                        FullName = al.User?.FullName,
+                        Email = al.User?.Email,
                         OldValue = al.OldValue,
                         NewValue = al.NewValue,
                         FieldChanged = al.FieldChanged,
-                        TaskTitle = al.WorkTask.Title,
+                        TaskTitle = al.WorkTask?.Title,
                         TaskId = al.WorkTaskId,
-                        ProjectName = al.WorkTask.Project.Name,
+                        ProjectName = al.WorkTask?.Project?.Name,
                         Type = "Task"
                     })
-                    .Take(limit * page)
-                    .ToListAsync();
+                    .ToList();
 
                 var allRawLogs = new List<LogItemModel>(rawTaskLogs);
                 var totalTasks = await query.CountAsync();
@@ -142,13 +145,17 @@ namespace TaskManagement.API.Controllers
                     }
                     
                     totalSystemLogs = await sysQuery.CountAsync();
-                    var rawSysLogs = await sysQuery
+                    var sysEntities = await sysQuery
                         .OrderByDescending(al => al.CreatedAt)
+                        .Take(limit * page)
+                        .ToListAsync();
+
+                    var rawSysLogs = sysEntities
                         .Select(al => new LogItemModel {
                             Id = al.Id,
                             CreatedAt = al.CreatedAt,
-                            FullName = al.User != null ? al.User.FullName : null,
-                            Email = al.User != null ? al.User.Email : null,
+                            FullName = al.User?.FullName,
+                            Email = al.User?.Email,
                             OldValue = "",
                             NewValue = "",
                             FieldChanged = al.Details ?? al.Action,
@@ -159,8 +166,7 @@ namespace TaskManagement.API.Controllers
                             Action = al.Action,
                             Status = al.Status
                         })
-                        .Take(limit * page)
-                        .ToListAsync();
+                        .ToList();
                     allRawLogs.AddRange(rawSysLogs);
                 }
 
@@ -171,23 +177,69 @@ namespace TaskManagement.API.Controllers
                                               .Take(limit)
                                               .ToList();
 
+                var lang = Request.Headers["Accept-Language"].ToString();
+                bool isEng = lang.Contains("en", StringComparison.OrdinalIgnoreCase) && !lang.StartsWith("vi", StringComparison.OrdinalIgnoreCase);
+
+                var fieldMap = isEng ? new Dictionary<string, string>
+                {
+                    {"TaskStatusId", "Status"},
+                    {"Title", "Title"},
+                    {"Description", "Description"},
+                    {"Priority", "Priority"},
+                    {"AssignedUserId", "Assignee"},
+                    {"DueDate", "Due Date"},
+                    {"StoryPoints", "Story Points"},
+                    {"SprintId", "Sprint"},
+                    {"TaskTypeId", "Task Type"},
+                    {"PlannedStartDate", "Planned Start Date"},
+                    {"PlannedEndDate", "Planned End Date"}
+                } : new Dictionary<string, string>
+                {
+                    {"TaskStatusId", "Trạng thái"},
+                    {"Title", "Tiêu đề"},
+                    {"Description", "Mô tả"},
+                    {"Priority", "Độ ưu tiên"},
+                    {"AssignedUserId", "Người phụ trách"},
+                    {"DueDate", "Ngày đến hạn"},
+                    {"StoryPoints", "Điểm Story"},
+                    {"SprintId", "Sprint"},
+                    {"TaskTypeId", "Loại tác vụ"},
+                    {"PlannedStartDate", "Ngày bắt đầu dự kiến"},
+                    {"PlannedEndDate", "Ngày kết thúc dự kiến"}
+                };
+
                 var logs = sortedRawLogs.Select(al => {
                     if (al.Type == "Task") {
+                        bool isCreate = (string.IsNullOrEmpty(al.OldValue) || al.OldValue == "{}") && al.NewValue != null;
+                        string actionStr = isCreate ? "create" : "update";
+                        if (al.FieldChanged == "ADD_COMMENT") actionStr = "comment";
+
+                        string summaryStr;
+                        if (isCreate && al.FieldChanged != "ADD_COMMENT") {
+                            summaryStr = isEng ? "Created new task" : "Tạo mới tác vụ";
+                        } else if (al.FieldChanged == "ADD_COMMENT") {
+                            summaryStr = isEng ? "Added comment" : "Đã thêm bình luận";
+                        } else {
+                            var fields = al.FieldChanged?.Split(',').Select(f => f.Trim()) ?? Array.Empty<string>();
+                            var translatedFields = fields.Select(f => fieldMap.ContainsKey(f) ? fieldMap[f] : f);
+                            summaryStr = (isEng ? "Updated: " : "Cập nhật: ") + string.Join(", ", translatedFields);
+                        }
+
                         return new {
                             id = "LOG-" + al.Id.ToString().Substring(0, 8).ToUpper(),
-                            timestamp = al.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"),
+                            timestamp = al.CreatedAt.ToString("o"),
                             user = al.FullName ?? al.Email,
-                            action = string.IsNullOrEmpty(al.OldValue) && al.NewValue != null ? "create" : "update",
+                            action = actionStr,
                             resource = $"[{al.ProjectName}] {al.TaskTitle}",
                             targetId = !string.IsNullOrEmpty(al.TaskTitle) && al.TaskTitle.Length > 10 ? "TASK-" + al.TaskTitle.Substring(0, 10) : "TASK-" + al.TaskTitle,
                             projectName = al.ProjectName,
                             status = "success",
-                            summary = $"Thay đổi trường '{al.FieldChanged}'"
+                            summary = summaryStr
                         };
                     } else {
                         return new {
                             id = "SYS-" + al.Id.ToString().Substring(0, 8).ToUpper(),
-                            timestamp = al.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"),
+                            timestamp = al.CreatedAt.ToString("o"),
                             user = al.FullName ?? al.Email ?? "System",
                             action = al.Action?.ToLower() ?? "system",
                             resource = al.TaskTitle,

@@ -40,15 +40,26 @@ namespace TaskManagement.API.Middlewares
                 {
                     try
                     {
-                        var ips = JsonSerializer.Deserialize<List<string>>(tenantConfig.IpWhitelist);
-                        if (ips != null)
+                        var jsonDoc = JsonDocument.Parse(tenantConfig.IpWhitelist);
+                        foreach (var el in jsonDoc.RootElement.EnumerateArray())
                         {
-                            whitelistedIps.AddRange(ips);
+                            if (el.ValueKind == JsonValueKind.String)
+                            {
+                                whitelistedIps.Add(el.GetString()!);
+                            }
+                            else if (el.ValueKind == JsonValueKind.Object && el.TryGetProperty("ip", out var ipProp) && ipProp.ValueKind == JsonValueKind.String)
+                            {
+                                var textIp = ipProp.GetString()!;
+                                if (!string.IsNullOrEmpty(textIp))
+                                {
+                                    whitelistedIps.Add(textIp);
+                                }
+                            }
                         }
                     }
                     catch
                     {
-                        // JSON parsing error, consider no IP is allowed or ignore
+                        // JSON parsing error or empty, ignore
                     }
                 }
 

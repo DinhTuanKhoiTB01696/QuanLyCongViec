@@ -5,8 +5,8 @@
         <div class="breadcrumb">
           <i class="fa-solid fa-shield-halved"></i> Security / Two-Factor Auth
         </div>
-        <h1 class="page-title">Xác thực 2 bước (2FA)</h1>
-        <p class="page-subtitle">Bảo vệ tài khoản với lớp bảo mật bổ sung phòng chống đánh cắp dữ liệu.</p>
+        <h1 class="page-title">{{ t('Two-Factor Authentication (2FA)', 'Xác thực 2 bước (2FA)') }}</h1>
+        <p class="page-subtitle">{{ t('Protect your account with an additional security layer.', 'Bảo vệ tài khoản với lớp bảo mật bổ sung phòng chống đánh cắp dữ liệu.') }}</p>
       </div>
 
       <div class="form-container">
@@ -16,8 +16,8 @@
             <i class="fa-solid" :class="is2faEnabled ? 'fa-shield-halved' : 'fa-shield'"></i>
           </div>
           <div class="status-info">
-            <h2 class="status-title">{{ is2faEnabled ? 'Tài khoản Đã Bảo vệ' : 'Chưa Kích Hoạt 2FA' }}</h2>
-            <p class="status-desc">{{ is2faEnabled ? 'Xác thực 2 bước đang được bật. Kẻ gian không thể đăng nhập dù biết mật khẩu.' : 'Hãy bật Xác thực 2 bước để giảm thiểu rủi ro lộ mật khẩu.' }}</p>
+            <h2 class="status-title">{{ is2faEnabled ? t('Account Protected', 'Tài khoản Đã Bảo vệ') : t('2FA Not Enabled', 'Chưa Kích Hoạt 2FA') }}</h2>
+            <p class="status-desc">{{ is2faEnabled ? t('Two-factor authentication is active.', 'Xác thực 2 bước đang được bật. Kẻ gian không thể đăng nhập dù biết mật khẩu.') : t('Turn on 2FA to reduce password leak risks.', 'Hãy bật Xác thực 2 bước để giảm thiểu rủi ro lộ mật khẩu.') }}</p>
           </div>
           <div class="status-action" v-loading="isLoadingToggle">
              <el-switch v-model="is2faEnabled" active-color="#10b981" inactive-color="#475569" @change="toggle2fa" />
@@ -25,17 +25,17 @@
         </div>
 
         <div class="settings-card mt-24" :class="{ 'disabled-section': !is2faEnabled }">
-          <h3 class="card-title">Phương thức xác thực</h3>
-          <p class="section-desc">Lựa chọn cách thức bạn muốn lấy mã xác thực trong quá trình đăng nhập.</p>
+          <h3 class="card-title">{{ t('Authentication Methods', 'Phương thức xác thực') }}</h3>
+          <p class="section-desc">{{ t('Choose how you want to receive verification codes.', 'Lựa chọn cách thức bạn muốn lấy mã xác thực trong quá trình đăng nhập.') }}</p>
 
           <div class="auth-method">
             <div class="method-icon"><i class="fa-solid fa-mobile-screen"></i></div>
             <div class="method-content">
-               <h4 class="method-title">Ứng dụng xác thực (Khuyên dùng)</h4>
-               <p class="method-desc">Sử dụng Google Authenticator hoặc Microsoft Authenticator để tạo mã OTP an toàn.</p>
+               <h4 class="method-title">{{ t('Authenticator App (Recommended)', 'Ứng dụng xác thực (Khuyên dùng)') }}</h4>
+               <p class="method-desc">{{ t('Use Google Authenticator or Microsoft Authenticator to generate secure OTP codes.', 'Sử dụng Google Authenticator hoặc Microsoft Authenticator để tạo mã OTP an toàn.') }}</p>
             </div>
             <div class="method-action">
-              <el-button type="primary" plain>Cấu hình</el-button>
+              <el-button type="primary" plain @click="handleNotImplemented(t('Configure Authenticator App', 'Cấu hình Ứng dụng xác thực'))">{{ t('Configure', 'Cấu hình') }}</el-button>
             </div>
           </div>
 
@@ -44,12 +44,12 @@
           <div class="auth-method">
             <div class="method-icon"><i class="fa-solid fa-envelope-open-text"></i></div>
             <div class="method-content">
-               <h4 class="method-title">Tin nhắn SMS / Email</h4>
-               <p class="method-desc">Nhận mã xác nhận gồm 6 chữ số gửi qua số điện thoại hoặc email. Thiết lập dễ dàng nhưng kém an toàn hơn Ứng dụng.</p>
+               <h4 class="method-title">{{ t('SMS / Email Message', 'Tin nhắn SMS / Email') }}</h4>
+               <p class="method-desc">{{ t('Receive a 6-digit verification code via SMS or email.', 'Nhận mã xác nhận gồm 6 chữ số gửi qua số điện thoại hoặc email. Thiết lập dễ dàng nhưng kém an toàn hơn Ứng dụng.') }}</p>
             </div>
             <div class="method-action">
               <el-button type="default" :type="is2faEnabled ? 'danger' : 'success'" :plain="true" @click="is2faEnabled = !is2faEnabled; toggle2fa(is2faEnabled)">
-                 {{ is2faEnabled ? 'Tắt' : 'Bật' }}
+                 {{ is2faEnabled ? t('Disable', 'Tắt') : t('Enable', 'Bật') }}
               </el-button>
             </div>
           </div>
@@ -59,11 +59,11 @@
           <div class="auth-method">
             <div class="method-icon"><i class="fa-solid fa-key"></i></div>
             <div class="method-content">
-               <h4 class="method-title">Mã dự phòng (Backup Codes)</h4>
-               <p class="method-desc">Nhận danh sách 10 mã (mỗi mã dùng 1 lần duy nhất) phòng trường hợp bạn làm mất điện thoại.</p>
+               <h4 class="method-title">{{ t('Backup Codes', 'Mã dự phòng (Backup Codes)') }}</h4>
+               <p class="method-desc">{{ t('Get a list of 10 single-use codes in case you lose your phone.', 'Nhận danh sách 10 mã (mỗi mã dùng 1 lần duy nhất) phòng trường hợp bạn làm mất điện thoại.') }}</p>
             </div>
             <div class="method-action">
-              <el-button type="default">Tạo mã</el-button>
+              <el-button type="default" @click="handleNotImplemented(t('Generate new backup codes', 'Tạo Mã dự phòng mới'))">{{ t('Generate', 'Tạo mã') }}</el-button>
             </div>
           </div>
         </div>
@@ -78,7 +78,9 @@ import { ref, onMounted } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import axiosClient from '@/api/axiosClient'
 import { ElMessage } from 'element-plus'
+import { useLocale } from '@/composables/useLocale'
 
+const { t } = useLocale()
 const is2faEnabled = ref(false)
 const isLoadingToggle = ref(false)
 
@@ -99,11 +101,15 @@ const toggle2fa = async (newValue) => {
     ElMessage.success(data.message)
   } catch (err) {
     console.error(err)
-    ElMessage.error('Không thể cập nhật cấu hình 2FA')
+    ElMessage.error(t('Unable to update 2FA configuration', 'Không thể cập nhật cấu hình 2FA'))
     is2faEnabled.value = !newValue // revert UI
   } finally {
     isLoadingToggle.value = false
   }
+}
+
+const handleNotImplemented = (featureName) => {
+  ElMessage.info(t(`Feature [${featureName}] will be available in a future update.`, `Tính năng [${featureName}] sẽ sớm được hoàn thiện ở bản cập nhật sau.`))
 }
 
 onMounted(() => {

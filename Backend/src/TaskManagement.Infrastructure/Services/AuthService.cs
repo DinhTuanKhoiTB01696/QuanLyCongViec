@@ -6,6 +6,7 @@ using TaskManagement.Domain.Entities;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Net.Http.Headers;
 using Google.Apis.Auth;
 using Microsoft.Extensions.Configuration;
@@ -41,6 +42,11 @@ namespace TaskManagement.Infrastructure.Services
                 throw new UnauthorizedAccessException("Email hoặc mật khẩu không chính xác.");
             }
 
+            if (!user.IsActive)
+            {
+                throw new UnauthorizedAccessException("Account is not active.");
+            }
+
             var tenantConfig = await _context.TenantConfigs.FirstOrDefaultAsync() 
                                 ?? new TenantConfig();
 
@@ -70,6 +76,9 @@ namespace TaskManagement.Infrastructure.Services
 
             if (user == null || string.IsNullOrEmpty(user.PasswordHash) || !VerifyPassword(password, user.PasswordHash))
                 throw new UnauthorizedAccessException("Email hoặc mật khẩu không chính xác.");
+
+            if (!user.IsActive)
+                throw new UnauthorizedAccessException("Account is not active.");
 
             if (!_otpService.ValidateOtp(email, otp))
                 throw new UnauthorizedAccessException("Mã OTP không hợp lệ hoặc đã hết hạn.");
@@ -215,6 +224,16 @@ namespace TaskManagement.Infrastructure.Services
                 }
                 
                 await _context.SaveChangesAsync();
+            }
+
+            if (!user.IsActive)
+            {
+                if (!string.IsNullOrEmpty(user.PasswordHash))
+                    throw new UnauthorizedAccessException("Account is suspended.");
+
+                user.IsActive = true;
+                user.UpdatedAt = DateTime.UtcNow;
+                await ActivatePendingProjectInvitesAsync(user.Id);
             }
 
             var roles = user.UserRoles?.Select(ur => ur.Role.Name).ToList() ?? new List<string>();
@@ -380,6 +399,16 @@ namespace TaskManagement.Infrastructure.Services
                 await _context.SaveChangesAsync();
             }
 
+            if (!user.IsActive)
+            {
+                if (!string.IsNullOrEmpty(user.PasswordHash))
+                    throw new UnauthorizedAccessException("Account is suspended.");
+
+                user.IsActive = true;
+                user.UpdatedAt = DateTime.UtcNow;
+                await ActivatePendingProjectInvitesAsync(user.Id);
+            }
+
             var roles = user.UserRoles?.Select(ur => ur.Role.Name).ToList() ?? new List<string>();
 
             var accessToken = _jwtService.GenerateAccessToken(user, roles);
@@ -455,6 +484,18 @@ namespace TaskManagement.Infrastructure.Services
             await _context.SaveChangesAsync();
         }
 
+        private async Task ActivatePendingProjectInvitesAsync(Guid userId)
+        {
+            var pendingProjects = await _context.ProjectMembers
+                .Where(pm => pm.UserId == userId && !pm.Status)
+                .ToListAsync();
+
+            foreach (var projectMember in pendingProjects)
+            {
+                projectMember.Status = true;
+            }
+        }
+
         private bool VerifyPassword(string inputPassword, string storedHash)
         {
             if(storedHash.StartsWith("$2a$") || storedHash.StartsWith("$2b$") || storedHash.StartsWith("$2y$")) {
@@ -465,33 +506,52 @@ namespace TaskManagement.Infrastructure.Services
 
         public async Task RegisterAsync(RegisterRequestDto request)
         {
-            var exists = await _context.Users.AnyAsync(u => u.Email == request.Email && !u.IsDeleted);
-            if (exists)
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email && !u.IsDeleted);
+            if (existingUser != null && !string.IsNullOrEmpty(existingUser.PasswordHash))
             {
-                throw new InvalidOperationException("Email đã được sử dụng.");
+                throw new InvalidOperationException("Email da duoc su dung.");
             }
 
-            var newUser = new User
+            var newUser = existingUser ?? new User
             {
                 Id = Guid.NewGuid(),
                 Email = request.Email,
-                FullName = request.FullName,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 CreatedAt = DateTime.UtcNow,
                 IsDeleted = false
             };
 
-            _context.Users.Add(newUser);
+            newUser.FullName = request.FullName;
+            newUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            newUser.IsActive = true;
+            newUser.UpdatedAt = DateTime.UtcNow;
+
+            if (existingUser == null)
+            {
+                _context.Users.Add(newUser);
+            }
 
             // Assign default role (e.g. Developer)
             var defaultRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Developer" || r.Name == "DEV");
             if (defaultRole != null)
             {
-                _context.UserRoles.Add(new UserRole
+                var hasRole = await _context.UserRoles.AnyAsync(ur => ur.UserId == newUser.Id && ur.RoleId == defaultRole.Id);
+                if (!hasRole)
                 {
-                    UserId = newUser.Id,
-                    RoleId = defaultRole.Id
-                });
+                    _context.UserRoles.Add(new UserRole
+                    {
+                        UserId = newUser.Id,
+                        RoleId = defaultRole.Id
+                    });
+                }
+            }
+
+            var pendingProjects = await _context.ProjectMembers
+                .Where(pm => pm.UserId == newUser.Id && !pm.Status)
+                .ToListAsync();
+
+            foreach (var projectMember in pendingProjects)
+            {
+                projectMember.Status = true;
             }
 
             await _context.SaveChangesAsync();
@@ -519,6 +579,120 @@ namespace TaskManagement.Infrastructure.Services
             }
 
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<InviteInfoDto> GetInviteInfoAsync(string token)
+        {
+            var invite = await FindValidInviteTokenAsync(token);
+            var user = invite.User;
+
+            var projectNames = await _context.ProjectMembers
+                .Where(pm => pm.UserId == user.Id && !pm.Status)
+                .Select(pm => pm.Project.Name)
+                .ToArrayAsync();
+
+            return new InviteInfoDto
+            {
+                Email = user.Email,
+                FullName = user.FullName,
+                IsRegistered = !string.IsNullOrEmpty(user.PasswordHash),
+                ProjectNames = projectNames,
+                ExpiresAt = invite.ExpiryTime
+            };
+        }
+
+        public async Task<AcceptInviteResultDto> AcceptInviteTokenAsync(AcceptInviteTokenRequestDto request)
+        {
+            var invite = await FindValidInviteTokenAsync(request.Token);
+            var user = invite.User;
+
+            if (!string.IsNullOrEmpty(user.PasswordHash) && !user.IsActive)
+            {
+                throw new UnauthorizedAccessException("Account is suspended.");
+            }
+
+            var isNewInvitedUser = string.IsNullOrEmpty(user.PasswordHash);
+            if (isNewInvitedUser)
+            {
+                if (string.IsNullOrWhiteSpace(request.FullName))
+                    throw new ArgumentException("Full name is required.");
+
+                if (string.IsNullOrWhiteSpace(request.Password))
+                    throw new ArgumentException("Password is required.");
+
+                ValidateInvitePassword(request.Password);
+
+                user.FullName = request.FullName.Trim();
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+                user.IsActive = true;
+                user.UpdatedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                user.IsActive = true;
+                user.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await ActivatePendingProjectInvitesAsync(user.Id);
+            invite.IsRevoked = true;
+            await _context.SaveChangesAsync();
+
+            if (!isNewInvitedUser)
+            {
+                return new AcceptInviteResultDto
+                {
+                    Email = user.Email,
+                    RequiresLogin = true,
+                    RedirectPath = "/dashboard"
+                };
+            }
+
+            var tokenResult = await GenerateTokensForUser(user, "Invite-Accept");
+            return new AcceptInviteResultDto
+            {
+                Email = user.Email,
+                RequiresLogin = false,
+                RedirectPath = "/dashboard",
+                Response = tokenResult.response,
+                RefreshToken = tokenResult.refreshToken
+            };
+        }
+
+        private async Task<RefreshToken> FindValidInviteTokenAsync(string rawToken)
+        {
+            if (string.IsNullOrWhiteSpace(rawToken))
+                throw new ArgumentException("Invite token is missing.");
+
+            var tokenHash = HashToken(rawToken.Trim());
+            var invite = await _context.RefreshTokens
+                .Include(rt => rt.User)
+                    .ThenInclude(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(rt =>
+                    rt.Token == tokenHash &&
+                    rt.DeviceId == "Invite" &&
+                    !rt.IsRevoked &&
+                    rt.ExpiryTime > DateTime.UtcNow);
+
+            if (invite == null)
+                throw new UnauthorizedAccessException("Invite link is invalid or expired.");
+
+            return invite;
+        }
+
+        private static string HashToken(string token)
+        {
+            var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+            return Convert.ToHexString(hashBytes);
+        }
+
+        private static void ValidateInvitePassword(string password)
+        {
+            if (password.Length < 6)
+                throw new ArgumentException("Password must be at least 6 characters.");
+
+            if (!Regex.IsMatch(password, @"^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$"))
+                throw new ArgumentException("Password must contain at least 1 uppercase letter, 1 number, and 1 special character.");
         }
     }
 }

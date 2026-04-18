@@ -8,7 +8,7 @@
     <div class="back-link">
       <a href="#" @click.prevent="goBack" class="flex items-center gap-2">
         <i class="fa-solid fa-arrow-left"></i>
-        <span>Back to App</span>
+        <span>{{ t('Back to App', 'Quay lại Ứng dụng') }}</span>
       </a>
     </div>
 
@@ -19,45 +19,105 @@
     >
       <el-menu-item index="/admin/audit-log">
         <i class="fa-solid fa-file-lines menu-icon"></i>
-        <span>Audit Log</span>
+        <span>{{ t('Audit Log', 'Nhật ký Hệ thống') }}</span>
       </el-menu-item>
 
       <el-menu-item index="/admin/users">
         <i class="fa-solid fa-users menu-icon"></i>
-        <span>User Management</span>
+        <span>{{ t('User Management', 'Quản lý Người dùng') }}</span>
       </el-menu-item>
 
-      <el-sub-menu index="/admin/organization">
+      <!-- <el-sub-menu index="/admin/organization">
         <template #title>
           <i class="fa-regular fa-building menu-icon"></i>
-          <span>Organization</span>
+          <span>{{ t('Organization', 'Tổ chức') }}</span>
         </template>
-        <el-menu-item index="/admin/organization/profile">Profile</el-menu-item>
-        <el-menu-item index="/admin/organization/contact">Contact</el-menu-item>
-      </el-sub-menu>
+        <el-menu-item index="/admin/organization/profile">{{ t('Profile', 'Hồ sơ') }}</el-menu-item>
+        <el-menu-item index="/admin/organization/contact">{{ t('Contact', 'Liên hệ') }}</el-menu-item>
+      </el-sub-menu> -->
 
       <el-menu-item index="/admin/configuration">
         <i class="fa-solid fa-gear menu-icon"></i>
-        <span>Configuration</span>
+        <span>{{ t('Configuration', 'Cấu hình') }}</span>
       </el-menu-item>
 
       <el-sub-menu index="/admin/security">
         <template #title>
           <i class="fa-solid fa-shield-halved menu-icon"></i>
-          <span>Security</span>
+          <span>{{ t('Security', 'Bảo mật') }}</span>
         </template>
-        <el-menu-item index="/admin/security/2fa">Xác thực 2 bước</el-menu-item>
-        <el-menu-item index="/admin/security/password">Đổi mật khẩu</el-menu-item>
-        <el-menu-item index="/admin/security/ip-whitelist">IP cho phép</el-menu-item>
+        <el-menu-item index="/admin/security/2fa">{{ t('Two-Factor Auth', 'Xác thực 2 bước') }}</el-menu-item>
+        <el-menu-item index="/admin/security/password">{{ t('Change Password', 'Đổi mật khẩu') }}</el-menu-item>
+        <el-menu-item index="/admin/security/ip-whitelist">{{ t('IP Whitelist', 'IP cho phép') }}</el-menu-item>
       </el-sub-menu>
+      <div style="flex-grow: 1;"></div>
+      
+      <div class="sidebar-footer">
+        <div class="lang-selector" @click.stop="langMenuOpen = !langMenuOpen">
+          <div class="lang-current">
+            <span class="lang-flag">{{ locale === 'vi' ? '🇻🇳' : '🇺🇸' }}</span>
+            <span class="lang-name">{{ locale === 'vi' ? 'Tiếng Việt' : 'English' }}</span>
+            <i class="fa-solid fa-chevron-down lang-arrow" :class="{ 'is-open': langMenuOpen }"></i>
+          </div>
+
+          <Transition name="lang-dropdown">
+            <div v-if="langMenuOpen" class="lang-dropdown">
+              <button
+                type="button"
+                class="lang-option"
+                :class="{ active: locale === 'vi' }"
+                @click.stop="setLocale('vi')"
+              >
+                <span class="lang-flag">🇻🇳</span>
+                <span>Tiếng Việt</span>
+                <i v-if="locale === 'vi'" class="fa-solid fa-check lang-check"></i>
+              </button>
+              <button
+                type="button"
+                class="lang-option"
+                :class="{ active: locale === 'en' }"
+                @click.stop="setLocale('en')"
+              >
+                <span class="lang-flag">🇺🇸</span>
+                <span>English</span>
+                <i v-if="locale === 'en'" class="fa-solid fa-check lang-check"></i>
+              </button>
+            </div>
+          </Transition>
+        </div>
+      </div>
     </el-menu>
   </aside>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import logoImg from '@/assets/logo_QLCV.png'
+import { useLocale } from '@/composables/useLocale'
+
+const { locale, toggleLocale, t } = useLocale()
+
+const langMenuOpen = ref(false)
+
+const setLocale = (lang) => {
+  if (locale.value !== lang) {
+    toggleLocale()
+  }
+  langMenuOpen.value = false
+}
+
+const closeLangMenu = (e) => {
+  langMenuOpen.value = false
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeLangMenu)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeLangMenu)
+})
 
 const route = useRoute()
 const router = useRouter()
@@ -170,5 +230,113 @@ const activeMenu = computed(() => {
 
 :deep(.el-menu-item:hover), :deep(.el-sub-menu__title:hover) {
   background-color: var(--bg-hover) !important;
+}
+
+.sidebar-footer {
+  padding: 16px 24px 24px;
+  margin-top: auto;
+}
+
+.lang-selector {
+  position: relative;
+  cursor: pointer;
+}
+
+.lang-current {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.lang-current:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+}
+
+.lang-flag {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.lang-name {
+  flex: 1;
+}
+
+.lang-arrow {
+  font-size: 11px;
+  color: #64748b;
+  transition: transform 0.2s ease;
+}
+
+.lang-arrow.is-open {
+  transform: rotate(180deg);
+}
+
+.lang-dropdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: #1a1d23;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 999;
+}
+
+.lang-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #a1a1aa;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.lang-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #e4e4e7;
+}
+
+.lang-option.active {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+.lang-check {
+  margin-left: auto;
+  font-size: 12px;
+  color: #3b82f6;
+}
+
+/* Dropdown animation */
+.lang-dropdown-enter-active {
+  transition: all 0.2s ease;
+}
+.lang-dropdown-leave-active {
+  transition: all 0.15s ease;
+}
+.lang-dropdown-enter-from,
+.lang-dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(6px);
 }
 </style>

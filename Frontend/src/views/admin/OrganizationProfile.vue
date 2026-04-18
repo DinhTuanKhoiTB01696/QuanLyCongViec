@@ -2,70 +2,91 @@
   <AdminLayout>
     <div class="admin-page-container">
       <div class="page-header">
-         <div class="breadcrumb">
-           <i class="fa-solid fa-building"></i> Admin / Organization
-         </div>
-         <h1 class="page-title">Hồ sơ Tổ chức & Bảo mật (Tenant Settings)</h1>
-         <p class="page-subtitle">Quản lý cấu hình toàn tổ chức, IP Whitelist và chính sách 2FA.</p>
+        <div class="breadcrumb">
+          <i class="fa-solid fa-building"></i>
+          Admin / Organization
+        </div>
+        <h1 class="page-title">{{ t('Organization & Security Profile', 'Hồ sơ Tổ chức & Bảo mật (Tenant Settings)') }}</h1>
+        <p class="page-subtitle">{{ t('Manage organization settings, IP Whitelist, and 2FA policies.', 'Quản lý cấu hình toàn tổ chức, IP Whitelist và chính sách 2FA.') }}</p>
       </div>
 
       <div class="admin-form-card" v-loading="isLoading">
-         <el-tabs v-model="activeTab" class="custom-tabs">
-            
-            <!-- TAB PROFILE -->
-            <el-tab-pane label="Thông tin Tổ chức" name="profile">
-               <div class="form-group mt-12">
-                  <label>Tên Tổ chức (Organization Name)</label>
-                  <el-input v-model="form.organizationName" class="neumorphic-input" />
-               </div>
-               <div class="form-group">
-                  <label>Tên miền (Domain)</label>
-                  <el-input v-model="form.domain" class="neumorphic-input" />
-               </div>
-               <div class="form-group">
-                  <label>URL Logo</label>
-                  <el-input v-model="form.logoUrl" class="neumorphic-input" />
-               </div>
+        <el-tabs v-model="activeTab" class="custom-tabs">
+          <el-tab-pane :label="t('Organization Info', 'Thông tin Tổ chức')" name="profile">
+            <div class="form-group mt-12">
+              <label>{{ t('Organization Name', 'Tên Tổ chức') }}</label>
+              <el-input v-model="form.organizationName" class="neumorphic-input" />
+            </div>
 
-               <div class="form-actions mt-24">
-                  <el-button type="primary" :loading="isSaving" @click="saveConfig">
-                     <i class="fa-solid fa-save mr-2"></i> Lưu thay đổi
-                  </el-button>
-               </div>
-            </el-tab-pane>
+            <div class="form-group">
+              <label>{{ t('Domain', 'Tên miền') }}</label>
+              <el-input v-model="form.domain" class="neumorphic-input" />
+            </div>
 
-            <!-- TAB SECURITY & IP WHITELIST -->
-            <el-tab-pane label="Bảo vệ Hệ thống (Security)" name="security">
-               <div style="margin-top: 16px; margin-bottom: 24px;">
-                  <h3 style="font-size: 15px; margin-bottom: 8px; color: var(--text-primary)"><i class="fa-solid fa-shield-halved mr-2 text-warning"></i> Chính sách Bảo mật Toàn cầu</h3>
-                  <p style="font-size: 13px; color: var(--text-secondary);">Thiết lập bắt buộc đối với tất cả thành viên trong tổ chức.</p>
-               </div>
+            <div class="form-group">
+              <label>URL Logo</label>
+              <el-input v-model="form.logoUrl" class="neumorphic-input" />
+            </div>
 
-               <div class="form-group switch-group">
-                  <div>
-                    <h4 style="margin: 0; color: var(--text-primary)">Bắt buộc 2FA (Two-Factor Auth)</h4>
-                    <span style="font-size: 12px; color: var(--text-muted)">Yêu cầu tất cả nhân viên phải cài đặt Google Authenticator để đăng nhập. Các luồng đăng nhập không có 2FA sẽ bị chặn lại (403 Forbidden).</span>
-                  </div>
-                  <el-switch :model-value="form.require2FA" active-color="#10b981" inactive-color="#dc2626" @change="val => form.require2FA = val" />
-               </div>
+            <div class="form-actions mt-24">
+              <el-button type="primary" :loading="isSaving" @click="saveConfig">
+                <i class="fa-solid fa-save mr-2"></i>
+                {{ t('Save changes', 'Lưu thay đổi') }}
+              </el-button>
+            </div>
+          </el-tab-pane>
 
-               <div style="margin-top: 32px; margin-bottom: 16px;">
-                  <h3 style="font-size: 15px; margin-bottom: 8px; color: var(--text-primary)"><i class="fa-solid fa-network-wired mr-2 text-blue-500"></i> Ip Whitelist (Tường lửa Tầng Ứng dụng)</h3>
-                  <p style="font-size: 13px; color: var(--text-secondary);">Giới hạn các địa chỉ IP được phép truy cập vào hệ thống. Nhập theo định dạng dãy IP phân cách bởi dấu phẩy.</p>
-               </div>
+          <el-tab-pane :label="t('System Security', 'Bảo vệ Hệ thống (Security)')" name="security">
+            <div class="section-intro">
+              <h3>
+                <i class="fa-solid fa-shield-halved mr-2 text-warning"></i>
+                {{ t('Global Security Policies', 'Chính sách Bảo mật Toàn cầu') }}
+              </h3>
+              <p>{{ t('Mandatory settings for all organization members.', 'Thiết lập bắt buộc đối với tất cả thành viên trong tổ chức.') }}</p>
+            </div>
 
-               <div class="form-group">
-                  <label>Danh sách IP hợp lệ (IP Whitelist)</label>
-                  <el-input v-model="form.ipWhitelist" type="textarea" :rows="4" class="neumorphic-input" placeholder="Ví dụ: 192.168.1.1, 203.0.113.50, [Lưu ý: Để trống = Mở cho mọi IP]" />
-               </div>
+            <div class="form-group switch-group">
+              <div>
+                <h4>{{ t('Require 2FA (Two-Factor Auth)', 'Bắt buộc 2FA (Two-Factor Auth)') }}</h4>
+                <span>
+                  {{ t('Require all employees to setup Google Authenticator for login. Unauthenticated flows will be blocked.', 'Yêu cầu tất cả nhân viên phải cài đặt Google Authenticator để đăng nhập. Các luồng đăng nhập không có 2FA sẽ bị chặn lại.') }}
+                </span>
+              </div>
+              <el-switch
+                :model-value="form.require2FA"
+                active-color="#10b981"
+                inactive-color="#dc2626"
+                @change="val => form.require2FA = val"
+              />
+            </div>
 
-               <div class="form-actions mt-24">
-                  <el-button type="primary" :loading="isSaving" @click="saveConfig">
-                     <i class="fa-solid fa-shield-cat mr-2"></i> Lưu cấu hình Bảo mật
-                  </el-button>
-               </div>
-            </el-tab-pane>
-         </el-tabs>
+            <div class="section-intro mt-24">
+              <h3>
+                <i class="fa-solid fa-network-wired mr-2 text-blue-500"></i>
+                IP Whitelist
+              </h3>
+              <p>{{ t('Restrict IP addresses allowed to access the system.', 'Giới hạn các địa chỉ IP được phép truy cập vào hệ thống.') }}</p>
+            </div>
+
+            <div class="form-group">
+              <label>{{ t('Allowed IP List (IP Whitelist)', 'Danh sách IP hợp lệ (IP Whitelist)') }}</label>
+              <el-input
+                v-model="form.ipWhitelist"
+                type="textarea"
+                :rows="4"
+                class="neumorphic-input"
+                :placeholder="t('Example: 192.168.1.1, 203.0.113.50. Leave empty to allow all IPs.', 'Ví dụ: 192.168.1.1, 203.0.113.50. Để trống nếu cho phép mọi IP.')"
+              />
+            </div>
+
+            <div class="form-actions mt-24">
+              <el-button type="primary" :loading="isSaving" @click="saveConfig">
+                <i class="fa-solid fa-shield-halved mr-2"></i>
+                {{ t('Save Security Configuration', 'Lưu cấu hình Bảo mật') }}
+              </el-button>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
       </div>
     </div>
   </AdminLayout>
@@ -75,117 +96,206 @@
 import { ref, onMounted } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { ElMessage } from 'element-plus'
+import axiosClient from '@/api/axiosClient'
+import { useLocale } from '@/composables/useLocale'
 
+const { t } = useLocale()
 const activeTab = ref('profile')
 const isLoading = ref(false)
 const isSaving = ref(false)
 
-const form = ref({
-   id: '',
-   organizationName: '',
-   domain: '',
-   logoUrl: '',
-   require2FA: false,
-   ipWhitelist: ''
-})
+const defaultTenantProfile = {
+  id: '',
+  organizationName: 'Global Organization',
+  domain: 'acme.com',
+  logoUrl: '',
+  require2FA: false,
+  ipWhitelist: ''
+}
 
-onMounted(async () => {
-   isLoading.value = true;
-   setTimeout(() => {
-     form.value = {
-       organizationName: 'Global Organization',
-       domain: 'acme.com',
-       logoUrl: '',
-       require2FA: false,
-       ipWhitelist: ''
-     }
-     isLoading.value = false;
-   }, 500);
-})
+const form = ref({ ...defaultTenantProfile })
 
-const saveConfig = async () => {
+const fetchConfig = async () => {
+  isLoading.value = true
   try {
-     isSaving.value = true;
-     setTimeout(() => {
-        ElMessage.success('Đã lưu cấu hình Tenant & Bảo mật thành công!');
-        isSaving.value = false;
-     }, 400);
+    const res = await axiosClient.get('/settings/TenantProfile')
+    const data = res.data?.data || {}
+    form.value = {
+      id: data.id || '',
+      organizationName: data.organizationName || defaultTenantProfile.organizationName,
+      domain: data.domain || defaultTenantProfile.domain,
+      logoUrl: data.logoUrl || '',
+      require2FA: data.require2FA === 'true',
+      ipWhitelist: data.ipWhitelist || ''
+    }
   } catch (err) {
-     ElMessage.error('Lỗi khi lưu cấu hình.');
-     isSaving.value = false;
+    console.error(err)
+    form.value = { ...defaultTenantProfile }
+  } finally {
+    isLoading.value = false
   }
 }
+
+const saveConfig = async () => {
+  isSaving.value = true
+  try {
+    await axiosClient.put('/settings/TenantProfile', {
+      Settings: {
+        id: form.value.id || '',
+        organizationName: form.value.organizationName || defaultTenantProfile.organizationName,
+        domain: form.value.domain || defaultTenantProfile.domain,
+        logoUrl: form.value.logoUrl || '',
+        require2FA: form.value.require2FA ? 'true' : 'false',
+        ipWhitelist: form.value.ipWhitelist || ''
+      }
+    })
+    ElMessage.success(t('Tenant & Security settings saved successfully.', 'Đã lưu cấu hình Tenant & Bảo mật thành công.'))
+  } catch (err) {
+    console.error(err)
+    ElMessage.error(t('Error saving configuration.', 'Lỗi khi lưu cấu hình.'))
+  } finally {
+    isSaving.value = false
+  }
+}
+
+onMounted(fetchConfig)
 </script>
 
 <style scoped>
 .admin-page-container {
   max-width: 900px;
 }
+
 .page-header {
   margin-bottom: 24px;
 }
+
 .breadcrumb {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-bottom: 8px;
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
 }
+
 .page-title {
+  margin: 0;
+  color: var(--text-primary);
   font-size: 24px;
   font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
 }
+
 .page-subtitle {
-  font-size: 14px;
-  color: var(--text-muted);
   margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 14px;
 }
+
 .admin-form-card {
-  background: var(--bg-card);
-  backdrop-filter: blur(var(--glass-blur, 12px));
-  -webkit-backdrop-filter: blur(var(--glass-blur, 12px));
+  padding: 32px;
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-xl, 12px);
-  padding: 32px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  background: var(--bg-card);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
+
 .form-group {
   margin-bottom: 20px;
 }
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .switch-group {
-  display: flex; 
-  align-items: center; 
-  justify-content: space-between; 
-  padding: 16px; 
-  border: 1px solid var(--border-color); 
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.2);
 }
-.form-group label {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
+
+.switch-group h4 {
+  margin: 0;
   color: var(--text-primary);
-  margin-bottom: 8px;
 }
-.mt-12 { margin-top: 12px; }
-.mt-24 { margin-top: 24px; }
-.mr-2 { margin-right: 8px; }
-.text-warning { color: #f59e0b; }
-.text-blue-500 { color: #3b82f6; }
+
+.switch-group span {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.section-intro {
+  margin: 16px 0 24px;
+}
+
+.section-intro h3 {
+  margin: 0 0 8px;
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
+.section-intro p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.mt-12 {
+  margin-top: 12px;
+}
+
+.mt-24 {
+  margin-top: 24px;
+}
+
+.mr-2 {
+  margin-right: 8px;
+}
+
+.text-warning {
+  color: #f59e0b;
+}
+
+.text-blue-500 {
+  color: #3b82f6;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
 
 :deep(.neumorphic-input .el-input__wrapper),
 :deep(.neumorphic-input .el-textarea__inner) {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
   background-color: var(--bg-hover) !important;
   box-shadow: none !important;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
 }
-:deep(.neumorphic-input .el-input__wrapper) { padding: 8px 16px; }
-:deep(.neumorphic-input .el-textarea__inner) { padding: 12px 16px; font-family: inherit; color: var(--text-primary) !important; }
-:deep(.neumorphic-input .el-input__inner) { color: var(--text-primary) !important; }
-.form-actions { display: flex; justify-content: flex-end; }
+
+:deep(.neumorphic-input .el-input__wrapper) {
+  padding: 8px 16px;
+}
+
+:deep(.neumorphic-input .el-textarea__inner) {
+  padding: 12px 16px;
+  color: var(--text-primary) !important;
+  font-family: inherit;
+}
+
+:deep(.neumorphic-input .el-input__inner) {
+  color: var(--text-primary) !important;
+}
 </style>

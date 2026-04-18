@@ -5,8 +5,8 @@
         <div class="breadcrumb">
           <i class="fa-solid fa-shield-halved"></i> Security / Change Password
         </div>
-        <h1 class="page-title">Đổi mật khẩu</h1>
-        <p class="page-subtitle">Đảm bảo an toàn tài khoản bằng cách tạo một mật khẩu mạnh và duy nhất.</p>
+        <h1 class="page-title">{{ t('Change Password', 'Đổi mật khẩu') }}</h1>
+        <p class="page-subtitle">{{ t('Keep your account safe by creating a strong and unique password.', 'Đảm bảo an toàn tài khoản bằng cách tạo một mật khẩu mạnh và duy nhất.') }}</p>
       </div>
 
       <div class="form-container">
@@ -20,14 +20,14 @@
                 <div class="step-line"></div>
                 <div class="step-badge">2</div>
               </div>
-              <h3 class="step-title"><i class="fa-solid fa-envelope-circle-check"></i> Xác minh danh tính</h3>
-              <p class="step-desc">Nhập email tài khoản của bạn để nhận mã xác nhận OTP.</p>
+              <h3 class="step-title"><i class="fa-solid fa-envelope-circle-check"></i> {{ t('Verify Identity', 'Xác minh danh tính') }}</h3>
+              <p class="step-desc">{{ t('Enter your account email to receive an OTP verification code.', 'Nhập email tài khoản của bạn để nhận mã xác nhận OTP.') }}</p>
 
               <div class="form-group">
-                <label class="form-label">Địa chỉ Email</label>
+                <label class="form-label">{{ t('Email Address', 'Địa chỉ Email') }}</label>
                 <el-input
                   v-model="form.email"
-                  placeholder="Nhập email đăng nhập của bạn..."
+                  :placeholder="t('Enter your login email...', 'Nhập email đăng nhập của bạn...')"
                   class="glass-input"
                   prefix-icon=""
                 >
@@ -38,11 +38,11 @@
               </div>
 
               <div class="form-group mt-24" v-if="otpSent">
-                <label class="form-label">Mã xác nhận (OTP)</label>
+                <label class="form-label">{{ t('Verification Code (OTP)', 'Mã xác nhận (OTP)') }}</label>
                 <div style="display: flex; gap: 12px; align-items: flex-start;">
                   <el-input
                     v-model="form.otpCode"
-                    placeholder="Nhập mã OTP 6 ký tự..."
+                    :placeholder="t('Enter 6-digit OTP code...', 'Nhập mã OTP 6 ký tự...')"
                     class="glass-input"
                     maxlength="6"
                     style="flex: 1"
@@ -54,8 +54,8 @@
                 </div>
                 <div class="otp-hint mt-8">
                   <i class="fa-solid fa-circle-info"></i>
-                  Mã OTP đã được gửi đến email của bạn. Mã có hiệu lực trong 5 phút.
-                  <a href="#" @click.prevent="sendOtp" v-if="!isSendingOtp && canResend" class="resend-link">Gửi lại mã</a>
+                  {{ t('OTP code has been sent to your email. Code is valid for 5 minutes.', 'Mã OTP đã được gửi đến email của bạn. Mã có hiệu lực trong 5 phút.') }}
+                  <a href="#" @click.prevent="sendOtp" v-if="!isSendingOtp && canResend" class="resend-link">{{ t('Resend code', 'Gửi lại mã') }}</a>
                   <span v-if="!canResend" class="countdown-text">({{ countdownText }})</span>
                 </div>
               </div>
@@ -69,7 +69,7 @@
                   @click="sendOtp"
                   style="padding: 20px 24px; font-weight: 500;"
                 >
-                  <i class="fa-solid fa-paper-plane" style="margin-right: 6px;"></i> Gửi mã xác nhận
+                  <i class="fa-solid fa-paper-plane" style="margin-right: 6px;"></i> {{ t('Send verification code', 'Gửi mã xác nhận') }}
                 </el-button>
                 <el-button
                   v-if="otpSent"
@@ -79,7 +79,7 @@
                   @click="verifyAndProceed"
                   style="padding: 20px 24px; font-weight: 500;"
                 >
-                  <i class="fa-solid fa-arrow-right" style="margin-right: 6px;"></i> Xác nhận & Tiếp tục
+                  <i class="fa-solid fa-arrow-right" style="margin-right: 6px;"></i> {{ t('Verify & Continue', 'Xác nhận & Tiếp tục') }}
                 </el-button>
               </div>
             </div>
@@ -94,15 +94,15 @@
 
               <div class="verified-badge">
                 <i class="fa-solid fa-circle-check"></i>
-                <span>Email đã xác minh: <strong>{{ form.email }}</strong></span>
+                <span>{{ t('Email verified:', 'Email đã xác minh:') }} <strong>{{ form.email }}</strong></span>
               </div>
 
-              <h3 class="step-title mt-24"><i class="fa-solid fa-lock"></i> Tạo mật khẩu mới</h3>
-              <p class="step-desc">Tạo mật khẩu mới an toàn cho tài khoản của bạn.</p>
+              <h3 class="step-title mt-24"><i class="fa-solid fa-lock"></i> {{ t('Create new password', 'Tạo mật khẩu mới') }}</h3>
+              <p class="step-desc">{{ t('Create a new secure password for your account.', 'Tạo mật khẩu mới an toàn cho tài khoản của bạn.') }}</p>
 
               <div class="form-group mt-24">
-                <label class="form-label">Mật khẩu mới</label>
-                <el-input type="password" v-model="form.newPassword" @input="checkStrength" show-password placeholder="Tạo mật khẩu mới..." class="glass-input" />
+                <label class="form-label">{{ t('New password', 'Mật khẩu mới') }}</label>
+                <el-input type="password" v-model="form.newPassword" @input="checkStrength" show-password :placeholder="t('Create a new password...', 'Tạo mật khẩu mới...')" class="glass-input" />
                 
                 <!-- Password Strength Indicator -->
                 <div class="password-strength mt-12" v-if="form.newPassword">
@@ -117,19 +117,19 @@
 
                 <div class="password-hints mt-12">
                    <ul>
-                     <li :class="{ 'passed': hints.length }"><i class="fa-solid" :class="hints.length ? 'fa-check' : 'fa-circle-dot'"></i> Ít nhất 8 ký tự</li>
-                     <li :class="{ 'passed': hints.uppercase }"><i class="fa-solid" :class="hints.uppercase ? 'fa-check' : 'fa-circle-dot'"></i> Ít nhất một chữ hoa</li>
-                     <li :class="{ 'passed': hints.number }"><i class="fa-solid" :class="hints.number ? 'fa-check' : 'fa-circle-dot'"></i> Ít nhất một số</li>
-                     <li :class="{ 'passed': hints.special }"><i class="fa-solid" :class="hints.special ? 'fa-check' : 'fa-circle-dot'"></i> Có chứa ký tự đặc biệt</li>
+                     <li :class="{ 'passed': hints.length }"><i class="fa-solid" :class="hints.length ? 'fa-check' : 'fa-circle-dot'"></i> {{ t('At least 8 characters', 'Ít nhất 8 ký tự') }}</li>
+                     <li :class="{ 'passed': hints.uppercase }"><i class="fa-solid" :class="hints.uppercase ? 'fa-check' : 'fa-circle-dot'"></i> {{ t('At least one uppercase letter', 'Ít nhất một chữ hoa') }}</li>
+                     <li :class="{ 'passed': hints.number }"><i class="fa-solid" :class="hints.number ? 'fa-check' : 'fa-circle-dot'"></i> {{ t('At least one number', 'Ít nhất một số') }}</li>
+                     <li :class="{ 'passed': hints.special }"><i class="fa-solid" :class="hints.special ? 'fa-check' : 'fa-circle-dot'"></i> {{ t('Contains a special character', 'Có chứa ký tự đặc biệt') }}</li>
                    </ul>
                 </div>
               </div>
 
               <div class="form-group mt-24">
-                <label class="form-label">Xác nhận mật khẩu mới</label>
-                <el-input type="password" v-model="form.confirmPassword" show-password placeholder="Nhập lại mật khẩu để xác nhận..." class="glass-input" />
+                <label class="form-label">{{ t('Confirm new password', 'Xác nhận mật khẩu mới') }}</label>
+                <el-input type="password" v-model="form.confirmPassword" show-password :placeholder="t('Re-enter password to confirm...', 'Nhập lại mật khẩu để xác nhận...')" class="glass-input" />
                 <div v-if="form.confirmPassword && form.newPassword !== form.confirmPassword" class="error-msg mt-2 text-danger">
-                  Mật khẩu xác nhận không khớp.
+                  {{ t('Passwords do not match.', 'Mật khẩu xác nhận không khớp.') }}
                 </div>
               </div>
 
@@ -139,18 +139,18 @@
               <div class="form-group checkbox-group">
                 <el-checkbox v-model="form.logoutOthers" class="logout-checkbox">
                   <div class="checkbox-content">
-                    <span class="checkbox-title">Đăng xuất khỏi tất cả các thiết bị khác</span>
-                    <span class="checkbox-desc">Loại bỏ mọi phiên đăng nhập trên các máy tính và thiêt bị di động khác ngoài thiết bị hiện tại của bạn.</span>
+                    <span class="checkbox-title">{{ t('Log out from all other devices', 'Đăng xuất khỏi tất cả các thiết bị khác') }}</span>
+                    <span class="checkbox-desc">{{ t('Remove all login sessions on other computers and mobile devices except your current one.', 'Loại bỏ mọi phiên đăng nhập trên các máy tính và thiết bị di động khác ngoài thiết bị hiện tại của bạn.') }}</span>
                   </div>
                 </el-checkbox>
               </div>
 
               <div class="action-footer mt-32" style="display: flex; justify-content: space-between;">
                 <el-button @click="goBack" style="padding: 20px 24px; font-weight: 500;">
-                  <i class="fa-solid fa-arrow-left" style="margin-right: 6px;"></i> Quay lại
+                  <i class="fa-solid fa-arrow-left" style="margin-right: 6px;"></i> {{ t('Go back', 'Quay lại') }}
                 </el-button>
                 <el-button type="primary" :disabled="!isValid" :loading="isSaving" @click="submitPassword" style="padding: 20px 24px; font-weight: 500;">
-                  <i class="fa-solid fa-floppy-disk" style="margin-right: 6px;"></i> Cập nhật mật khẩu
+                  <i class="fa-solid fa-floppy-disk" style="margin-right: 6px;"></i> {{ t('Update password', 'Cập nhật mật khẩu') }}
                 </el-button>
               </div>
             </div>
@@ -160,10 +160,10 @@
               <div class="success-icon-wrapper">
                 <i class="fa-solid fa-circle-check"></i>
               </div>
-              <h3 class="success-title">Đổi mật khẩu thành công!</h3>
-              <p class="success-desc">Mật khẩu của bạn đã được cập nhật an toàn.<br/>Bạn có thể đăng nhập với mật khẩu mới.</p>
+              <h3 class="success-title">{{ t('Password changed successfully!', 'Đổi mật khẩu thành công!') }}</h3>
+              <p class="success-desc">{{ t('Your password has been updated securely. You can log in with your new password.', 'Mật khẩu của bạn đã được cập nhật an toàn. Bạn có thể đăng nhập với mật khẩu mới.') }}</p>
               <el-button type="primary" @click="resetForm" style="padding: 20px 24px; font-weight: 500; margin-top: 24px;">
-                <i class="fa-solid fa-rotate-left" style="margin-right: 6px;"></i> Đổi mật khẩu khác
+                <i class="fa-solid fa-rotate-left" style="margin-right: 6px;"></i> {{ t('Change another password', 'Đổi mật khẩu khác') }}
               </el-button>
             </div>
           </div>
@@ -178,7 +178,9 @@ import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { ElMessage } from 'element-plus'
 import axiosClient from '@/api/axiosClient'
+import { useLocale } from '@/composables/useLocale'
 
+const { t } = useLocale()
 const step = ref(1)
 const isSaving = ref(false)
 const isSendingOtp = ref(false)
@@ -248,16 +250,16 @@ const checkStrength = () => {
   
   if (score <= 1) {
     strengthClass.value = 'strength-weak';
-    strengthLabel.value = 'Yếu';
+    strengthLabel.value = t('Weak', 'Yếu');
   } else if (score === 2) {
     strengthClass.value = 'strength-fair';
-    strengthLabel.value = 'Trung bình';
+    strengthLabel.value = t('Fair', 'Trung bình');
   } else if (score === 3) {
     strengthClass.value = 'strength-good';
-    strengthLabel.value = 'Khá';
+    strengthLabel.value = t('Good', 'Khá');
   } else {
     strengthClass.value = 'strength-strong';
-    strengthLabel.value = 'Rất Tốt';
+    strengthLabel.value = t('Very Strong', 'Rất Tốt');
   }
 }
 
@@ -267,7 +269,7 @@ const isValid = computed(() => {
 
 const sendOtp = async () => {
   if (!form.email) {
-    ElMessage.warning('Vui lòng nhập email.')
+    ElMessage.warning(t('Please enter your email.', 'Vui lòng nhập email.'))
     return
   }
   isSendingOtp.value = true;
@@ -279,7 +281,7 @@ const sendOtp = async () => {
     otpSent.value = true
     startCountdown()
   } catch (err) {
-    ElMessage.error(err.response?.data?.message || 'Không thể gửi mã OTP')
+    ElMessage.error(err.response?.data?.message || t('Unable to send OTP code', 'Không thể gửi mã OTP'))
   } finally {
     isSendingOtp.value = false;
   }
@@ -287,7 +289,7 @@ const sendOtp = async () => {
 
 const verifyAndProceed = async () => {
   if (!form.otpCode || form.otpCode.length < 6) {
-    ElMessage.warning('Vui lòng nhập đủ mã OTP 6 ký tự.')
+    ElMessage.warning(t('Please enter the full 6-digit OTP code.', 'Vui lòng nhập đủ mã OTP 6 ký tự.'))
     return
   }
   // Move to step 2 directly — OTP will be validated on final submission
@@ -311,7 +313,7 @@ const submitPassword = async () => {
     step.value = 3
 
   } catch (err) {
-    ElMessage.error(err.response?.data?.message || 'Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mã OTP.');
+    ElMessage.error(err.response?.data?.message || t('Password change failed. Please check your OTP code.', 'Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mã OTP.'));
   } finally {
     isSaving.value = false;
   }

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using TaskManagement.Application.Interfaces;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -16,41 +17,111 @@ namespace TaskManagement.Infrastructure.Services
             _httpClient = httpClient;
         }
 
-        /// <summary>
-        /// Gửi email chứa mã OTP qua Resend API
-        /// API docs: https://resend.com/docs/api-reference/emails/send-email
-        /// 
-        /// ⚠️ HIỆN TẠI ĐANG COMMENT LẠI PHẦN GỬI EMAIL THẬT
-        /// Khi đã verify domain trên Resend, bỏ comment để kích hoạt.
-        /// Trong lúc chưa verify, OTP sẽ được in ra Console để test.
-        /// </summary>
         public async Task SendOtpEmailAsync(string toEmail, string otpCode)
         {
-            var apiKey = _configuration["Resend:ApiKey"]
-                ?? throw new InvalidOperationException("Resend API Key chưa được cấu hình trong appsettings.json");
-            var fromEmail = _configuration["Resend:FromEmail"]
-                ?? "noreply@sprinta.io.vn";
+            var subject = "Ma xac thuc OTP - SprintA";
+            var html = $@"
+                <div style='font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;'>
+                    <h2 style='color: #0f172a; text-align: center;'>Ma xac thuc OTP</h2>
+                    <p style='color: #64748b; text-align: center;'>Su dung ma ben duoi de hoan tat dang ky tai khoan SprintA:</p>
+                    <div style='background: #f1f5f9; border-radius: 12px; padding: 24px; text-align: center; margin: 24px 0;'>
+                        <span style='font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #0ea5e9;'>{WebUtility.HtmlEncode(otpCode)}</span>
+                    </div>
+                    <p style='color: #94a3b8; font-size: 13px; text-align: center;'>Ma nay co hieu luc trong 5 phut. Khong chia se ma nay voi bat ky ai.</p>
+                </div>";
 
-            // ========== CHẾ ĐỘ DEV: In OTP ra Console ==========
-            Console.WriteLine("╔══════════════════════════════════════════╗");
-            Console.WriteLine($"║  📧 GỬI OTP ĐẾN: {toEmail}");
-            Console.WriteLine($"║  🔑 MÃ OTP: {otpCode}");
-            Console.WriteLine("╚══════════════════════════════════════════╝");
+            await SendResendEmailAsync(toEmail, subject, html);
+        }
+
+        public async Task SendInviteEmailAsync(
+            string toEmail,
+            string inviteeName,
+            string inviterName,
+            string organizationName,
+            string? projectName,
+            string acceptUrl,
+            string? personalMessage)
+        {
+            var safeInviteeName = WebUtility.HtmlEncode(inviteeName);
+            var safeInviterName = WebUtility.HtmlEncode(inviterName);
+            var safeOrganizationName = WebUtility.HtmlEncode(organizationName);
+            var safeProjectName = WebUtility.HtmlEncode(projectName ?? "SprintA");
+            var safeAcceptUrl = WebUtility.HtmlEncode(acceptUrl);
+            var safePersonalMessage = WebUtility.HtmlEncode(personalMessage ?? string.Empty);
+
+            var subject = $"Action requested: {inviterName} invited you to join {projectName ?? organizationName}";
+            var projectLine = string.IsNullOrWhiteSpace(projectName)
+                ? "your team in SprintA"
+                : $"the project <strong>{safeProjectName}</strong>";
+
+            var personalMessageBlock = string.IsNullOrWhiteSpace(personalMessage)
+                ? string.Empty
+                : $@"
+                    <div style='margin: 22px 0; padding: 14px 16px; border-left: 3px solid #0c66e4; background: #f4f5f7; color: #172b4d; font-size: 14px; line-height: 1.55;'>
+                        {safePersonalMessage}
+                    </div>";
+
+            var html = $@"
+                <div style='margin:0; padding:0; background:#eaf2ff;'>
+                    <table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background:#eaf2ff; padding:34px 14px;'>
+                        <tr>
+                            <td align='center'>
+                                <table role='presentation' width='560' cellpadding='0' cellspacing='0' style='width:560px; max-width:100%; background:#ffffff; border-radius:8px; overflow:hidden; font-family:Arial, sans-serif;'>
+                                    <tr>
+                                        <td align='center' style='padding:42px 40px 18px;'>
+                                            <div style='font-size:18px; color:#172b4d; font-weight:700;'>SprintA</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style='padding:18px 40px 8px; color:#172b4d;'>
+                                            <p style='margin:0 0 22px; color:#44546f; font-size:14px;'>Hi {safeInviteeName},</p>
+                                            <h1 style='margin:0; color:#172b4d; font-size:24px; line-height:1.28; font-weight:700;'>
+                                                Your admin {safeInviterName} invited you to join {projectLine}
+                                            </h1>
+                                            <p style='margin:20px 0 0; color:#172b4d; font-size:14px; line-height:1.55;'>
+                                                SprintA helps your team plan projects, track issues, and collaborate in one workspace.
+                                            </p>
+                                            {personalMessageBlock}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style='padding:18px 40px 30px;'>
+                                            <a href='{safeAcceptUrl}' style='display:block; width:100%; box-sizing:border-box; background:#0c66e4; color:#ffffff; text-decoration:none; text-align:center; border-radius:4px; padding:12px 18px; font-size:14px; font-weight:700;'>
+                                                Accept invite
+                                            </a>
+                                            <p style='margin:18px 0 0; color:#626f86; font-size:12px; line-height:1.55; text-align:center;'>
+                                                This invite expires in 7 days. If the button does not work, paste this link into your browser:<br/>
+                                                <span style='word-break:break-all; color:#0c66e4;'>{safeAcceptUrl}</span>
+                                            </p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style='padding:22px 40px 34px; border-top:1px solid #dfe1e6; text-align:center; color:#8590a2; font-size:12px;'>
+                                            This message was sent by {safeOrganizationName}.<br/>
+                                            SprintA Project Management
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </div>";
+
+            await SendResendEmailAsync(toEmail, subject, html);
+        }
+
+        private async Task SendResendEmailAsync(string toEmail, string subject, string html)
+        {
+            var apiKey = _configuration["Resend:ApiKey"]
+                ?? throw new InvalidOperationException("Resend API key is missing.");
+            var fromEmail = _configuration["Resend:FromEmail"] ?? "noreply@sprinta.io.vn";
 
             var requestBody = new
             {
                 from = fromEmail,
                 to = new[] { toEmail },
-                subject = "Mã xác thực OTP - SprintA",
-                html = $@"
-                    <div style='font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;'>
-                        <h2 style='color: #0f172a; text-align: center;'>🔐 Mã xác thực OTP</h2>
-                        <p style='color: #64748b; text-align: center;'>Sử dụng mã bên dưới để hoàn tất đăng ký tài khoản SprintA:</p>
-                        <div style='background: #f1f5f9; border-radius: 12px; padding: 24px; text-align: center; margin: 24px 0;'>
-                            <span style='font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #0ea5e9;'>{otpCode}</span>
-                        </div>
-                        <p style='color: #94a3b8; font-size: 13px; text-align: center;'>Mã này có hiệu lực trong 5 phút. Không chia sẻ mã này với bất kỳ ai.</p>
-                    </div>"
+                subject,
+                html
             };
 
             var json = JsonSerializer.Serialize(requestBody);
@@ -60,15 +131,14 @@ namespace TaskManagement.Infrastructure.Services
             _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
 
             var response = await _httpClient.PostAsync("https://api.resend.com/emails", content);
-
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"❌ Resend API Error: {errorContent}");
-                throw new InvalidOperationException($"Không thể gửi email OTP. Resend trả về lỗi: {errorContent}");
+                Console.WriteLine($"Resend API error: {errorContent}");
+                throw new InvalidOperationException($"Cannot send email. Resend returned: {errorContent}");
             }
 
-            Console.WriteLine($"✅ Email OTP đã gửi thành công đến {toEmail}");
+            Console.WriteLine($"Email sent to {toEmail}: {subject}");
         }
     }
 }

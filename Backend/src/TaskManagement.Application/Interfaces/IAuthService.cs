@@ -12,5 +12,7 @@ namespace TaskManagement.Application.Interfaces
         Task<(string newAccessToken, string newRefreshToken)> RefreshTokenAsync(string accessToken, string refreshToken);
         Task RevokeTokenAsync(Guid userId);
         Task AcceptInviteAsync(Guid userId);
+        Task<InviteInfoDto> GetInviteInfoAsync(string token);
+        Task<AcceptInviteResultDto> AcceptInviteTokenAsync(AcceptInviteTokenRequestDto request);
     }
 }

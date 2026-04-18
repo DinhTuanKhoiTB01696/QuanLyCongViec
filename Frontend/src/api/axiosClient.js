@@ -31,6 +31,8 @@ axiosClient.interceptors.request.use(
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
         }
+        const locale = localStorage.getItem('admin_locale') || 'vi';
+        config.headers['Accept-Language'] = locale;
         return config;
     },
     (error) => {
@@ -47,8 +49,12 @@ axiosClient.interceptors.response.use(
 
         const isAuthRequest = originalRequest.url.includes('/auth/login') || 
                               originalRequest.url.includes('/auth/register') ||
+                              originalRequest.url.includes('/auth/send-otp') ||
+                              originalRequest.url.includes('/auth/verify-otp') ||
                               originalRequest.url.includes('/auth/google-login') ||
-                              originalRequest.url.includes('/auth/github-login');
+                              originalRequest.url.includes('/auth/github-login') ||
+                              originalRequest.url.includes('/auth/invite-info') ||
+                              originalRequest.url.includes('/auth/accept-invite-token');
 
         if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
             if (isRefreshing) {

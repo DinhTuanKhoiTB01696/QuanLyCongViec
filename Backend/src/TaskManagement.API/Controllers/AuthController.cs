@@ -124,6 +124,74 @@ namespace TaskManagement.API.Controllers
             }
         }
 
+        [HttpGet("invite-info")]
+        public async Task<IActionResult> GetInviteInfo([FromQuery] string token)
+        {
+            try
+            {
+                var result = await _authService.GetInviteInfoAsync(token);
+                return Ok(new { statusCode = 200, message = "Success", data = result });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { statusCode = 401, message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { statusCode = 500, message = ex.Message });
+            }
+        }
+
+        [HttpPost("accept-invite-token")]
+        public async Task<IActionResult> AcceptInviteToken([FromBody] AcceptInviteTokenRequestDto request)
+        {
+            try
+            {
+                var result = await _authService.AcceptInviteTokenAsync(request);
+
+                if (!string.IsNullOrEmpty(result.RefreshToken))
+                {
+                    var cookieOptions = new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = Request.IsHttps,
+                        SameSite = SameSiteMode.Lax,
+                        Expires = DateTime.UtcNow.AddDays(7)
+                    };
+                    Response.Cookies.Append("refreshToken", result.RefreshToken, cookieOptions);
+                }
+
+                return Ok(new
+                {
+                    statusCode = 200,
+                    message = result.RequiresLogin ? "Invite accepted. Please log in." : "Invite accepted.",
+                    data = new
+                    {
+                        result.Email,
+                        result.RequiresLogin,
+                        result.RedirectPath,
+                        auth = result.Response
+                    }
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { statusCode = 401, message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { statusCode = 500, message = ex.Message });
+            }
+        }
+
         public class Login2FARequestDto : LoginRequestDto
         {
             public string OtpCode { get; set; } = string.Empty;

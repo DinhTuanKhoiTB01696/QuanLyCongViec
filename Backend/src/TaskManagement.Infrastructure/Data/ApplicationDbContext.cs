@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using TaskManagement.Domain.Entities;
 using TaskStatus = TaskManagement.Domain.Entities.TaskStatus;
 
@@ -608,10 +609,14 @@ namespace TaskManagement.Infrastructure.Data
 
                         foreach (var entry in taskEntries)
                         {
+                            var changedFields = new List<string>();
+                            var oldValuesDict = new Dictionary<string, string?>();
+                            var newValuesDict = new Dictionary<string, string?>();
+
                             foreach (var prop in entry.Properties.Where(p => p.IsModified || entry.State == EntityState.Added))
                             {
                                 var propName = prop.Metadata.Name;
-                                if (propName == "UpdatedAt" || propName == "CreatedAt" || propName == "RowVersion" || propName == "Id") 
+                                if (propName == "UpdatedAt" || propName == "CreatedAt" || propName == "RowVersion" || propName == "Id" || propName == "SortOrder" || propName == "SequenceId" || propName == "CreatorId" || propName == "WorkspaceId") 
                                     continue;
 
                                 string? oldVal = null;
@@ -630,17 +635,42 @@ namespace TaskManagement.Infrastructure.Data
                                     newVal = newVal != null ? "******" : null;
                                 }
 
+                                changedFields.Add(propName);
+                                if (oldVal != null) oldValuesDict[propName] = oldVal;
+                                if (newVal != null) newValuesDict[propName] = newVal;
+                            }
+
+                            if (changedFields.Count > 0)
+                            {
                                 pendingLogsActions.Add(list => list.Add(new AuditLog
                                 {
                                     Id = Guid.NewGuid(),
                                     WorkTaskId = entry.Entity.Id, 
                                     UserId = parsedUserId,
-                                    FieldChanged = propName,
-                                    OldValue = oldVal,
-                                    NewValue = newVal,
+                                    FieldChanged = string.Join(", ", changedFields),
+                                    OldValue = JsonSerializer.Serialize(oldValuesDict),
+                                    NewValue = JsonSerializer.Serialize(newValuesDict),
                                     CreatedAt = DateTime.UtcNow
                                 }));
                             }
+                        }
+
+                        var commentEntries = ChangeTracker.Entries<Comment>()
+                            .Where(e => e.State == EntityState.Added)
+                            .ToList();
+
+                        foreach (var entry in commentEntries)
+                        {
+                            pendingLogsActions.Add(list => list.Add(new AuditLog
+                            {
+                                Id = Guid.NewGuid(),
+                                WorkTaskId = entry.Entity.WorkTaskId,
+                                UserId = parsedUserId,
+                                FieldChanged = "ADD_COMMENT",
+                                OldValue = "{}",
+                                NewValue = "{\"Comment\": \"added\"}",
+                                CreatedAt = DateTime.UtcNow
+                            }));
                         }
                     }
                 }
@@ -655,10 +685,17 @@ namespace TaskManagement.Infrastructure.Data
             // Execute Audit Log actions and enqueue
             if (pendingLogsActions.Count > 0 && _auditLogQueue != null)
             {
-                foreach (var action in pendingLogsActions) action(pendingLogs);
-                foreach (var log in pendingLogs)
+                try
                 {
-                    await _auditLogQueue.EnqueueAsync(log, cancellationToken);
+                    foreach (var action in pendingLogsActions) action(pendingLogs);
+                    foreach (var log in pendingLogs)
+                    {
+                        await _auditLogQueue.EnqueueAsync(log, cancellationToken);
+                    }
+                }
+                catch (Exception)
+                {
+                    // Fail gracefully
                 }
             }
 
@@ -674,7 +711,7 @@ namespace TaskManagement.Infrastructure.Data
                 }
                 await base.SaveChangesAsync(cancellationToken);
 
-                var parentIds = tasks.Where(t => t.ParentTaskId.HasValue).Select(t => t.ParentTaskId.Value).Distinct().ToList();
+                var parentIds = tasks.Where(t => t.ParentTaskId != null).Select(t => t.ParentTaskId!.Value).Distinct().ToList();
                 if (parentIds.Any())
                 {
                     var parents = await WorkTasks.Where(t => parentIds.Contains(t.Id)).ToListAsync(cancellationToken);

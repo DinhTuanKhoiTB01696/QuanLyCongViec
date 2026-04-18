@@ -14,7 +14,7 @@ export const useAdminUserStore = defineStore('adminUsers', () => {
         users.value = res.data.data;
       }
     } catch (error) {
-      console.error('Lỗi khi tải danh sách người dùng', error);
+      console.error('Failed to load users:', error);
     } finally {
       loading.value = false;
     }
@@ -23,13 +23,14 @@ export const useAdminUserStore = defineStore('adminUsers', () => {
   const suspendUser = async (userId) => {
     try {
       await adminUserApi.suspendUser(userId);
-      const userIndex = users.value.findIndex(u => u.id === userId);
+      const userIndex = users.value.findIndex(user => user.id === userId);
       if (userIndex !== -1) {
         users.value[userIndex].isActive = false;
+        users.value[userIndex].status = 'Suspended';
       }
       return true;
     } catch (error) {
-      console.error('Lỗi khi vô hiệu hóa người dùng:', error);
+      console.error('Failed to suspend user:', error);
       throw error;
     }
   };
@@ -38,15 +39,43 @@ export const useAdminUserStore = defineStore('adminUsers', () => {
     loading.value = true;
     try {
       await adminUserApi.createUser(data);
-      await fetchUsers(); // reload danh sách
+      await fetchUsers();
       return true;
     } catch (error) {
-      console.error('Lỗi khi thêm người dùng:', error);
+      console.error('Failed to create user:', error);
       throw error;
     } finally {
       loading.value = false;
     }
   };
 
-  return { users, loading, fetchUsers, suspendUser, createUser };
+  const inviteUsers = async (payloads) => {
+    loading.value = true;
+    try {
+      await Promise.all(payloads.map(payload => adminUserApi.createUser(payload)));
+      await fetchUsers();
+      return true;
+    } catch (error) {
+      console.error('Failed to invite users:', error);
+      throw error;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const removeUser = async (userId) => {
+    loading.value = true;
+    try {
+      await adminUserApi.removeUser(userId);
+      await fetchUsers();
+      return true;
+    } catch (error) {
+      console.error('Failed to remove user:', error);
+      throw error;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  return { users, loading, fetchUsers, suspendUser, createUser, inviteUsers, removeUser };
 });
