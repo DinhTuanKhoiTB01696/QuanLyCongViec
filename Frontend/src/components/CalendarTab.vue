@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps({
   tasks: { type: Array, default: () => [] }
@@ -10,193 +10,255 @@ const emit = defineEmits(['open-task', 'create-task'])
 const currentDate = ref(new Date())
 const showOptions = ref(false)
 const showOnlyDated = ref(true)
-const taskLimit = ref(2)
-
-// Navigation
-const goToday = () => { currentDate.value = new Date() }
-const prevMonth = () => {
-  const d = new Date(currentDate.value)
-  d.setMonth(d.getMonth() - 1)
-  currentDate.value = d
-}
-const nextMonth = () => {
-  const d = new Date(currentDate.value)
-  d.setMonth(d.getMonth() + 1)
-  currentDate.value = d
-}
-
-const monthLabel = computed(() => {
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-  return `${months[currentDate.value.getMonth()]} ${currentDate.value.getFullYear()}`
+const showDoneTasks = ref(true)
+const highlightOverdue = ref(true)
+const expandedDayKey = ref('')
+const tooltip = ref({
+  visible: false,
+  x: 0,
+  y: 0,
+  tasks: [],
+  label: ''
 })
 
+const goToday = () => {
+  currentDate.value = new Date()
+}
+
+const prevMonth = () => {
+  const next = new Date(currentDate.value)
+  next.setMonth(next.getMonth() - 1)
+  currentDate.value = next
+}
+
+const nextMonth = () => {
+  const next = new Date(currentDate.value)
+  next.setMonth(next.getMonth() + 1)
+  currentDate.value = next
+}
+
+const monthLabel = computed(() => currentDate.value.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
 const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-// Build calendar grid (6 weeks)
 const calendarDays = computed(() => {
   const year = currentDate.value.getFullYear()
   const month = currentDate.value.getMonth()
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
-  
-  // Monday = 0, Sunday = 6 (ISO)
+
   let startDow = firstDay.getDay() - 1
   if (startDow < 0) startDow = 6
-  
+
   const days = []
-  // Previous month fill
   const prevLast = new Date(year, month, 0)
-  for (let i = startDow - 1; i >= 0; i--) {
+
+  for (let index = startDow - 1; index >= 0; index -= 1) {
     days.push({
-      date: new Date(year, month - 1, prevLast.getDate() - i),
+      date: new Date(year, month - 1, prevLast.getDate() - index),
       isCurrentMonth: false
     })
   }
-  // Current month
-  for (let d = 1; d <= lastDay.getDate(); d++) {
+
+  for (let day = 1; day <= lastDay.getDate(); day += 1) {
     days.push({
-      date: new Date(year, month, d),
+      date: new Date(year, month, day),
       isCurrentMonth: true
     })
   }
-  // Next month fill (up to 42 cells = 6 weeks)
-  const remaining = 42 - days.length
-  for (let d = 1; d <= remaining; d++) {
+
+  while (days.length < 42) {
     days.push({
-      date: new Date(year, month + 1, d),
+      date: new Date(year, month + 1, days.length - lastDay.getDate() - startDow + 1),
       isCurrentMonth: false
     })
   }
+
   return days
 })
 
-// Get tasks for a specific day - matches tasks whose date range overlaps with this day
 const getTasksForDay = (date) => {
-  const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-  const dayEnd = new Date(dayStart)
-  dayEnd.setDate(dayEnd.getDate() + 1)
-  
-  return props.tasks.filter(t => {
-    const startDate = t.plannedStartDate ? new Date(t.plannedStartDate) : null
-    const endDate = t.dueDate || t.plannedEndDate ? new Date(t.dueDate || t.plannedEndDate) : null
-    
-    // If task has a date range, show on all days within that range
-    if (startDate && endDate) {
-      const s = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
-      const e = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
-      e.setDate(e.getDate() + 1) // make end inclusive
-      return dayStart >= s && dayStart < e
-    }
-    
-    // If only one date, show on that specific day
-    const singleDate = endDate || startDate
-    if (showOnlyDated.value && !singleDate) return false
+  const dayStart = startOfDay(date)
+  const dayEnd = endOfDay(date)
+
+  return props.tasks.filter(task => {
+    const status = `${task.statusName || ''}`.toUpperCase()
+    if (!showDoneTasks.value && status.includes('DONE')) return false
+
+    const startDate = task.plannedStartDate ? startOfDay(task.plannedStartDate) : null
+    const endDate = (task.dueDate || task.plannedEndDate) ? endOfDay(task.dueDate || task.plannedEndDate) : null
+    const singleDate = startDate || endDate
+
+    if (!singleDate && showOnlyDated.value) return false
     if (!singleDate) return false
-    const d = new Date(singleDate)
-    return d.getFullYear() === date.getFullYear() && d.getMonth() === date.getMonth() && d.getDate() === date.getDate()
+
+    if (startDate && endDate) {
+      return startDate <= dayEnd && endDate >= dayStart
+    }
+
+    return startOfDay(singleDate).getTime() === dayStart.getTime()
   })
 }
 
-const visibleTasksForDay = (date) => getTasksForDay(date).slice(0, taskLimit.value)
+const dayKey = (date) => startOfDay(date).toISOString().slice(0, 10)
 
-const toggleTaskLimit = () => {
-  taskLimit.value = taskLimit.value === 2 ? 6 : 2
+const visibleTasksForDay = (date) => {
+  const tasks = getTasksForDay(date)
+  return expandedDayKey.value === dayKey(date) ? tasks : tasks.slice(0, 2)
+}
+
+const hiddenCountForDay = (date) => Math.max(0, getTasksForDay(date).length - visibleTasksForDay(date).length)
+
+const toggleTaskLimit = (date) => {
+  const key = dayKey(date)
+  expandedDayKey.value = expandedDayKey.value === key ? '' : key
 }
 
 const isToday = (date) => {
-  const today = new Date()
-  return date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate()
+  const now = new Date()
+  return startOfDay(date).getTime() === startOfDay(now).getTime()
 }
 
 const formatDayNum = (date) => {
-  const day = date.getDate()
-  // Show month name for 1st day
-  if (day === 1) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    return `${months[date.getMonth()]} ${day}`
+  if (date.getDate() === 1) {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
-  return day
+  return `${date.getDate()}`
 }
 
 const getStatusColor = (statusName) => {
-  const s = (statusName || '').toUpperCase()
-  if (s.includes('DONE') || s.includes('COMPLETE')) return '#16a34a'
-  if (s.includes('PROGRESS') || s.includes('REVIEW')) return '#3b82f6'
-  if (s.includes('TODO')) return '#a855f7'
-  return '#6b7280'
+  const normalized = `${statusName || ''}`.toUpperCase()
+  if (normalized.includes('DONE') || normalized.includes('COMPLETE')) return '#16a34a'
+  if (normalized.includes('PROGRESS') || normalized.includes('REVIEW')) return '#2563eb'
+  if (normalized.includes('TODO')) return '#8b5cf6'
+  return '#64748b'
+}
+
+const isOverdueTask = (task) => {
+  if (!highlightOverdue.value || !task?.dueDate) return false
+  const normalized = `${task.statusName || ''}`.toUpperCase()
+  if (normalized.includes('DONE')) return false
+  return new Date(task.dueDate) < new Date()
 }
 
 const requestCreateTask = (date) => {
   emit('create-task', {
-    plannedStartDate: date.toISOString(),
-    dueDate: date.toISOString()
+    plannedStartDate: startOfDay(date).toISOString(),
+    dueDate: endOfDay(date).toISOString()
   })
+}
+
+const showTooltip = (event, date) => {
+  const tasks = getTasksForDay(date)
+  if (!tasks.length) return
+
+  tooltip.value = {
+    visible: true,
+    x: event.clientX + 12,
+    y: event.clientY + 12,
+    tasks: tasks.slice(0, 6),
+    label: startOfDay(date).toLocaleDateString('vi-VN')
+  }
+}
+
+const moveTooltip = (event) => {
+  if (!tooltip.value.visible) return
+  tooltip.value.x = event.clientX + 12
+  tooltip.value.y = event.clientY + 12
+}
+
+const hideTooltip = () => {
+  tooltip.value.visible = false
+}
+
+function startOfDay(value) {
+  const date = new Date(value)
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
+function endOfDay(value) {
+  const date = new Date(value)
+  date.setHours(23, 59, 59, 999)
+  return date
 }
 </script>
 
 <template>
   <div class="plane-calendar">
-    <!-- Calendar Header -->
     <div class="cal-header">
       <div class="cal-nav">
-        <button class="nav-btn" @click="prevMonth"><i class="fa-solid fa-chevron-left"></i></button>
-        <button class="nav-btn" @click="nextMonth"><i class="fa-solid fa-chevron-right"></i></button>
+        <button class="nav-btn" type="button" @click="prevMonth"><i class="fa-solid fa-chevron-left"></i></button>
+        <button class="nav-btn" type="button" @click="nextMonth"><i class="fa-solid fa-chevron-right"></i></button>
         <h2 class="cal-month-label">{{ monthLabel }}</h2>
       </div>
+
       <div class="cal-actions">
-        <button class="cal-btn" @click="goToday">Today</button>
+        <button class="cal-btn" type="button" @click="goToday">Today</button>
         <div class="cal-options">
-          <button class="cal-btn" @click="showOptions = !showOptions">
+          <button class="cal-btn" type="button" @click="showOptions = !showOptions">
             Options <i class="fa-solid fa-chevron-down"></i>
           </button>
-          <div class="cal-options-menu" v-if="showOptions">
-            <label class="cal-option-row">
-              <input type="checkbox" v-model="showOnlyDated" />
-              Show dated work items
-            </label>
-            <div class="cal-option-empty">Month view is active.</div>
+          <div v-if="showOptions" class="cal-options-menu">
+            <label class="cal-option-row"><input v-model="showOnlyDated" type="checkbox" /> Show dated work items</label>
+            <label class="cal-option-row"><input v-model="showDoneTasks" type="checkbox" /> Show done work items</label>
+            <label class="cal-option-row"><input v-model="highlightOverdue" type="checkbox" /> Highlight overdue</label>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Calendar Grid -->
     <div class="cal-grid">
-      <!-- Day headers -->
-      <div class="cal-day-header" v-for="d in weekDays" :key="d">{{ d }}</div>
-      
-      <!-- Day cells -->
-      <div 
-        class="cal-day-cell" 
-        v-for="(day, idx) in calendarDays" 
-        :key="idx"
-        :class="{ 
-          'other-month': !day.isCurrentMonth,
-          'is-today': isToday(day.date)
-        }"
+      <div v-for="dayName in weekDays" :key="dayName" class="cal-day-header">{{ dayName }}</div>
+
+      <div
+        v-for="(day, index) in calendarDays"
+        :key="index"
+        class="cal-day-cell"
+        :class="{ 'other-month': !day.isCurrentMonth, 'is-today': isToday(day.date) }"
+        @mouseenter="showTooltip($event, day.date)"
+        @mousemove="moveTooltip"
+        @mouseleave="hideTooltip"
       >
-        <div class="day-number" :class="{ 'today-badge': isToday(day.date) }">
-          {{ formatDayNum(day.date) }}
-        </div>
+        <div class="day-number" :class="{ 'today-badge': isToday(day.date) }">{{ formatDayNum(day.date) }}</div>
+
         <div class="day-tasks">
-          <div 
-            v-for="task in visibleTasksForDay(day.date)" 
-            :key="task.id" 
+          <div
+            v-for="task in visibleTasksForDay(day.date)"
+            :key="task.id"
             class="day-task-chip"
+            :class="{ overdue: isOverdueTask(task) }"
             :style="{ borderLeft: `3px solid ${getStatusColor(task.statusName)}` }"
-            @click="$emit('open-task', task)"
-            :title="task.title"
+            @click="emit('open-task', task)"
+            @mouseenter.stop="showTooltip($event, day.date)"
           >
             <span class="chip-text">{{ task.title }}</span>
           </div>
-          <button v-if="getTasksForDay(day.date).length > taskLimit" type="button" class="day-more" @click="toggleTaskLimit">
-            + {{ getTasksForDay(day.date).length - taskLimit }} more
+
+          <button
+            v-if="hiddenCountForDay(day.date) > 0 || (getTasksForDay(day.date).length > 2 && expandedDayKey === dayKey(day.date))"
+            type="button"
+            class="day-more"
+            @click="toggleTaskLimit(day.date)"
+          >
+            {{ expandedDayKey === dayKey(day.date) ? 'Show less' : `+ ${hiddenCountForDay(day.date)} more` }}
           </button>
         </div>
-        <!-- Quick add -->
-        <button class="day-add-btn" type="button" v-if="day.isCurrentMonth" @click="requestCreateTask(day.date)">
+
+        <button v-if="day.isCurrentMonth" class="day-add-btn" type="button" @click="requestCreateTask(day.date)">
           <i class="fa-solid fa-plus"></i> Add work item
         </button>
+      </div>
+    </div>
+
+    <div
+      v-if="tooltip.visible"
+      class="calendar-tooltip"
+      :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
+    >
+      <div class="tooltip-title">{{ tooltip.label }}</div>
+      <div v-for="task in tooltip.tasks" :key="task.id" class="tooltip-row">
+        <span class="tooltip-dot" :style="{ background: getStatusColor(task.statusName) }"></span>
+        <span class="tooltip-text">{{ task.title }}</span>
       </div>
     </div>
   </div>
@@ -206,226 +268,224 @@ const requestCreateTask = (date) => {
 .plane-calendar {
   display: flex;
   flex-direction: column;
-  height: 100%;
   min-height: calc(100vh - 180px);
-  background: #0D0F11;
-  color: #E4E4E7;
+  background: #0d0f11;
+  color: #e4e4e7;
 }
 
-/* ── Header ── */
-.cal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 24px;
-  border-bottom: 1px solid #1E2025;
-}
-.cal-nav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.nav-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
-  border: 1px solid var(--border-color);
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  transition: all 0.15s;
-}
-.nav-btn:hover {
-  background: var(--hover-bg);
-  color: var(--text-primary);
-}
-.cal-month-label {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-left: 8px;
-}
+.cal-header,
+.cal-nav,
 .cal-actions {
   display: flex;
+  align-items: center;
+}
+
+.cal-header {
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid #1e2025;
+}
+
+.cal-nav,
+.cal-actions {
   gap: 8px;
 }
+
+.nav-btn,
+.cal-btn {
+  border: 1px solid #27272a;
+  border-radius: 4px;
+  background: #111317;
+  color: #a1a1aa;
+  cursor: pointer;
+}
+
+.nav-btn {
+  width: 30px;
+  height: 30px;
+}
+
+.cal-btn {
+  padding: 7px 14px;
+  font-size: 13px;
+}
+
+.cal-month-label {
+  margin: 0 0 0 8px;
+  font-size: 18px;
+}
+
 .cal-options {
   position: relative;
 }
+
 .cal-options-menu {
   position: absolute;
-  right: 0;
   top: calc(100% + 8px);
-  z-index: 10;
-  width: 220px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  right: 0;
+  z-index: 20;
+  min-width: 220px;
+  background: #111317;
+  border: 1px solid #27272a;
   border-radius: 8px;
   padding: 10px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
+
 .cal-option-row {
   display: flex;
-  align-items: center;
   gap: 8px;
-  color: var(--text-primary);
+  align-items: center;
+  color: #d4d4d8;
   font-size: 13px;
-}
-.cal-option-empty {
-  color: var(--text-muted);
-  font-size: 12px;
-  margin-top: 8px;
-}
-.cal-btn {
-  padding: 6px 14px;
-  border-radius: 4px;
-  border: 1px solid var(--border-color);
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.cal-btn:hover {
-  background: var(--hover-bg);
-  color: var(--text-primary);
-}
-.cal-btn i {
-  margin-left: 4px;
-  font-size: 10px;
+  padding: 6px 0;
 }
 
-/* ── Grid ── */
 .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   flex: 1;
-  border-left: 1px solid #1E2025;
+  border-left: 1px solid #1e2025;
 }
 
 .cal-day-header {
   padding: 10px 12px;
+  border-bottom: 1px solid #1e2025;
+  border-right: 1px solid #1e2025;
+  color: #71717a;
   font-size: 12px;
-  font-weight: 600;
-  color: #71717A;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 1px solid #1E2025;
-  border-right: 1px solid #1E2025;
   text-align: right;
 }
 
 .cal-day-cell {
-  min-height: 110px;
-  border-bottom: 1px solid #1E2025;
-  border-right: 1px solid #1E2025;
-  padding: 6px 8px;
-  display: flex;
-  flex-direction: column;
   position: relative;
-  transition: background 0.12s;
+  min-height: 120px;
+  padding: 6px 8px 32px;
+  border-bottom: 1px solid #1e2025;
+  border-right: 1px solid #1e2025;
 }
+
 .cal-day-cell:hover {
-  background: var(--hover-bg);
+  background: #12161b;
 }
+
 .cal-day-cell.other-month {
-  opacity: 0.35;
-}
-.cal-day-cell.other-month:hover {
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .day-number {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
+  margin-bottom: 6px;
   text-align: right;
-  margin-bottom: 4px;
-  line-height: 1;
-}
-.day-number.today-badge {
-  display: inline-flex;
-  align-self: flex-end;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: #3b82f6;
-  color: white;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 12px;
+  color: #a1a1aa;
+  font-size: 13px;
 }
 
-/* ── Tasks chips ── */
+.day-number.today-badge {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #ffffff;
+  margin-left: auto;
+}
+
 .day-tasks {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  flex: 1;
+  gap: 4px;
 }
+
 .day-task-chip {
-  padding: 3px 6px;
+  border-radius: 4px;
+  padding: 4px 6px;
+  background: #15181c;
   font-size: 11px;
-  color: var(--text-primary);
-  background: var(--bg-card);
-  border-radius: 3px;
   cursor: pointer;
-  transition: background 0.15s;
-  overflow: hidden;
 }
-.day-task-chip:hover {
-  background: var(--bg-hover);
+
+.day-task-chip.overdue {
+  background: rgba(239, 68, 68, 0.12);
 }
+
 .chip-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
+
 .day-more {
   border: 0;
   background: transparent;
+  color: #38bdf8;
   text-align: left;
-  font-size: 11px;
-  color: var(--text-muted);
-  padding: 2px 6px;
+  padding: 2px 4px;
   cursor: pointer;
-}
-.day-more:hover {
-  color: var(--text-primary);
+  font-size: 11px;
 }
 
-/* ── Quick Add ── */
 .day-add-btn {
-  border: 0;
-  background: transparent;
   position: absolute;
+  left: 6px;
+  right: 6px;
   bottom: 4px;
-  left: 4px;
-  right: 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #71717a;
   padding: 4px 6px;
-  font-size: 11px;
-  color: var(--text-muted);
-  border-radius: 3px;
+  text-align: left;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
+
 .cal-day-cell:hover .day-add-btn {
   opacity: 1;
 }
-.day-add-btn:hover {
-  background: var(--hover-bg);
-  color: var(--text-primary);
+
+.calendar-tooltip {
+  position: fixed;
+  z-index: 40;
+  width: 240px;
+  max-width: calc(100vw - 24px);
+  border: 1px solid #2d2f36;
+  border-radius: 8px;
+  background: #111317;
+  padding: 10px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.tooltip-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.tooltip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tooltip-text {
+  font-size: 12px;
+  color: #d4d4d8;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 </style>

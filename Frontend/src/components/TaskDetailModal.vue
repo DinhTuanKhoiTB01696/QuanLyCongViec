@@ -1,6 +1,6 @@
 <template>
   <transition name="fade">
-    <div class="task-modal-overlay" v-if="showTaskModal" @click.self="showTaskModal = false">
+    <div class="task-modal-overlay" v-if="showTaskModal" @mousedown.self="showTaskModal = false">
       
       <!-- MODE: CREATE NEW WORK ITEM (Image 1) -->
       <div class="create-centered-modal" v-if="selectedTask?.isNew">
@@ -181,8 +181,6 @@
          <div class="sp-header">
             <div class="sph-left">
                <i class="fa-solid fa-arrow-right icon-btn" @click="showTaskModal = false"></i>
-               <i class="fa-solid fa-expand icon-btn"></i>
-               <i class="fa-brands fa-markdown icon-btn"></i>
             </div>
             <div class="sph-right">
                <button class="unsub-btn" @click="toggleSubscription"><i class="fa-regular fa-bell-slash"></i> {{ isSubscribed ? 'Unsubscribe' : 'Subscribe' }}</button>
@@ -223,20 +221,19 @@
                     <button v-for="color in backgroundColors" :key="'bg-' + color" :style="{ background: color }" @click="applyBackgroundColor(color)"></button>
                   </div>
                 </div>
-                <i class="fa-solid fa-align-left icon-hover" @click="focusEditor('description'); execEditorCommand('justifyLeft')"></i>
-                <i class="fa-solid fa-align-center icon-hover" @click="focusEditor('description'); execEditorCommand('justifyCenter')"></i>
-                <i class="fa-solid fa-align-right icon-hover" @click="focusEditor('description'); execEditorCommand('justifyRight')"></i>
+                <i class="fa-solid fa-align-left icon-hover" @mousedown.prevent="execEditorCommand('justifyLeft', null, 'description')"></i>
+                <i class="fa-solid fa-align-center icon-hover" @mousedown.prevent="execEditorCommand('justifyCenter', null, 'description')"></i>
+                <i class="fa-solid fa-align-right icon-hover" @mousedown.prevent="execEditorCommand('justifyRight', null, 'description')"></i>
                 <div class="w-[1px] h-4 bg-gray-700 mx-1"></div>
-                <i class="fa-solid fa-bold icon-hover" @click="focusEditor('description'); execEditorCommand('bold')"></i>
-                <i class="fa-solid fa-italic icon-hover" @click="focusEditor('description'); execEditorCommand('italic')"></i>
-                <i class="fa-solid fa-underline icon-hover" @click="focusEditor('description'); execEditorCommand('underline')"></i>
-                <i class="fa-solid fa-strikethrough icon-hover" @click="focusEditor('description'); execEditorCommand('strikeThrough')"></i>
-                <i class="fa-solid fa-list-ul icon-hover" @click="focusEditor('description'); execEditorCommand('insertUnorderedList')"></i>
-                <i class="fa-solid fa-list-ol icon-hover" @click="focusEditor('description'); execEditorCommand('insertOrderedList')"></i>
-                <i class="fa-solid fa-file-code icon-hover" @click="focusEditor('description'); wrapSelectionWithBlock('pre')"></i>
+                <i class="fa-solid fa-bold icon-hover" @mousedown.prevent="execEditorCommand('bold', null, 'description')"></i>
+                <i class="fa-solid fa-italic icon-hover" @mousedown.prevent="execEditorCommand('italic', null, 'description')"></i>
+                <i class="fa-solid fa-underline icon-hover" @mousedown.prevent="execEditorCommand('underline', null, 'description')"></i>
+                <i class="fa-solid fa-strikethrough icon-hover" @mousedown.prevent="execEditorCommand('strikeThrough', null, 'description')"></i>
+                <i class="fa-solid fa-list-ul icon-hover" @mousedown.prevent="execEditorCommand('insertUnorderedList', null, 'description')"></i>
+                <i class="fa-solid fa-list-ol icon-hover" @mousedown.prevent="execEditorCommand('insertOrderedList', null, 'description')"></i>
+                <i class="fa-solid fa-file-code icon-hover" :class="{ 'is-active': codeMode.description }" @mousedown.prevent="toggleCodeBlockMode('description')"></i>
                 <div class="w-[1px] h-4 bg-gray-700 mx-1"></div>
-                <i class="fa-regular fa-image icon-hover" @click="triggerDescriptionImageUpload"></i>
-                <i class="fa-solid fa-paperclip icon-hover" @click="triggerDescriptionFileUpload"></i>
+                <i class="fa-regular fa-image icon-hover" @mousedown.prevent="triggerDescriptionImageUpload"></i>
               </div>
               <div
                 ref="descriptionEditor"
@@ -244,6 +241,7 @@
                 contenteditable
                 :data-placeholder="selectedTask?.description ? '' : 'Click to add description'"
                 @focus="activeEditor = 'description'"
+                @keydown="handleEditorKeydown($event, 'description')"
                 @mouseup="showSelectionToolbar"
                 @keyup="showSelectionToolbar"
                 @contextmenu.prevent="showSelectionToolbar"
@@ -258,8 +256,8 @@
             <div class="sp-sub-actions">
                <i class="fa-regular fa-face-smile icon-btn" style="font-size: 16px;"></i>
                <div class="sp-edit-info">
-                  <i class="fa-solid fa-clock-rotate-left"></i> Last edited by <b>dsa</b> about 10 hours ago <i class="fa-solid fa-chevron-down"></i>
-               </div>
+                  <i class="fa-solid fa-clock-rotate-left"></i> Last edited by <b>{{ lastEditedBy }}</b> {{ lastEditedRelative }}
+                </div>
             </div>
 
             <!-- Action Chips -->
@@ -304,9 +302,15 @@
                 <button class="quick-subtask-save" @click="submitSubtask">Create</button>
               </div>
             </div>
-            <div v-if="subtasksList.length" class="subtask-list">
-              <button
-                v-for="subtask in subtasksList"
+             <div class="subtask-toggle-row" v-if="subtasksList.length">
+               <button class="subtask-toggle-btn" @click="showSubtasks = !showSubtasks">
+                 <i :class="showSubtasks ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash'"></i>
+                 {{ showSubtasks ? 'Hide sub-work items' : 'Show sub-work items' }}
+               </button>
+             </div>
+             <div v-if="subtasksList.length && showSubtasks" class="subtask-list">
+               <button
+                 v-for="subtask in subtasksList"
                 :key="subtask.id"
                 class="subtask-item"
                 @click="openTaskDetail(subtask)"
@@ -557,19 +561,29 @@
                </div>
             </div>
 
-            <div class="activity-feed">
+            <div v-if="activityEntries.length" class="activity-feed">
                <div class="feed-item">
                   <div class="feed-icon"><i class="fa-solid fa-clone"></i></div>
-                  <div class="feed-text"><b>{{ props.currentUser?.fullName || 'Plane' }}</b> created the work item. <span class="muted-val">about 10 hours ago</span></div>
+                  <div class="feed-text"><b>{{ getCreatorName(selectedTask) }}</b> created the work item. <span class="muted-val">{{ formatRelativeTime(selectedTask?.createdAt) }}</span></div>
                </div>
-               
-               <div v-for="c in topLevelComments" :key="c.id" class="feed-item group">
-                  <div class="feed-avatar">{{ c.fullName?.[0] || 'U' }}</div>
+
+               <div v-for="entry in activityEntries" :key="entry.id" class="feed-item group">
+                 <template v-if="entry.type === 'audit'">
+                   <div class="feed-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                   <div class="feed-content w-full">
+                     <div class="feed-text">
+                       <b>{{ entry.user || 'System' }}</b> {{ entry.summary }}
+                       <span class="muted-val">{{ formatRelativeTime(entry.timestamp) }}</span>
+                     </div>
+                   </div>
+                 </template>
+                 <template v-else>
+                  <div class="feed-avatar">{{ entry.comment.fullName?.[0] || 'U' }}</div>
                   <div class="feed-content w-full relative">
                     <div class="flex items-center justify-between">
                        <div>
-                          <span class="font-bold text-white text-[13px]">{{ c.fullName || 'User' }}</span> 
-                          <span class="text-gray-500 text-xs ml-2">commented {{ formatDate(c.createdAt) }} <span v-if="c.isEdited" class="italic">(edited)</span></span>
+                          <span class="font-bold text-white text-[13px]">{{ entry.comment.fullName || 'User' }}</span> 
+                          <span class="text-gray-500 text-xs ml-2">commented {{ formatDate(entry.comment.createdAt) }} <span v-if="entry.comment.isEdited" class="italic">(edited)</span></span>
                        </div>
                        
                        <!-- Hover Actions -->
@@ -585,7 +599,7 @@
                                 </div>
                                 <div class="p-2 text-xs font-semibold text-gray-400">Smileys & emotion</div>
                                 <div class="grid grid-cols-8 gap-1 p-2 max-h-[160px] overflow-y-auto no-scrollbar">
-                                  <div v-for="emoji in filteredEmojis" :key="emoji" @click="addReaction(c, emoji)" class="cursor-pointer text-lg text-center hover:bg-gray-700 rounded p-1">{{ emoji }}</div>
+                                  <div v-for="emoji in filteredEmojis" :key="emoji" @click="addReaction(entry.comment, emoji)" class="cursor-pointer text-lg text-center hover:bg-gray-700 rounded p-1">{{ emoji }}</div>
                                 </div>
                              </div>
                           </el-popover>
@@ -594,9 +608,9 @@
                              <i class="fa-solid fa-ellipsis text-gray-400 hover:text-white cursor-pointer px-1.5 py-1 rounded hover:bg-gray-700"></i>
                              <template #dropdown>
                                <el-dropdown-menu class="dark-dropdown" style="width: 150px;">
-                                 <el-dropdown-item @click="startEditingComment(c)"><i class="fa-solid fa-pen mr-2"></i> Edit</el-dropdown-item>
-                                 <el-dropdown-item @click="copyCommentLink(c.id)"><i class="fa-solid fa-link mr-2"></i> Copy link</el-dropdown-item>
-                                 <el-dropdown-item @click="deleteComment(c.id)" style="color: #f87171 !important;"><i class="fa-regular fa-trash-can mr-2"></i> Delete</el-dropdown-item>
+                                 <el-dropdown-item @click="startEditingComment(entry.comment)"><i class="fa-solid fa-pen mr-2"></i> Edit</el-dropdown-item>
+                                 <el-dropdown-item @click="copyCommentLink(entry.comment.id)"><i class="fa-solid fa-link mr-2"></i> Copy link</el-dropdown-item>
+                                 <el-dropdown-item @click="deleteComment(entry.comment.id)" style="color: #f87171 !important;"><i class="fa-regular fa-trash-can mr-2"></i> Delete</el-dropdown-item>
                                </el-dropdown-menu>
                              </template>
                           </el-dropdown>
@@ -604,24 +618,24 @@
                     </div>
                     
                     <!-- Editable vs Normal -->
-                    <div v-if="editingCommentId === c.id" class="mt-2">
+                    <div v-if="editingCommentId === entry.comment.id" class="mt-2">
                        <div class="editor-wrap !bg-[#1E2025]">
                           <textarea class="c-input bg-transparent border-none !h-[60px]" v-model="editingContent" autofocus></textarea>
                           <div class="c-toolbar flex justify-end gap-2 p-2">
                              <button class="px-3 py-1.5 text-xs rounded border border-gray-600 text-gray-300 hover:bg-gray-700 transition" @click="cancelEditingComment">Cancel</button>
-                             <button class="px-3 py-1.5 text-xs rounded bg-blue-600 text-white hover:bg-blue-700 transition" @click="saveEditedComment(c.id, c)">Update</button>
+                             <button class="px-3 py-1.5 text-xs rounded bg-blue-600 text-white hover:bg-blue-700 transition" @click="saveEditedComment(entry.comment.id, entry.comment)">Update</button>
                           </div>
                        </div>
                     </div>
                     <div v-else>
-                       <div class="mt-1 text-[14px] text-gray-300 format-comment-content" v-html="formatCommentDisplay(c.content)"></div>
-                        <div v-if="c.attachments?.length" class="comment-attachments">
+                       <div class="mt-1 text-[14px] text-gray-300 format-comment-content" v-html="formatCommentDisplay(entry.comment.content)"></div>
+                        <div v-if="entry.comment.attachments?.length" class="comment-attachments">
                            <button
-                             v-for="attachment in c.attachments"
+                             v-for="attachment in entry.comment.attachments"
                              :key="attachment.id"
                              type="button"
                              class="comment-attachment-chip"
-                             @click="handleAttachmentOpen(attachment)"
+                             @click="handleAttachmentOpen(attachment, entry.comment)"
                            >
                              <img v-if="isImageAttachment(attachment)" :src="resolveFileUrl(attachment.fileUrl)" :alt="attachment.fileName" class="comment-image-thumb" />
                              <i v-else class="fa-solid fa-paperclip"></i>
@@ -632,15 +646,17 @@
                         </div>
                        
                        <!-- Reactions -->
-                       <div class="flex flex-wrap gap-2 mt-2" v-if="c.reactions && Object.keys(c.reactions).length > 0">
-                          <div v-for="(count, emoji) in c.reactions" :key="emoji" class="flex items-center gap-1.5 bg-[#1E2025] border border-[#27272A] rounded-full px-2.5 py-0.5 cursor-pointer hover:bg-gray-700 transition-colors" @click="addReaction(c, emoji)">
+                       <div class="flex flex-wrap gap-2 mt-2" v-if="entry.comment.reactions && Object.keys(entry.comment.reactions).length > 0">
+                          <div v-for="(count, emoji) in entry.comment.reactions" :key="emoji" class="flex items-center gap-1.5 bg-[#1E2025] border border-[#27272A] rounded-full px-2.5 py-0.5 cursor-pointer hover:bg-gray-700 transition-colors" @click="addReaction(entry.comment, emoji)">
                              <span class="text-sm mt-px">{{ emoji }}</span> <span class="text-xs text-blue-400 font-medium">{{ count }}</span>
                           </div>
                        </div>
                     </div>
                   </div>
+                 </template>
                </div>
             </div>
+            <div v-else class="activity-empty-state">No activity yet.</div>
 
             <div class="comment-box">
                <p class="text-[13px] font-semibold mb-2 text-gray-400">Add comment</p>
@@ -658,28 +674,29 @@
                     contenteditable
                     data-placeholder="Click to add comment..."
                     @focus="activeEditor = 'comment'"
+                    @keydown="handleEditorKeydown($event, 'comment')"
                     @input="handleCommentEditorInput"
                   ></div>
                   <input ref="commentImageInput" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/*" style="display:none" multiple @change="handleCommentFileChange($event, true)" />
-                  <input ref="commentFileInput" type="file" style="display:none" multiple @change="handleCommentFileChange($event, false)" />
+                  <input ref="commentFileInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip,.rar,.ppt,.pptx" style="display:none" multiple @change="handleCommentFileChange($event, false)" />
                   <div class="c-toolbar">
                      <div class="ct-left">
-                       <i class="fa-solid fa-align-left icon-hover" @click="focusEditor('comment'); execEditorCommand('justifyLeft')"></i>
-                       <i class="fa-solid fa-align-center icon-hover" @click="focusEditor('comment'); execEditorCommand('justifyCenter')"></i>
-                       <i class="fa-solid fa-align-right icon-hover" @click="focusEditor('comment'); execEditorCommand('justifyRight')"></i>
+                       <i class="fa-solid fa-align-left icon-hover" @mousedown.prevent="execEditorCommand('justifyLeft', null, 'comment')"></i>
+                       <i class="fa-solid fa-align-center icon-hover" @mousedown.prevent="execEditorCommand('justifyCenter', null, 'comment')"></i>
+                       <i class="fa-solid fa-align-right icon-hover" @mousedown.prevent="execEditorCommand('justifyRight', null, 'comment')"></i>
                        <div class="w-[1px] h-4 bg-gray-700 mx-1"></div>
-                       <i class="fa-solid fa-bold icon-hover" @click="focusEditor('comment'); execEditorCommand('bold')"></i> 
-                       <i class="fa-solid fa-italic icon-hover" @click="focusEditor('comment'); execEditorCommand('italic')"></i> 
-                       <i class="fa-solid fa-underline icon-hover" @click="focusEditor('comment'); execEditorCommand('underline')"></i> 
-                       <i class="fa-solid fa-strikethrough icon-hover" @click="focusEditor('comment'); execEditorCommand('strikeThrough')"></i>
-                       <i class="fa-solid fa-code icon-hover ml-1" @click="focusEditor('comment'); wrapSelectionWithInlineCode()"></i>
-                       <i class="fa-solid fa-file-code icon-hover" @click="focusEditor('comment'); wrapSelectionWithBlock('pre')"></i>
+                       <i class="fa-solid fa-bold icon-hover" @mousedown.prevent="execEditorCommand('bold', null, 'comment')"></i> 
+                       <i class="fa-solid fa-italic icon-hover" @mousedown.prevent="execEditorCommand('italic', null, 'comment')"></i> 
+                       <i class="fa-solid fa-underline icon-hover" @mousedown.prevent="execEditorCommand('underline', null, 'comment')"></i> 
+                       <i class="fa-solid fa-strikethrough icon-hover" @mousedown.prevent="execEditorCommand('strikeThrough', null, 'comment')"></i>
+                       <i class="fa-solid fa-code icon-hover ml-1" @mousedown.prevent="wrapSelectionWithInlineCode('comment')"></i>
+                       <i class="fa-solid fa-file-code icon-hover" :class="{ 'is-active': codeMode.comment }" @mousedown.prevent="toggleCodeBlockMode('comment')"></i>
                        <div class="w-[1px] h-4 bg-gray-700 mx-1"></div>
-                       <i class="fa-solid fa-list-ul icon-hover" @click="focusEditor('comment'); execEditorCommand('insertUnorderedList')"></i> 
-                       <i class="fa-solid fa-list-ol icon-hover" @click="focusEditor('comment'); execEditorCommand('insertOrderedList')"></i> 
+                       <i class="fa-solid fa-list-ul icon-hover" @mousedown.prevent="execEditorCommand('insertUnorderedList', null, 'comment')"></i> 
+                       <i class="fa-solid fa-list-ol icon-hover" @mousedown.prevent="execEditorCommand('insertOrderedList', null, 'comment')"></i> 
                        <div class="w-[1px] h-4 bg-gray-700 mx-1"></div>
-                       <i class="fa-regular fa-image icon-hover" @click="triggerCommentImageUpload"></i> 
-                       <i class="fa-solid fa-paperclip icon-hover" @click="triggerCommentFileUpload"></i>
+                       <i class="fa-regular fa-image icon-hover" @mousedown.prevent="triggerCommentImageUpload"></i> 
+                       <i class="fa-solid fa-paperclip icon-hover" @mousedown.prevent="triggerCommentFileUpload"></i>
                      </div>
                      <button class="c-submit" :style="commentHasContent ? { background: 'oklch(0.6311 0.126281 238.01)', color: '#fff', cursor: 'pointer' } : {}" :disabled="!commentHasContent" @click="submitComment">Comment</button>
                   </div>
@@ -694,12 +711,19 @@
   <div v-if="previewImage" class="image-lightbox" @click.self="previewImage = null">
     <div class="image-lightbox-panel">
       <button class="lightbox-close" @click="previewImage = null"><i class="fa-solid fa-xmark"></i></button>
-      <img :src="previewImage.url" :alt="previewImage.fileName" />
+      <img :src="previewImage.url" :alt="previewImage.fileName" :style="{ transform: `scale(${previewZoom})` }" />
       <div class="lightbox-footer">
         <span>{{ previewImage.fileName }}</span>
-        <a :href="previewImage.url" :download="previewImage.fileName" class="download-btn">
-          <i class="fa-solid fa-download"></i> Download
-        </a>
+        <div class="lightbox-actions">
+          <label class="zoom-control">
+            <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
+            <input v-model="previewZoom" type="range" min="1" max="3" step="0.1" />
+          </label>
+          <button class="lightbox-delete" @click="removePreviewAttachment"><i class="fa-regular fa-trash-can"></i> Delete</button>
+          <a :href="previewImage.url" :download="previewImage.fileName" class="download-btn">
+            <i class="fa-solid fa-download"></i> Download
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -723,6 +747,7 @@ const emit = defineEmits(['updateTask', 'close', 'open-task', 'create-subtask', 
 const showTaskModal = ref(true);
 const isSubscribed = ref(true);
 const activitySortNewestFirst = ref(true);
+const showSubtasks = ref(true);
 
 const discardNewTask = () => {
     if (props.selectedTask) {
@@ -776,7 +801,12 @@ const filteredModules = computed(() => {
 });
 
 const filteredParents = computed(() => {
-    let tasks = cachedProjectTasks.value.filter(t => t.id !== props.selectedTask?.id);
+    let tasks = cachedProjectTasks.value.filter(t =>
+      t.projectId === props.projectId &&
+      t.id !== props.selectedTask?.id &&
+      !t.parentTaskId &&
+      !t.parentId
+    );
     if (!parentSearch.value) return tasks;
     return tasks.filter(t => t.title?.toLowerCase().includes(parentSearch.value.toLowerCase()) || t.sequenceId?.toLowerCase().includes(parentSearch.value.toLowerCase()));
 });
@@ -949,6 +979,10 @@ const descriptionImageInput = ref(null);
 const descriptionFileInput = ref(null);
 const activeEditor = ref('comment');
 const previewImage = ref(null);
+const previewZoom = ref(1);
+const savedSelection = ref({ description: null, comment: null });
+const codeMode = ref({ description: false, comment: false });
+const auditEntries = ref([]);
 const apiRoot = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5136/api').replace(/\/api\/?$/, '');
 const showFormatToolbar = ref(false);
 const toolbarPosition = ref({ x: 260, y: 120 });
@@ -965,6 +999,31 @@ const openPicker = (key) => {
   else if (picker?.focus) picker.focus();
 };
 
+const saveEditorSelection = (editorName = activeEditor.value) => {
+  const selection = window.getSelection();
+  if (!selection || !selection.rangeCount) return;
+
+  const target = editorName === 'description' ? descriptionEditor.value : commentEditor.value;
+  const range = selection.getRangeAt(0);
+  if (target?.contains(range.commonAncestorContainer)) {
+    savedSelection.value[editorName] = range.cloneRange();
+  }
+};
+
+const restoreEditorSelection = (editorName = activeEditor.value) => {
+  const range = savedSelection.value[editorName];
+  const target = editorName === 'description' ? descriptionEditor.value : commentEditor.value;
+  if (!target) return;
+
+  target.focus();
+  if (!range) return;
+
+  const selection = window.getSelection();
+  if (!selection) return;
+  selection.removeAllRanges();
+  selection.addRange(range);
+};
+
 const focusEditor = (editorName) => {
   activeEditor.value = editorName;
   const target = editorName === 'description' ? descriptionEditor.value : commentEditor.value;
@@ -973,21 +1032,25 @@ const focusEditor = (editorName) => {
 
 const getActiveEditorElement = () => activeEditor.value === 'description' ? descriptionEditor.value : commentEditor.value;
 
-const execEditorCommand = (command, value = null) => {
-  const editor = getActiveEditorElement();
+const execEditorCommand = (command, value = null, editorName = activeEditor.value) => {
+  const editor = editorName === 'description' ? descriptionEditor.value : commentEditor.value;
   if (!editor) return;
-  editor.focus();
+  activeEditor.value = editorName;
+  restoreEditorSelection(editorName);
   document.execCommand(command, false, value);
-  syncEditorModel(activeEditor.value);
+  saveEditorSelection(editorName);
+  syncEditorModel(editorName);
 };
 
 const showSelectionToolbar = () => {
   activeEditor.value = 'description';
   const selection = window.getSelection();
   if (!selection || !selection.rangeCount || selection.toString().trim().length === 0) {
+    showFormatToolbar.value = false;
     return;
   }
 
+  saveEditorSelection('description');
   const range = selection.getRangeAt(0);
   const rect = range.getBoundingClientRect();
   toolbarPosition.value = {
@@ -998,15 +1061,15 @@ const showSelectionToolbar = () => {
 };
 
 const applyBlockFormat = (tagName) => {
-  execEditorCommand('formatBlock', tagName);
+  execEditorCommand('formatBlock', tagName, 'description');
 };
 
 const applyTextColor = (color) => {
-  execEditorCommand('foreColor', color);
+  execEditorCommand('foreColor', color, 'description');
 };
 
 const applyBackgroundColor = (color) => {
-  execEditorCommand('hiliteColor', color);
+  execEditorCommand('hiliteColor', color, 'description');
 };
 
 const insertNodeAtSelection = (node) => {
@@ -1023,14 +1086,17 @@ const insertNodeAtSelection = (node) => {
   syncEditorModel(activeEditor.value);
 };
 
-const wrapSelectionWithInlineCode = () => {
+const wrapSelectionWithInlineCode = (editorName = activeEditor.value) => {
+  restoreEditorSelection(editorName);
   const code = document.createElement('code');
   code.className = 'comment-inline-code';
   code.textContent = window.getSelection()?.toString() || 'code';
   insertNodeAtSelection(code);
+  saveEditorSelection(editorName);
 };
 
-const wrapSelectionWithBlock = (tagName) => {
+const wrapSelectionWithBlock = (tagName, editorName = activeEditor.value) => {
+  restoreEditorSelection(editorName);
   const block = document.createElement(tagName);
   if (tagName === 'pre') {
     const code = document.createElement('code');
@@ -1041,6 +1107,49 @@ const wrapSelectionWithBlock = (tagName) => {
     block.textContent = window.getSelection()?.toString() || '';
   }
   insertNodeAtSelection(block);
+  saveEditorSelection(editorName);
+};
+
+const toggleCodeBlockMode = (editorName) => {
+  activeEditor.value = editorName;
+  restoreEditorSelection(editorName);
+  const selection = window.getSelection();
+  const anchor = selection?.anchorNode;
+  const container = anchor?.nodeType === Node.ELEMENT_NODE ? anchor : anchor?.parentElement;
+  const existingPre = container?.closest?.('pre');
+
+  if (existingPre) {
+    const replacement = document.createElement('p');
+    replacement.innerHTML = existingPre.querySelector('code')?.innerHTML || existingPre.innerHTML || '<br />';
+    existingPre.replaceWith(replacement);
+    codeMode.value = { ...codeMode.value, [editorName]: false };
+    syncEditorModel(editorName);
+    return;
+  }
+
+  wrapSelectionWithBlock('pre', editorName);
+  codeMode.value = { ...codeMode.value, [editorName]: true };
+};
+
+const handleEditorKeydown = (event, editorName) => {
+  activeEditor.value = editorName;
+  saveEditorSelection(editorName);
+
+  if (event.key === 'Escape' && editorName === 'description') {
+    showFormatToolbar.value = false;
+    return;
+  }
+
+  if (event.key !== 'Enter') return;
+
+  const selection = window.getSelection();
+  const anchor = selection?.anchorNode;
+  const container = anchor?.nodeType === Node.ELEMENT_NODE ? anchor : anchor?.parentElement;
+  if (codeMode.value[editorName] || container?.closest?.('pre')) {
+    event.preventDefault();
+    document.execCommand('insertHTML', false, '\n');
+    syncEditorModel(editorName);
+  }
 };
 
 const syncEditorModel = (editorName) => {
@@ -1137,6 +1246,7 @@ const saveEditedComment = async (cId, cRef) => {
         cRef.content = editingContent.value;
         cRef.isEdited = true;
         cancelEditingComment();
+        fetchAuditTimeline();
         ElMessage.success("Đã cập nhật bình luận");
     } catch(e) { ElMessage.error("Lỗi khi sửa"); }
 };
@@ -1144,6 +1254,7 @@ const deleteComment = async (cId) => {
     try {
         await axiosClient.delete(`/projects/${props.projectId}/WorkTasks/${props.selectedTask.id}/comments/${cId}`);
         comments.value = comments.value.filter(cm => cm.id !== cId);
+        fetchAuditTimeline();
         ElMessage.success("Đã xoá bình luận");
     } catch(e) { ElMessage.error("Lỗi xóa bình luận"); }
 };
@@ -1176,7 +1287,6 @@ const handleTaskMenuCommand = (command) => {
 
 const toggleActivitySort = () => {
     activitySortNewestFirst.value = !activitySortNewestFirst.value;
-    comments.value = [...comments.value].reverse();
     ElMessage.success(activitySortNewestFirst.value ? 'Activity mới nhất trước' : 'Activity cũ nhất trước');
 };
 
@@ -1206,10 +1316,19 @@ const duplicateTask = async () => {
 const showActivityFilterInfo = () => {
     ElMessage.info('Activity đang hiển thị bình luận và cập nhật hiện có.');
 };
-const addReaction = (c, emoji) => {
-    if(!c.reactions) c.reactions = {};
-    if(!c.reactions[emoji]) c.reactions[emoji] = 0;
-    c.reactions[emoji]++;
+const addReaction = async (c, emoji) => {
+    if (!props.selectedTask?.id || !c?.id) return;
+
+    const previousReactions = { ...(c.reactions || {}) };
+    c.reactions = { ...previousReactions, [emoji]: (previousReactions[emoji] || 0) + 1 };
+
+    try {
+        const res = await axiosClient.post(`/projects/${props.projectId}/WorkTasks/${props.selectedTask.id}/comments/${c.id}/reactions`, { emoji });
+        c.reactions = res.data?.data?.reactions || c.reactions;
+    } catch (error) {
+        c.reactions = previousReactions;
+        ElMessage.error(error.response?.data?.message || 'Khong the them reaction');
+    }
 };
 
 const fetchAdditionalProjectData = async () => {
@@ -1285,6 +1404,52 @@ const formatDate = (dateStr) => {
   return d.toLocaleDateString('vi-VN');
 };
 
+const fetchAuditTimeline = async () => {
+    if (!props.selectedTask?.id) {
+      auditEntries.value = [];
+      return;
+    }
+
+    try {
+      const res = await axiosClient.get('/auditlogs', {
+        params: {
+          taskId: props.selectedTask.id,
+          limit: 50
+        }
+      });
+      auditEntries.value = res.data?.data?.items || [];
+    } catch (error) {
+      auditEntries.value = [];
+    }
+};
+
+const formatRelativeTime = (dateStr) => {
+  if (!dateStr) return 'just now';
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return 'just now';
+
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.max(0, Math.floor(diffMs / 60000));
+
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+
+  const diffWeeks = Math.floor(diffDays / 7);
+  if (diffWeeks < 5) return `${diffWeeks} week${diffWeeks === 1 ? '' : 's'} ago`;
+
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths < 12) return `${diffMonths} month${diffMonths === 1 ? '' : 's'} ago`;
+
+  const diffYears = Math.floor(diffDays / 365);
+  return `${diffYears} year${diffYears === 1 ? '' : 's'} ago`;
+};
+
 const resolveFileUrl = (url) => {
   if (!url) return '';
   if (/^https?:\/\//i.test(url)) return url;
@@ -1297,10 +1462,11 @@ const isImageAttachment = (attachment) => {
   return /^image\//i.test(type) || /\.(png|jpe?g|webp|gif|svg)$/i.test(name);
 };
 
-const handleAttachmentOpen = (attachment) => {
+const handleAttachmentOpen = (attachment, comment = null) => {
   const url = resolveFileUrl(attachment.fileUrl);
   if (isImageAttachment(attachment)) {
-    previewImage.value = { ...attachment, url };
+    previewZoom.value = 1;
+    previewImage.value = { ...attachment, url, commentId: comment?.id || null };
     return;
   }
 
@@ -1316,6 +1482,32 @@ const getCreatorName = (task) => {
   if (!task) return 'Creator';
   return task.reporterName || task.createdByName || task.creatorName || task.createdBy?.fullName || task.reporter?.fullName || 'Creator';
 };
+
+const removePreviewAttachment = async () => {
+  if (!previewImage.value?.commentId || !previewImage.value?.id) {
+    ElMessage.info('Delete attachment requires a dedicated backend endpoint.');
+    return;
+  }
+
+  try {
+    await axiosClient.delete(`/projects/${props.projectId}/WorkTasks/${props.selectedTask.id}/comments/${previewImage.value.commentId}/attachments/${previewImage.value.id}`);
+    const targetComment = comments.value.find(comment => comment.id === previewImage.value.commentId);
+    if (targetComment?.attachments) {
+      targetComment.attachments = targetComment.attachments.filter(item => item.id !== previewImage.value.id);
+    }
+    previewImage.value = null;
+    ElMessage.success('Attachment deleted');
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || 'Khong the xoa attachment');
+  }
+};
+
+const lastEditedBy = computed(() => {
+  if (!props.selectedTask) return 'Unknown';
+  return props.selectedTask.updatedByName || props.selectedTask.lastEditedBy || getCreatorName(props.selectedTask);
+});
+
+const lastEditedRelative = computed(() => formatRelativeTime(props.selectedTask?.updatedAt || props.selectedTask?.createdAt));
 
 const updateTaskField = (task, field, value) => {
   emit('updateTask', task, field, value);
@@ -1726,6 +1918,24 @@ const topLevelComments = computed(() => {
   return roots;
 });
 
+const activityEntries = computed(() => {
+  const commentEntries = topLevelComments.value.map(comment => ({
+    id: `comment-${comment.id}`,
+    type: 'comment',
+    timestamp: comment.updatedAt || comment.createdAt,
+    comment
+  }));
+
+  const auditTimelineEntries = (auditEntries.value || []).map(entry => ({
+    ...entry,
+    type: 'audit'
+  }));
+
+  const items = [...auditTimelineEntries, ...commentEntries];
+  const sorted = items.sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
+  return activitySortNewestFirst.value ? sorted : [...sorted].reverse();
+});
+
 const handleCommentFileChange = (event, imagesOnly = false) => {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
@@ -1766,6 +1976,7 @@ const submitComment = async () => {
         if (commentFileInput.value) commentFileInput.value.value = '';
         if (commentImageInput.value) commentImageInput.value.value = '';
         fetchComments();
+        fetchAuditTimeline();
     } catch(e) {
         ElMessage.error(e.response?.data?.message || "Lỗi khi gửi bình luận");
     }
@@ -1782,12 +1993,14 @@ watch(() => props.selectedTask, (newTask) => {
 
     if (newTask.id && !newTask.isNew) {
       fetchComments();
+      fetchAuditTimeline();
       fetchDependencies();
       fetchAssignedLabels();
       fetchSubtasks();
     } else {
       // Reset data for new tasks
       comments.value = [];
+      auditEntries.value = [];
       taskDependencies.value = [];
       assignedLabels.value = [];
       subtasksList.value = [];
@@ -1834,6 +2047,10 @@ watch(() => props.selectedTask, (newTask) => {
 .border-gray { border-color: #27272A; }
 .icon-btn { cursor: pointer; transition: color 0.2s; } .icon-btn:hover { color: #E5E7EB; }
 .icon-hover { cursor: pointer; padding: 4px; border-radius: 4px; } .icon-hover:hover { background: #27272A; }
+.icon-hover.is-active {
+  background: #1D4ED8;
+  color: #FFFFFF;
+}
 
 /* CENTRERED CREATION MODAL */
 .create-centered-modal {
@@ -2202,6 +2419,22 @@ watch(() => props.selectedTask, (newTask) => {
   margin-top: 10px;
 }
 
+.subtask-toggle-row {
+  margin: -10px 0 14px;
+}
+
+.subtask-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid #27272A;
+  color: #D4D4D8;
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
 .quick-subtask-cancel,
 .quick-subtask-save {
   border-radius: 6px;
@@ -2507,6 +2740,27 @@ watch(() => props.selectedTask, (newTask) => {
   padding: 0 14px;
   color: #D4D4D8;
 }
+.lightbox-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.zoom-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.zoom-control input {
+  width: 120px;
+}
+.lightbox-delete {
+  border: 1px solid #7F1D1D;
+  background: #450A0A;
+  color: #FCA5A5;
+  border-radius: 6px;
+  padding: 7px 10px;
+  cursor: pointer;
+}
 .download-btn {
   color: #fff;
   background: #2563EB;
@@ -2547,6 +2801,11 @@ watch(() => props.selectedTask, (newTask) => {
 
 .comment-list.ordered {
   list-style: decimal;
+}
+
+.activity-empty-state {
+  color: #71717A;
+  padding: 12px 0 24px;
 }
 
 .dark-dropdown { background: #1E2025 !important; border: 1px solid #333 !important; }

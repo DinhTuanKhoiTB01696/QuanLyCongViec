@@ -8,6 +8,8 @@ using System.Security.Claims;
 using System;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Text.Json;
+using TaskManagement.Domain.Entities;
 
 namespace TaskManagement.API.Controllers
 {
@@ -16,6 +18,11 @@ namespace TaskManagement.API.Controllers
     [Authorize]
     public class UsersController : ControllerBase
     {
+        private static readonly JsonSerializerOptions ProfileJsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
         private readonly ApplicationDbContext _context;
         private readonly IOtpService _otpService;
         private readonly IEmailService _emailService;
@@ -37,6 +44,8 @@ namespace TaskManagement.API.Controllers
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                .Include(u => u.DepartmentMemberships)
+                .ThenInclude(dm => dm.Department)
                 .FirstOrDefaultAsync(u => u.Id == userId);
                 
             if (user == null) return NotFound(new { message = "User not found" });
@@ -54,10 +63,18 @@ namespace TaskManagement.API.Controllers
 
             if (extraProfileSetting != null && !string.IsNullOrEmpty(extraProfileSetting.Value))
             {
-                try {
-                    extra = System.Text.Json.JsonSerializer.Deserialize<UpdateProfileRequest>(extraProfileSetting.Value) ?? extra;
-                } catch { }
+                try
+                {
+                    extra = JsonSerializer.Deserialize<UpdateProfileRequest>(extraProfileSetting.Value, ProfileJsonOptions) ?? extra;
+                }
+                catch
+                {
+                }
             }
+
+            var activeDepartment = user.DepartmentMemberships
+                .Select(dm => dm.Department)
+                .FirstOrDefault(department => department != null && department.IsActive && !department.IsDeleted);
 
             return Ok(new
             {
@@ -70,7 +87,7 @@ namespace TaskManagement.API.Controllers
                     avatarUrl = user.AvatarUrl,
                     publicName = string.IsNullOrEmpty(extra.PublicName) ? user.FullName : extra.PublicName,
                     jobTitle = extra.JobTitle,
-                    departmentName = extra.DepartmentName,
+                    departmentName = activeDepartment?.Name ?? extra.DepartmentName,
                     organizationName = extra.OrganizationName,
                     collaborationRules = extra.CollaborationRules,
                     hasPassword = !string.IsNullOrEmpty(user.PasswordHash),
@@ -99,7 +116,7 @@ namespace TaskManagement.API.Controllers
             var user = await _context.Users.FindAsync(userId);
             if (user == null) return NotFound(new { message = "User not found" });
 
-            user.FullName = request.FullName;
+            user.FullName = string.IsNullOrWhiteSpace(request.FullName) ? user.FullName : request.FullName.Trim();
             user.UpdatedAt = DateTime.UtcNow;
 
             var extraProfileSetting = await _context.SystemSettings
@@ -116,17 +133,48 @@ namespace TaskManagement.API.Controllers
                 _context.SystemSettings.Add(extraProfileSetting);
             }
 
-            var extraProfileData = new
+            extraProfileSetting.Value = JsonSerializer.Serialize(new UpdateProfileRequest
             {
-                publicName = request.PublicName,
-                jobTitle = request.JobTitle,
-                departmentName = request.DepartmentName,
-                organizationName = request.OrganizationName,
-                collaborationRules = request.CollaborationRules
-            };
-
-            extraProfileSetting.Value = System.Text.Json.JsonSerializer.Serialize(extraProfileData);
+                FullName = user.FullName,
+                PublicName = request.PublicName?.Trim() ?? string.Empty,
+                JobTitle = request.JobTitle?.Trim() ?? string.Empty,
+                DepartmentName = request.DepartmentName?.Trim() ?? string.Empty,
+                OrganizationName = request.OrganizationName?.Trim() ?? string.Empty,
+                CollaborationRules = request.CollaborationRules?.Trim() ?? string.Empty
+            });
             extraProfileSetting.LastModifiedAt = DateTime.UtcNow;
+
+            var normalizedDepartmentName = request.DepartmentName?.Trim();
+            var currentMemberships = await _context.DepartmentMembers
+                .Where(dm => dm.UserId == userId)
+                .ToListAsync();
+
+            if (string.IsNullOrWhiteSpace(normalizedDepartmentName))
+            {
+                if (currentMemberships.Count > 0)
+                {
+                    _context.DepartmentMembers.RemoveRange(currentMemberships);
+                }
+            }
+            else
+            {
+                var department = await _context.Departments
+                    .FirstOrDefaultAsync(d => d.IsActive && !d.IsDeleted && d.Name.ToLower() == normalizedDepartmentName.ToLower());
+
+                if (department != null)
+                {
+                    var alreadyAssigned = currentMemberships.Any(dm => dm.DepartmentId == department.Id);
+                    if (!alreadyAssigned)
+                    {
+                        _context.DepartmentMembers.RemoveRange(currentMemberships);
+                        _context.DepartmentMembers.Add(new DepartmentMember
+                        {
+                            DepartmentId = department.Id,
+                            UserId = userId
+                        });
+                    }
+                }
+            }
 
             await _context.SaveChangesAsync();
 

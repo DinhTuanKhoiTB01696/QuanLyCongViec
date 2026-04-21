@@ -6,6 +6,8 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
+using System;
+using System.Security.Claims;
 
 namespace TaskManagement.API.Controllers
 {
@@ -32,7 +34,11 @@ namespace TaskManagement.API.Controllers
         [HttpGet("ip-whitelist")]
         public async Task<IActionResult> GetIpWhitelist()
         {
-            // Verify admin access (omitted for brevity, assume global or add policy)
+            if (!CurrentUserHasAdminAccess())
+            {
+                return Forbid();
+            }
+
             var config = await _context.TenantConfigs.FirstOrDefaultAsync();
             if (config == null) return NotFound(new { statusCode = 404, message = "Global configuration not found." });
 
@@ -82,6 +88,11 @@ namespace TaskManagement.API.Controllers
         [HttpPut("ip-whitelist")]
         public async Task<IActionResult> UpdateIpWhitelist([FromBody] UpdateIpWhitelistRequest request)
         {
+            if (!CurrentUserHasAdminAccess())
+            {
+                return Forbid();
+            }
+
             var config = await _context.TenantConfigs.FirstOrDefaultAsync();
             if (config == null)
             {
@@ -94,6 +105,88 @@ namespace TaskManagement.API.Controllers
 
             await _context.SaveChangesAsync();
             return Ok(new { statusCode = 200, message = "IP Whitelist updated successfully.", data = new { isEnabled = request.IsEnabled, ips = finalIps } });
+        }
+
+        [HttpGet("accessible-projects")]
+        public async Task<IActionResult> GetAccessibleProjects()
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { statusCode = 401, message = "Unauthorized." });
+            }
+
+            var userRoles = await _context.UserRoles
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.Role.Name)
+                .ToListAsync();
+
+            var normalizedRoles = userRoles
+                .Select(role => role.Trim().ToLowerInvariant())
+                .ToHashSet();
+
+            var canAccessAllProjects = normalizedRoles.Overlaps(new[]
+            {
+                "superadmin",
+                "admin",
+                "system admin",
+                "organization admin",
+                "accessadmin",
+                "access admin"
+            });
+
+            var query = _context.Projects
+                .Where(project => !project.IsDeleted && !project.IsArchived);
+
+            if (!canAccessAllProjects)
+            {
+                var assignedProjectIds = await _context.ProjectMembers
+                    .Where(member => member.UserId == userId && member.Status)
+                    .Select(member => member.ProjectId)
+                    .Distinct()
+                    .ToListAsync();
+
+                query = query.Where(project => assignedProjectIds.Contains(project.Id));
+            }
+
+            var projects = await query
+                .OrderBy(project => project.Name)
+                .Select(project => new
+                {
+                    id = project.Id,
+                    name = project.Name,
+                    identifier = project.Identifier,
+                    networkType = project.NetworkType,
+                    status = project.Status ? "Active" : "Inactive"
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                statusCode = 200,
+                data = new
+                {
+                    canAccessAllProjects,
+                    items = projects
+                }
+            });
+        }
+
+        private bool CurrentUserHasAdminAccess()
+        {
+            return User.Claims
+                .Where(claim => claim.Type == ClaimTypes.Role || claim.Type == "role")
+                .Select(claim => claim.Value.Trim().ToLowerInvariant())
+                .Any(role => role is
+                    "superadmin" or
+                    "admin" or
+                    "system admin" or
+                    "organization admin" or
+                    "accessadmin" or
+                    "access admin" or
+                    "pm" or
+                    "po" or
+                    "project_manager");
         }
     }
 }

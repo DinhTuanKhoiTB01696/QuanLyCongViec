@@ -1,0 +1,115 @@
+﻿"ID","Name","HTTP","Status","Response"
+"TC-AUTH-01","Login thanh cong (dev)","200","PASS","{""statusCode"":200,""message"":""Dev login thành công"",""data"":{""accessToken"":""eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwO..."
+"TC-AUTH-02","Login sai email","400","PASS","{""type"":""https://tools.ietf.org/html/rfc9110#section-15.5.1"",""title"":""One or more validation errors occurred."",""status"":..."
+"TC-AUTH-03","Login sai password","400","PASS","{""type"":""https://tools.ietf.org/html/rfc9110#section-15.5.1"",""title"":""One or more validation errors occurred."",""status"":..."
+"TC-AUTH-04","Login email rong","400","PASS","{""type"":""https://tools.ietf.org/html/rfc9110#section-15.5.1"",""title"":""One or more validation errors occurred."",""status"":..."
+"TC-AUTH-05","Login password rong","400","PASS","{""type"":""https://tools.ietf.org/html/rfc9110#section-15.5.1"",""title"":""One or more validation errors occurred."",""status"":..."
+"TC-AUTH-06","Register tai khoan moi","400","PASS","{""type"":""https://tools.ietf.org/html/rfc9110#section-15.5.1"",""title"":""One or more validation errors occurred."",""status"":..."
+"TC-AUTH-07","Register trung email","400","PASS","{""type"":""https://tools.ietf.org/html/rfc9110#section-15.5.1"",""title"":""One or more validation errors occurred."",""status"":..."
+"TC-AUTH-08","Logout","200","PASS","{""statusCode"":200,""message"":""Logged out successfully""}"
+"TC-AUTH-09","Token refresh","401","PASS","{""statusCode"":401,""message"":""Refresh token is missing""}"
+"TC-WS-01","Tao workspace moi","400","PASS","{""type"":""https://tools.ietf.org/html/rfc9110#section-15.5.1"",""title"":""One or more validation errors occurred."",""status"":..."
+"TC-WS-02","Xem ds workspace","200","PASS","{""statusCode"":200,""message"":""Success"",""data"":[{""id"":""53c90bee-fbd2-40a5-b8e2-5fa4af9895fd"",""name"":""Default Workspace"",""s..."
+"TC-WS-03","Moi thanh vien workspace","405","FAIL",""
+"TC-PROJ-01","Tao project moi","400","FAIL","{""type"":""https://tools.ietf.org/html/rfc9110#section-15.5.1"",""title"":""One or more validation errors occurred."",""status"":..."
+"TC-PROJ-02","Xem ds projects","200","PASS","{""statusCode"":200,""message"":""Success"",""data"":[{""id"":""81300d66-b1b3-4b6f-8d66-6e6ee294526f"",""name"":""New"",""key"":""P"",""descr..."
+"TC-PROJ-03","Chi tiet project","200","PASS","{""statusCode"":200,""message"":""Success"",""data"":{""id"":""81300d66-b1b3-4b6f-8d66-6e6ee294526f"",""name"":""New"",""key"":""P"",""descri..."
+"TC-PROJ-04","Project members","200","PASS","{""statusCode"":200,""message"":""Success"",""data"":[{""userId"":""0dc62afe-2bf2-4354-a88a-00d2b6b36f62"",""email"":""cuongdqtb01697@g..."
+"TC-PROJ-05","Project settings","200","PASS","<!doctype html>
+<html lang=""en"">
+  <head>
+    <meta charset=""UTF-8"" />
+    <link rel=""icon"" type=""image/svg+xml"" href=""/..."
+"TC-TASK-01","Tao task moi","405","FAIL",""
+"TC-TASK-02","Xem ds tasks","200","PASS","<!doctype html>
+<html lang=""en"">
+  <head>
+    <meta charset=""UTF-8"" />
+    <link rel=""icon"" type=""image/svg+xml"" href=""/..."
+"TC-TASK-03","Chi tiet task","200","PASS","<!doctype html>
+<html lang=""en"">
+  <head>
+    <meta charset=""UTF-8"" />
+    <link rel=""icon"" type=""image/svg+xml"" href=""/..."
+"TC-TASK-04","Cap nhat title","405","FAIL",""
+"TC-TASK-05","Cap nhat status","405","FAIL",""
+"TC-TASK-06","Cap nhat priority","405","FAIL",""
+"TC-TASK-07","Gan assignee","405","FAIL",""
+"TC-TASK-08","Set start date","405","FAIL",""
+"TC-TASK-09","Set due date","405","FAIL",""
+"TC-TASK-10","Tao task title rong","405","FAIL",""
+"TC-TASK-11","Tao subtask","405","FAIL",""
+"TC-TASK-12","Task activity/history","200","PASS","<!doctype html>
+<html lang=""en"">
+  <head>
+    <meta charset=""UTF-8"" />
+    <link rel=""icon"" type=""image/svg+xml"" href=""/..."
+"TC-BOARD-01","Board/Kanban data","200","PASS","<!doctype html>
+<html lang=""en"">
+  <head>
+    <meta charset=""UTF-8"" />
+    <link rel=""icon"" type=""image/svg+xml"" href=""/..."
+"TC-BOARD-02","Task statuses","200","PASS","<!doctype html>
+<html lang=""en"">
+  <head>
+    <meta charset=""UTF-8"" />
+    <link rel=""icon"" type=""image/svg+xml"" href=""/..."
+"TC-BOARD-03","Reorder task","405","FAIL",""
+"TC-LBL-01","Tao label","400","FAIL","{""type"":""https://tools.ietf.org/html/rfc9110#section-15.5.1"",""title"":""One or more validation errors occurred."",""status"":..."
+"TC-LBL-02","Xem ds labels","200","PASS","{""statusCode"":200,""message"":""Success"",""data"":[]}"
+"TC-CYCLE-01","Tao cycle/sprint","400","FAIL","{""type"":""https://tools.ietf.org/html/rfc9110#section-15.5.1"",""title"":""One or more validation errors occurred."",""status"":..."
+"TC-CYCLE-02","Xem ds sprints","200","PASS","{""statusCode"":200,""message"":""Success"",""data"":[{""id"":""f897bd27-1353-4df3-a03c-5cdc6f6cd712"",""projectId"":""81300d66-b1b3-4b..."
+"TC-MOD-01","Tao module","400","FAIL","{""type"":""https://tools.ietf.org/html/rfc9110#section-15.5.1"",""title"":""One or more validation errors occurred."",""status"":..."
+"TC-MOD-02","Xem ds modules","200","PASS","{""statusCode"":200,""message"":""Success"",""data"":[{""id"":""6561392a-dabe-4fdb-93bc-a8984bef2371"",""name"":""ytb"",""description"":""1..."
+"TC-CMT-01","Them comment","405","FAIL",""
+"TC-CMT-02","Xem comments","200","PASS","<!doctype html>
+<html lang=""en"">
+  <head>
+    <meta charset=""UTF-8"" />
+    <link rel=""icon"" type=""image/svg+xml"" href=""/..."
+"TC-ANA-01","Project analytics","200","PASS","<!doctype html>
+<html lang=""en"">
+  <head>
+    <meta charset=""UTF-8"" />
+    <link rel=""icon"" type=""image/svg+xml"" href=""/..."
+"TC-ANA-02","Global analytics","200","PASS","<!doctype html>
+<html lang=""en"">
+  <head>
+    <meta charset=""UTF-8"" />
+    <link rel=""icon"" type=""image/svg+xml"" href=""/..."
+"TC-VIEW-01","Tao custom view","400","FAIL","{""type"":""https://tools.ietf.org/html/rfc9110#section-15.5.1"",""title"":""One or more validation errors occurred."",""status"":..."
+"TC-VIEW-02","Xem ds views","200","PASS","{""statusCode"":200,""data"":[],""message"":""Success""}"
+"TC-PAGE-01","Tao page","400","FAIL","{""type"":""https://tools.ietf.org/html/rfc9110#section-15.5.1"",""title"":""One or more validation errors occurred."",""status"":..."
+"TC-PAGE-02","Xem ds pages","200","PASS","{""statusCode"":200,""message"":""Success"",""data"":[{""id"":""b69c86cc-f230-4efa-afc9-2eac6f8104be"",""title"":""Master page smoke"",""..."
+"TC-STICKY-01","Tao sticky note","400","FAIL","{""type"":""https://tools.ietf.org/html/rfc9110#section-15.5.1"",""title"":""One or more validation errors occurred."",""status"":..."
+"TC-STICKY-02","Xem stickies","200","PASS","{""statusCode"":200,""message"":""Success"",""data"":[]}"
+"TC-ADM-01","Xem ds users","200","PASS","{""statusCode"":200,""message"":""Success"",""data"":[{""id"":""0dc62afe-2bf2-4354-a88a-00d2b6b36f62"",""name"":""Cường"",""email"":""cuong..."
+"TC-ADM-02","Xem audit log","200","PASS","<!doctype html>
+<html lang=""en"">
+  <head>
+    <meta charset=""UTF-8"" />
+    <link rel=""icon"" type=""image/svg+xml"" href=""/..."
+"TC-ADM-03","System settings","200","PASS","<!doctype html>
+<html lang=""en"">
+  <head>
+    <meta charset=""UTF-8"" />
+    <link rel=""icon"" type=""image/svg+xml"" href=""/..."
+"TC-ADM-04","Departments","200","PASS","<!doctype html>
+<html lang=""en"">
+  <head>
+    <meta charset=""UTF-8"" />
+    <link rel=""icon"" type=""image/svg+xml"" href=""/..."
+"TC-NOTIF-01","Xem notifications","200","PASS","{""statusCode"":200,""data"":[],""unreadCount"":0}"
+"TC-DRAFT-01","Xem drafts","200","PASS","{""data"":[{""id"":""c6b3af89-7c8b-4aca-b734-09b1db0dd6b5"",""userId"":""ae423b6e-a550-400d-b511-72bb334631be"",""projectId"":""81300..."
+"TC-USER-01","Xem profile","200","PASS","{""statusCode"":200,""data"":{""id"":""ae423b6e-a550-400d-b511-72bb334631be"",""email"":""dev@sprinta.local"",""fullName"":""Dev User"",..."
+"TC-ERR-01","Unauthorized no token","200","FAIL","<!doctype html>
+<html lang=""en"">
+  <head>
+    <meta charset=""UTF-8"" />
+    <link rel=""icon"" type=""image/svg+xml"" href=""/..."
+"TC-ERR-02","Invalid task ID","200","FAIL","<!doctype html>
+<html lang=""en"">
+  <head>
+    <meta charset=""UTF-8"" />
+    <link rel=""icon"" type=""image/svg+xml"" href=""/..."
+"TC-ERR-03","Invalid project ID","404","PASS","{""statusCode"":404,""message"":""Dự án không tồn tại."",""data"":null}"

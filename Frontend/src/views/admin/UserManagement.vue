@@ -56,6 +56,93 @@
           </div>
         </div>
 
+        <div class="admin-config-grid">
+          <section class="admin-subcard">
+            <div class="subcard-header">
+              <div>
+                <h3>{{ t('Departments', 'Phòng ban') }}</h3>
+                <p>{{ t('Create and maintain departments used across user and project access.', 'Tạo và quản lý phòng ban dùng cho người dùng và phân quyền dự án.') }}</p>
+              </div>
+              <button type="button" class="primary-btn" @click="createDepartmentFromDraft">
+                <i class="fa-solid fa-plus"></i>
+                {{ t('Add department', 'Thêm phòng ban') }}
+              </button>
+            </div>
+
+            <div class="department-form">
+              <input v-model="departmentDraft.name" type="text" :placeholder="t('Department name', 'Tên phòng ban')" />
+              <label class="inline-check">
+                <input v-model="departmentDraft.isActive" type="checkbox" />
+                <span>{{ t('Active', 'Hoạt động') }}</span>
+              </label>
+              <label class="inline-check">
+                <input v-model="departmentDraft.require2FA" type="checkbox" />
+                <span>{{ t('Require 2FA', 'Bắt buộc 2FA') }}</span>
+              </label>
+            </div>
+
+            <div v-if="departments.length" class="department-list">
+              <div v-for="department in departments" :key="department.id" class="department-item">
+                <div class="department-copy">
+                  <strong>{{ department.name }}</strong>
+                  <span>{{ department.memberCount || 0 }} {{ t('members', 'thành viên') }}</span>
+                </div>
+                <div class="department-actions">
+                  <label class="inline-check">
+                    <input :checked="department.isActive" type="checkbox" @change="toggleDepartmentState(department, 'isActive', $event.target.checked)" />
+                    <span>{{ t('Active', 'Hoạt động') }}</span>
+                  </label>
+                  <label class="inline-check">
+                    <input :checked="department.require2FA" type="checkbox" @change="toggleDepartmentState(department, 'require2FA', $event.target.checked)" />
+                    <span>{{ t('2FA', '2FA') }}</span>
+                  </label>
+                  <button type="button" class="plain-action" @click="renameDepartment(department)">{{ t('Rename', 'Đổi tên') }}</button>
+                  <button type="button" class="plain-action danger-action" @click="removeDepartment(department)">{{ t('Remove', 'Xóa') }}</button>
+                </div>
+              </div>
+            </div>
+            <div v-else class="table-state compact-state">
+              <span>{{ t('No departments yet.', 'Chưa có phòng ban nào.') }}</span>
+            </div>
+          </section>
+
+          <section class="admin-subcard">
+            <div class="subcard-header">
+              <div>
+                <h3>{{ t('Project role mapping', 'Phân vai trò theo dự án') }}</h3>
+                <p>{{ t('Assign a role for each department inside a project.', 'Gán vai trò của từng phòng ban trong từng dự án.') }}</p>
+              </div>
+              <button type="button" class="primary-btn" @click="saveDepartmentProjectRole">
+                <i class="fa-solid fa-floppy-disk"></i>
+                {{ t('Save mapping', 'Lưu mapping') }}
+              </button>
+            </div>
+
+            <div class="assignment-grid">
+              <el-select v-model="departmentRoleDraft.projectId" clearable filterable :placeholder="t('Project', 'Dự án')" popper-class="admin-project-dropdown">
+                <el-option v-for="project in availableProjects" :key="project.id" :label="project.name" :value="project.id"></el-option>
+              </el-select>
+              <el-select v-model="departmentRoleDraft.departmentId" clearable filterable :placeholder="t('Department', 'Phòng ban')" popper-class="admin-project-dropdown">
+                <el-option v-for="department in departments" :key="department.id" :label="department.name" :value="department.id"></el-option>
+              </el-select>
+              <input v-model="departmentRoleDraft.roleName" type="text" :placeholder="t('Role name', 'Tên vai trò')" />
+            </div>
+
+            <div v-if="projectRoleAssignments.length" class="assignment-list">
+              <div v-for="assignment in projectRoleAssignments" :key="`${assignment.projectId}-${assignment.departmentId}-${assignment.roleName}`" class="assignment-item">
+                <div class="assignment-copy">
+                  <strong>{{ assignment.projectName }}</strong>
+                  <span>{{ assignment.departmentName }} - {{ assignment.roleName }}</span>
+                </div>
+                <button type="button" class="plain-action danger-action" @click="removeDepartmentProjectRole(assignment)">{{ t('Remove', 'Xóa') }}</button>
+              </div>
+            </div>
+            <div v-else class="table-state compact-state">
+              <span>{{ t('No project role mappings yet.', 'Chưa có mapping vai trò theo dự án.') }}</span>
+            </div>
+          </section>
+        </div>
+
         <section class="filters-row" aria-label="User filters">
           <div class="table-search">
             <i class="fa-solid fa-magnifying-glass"></i>
@@ -469,7 +556,7 @@ const nowTime = ref(Date.now())
 let timeInterval = null
 
 const adminUserStore = useAdminUserStore()
-const { users, loading } = storeToRefs(adminUserStore)
+const { users, loading, departments, projectRoleAssignments, availableProjects } = storeToRefs(adminUserStore)
 
 const fallbackOrganization = {
   organizationName: 'Global Organization',
@@ -483,6 +570,16 @@ const showExportModal = ref(false)
 const showPersonalMessage = ref(false)
 const isSubmitting = ref(false)
 const projectsList = ref([])
+const departmentDraft = ref({
+  name: '',
+  isActive: true,
+  require2FA: false
+})
+const departmentRoleDraft = ref({
+  projectId: null,
+  departmentId: null,
+  roleName: ''
+})
 const searchQuery = ref('')
 const inviteEmails = ref([])
 const inviteDraft = ref('')
@@ -693,6 +790,14 @@ const loadOrganizationProfile = async () => {
   }
 }
 
+const refreshAdminConfig = async () => {
+  await Promise.all([
+    adminUserStore.fetchDepartments(),
+    adminUserStore.fetchProjectRoleAssignments(),
+    adminUserStore.fetchAccessibleProjects()
+  ])
+}
+
 const makeOrganizationHandle = (value) => {
   const raw = String(value || 'sprinta').trim().toLowerCase()
   const withoutDomain = raw.includes('.') ? raw.split('.')[0] : raw
@@ -861,8 +966,8 @@ const resetInviteForm = () => {
 
 const loadProjects = async () => {
   try {
-    const res = await axiosClient.get('/projects')
-    projectsList.value = res.data?.data || []
+    const items = await adminUserStore.fetchAccessibleProjects()
+    projectsList.value = items
   } catch (error) {
     console.error('Failed to load projects', error)
   }
@@ -987,6 +1092,119 @@ const resolveUserSystemRole = (user) => {
   if (roles.some(role => role.includes('admin'))) return 'Admin'
   if (roles.some(role => ['developer', 'dev', 'pm', 'po', 'qa'].includes(role))) return 'Developer'
   return 'Member'
+}
+
+const createDepartmentFromDraft = async () => {
+  if (!departmentDraft.value.name.trim()) {
+    ElMessage.warning(t('Enter department name.', 'Vui lòng nhập tên phòng ban.'))
+    return
+  }
+
+  try {
+    await adminUserStore.createDepartment({
+      name: departmentDraft.value.name.trim(),
+      isActive: departmentDraft.value.isActive,
+      require2FA: departmentDraft.value.require2FA
+    })
+    departmentDraft.value = {
+      name: '',
+      isActive: true,
+      require2FA: false
+    }
+    ElMessage.success(t('Department created.', 'Đã tạo phòng ban.'))
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || t('Could not create department.', 'Không thể tạo phòng ban.'))
+  }
+}
+
+const renameDepartment = async (department) => {
+  try {
+    const { value } = await ElMessageBox.prompt(
+      t('Update department name', 'Cập nhật tên phòng ban'),
+      t('Rename department', 'Đổi tên phòng ban'),
+      {
+        inputValue: department.name,
+        inputPattern: /.+/,
+        inputErrorMessage: t('Department name is required.', 'Tên phòng ban là bắt buộc.')
+      }
+    )
+
+    await adminUserStore.updateDepartment(department.id, {
+      name: value.trim(),
+      isActive: department.isActive,
+      require2FA: department.require2FA,
+      managerId: department.managerId || null
+    })
+    ElMessage.success(t('Department updated.', 'Đã cập nhật phòng ban.'))
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.response?.data?.message || t('Could not update department.', 'Không thể cập nhật phòng ban.'))
+    }
+  }
+}
+
+const toggleDepartmentState = async (department, key, value) => {
+  try {
+    await adminUserStore.updateDepartment(department.id, {
+      name: department.name,
+      isActive: key === 'isActive' ? value : department.isActive,
+      require2FA: key === 'require2FA' ? value : department.require2FA,
+      managerId: department.managerId || null
+    })
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || t('Could not update department.', 'Không thể cập nhật phòng ban.'))
+  }
+}
+
+const removeDepartment = (department) => {
+  ElMessageBox.confirm(
+    t(`Remove ${department.name}?`, `Xóa ${department.name}?`),
+    t('Remove department', 'Xóa phòng ban'),
+    {
+      confirmButtonText: t('Remove', 'Xóa'),
+      cancelButtonText: t('Cancel', 'Hủy'),
+      type: 'warning'
+    }
+  ).then(async () => {
+    try {
+      await adminUserStore.deleteDepartment(department.id)
+      ElMessage.success(t('Department removed.', 'Đã xóa phòng ban.'))
+    } catch (error) {
+      ElMessage.error(error.response?.data?.message || t('Could not remove department.', 'Không thể xóa phòng ban.'))
+    }
+  }).catch(() => {})
+}
+
+const saveDepartmentProjectRole = async () => {
+  if (!departmentRoleDraft.value.projectId || !departmentRoleDraft.value.departmentId || !departmentRoleDraft.value.roleName.trim()) {
+    ElMessage.warning(t('Select project, department, and role.', 'Vui lòng chọn dự án, phòng ban và vai trò.'))
+    return
+  }
+
+  try {
+    await adminUserStore.saveProjectRoleAssignment({
+      projectId: departmentRoleDraft.value.projectId,
+      departmentId: departmentRoleDraft.value.departmentId,
+      roleName: departmentRoleDraft.value.roleName.trim()
+    })
+    departmentRoleDraft.value.roleName = ''
+    ElMessage.success(t('Project role mapping saved.', 'Đã lưu mapping vai trò dự án.'))
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || t('Could not save project role mapping.', 'Không thể lưu mapping vai trò dự án.'))
+  }
+}
+
+const removeDepartmentProjectRole = async (assignment) => {
+  try {
+    await adminUserStore.deleteProjectRoleAssignment({
+      projectId: assignment.projectId,
+      departmentId: assignment.departmentId,
+      roleName: assignment.roleName
+    })
+    ElMessage.success(t('Project role mapping removed.', 'Đã xóa mapping vai trò dự án.'))
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || t('Could not remove project role mapping.', 'Không thể xóa mapping vai trò dự án.'))
+  }
 }
 
 const submitInvite = async () => {
@@ -1136,7 +1354,8 @@ onMounted(async () => {
   timeInterval = setInterval(() => { nowTime.value = Date.now() }, 60000)
   await Promise.all([
     adminUserStore.fetchUsers(),
-    loadOrganizationProfile()
+    loadOrganizationProfile(),
+    refreshAdminConfig()
   ])
 })
 
@@ -1222,6 +1441,120 @@ onUnmounted(() => {
   border-radius: 12px;
   background: var(--bg-card);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+}
+
+.admin-config-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.admin-subcard {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 16px;
+}
+
+.subcard-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.subcard-header h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.subcard-header p {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.department-form,
+.assignment-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 0.8fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.department-form input,
+.assignment-grid input {
+  min-height: 36px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  padding: 0 12px;
+}
+
+.department-list,
+.assignment-list {
+  display: grid;
+  gap: 10px;
+}
+
+.department-item,
+.assignment-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.department-copy,
+.assignment-copy {
+  min-width: 0;
+}
+
+.department-copy strong,
+.department-copy span,
+.assignment-copy strong,
+.assignment-copy span {
+  display: block;
+}
+
+.department-copy strong,
+.assignment-copy strong {
+  color: var(--text-primary);
+}
+
+.department-copy span,
+.assignment-copy span {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.department-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.compact-state {
+  min-height: 96px;
 }
 
 .primary-btn,
@@ -2174,6 +2507,12 @@ onUnmounted(() => {
   }
 
   .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-config-grid,
+  .department-form,
+  .assignment-grid {
     grid-template-columns: 1fr;
   }
 }

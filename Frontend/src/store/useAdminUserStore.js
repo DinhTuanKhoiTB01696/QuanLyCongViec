@@ -1,10 +1,14 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { adminUserApi } from '@/api/adminUserApi';
+import axiosClient from '@/api/axiosClient';
 
 export const useAdminUserStore = defineStore('adminUsers', () => {
   const users = ref([]);
   const loading = ref(false);
+  const departments = ref([]);
+  const projectRoleAssignments = ref([]);
+  const availableProjects = ref([]);
 
   const fetchUsers = async (search = '') => {
     loading.value = true;
@@ -77,5 +81,82 @@ export const useAdminUserStore = defineStore('adminUsers', () => {
     }
   };
 
-  return { users, loading, fetchUsers, suspendUser, createUser, inviteUsers, removeUser };
+  const fetchDepartments = async () => {
+    try {
+      const res = await axiosClient.get('/admin/users/departments');
+      departments.value = res.data?.data || [];
+      return departments.value;
+    } catch (error) {
+      console.error('Failed to load departments:', error);
+      throw error;
+    }
+  };
+
+  const createDepartment = async (payload) => {
+    await axiosClient.post('/admin/users/departments', payload);
+    return fetchDepartments();
+  };
+
+  const updateDepartment = async (departmentId, payload) => {
+    await axiosClient.put(`/admin/users/departments/${departmentId}`, payload);
+    return fetchDepartments();
+  };
+
+  const deleteDepartment = async (departmentId) => {
+    await axiosClient.delete(`/admin/users/departments/${departmentId}`);
+    return fetchDepartments();
+  };
+
+  const fetchProjectRoleAssignments = async () => {
+    try {
+      const res = await axiosClient.get('/admin/users/project-role-assignments');
+      projectRoleAssignments.value = res.data?.data || [];
+      return projectRoleAssignments.value;
+    } catch (error) {
+      console.error('Failed to load project role assignments:', error);
+      throw error;
+    }
+  };
+
+  const saveProjectRoleAssignment = async (payload) => {
+    await axiosClient.put('/admin/users/project-role-assignments', payload);
+    return fetchProjectRoleAssignments();
+  };
+
+  const deleteProjectRoleAssignment = async (payload) => {
+    await axiosClient.delete('/admin/users/project-role-assignments', { data: payload });
+    return fetchProjectRoleAssignments();
+  };
+
+  const fetchAccessibleProjects = async () => {
+    try {
+      const res = await axiosClient.get('/security/accessible-projects');
+      availableProjects.value = res.data?.data?.items || [];
+      return availableProjects.value;
+    } catch (error) {
+      console.error('Failed to load accessible projects:', error);
+      throw error;
+    }
+  };
+
+  return {
+    users,
+    loading,
+    departments,
+    projectRoleAssignments,
+    availableProjects,
+    fetchUsers,
+    suspendUser,
+    createUser,
+    inviteUsers,
+    removeUser,
+    fetchDepartments,
+    createDepartment,
+    updateDepartment,
+    deleteDepartment,
+    fetchProjectRoleAssignments,
+    saveProjectRoleAssignment,
+    deleteProjectRoleAssignment,
+    fetchAccessibleProjects
+  };
 });

@@ -16,6 +16,7 @@ namespace TaskManagement.API.Controllers
     public class AiController : ControllerBase
     {
         private readonly IAiService _aiService;
+        private const int GeminiRetryAttempts = 3;
 
         public AiController(IAiService aiService)
         {
@@ -84,11 +85,15 @@ namespace TaskManagement.API.Controllers
 
                 if (request.CreateSubtasks)
                 {
-                    var created = await _aiService.BreakdownAndCreateSubtasksAsync(userId, request);
+                    var created = await ExecuteWithGeminiRetryAsync(
+                        () => _aiService.BreakdownAndCreateSubtasksAsync(userId, request),
+                        request.Title);
                     return Ok(ApiResponse<List<WorkTaskResponseDto>>.Success(created, "AI da phan ra va tao sub-work items."));
                 }
 
-                var subtasks = await _aiService.BreakdownTaskAsync(userId, request);
+                var subtasks = await ExecuteWithGeminiRetryAsync(
+                    () => _aiService.BreakdownTaskAsync(userId, request),
+                    request.Title);
                 return Ok(ApiResponse<List<AiSubTaskDto>>.Success(subtasks, "AI da phan tach cong viec thanh cong."));
             }
             catch (ArgumentException ex)
@@ -97,8 +102,69 @@ namespace TaskManagement.API.Controllers
             }
             catch (InvalidOperationException ex)
             {
+                if (IsTransientAiFailure(ex))
+                {
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                        ApiResponse<object>.Error(BuildGeminiFallbackMessage(request.Title)));
+                }
                 return BadRequest(ApiResponse<object>.Error(ex.Message));
             }
+            catch (HttpRequestException ex) when (IsTransientAiFailure(ex))
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    ApiResponse<object>.Error(BuildGeminiFallbackMessage(request.Title)));
+            }
+            catch (TaskCanceledException)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    ApiResponse<object>.Error(BuildGeminiFallbackMessage(request.Title)));
+            }
+        }
+
+        private async Task<T> ExecuteWithGeminiRetryAsync<T>(Func<Task<T>> action, string? title)
+        {
+            Exception? lastException = null;
+
+            for (var attempt = 1; attempt <= GeminiRetryAttempts; attempt++)
+            {
+                try
+                {
+                    return await action();
+                }
+                catch (Exception ex) when (IsTransientAiFailure(ex))
+                {
+                    lastException = ex;
+
+                    if (attempt == GeminiRetryAttempts)
+                    {
+                        break;
+                    }
+
+                    await Task.Delay(TimeSpan.FromMilliseconds(400 * attempt));
+                }
+            }
+
+            throw new InvalidOperationException(BuildGeminiFallbackMessage(title), lastException);
+        }
+
+        private static bool IsTransientAiFailure(Exception ex)
+        {
+            var message = ex.Message?.ToLowerInvariant() ?? string.Empty;
+
+            return ex is HttpRequestException
+                || ex is TaskCanceledException
+                || message.Contains("503")
+                || message.Contains("gemini unavailable")
+                || message.Contains("service unavailable")
+                || message.Contains("temporarily unavailable")
+                || message.Contains("quota")
+                || message.Contains("timeout");
+        }
+
+        private static string BuildGeminiFallbackMessage(string? title)
+        {
+            var safeTitle = string.IsNullOrWhiteSpace(title) ? "cong viec nay" : $"\"{title}\"";
+            return $"Gemini tam thoi khong san sang sau 3 lan thu lai. Ban co the thu lai sau it phut hoac tu tach {safeTitle} thanh 3-5 buoc nho: muc tieu, dau viec, kiem thu, ban giao.";
         }
 
         private Guid GetUserId()

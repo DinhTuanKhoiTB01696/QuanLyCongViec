@@ -58,16 +58,19 @@ export const useWorkTaskStore = defineStore('workTask', {
         throw err;
       }
     },
-    async updateTask(projectId, taskId, payload) {
+    async updateTask(projectId, taskId, payload, options = {}) {
       const index = this.tasks.findIndex(t => t.id === taskId);
       const previousTask = index >= 0 ? { ...this.tasks[index] } : null;
+      const method = options.method === 'put' ? 'put' : 'patch';
 
       if (index >= 0) {
         this.tasks[index] = { ...this.tasks[index], ...payload };
       }
 
       try {
-        const res = await axiosClient.patch(`/projects/${projectId}/WorkTasks/${taskId}`, payload);
+        const res = method === 'put'
+          ? await axiosClient.put(`/projects/${projectId}/WorkTasks/${taskId}`, payload)
+          : await axiosClient.patch(`/projects/${projectId}/WorkTasks/${taskId}`, payload);
         await this.fetchTasks(projectId);
         return res.data?.data;
       } catch (err) {

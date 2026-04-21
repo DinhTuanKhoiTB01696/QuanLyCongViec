@@ -154,13 +154,54 @@ using (var scope = app.Services.CreateScope())
         // await context.Database.EnsureCreatedAsync();
         if (context.Database.IsRelational())
         {
-            await context.Database.MigrateAsync();
+            try
+            {
+                await context.Database.MigrateAsync();
+            }
+            catch (Exception migrationEx)
+            {
+                Console.WriteLine("Migration warning/error, continuing with schema guard: " + migrationEx.Message);
+            }
+
+            await context.Database.ExecuteSqlRawAsync(@"
+IF COL_LENGTH('dbo.TaskDrafts', 'ProjectId') IS NULL
+BEGIN
+    ALTER TABLE dbo.TaskDrafts ADD ProjectId uniqueidentifier NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TaskDrafts_UserId_ProjectId_UpdatedAt' AND object_id = OBJECT_ID('dbo.TaskDrafts'))
+BEGIN
+    EXEC('CREATE INDEX IX_TaskDrafts_UserId_ProjectId_UpdatedAt ON dbo.TaskDrafts(UserId, ProjectId, UpdatedAt);');
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TaskDrafts_UserId_UpdatedAt' AND object_id = OBJECT_ID('dbo.TaskDrafts'))
+BEGIN
+    CREATE INDEX IX_TaskDrafts_UserId_UpdatedAt ON dbo.TaskDrafts(UserId, UpdatedAt);
+END;
+IF COL_LENGTH('dbo.Pages', 'IsPrivate') IS NULL
+BEGIN
+    ALTER TABLE dbo.Pages ADD IsPrivate bit NOT NULL CONSTRAINT DF_Pages_IsPrivate DEFAULT(0);
+END;
+IF COL_LENGTH('dbo.Pages', 'IsStarred') IS NULL
+BEGIN
+    ALTER TABLE dbo.Pages ADD IsStarred bit NOT NULL CONSTRAINT DF_Pages_IsStarred DEFAULT(0);
+END;
+IF COL_LENGTH('dbo.TaskDrafts', 'ProjectId') IS NOT NULL
+BEGIN
+    EXEC('
+        UPDATE td
+        SET ProjectId = TRY_CONVERT(uniqueidentifier, JSON_VALUE(td.PayloadJson, ''''$.projectId''''))
+        FROM dbo.TaskDrafts td
+        WHERE td.ProjectId IS NULL
+          AND ISJSON(td.PayloadJson) = 1
+          AND JSON_VALUE(td.PayloadJson, ''''$.projectId'''') IS NOT NULL;
+    ');
+END;
+");
         }
         await TaskManagement.Infrastructure.Data.DataSeeder.SeedMockDataAsync(context);
     }
     catch (Exception ex)
     {
-        Console.WriteLine("Lỗi khi Migrate/Seed: " + ex.Message);
+        Console.WriteLine("Lỗi khi Migrate/Seed: " + ex);
     }
 }
 

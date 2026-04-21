@@ -1,7 +1,11 @@
 export default [
   {
     path: '/ai-assistant',
+    alias: '/ai',
     name: 'AIPage',
-    component: () => import('../views/AIPage.vue')
+    component: () => import('../views/AIPage.vue'),
+    meta: {
+      title: 'AI Assistant'
+    }
   }
 ]

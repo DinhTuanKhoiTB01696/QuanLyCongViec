@@ -98,8 +98,10 @@ import axiosClient from '@/api/axiosClient'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import CreateSpaceModal from '@/components/CreateSpaceModal.vue'
 import { ElMessage } from 'element-plus'
+import { useProjectStore } from '@/store/useProjectStore'
 
 const router = useRouter()
+const projectStore = useProjectStore()
 const loading = ref(false)
 const spaces = ref([])
 const searchQuery = ref('')
@@ -119,8 +121,7 @@ const goToAdmin = (projectId) => {
     ElMessage.warning('You do not have permission to configure this project.')
     return
   }
-  const adminUrl = router.resolve('/admin/configuration').href
-  window.open(adminUrl, '_blank')
+  router.push(`/space/${projectId}/settings`)
 }
 
 const toggleSort = () => {
@@ -137,9 +138,16 @@ const copySpaceLink = async (space) => {
   }
 }
 
-const toggleStar = (space) => {
-  space.starred = !space.starred
-  ElMessage.success(space.starred ? 'Project starred' : 'Project unstarred')
+const toggleStar = async (space) => {
+  const nextFavorite = !space.starred
+  space.starred = nextFavorite
+  try {
+    await projectStore.updateFavorite(space.id, nextFavorite)
+    ElMessage.success(nextFavorite ? 'Project starred' : 'Project unstarred')
+  } catch (error) {
+    space.starred = !nextFavorite
+    ElMessage.error('Could not update favorite project')
+  }
 }
 
 const coverGradients = [
@@ -160,7 +168,7 @@ const fetchSpaces = async () => {
     // Transform data
     spaces.value = data.map(p => ({
       id: p.id,
-      starred: false,
+      starred: Boolean(p.isFavorite),
       name: p.name,
       key: p.key || p.identifier || p.name.substring(0, 4).toUpperCase(),
       leadName: p.leadName || p.reporterName || 'Admin',

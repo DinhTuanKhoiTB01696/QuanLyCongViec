@@ -1,38 +1,37 @@
 <template>
   <div class="plane-list-view">
-    <!-- Header Controls omitted here as they are managed by SpaceSummary.vue -->
-
     <div v-for="(group, key) in groupedTasks" :key="key" class="list-group">
-      <!-- Group Header -->
       <div class="group-header" @click="toggleGroup(key)">
         <div class="gh-left">
-           <i class="gh-chevron fa-solid" :class="collapsedGroups[key] ? 'fa-chevron-right' : 'fa-chevron-down'"></i>
-           <i class="status-icon" :class="group.iconClass" :style="{ color: group.color }"></i>
-           <span class="group-name">{{ group.name }}</span>
-           <span class="group-count">{{ group.tasks.length }}</span>
+          <i class="gh-chevron fa-solid" :class="collapsedGroups[key] ? 'fa-chevron-right' : 'fa-chevron-down'"></i>
+          <i class="status-icon" :class="group.iconClass" :style="{ color: group.color }"></i>
+          <span class="group-name">{{ group.name }}</span>
+          <span class="group-count">{{ group.tasks.length }}</span>
         </div>
         <div class="gh-right">
-           <i class="fa-solid fa-plus add-icon"></i>
+          <i class="fa-solid fa-plus add-icon"></i>
         </div>
       </div>
 
-      <!-- Group Tasks -->
-      <div class="group-content" v-show="!collapsedGroups[key]">
-        <div class="task-row" v-for="task in group.tasks" :key="task.id" @click="emit('task-click', task)">
+      <div v-show="!collapsedGroups[key]" class="group-content">
+        <div v-for="task in group.tasks" :key="task.id" class="task-row" @click="emit('task-click', task)">
           <div class="tr-left">
-            <span class="task-id">{{ task.sequenceId || task.id.substring(0,8).toUpperCase() }}</span>
-            <span class="task-title" :style="group.name === 'Done' ? { textDecoration: 'line-through', color: '#71717A' } : {}">
-               {{ task.title }}
-               <span v-if="task.description" style="margin-left: 6px; font-size: 13px;">{{ task.description.includes('đ') ? '🐶' : '📝' }}</span>
+            <span class="task-id">{{ task.sequenceId || task.id.substring(0, 8).toUpperCase() }}</span>
+            <span class="task-title" :style="group.name === 'Done' ? { textDecoration: 'line-through', color: '#71717a' } : {}">
+              {{ task.title }}
             </span>
           </div>
+
           <div class="tr-right">
-            <!-- Properties pills -->
+            <div class="task-progress-ring" :style="progressStyle(task)" :title="`${taskProgress(task)}% progress`">
+              <span class="ring-value">{{ taskProgress(task) }}</span>
+            </div>
+
             <div class="pill-group" @click.stop>
-              <el-dropdown trigger="click" @command="(val) => updateTaskProperty(task, 'statusName', val)">
-                <div class="pill pill-status cursor-pointer hover:bg-[#1E2025]">
-                   <i class="status-icon-sm" :class="group.iconClass" :style="{ color: group.color }"></i>
-                   {{ task.statusName || group.name }}
+              <el-dropdown trigger="click" @command="value => updateTaskProperty(task, 'statusName', value)">
+                <div class="pill">
+                  <i class="status-icon-sm" :class="group.iconClass" :style="{ color: group.color }"></i>
+                  {{ task.statusName || group.name }}
                 </div>
                 <template #dropdown>
                   <el-dropdown-menu class="plane-dropdown">
@@ -45,40 +44,40 @@
                 </template>
               </el-dropdown>
 
-              <el-dropdown trigger="click" @command="(val) => updateTaskProperty(task, 'priority', val)">
-                <div class="pill pill-priority cursor-pointer hover:bg-[#1E2025]">
-                   <i class="fa-solid fa-angles-up text-red-500" v-if="task.priority === 1"></i>
-                   <i class="fa-solid fa-chevron-up text-orange-500" v-else-if="task.priority === 2"></i>
-                   <i class="fa-solid fa-minus text-blue-500" v-else-if="task.priority === 3"></i>
-                   <i class="fa-solid fa-chevron-down text-gray-400" v-else></i>
+              <el-dropdown trigger="click" @command="value => updateTaskProperty(task, 'priority', value)">
+                <div class="pill">
+                  <i class="fa-solid fa-angles-up text-red-500" v-if="task.priority === 1"></i>
+                  <i class="fa-solid fa-chevron-up text-orange-500" v-else-if="task.priority === 2"></i>
+                  <i class="fa-solid fa-minus text-blue-500" v-else-if="task.priority === 3"></i>
+                  <i class="fa-solid fa-chevron-down text-gray-400" v-else></i>
                 </div>
                 <template #dropdown>
                   <el-dropdown-menu class="plane-dropdown">
-                    <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> Urgent</el-dropdown-item>
-                    <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> High</el-dropdown-item>
-                    <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> Normal</el-dropdown-item>
-                    <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> Low</el-dropdown-item>
+                    <el-dropdown-item :command="1">Urgent</el-dropdown-item>
+                    <el-dropdown-item :command="2">High</el-dropdown-item>
+                    <el-dropdown-item :command="3">Normal</el-dropdown-item>
+                    <el-dropdown-item :command="4">Low</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
-              
+
               <el-popover placement="bottom" trigger="click" width="260" popper-class="plane-popover">
                 <template #reference>
-                  <div class="pill pill-user cursor-pointer hover:bg-[#1E2025]">
-                     <div class="avatar-xxs">
-                        <i class="fa-regular fa-user" v-if="!getTaskAssigneeSummary(task).label"></i>
-                        <span v-else>{{ getTaskAssigneeSummary(task).avatar }}</span>
-                     </div>
-                     <span v-if="getTaskAssigneeSummary(task).label" class="pill-user-text">{{ getTaskAssigneeSummary(task).label }}</span>
+                  <div class="pill">
+                    <div class="avatar-xxs">
+                      <i v-if="!getTaskAssigneeSummary(task).label" class="fa-regular fa-user"></i>
+                      <span v-else>{{ getTaskAssigneeSummary(task).avatar }}</span>
+                    </div>
+                    <span v-if="getTaskAssigneeSummary(task).label" class="pill-user-text">{{ getTaskAssigneeSummary(task).label }}</span>
                   </div>
                 </template>
                 <div class="popover-content">
-                  <input type="text" class="plane-search-input" v-model="searchAssignee" placeholder="Search members" />
+                  <input v-model="searchAssignee" type="text" class="plane-search-input" placeholder="Search members" />
                   <div class="plane-list mt-2">
                     <label
-                      class="plane-list-item"
                       v-for="member in filteredMembers"
                       :key="member.userId || member.id"
+                      class="plane-list-item"
                       @click.stop="toggleTaskAssignee(task, member.userId || member.id)"
                     >
                       <input type="checkbox" :checked="getTaskAssigneeIds(task).includes(member.userId || member.id)" />
@@ -88,63 +87,51 @@
                 </div>
               </el-popover>
             </div>
-            <div class="row-action">
-              <i class="fa-solid fa-ellipsis"></i>
-            </div>
           </div>
         </div>
 
-        <div class="add-row-placeholder" v-if="inlineCreateGroup !== key" @click="openInlineCreate(key)">
+        <div v-if="inlineCreateGroup !== key" class="add-row-placeholder" @click="openInlineCreate(key)">
           <i class="fa-solid fa-plus"></i> New work item
         </div>
-        <div class="inline-create-box" v-if="inlineCreateGroup === key">
-           <input type="text" class="ic-input" v-model="inlineTaskTitle" placeholder="Work item title" 
-@keyup.enter="submitInlineTask(group)" @keyup.esc="inlineCreateGroup = null" ref="inlineInputs" />
-           <div class="dm-toolbar mt-2">
-             <!-- Status Dropdown -->
-             <el-dropdown trigger="click" @command="(val) => inlineTaskStatus = val">
-                <button class="dm-tool-btn"><i class="fa-regular fa-circle text-muted"></i> {{ inlineTaskStatus }}</button>
-                <template #dropdown>
-                  <el-dropdown-menu class="plane-dropdown">
-                    <el-dropdown-item command="BACKLOG">Backlog</el-dropdown-item>
-                    <el-dropdown-item command="TO DO">To Do</el-dropdown-item>
-                    <el-dropdown-item command="IN PROGRESS">In Progress</el-dropdown-item>
-                    <el-dropdown-item command="DONE">Done</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-             </el-dropdown>
-             
-             <!-- Priority Dropdown -->
-             <el-dropdown trigger="click" @command="(val) => inlineTaskPriority = val">
-                <button class="dm-tool-btn">
-                   <i class="fa-solid fa-signal text-muted" v-if="inlineTaskPriority === 3"></i>
-                   <i class="fa-solid fa-angles-up text-red-500" v-else-if="inlineTaskPriority === 1"></i>
-                   <i class="fa-solid fa-chevron-up text-orange-500" v-else-if="inlineTaskPriority === 2"></i>
-                   <i class="fa-solid fa-chevron-down text-gray-400" v-else></i>
-                   {{ inlineTaskPriority === 1 ? 'Urgent' : (inlineTaskPriority === 2 ? 'High' : (inlineTaskPriority === 3 ? 'Normal' : 'Low')) }}
-                </button>
-                <template #dropdown>
-                  <el-dropdown-menu class="plane-dropdown">
-                    <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> Urgent</el-dropdown-item>
-                    <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> High</el-dropdown-item>
-                    <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> Normal</el-dropdown-item>
-                    <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> Low</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-             </el-dropdown>
 
-             <!-- Fake Dropdowns for remaining UI parity -->
-             <el-dropdown trigger="click">
-                <button class="dm-tool-btn"><i class="fa-solid fa-user-group text-muted"></i> Assignees</button>
-                <template #dropdown><el-dropdown-menu class="plane-dropdown"><el-dropdown-item>Unassigned</el-dropdown-item></el-dropdown-menu></template>
-             </el-dropdown>
-             <button class="dm-tool-btn cursor-not-allowed"><i class="fa-solid fa-tag text-muted"></i> Labels</button>
-             <button class="dm-tool-btn cursor-not-allowed"><i class="fa-regular fa-calendar text-muted"></i> Start date</button>
-             <button class="dm-tool-btn cursor-not-allowed"><i class="fa-solid fa-calendar-day text-muted"></i> Due date</button>
-             <button class="dm-tool-btn cursor-not-allowed"><i class="fa-solid fa-arrows-spin text-muted"></i> Cycle</button>
-             <button class="dm-tool-btn cursor-not-allowed"><i class="fa-solid fa-table-cells-large text-muted"></i> Modules</button>
-           </div>
-           <div class="ic-hint mt-2">Press 'Enter' to add another work item</div>
+        <div v-if="inlineCreateGroup === key" class="inline-create-box">
+          <input
+            ref="inlineInputs"
+            v-model="inlineTaskTitle"
+            type="text"
+            class="ic-input"
+            placeholder="Work item title"
+            @keyup.enter="submitInlineTask(group)"
+            @keyup.esc="inlineCreateGroup = null"
+          />
+          <div class="dm-toolbar mt-2">
+            <el-dropdown trigger="click" @command="value => (inlineTaskStatus = value)">
+              <button class="dm-tool-btn">{{ inlineTaskStatus }}</button>
+              <template #dropdown>
+                <el-dropdown-menu class="plane-dropdown">
+                  <el-dropdown-item command="BACKLOG">Backlog</el-dropdown-item>
+                  <el-dropdown-item command="TO DO">To Do</el-dropdown-item>
+                  <el-dropdown-item command="IN PROGRESS">In Progress</el-dropdown-item>
+                  <el-dropdown-item command="DONE">Done</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+
+            <el-dropdown trigger="click" @command="value => (inlineTaskPriority = value)">
+              <button class="dm-tool-btn">
+                {{ inlineTaskPriority === 1 ? 'Urgent' : inlineTaskPriority === 2 ? 'High' : inlineTaskPriority === 3 ? 'Normal' : 'Low' }}
+              </button>
+              <template #dropdown>
+                <el-dropdown-menu class="plane-dropdown">
+                  <el-dropdown-item :command="1">Urgent</el-dropdown-item>
+                  <el-dropdown-item :command="2">High</el-dropdown-item>
+                  <el-dropdown-item :command="3">Normal</el-dropdown-item>
+                  <el-dropdown-item :command="4">Low</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
+          <div class="ic-hint mt-2">Press Enter to add another work item.</div>
         </div>
       </div>
     </div>
@@ -152,7 +139,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 
 const props = defineProps({
   tasks: { type: Array, default: () => [] },
@@ -168,7 +155,6 @@ const inlineTaskPriority = ref(3)
 const inlineTaskStatus = ref('TO DO')
 const inlineInputs = ref(null)
 const searchAssignee = ref('')
-import { nextTick } from 'vue'
 
 const filteredMembers = computed(() => {
   const keyword = searchAssignee.value.trim().toLowerCase()
@@ -180,7 +166,7 @@ const filteredMembers = computed(() => {
 
 const getTaskAssigneeIds = (task) => {
   if (Array.isArray(task.assigneeIds) && task.assigneeIds.length) return task.assigneeIds
-  if (Array.isArray(task.assignees) && task.assignees.length) return task.assignees.map(item => item.userId)
+  if (Array.isArray(task.assignees) && task.assignees.length) return task.assignees.map(item => item.userId || item.id).filter(Boolean)
   if (task.assignedUserId) return [task.assignedUserId]
   return []
 }
@@ -198,44 +184,45 @@ const getTaskAssigneeSummary = (task) => {
 
 const toggleTaskAssignee = (task, memberId) => {
   const currentIds = getTaskAssigneeIds(task)
-  const nextIds = currentIds.includes(memberId)
-    ? currentIds.filter(id => id !== memberId)
-    : [...currentIds, memberId]
-
+  const nextIds = currentIds.includes(memberId) ? currentIds.filter(id => id !== memberId) : [...currentIds, memberId]
   emit('update-task', task, 'assigneeIds', nextIds, currentIds)
 }
 
 const openInlineCreate = (key) => {
-    inlineCreateGroup.value = key
-    inlineTaskTitle.value = ''
-    inlineTaskPriority.value = 3
-    
-    // Default to the group name if clicked in a column/group, otherwise BACKLOG
-    const groupNameMap = { 'backlog': 'BACKLOG', 'todo': 'TO DO', 'inprogress': 'IN PROGRESS', 'done': 'DONE' }
-    inlineTaskStatus.value = groupNameMap[key] || 'BACKLOG'
+  inlineCreateGroup.value = key
+  inlineTaskTitle.value = ''
+  inlineTaskPriority.value = 3
 
-    nextTick(() => {
-        if(inlineInputs.value) {
-            if (Array.isArray(inlineInputs.value)) {
-                inlineInputs.value[0]?.focus();
-            } else {
-                inlineInputs.value.focus();
-            }
-        }
-    })
+  const groupMap = {
+    backlog: 'BACKLOG',
+    todo: 'TO DO',
+    inprogress: 'IN PROGRESS',
+    done: 'DONE'
+  }
+  inlineTaskStatus.value = groupMap[key] || 'BACKLOG'
+
+  nextTick(() => {
+    if (!inlineInputs.value) return
+    if (Array.isArray(inlineInputs.value)) {
+      inlineInputs.value[0]?.focus()
+    } else {
+      inlineInputs.value.focus()
+    }
+  })
 }
 
-const submitInlineTask = (group) => {
-   if(!inlineTaskTitle.value.trim()) {
-      inlineCreateGroup.value = null;
-      return;
-   }
-   emit('task-created', {
-       title: inlineTaskTitle.value.trim(),
-       statusName: inlineTaskStatus.value,
-       priority: inlineTaskPriority.value
-   })
-   inlineTaskTitle.value = ''
+const submitInlineTask = () => {
+  if (!inlineTaskTitle.value.trim()) {
+    inlineCreateGroup.value = null
+    return
+  }
+
+  emit('task-created', {
+    title: inlineTaskTitle.value.trim(),
+    statusName: inlineTaskStatus.value,
+    priority: inlineTaskPriority.value
+  })
+  inlineTaskTitle.value = ''
 }
 
 const toggleGroup = (key) => {
@@ -244,26 +231,43 @@ const toggleGroup = (key) => {
 
 const groupedTasks = computed(() => {
   const groups = {
-    backlog: { name: 'Backlog', iconClass: 'fa-regular fa-circle-dashed', color: '#71717A', tasks: [] },
-    todo: { name: 'Todo', iconClass: 'fa-regular fa-circle', color: '#A1A1AA', tasks: [] },
-    inprogress: { name: 'In Progress', iconClass: 'fa-solid fa-circle-half-stroke', color: '#F59E0B', tasks: [] },
-    done: { name: 'Done', iconClass: 'fa-solid fa-circle-check', color: '#10B981', tasks: [] }
+    backlog: { name: 'Backlog', iconClass: 'fa-regular fa-circle-dashed', color: '#71717a', tasks: [] },
+    todo: { name: 'Todo', iconClass: 'fa-regular fa-circle', color: '#a1a1aa', tasks: [] },
+    inprogress: { name: 'In Progress', iconClass: 'fa-solid fa-circle-half-stroke', color: '#f59e0b', tasks: [] },
+    done: { name: 'Done', iconClass: 'fa-solid fa-circle-check', color: '#10b981', tasks: [] }
   }
 
   props.tasks.filter(task => !(task.parentTaskId || task.parentId)).forEach(task => {
-    const s = (task.statusName || '').toUpperCase().trim();
-    if (s === 'IN PROGRESS' || s === 'INPROGRESS') groups.inprogress.tasks.push(task)
-    else if (s === 'DONE') groups.done.tasks.push(task)
-    else if (s === 'BACKLOG' || s === '') groups.backlog.tasks.push(task)
+    const status = `${task.statusName || ''}`.toUpperCase().trim()
+    if (status === 'IN PROGRESS' || status === 'INPROGRESS') groups.inprogress.tasks.push(task)
+    else if (status === 'DONE') groups.done.tasks.push(task)
+    else if (status === 'BACKLOG' || status === '') groups.backlog.tasks.push(task)
     else groups.todo.tasks.push(task)
   })
 
-  // Filter out empty groups if you want, but often they are kept. Let's keep them.
   return groups
 })
 
+const taskProgress = (task) => {
+  if (Array.isArray(task.assignees) && task.assignees.length) {
+    const total = task.assignees.reduce((sum, item) => sum + (Number(item.contributionWeight) || 1), 0)
+    const weighted = task.assignees.reduce((sum, item) => sum + ((Number(item.progressPercent) || 0) * (Number(item.contributionWeight) || 1)), 0)
+    return Math.round(weighted / Math.max(total, 1))
+  }
+
+  if (`${task.statusName || ''}`.toUpperCase().includes('DONE')) return 100
+  return 0
+}
+
+const progressStyle = (task) => {
+  const percent = taskProgress(task)
+  return {
+    background: `conic-gradient(#22c55e ${percent}%, #27272a ${percent}% 100%)`
+  }
+}
+
 const updateTaskProperty = (task, field, value) => {
-   emit('update-task', task, field, value, task[field]);
+  emit('update-task', task, field, value, task[field])
 }
 </script>
 
@@ -271,72 +275,57 @@ const updateTaskProperty = (task, field, value) => {
 .plane-list-view {
   display: flex;
   flex-direction: column;
-  color: #E4E4E7;
-  font-family: 'Inter', sans-serif;
+  color: #e4e4e7;
 }
 
 .list-group {
   margin-bottom: 24px;
 }
 
+.group-header,
+.gh-left,
+.tr-left,
+.tr-right,
+.pill-group,
+.pill {
+  display: flex;
+  align-items: center;
+}
+
 .group-header {
-  display: flex;
   justify-content: space-between;
-  align-items: center;
   padding: 8px 0;
+  border-bottom: 1px solid #1e2025;
   cursor: pointer;
-  border-bottom: 1px solid #1E2025;
-  margin-bottom: 8px;
 }
 
-.group-header:hover .add-icon { opacity: 1; }
-
-.gh-left {
-  display: flex;
-  align-items: center;
+.gh-left,
+.tr-left,
+.tr-right,
+.pill-group,
+.pill {
   gap: 10px;
-}
-
-.gh-chevron {
-  font-size: 10px;
-  color: #71717A;
-  width: 14px;
-  text-align: center;
-}
-
-.status-icon {
-  font-size: 14px;
 }
 
 .group-name {
   font-size: 14px;
   font-weight: 600;
-  color: #E4E4E7;
 }
 
-.group-count {
-  font-size: 12px;
-  font-weight: 500;
-  color: #71717A;
-  margin-left: 4px;
-}
-
-.gh-right {
-  display: flex;
-  align-items: center;
+.group-count,
+.task-id,
+.add-row-placeholder,
+.ic-hint {
+  color: #71717a;
 }
 
 .add-icon {
-  color: #71717A;
-  font-size: 14px;
   opacity: 0;
-  transition: opacity 0.2s;
-  padding: 4px;
 }
 
-.group-content {
-  display: flex;
-  flex-direction: column;
+.group-header:hover .add-icon,
+.task-row:hover .pill-group {
+  opacity: 1;
 }
 
 .task-row {
@@ -344,114 +333,122 @@ const updateTaskProperty = (task, field, value) => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 0 10px 24px;
-  border-bottom: 1px solid #1E2025;
+  border-bottom: 1px solid #1e2025;
   cursor: pointer;
 }
+
 .task-row:hover {
-  background-color: #16181D;
-}
-
-.tr-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.task-id {
-  font-size: 12px;
-  font-weight: 500;
-  color: #71717A;
-  width: 50px;
+  background: #16181d;
 }
 
 .task-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #D4D4D8;
+  color: #d4d4d8;
+}
+
+.tr-right {
+  gap: 12px;
+}
+
+.task-progress-ring {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.task-progress-ring::after {
+  content: '';
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #0d0f11;
+}
+
+.ring-value {
+  position: absolute;
+  opacity: 0;
+  font-size: 9px;
+  font-weight: 700;
+  transition: opacity 0.15s ease;
+}
+
+.task-row:hover .ring-value {
+  opacity: 1;
+}
+
+.pill-group {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.pill {
+  padding: 4px 8px;
+  border: 1px solid #27272a;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #a1a1aa;
 }
 
 .pill-user-text {
-  font-size: 12px;
-  color: #D4D4D8;
   max-width: 120px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.tr-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.pill-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-.task-row:hover .pill-group { opacity: 1; }
-
-.pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  border: 1px solid #27272A;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #A1A1AA;
-}
-.pill i { font-size: 12px; }
-
-.status-icon-sm { font-size: 12px; }
-
 .avatar-xxs {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 1px dashed #3F3F46;
+  border: 1px dashed #3f3f46;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 9px;
-  font-weight: 600;
 }
-
-.row-action {
-  color: #71717A;
-  padding: 4px 8px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-.row-action:hover { color: #E4E4E7; }
-.task-row:hover .row-action { opacity: 1; }
 
 .add-row-placeholder {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   padding: 12px 0 12px 24px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #71717A;
   cursor: pointer;
-  border-bottom: 1px solid transparent;
-}
-.add-row-placeholder:hover {
-  color: #E4E4E7;
 }
 
-.inline-create-box { background: #16181D; border: 1px solid #38BDF8; border-radius: 8px; padding: 12px; margin: 8px 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-.ic-input { width: 100%; background: transparent; border: none; color: #E5E7EB; outline: none; font-size: 14px; }
-.ic-input::placeholder { color: #71717A; }
-.ic-hint { font-size: 11px; color: #71717A; font-style: italic; }
+.inline-create-box {
+  margin: 8px 16px;
+  padding: 12px;
+  border: 1px solid #38bdf8;
+  border-radius: 8px;
+  background: #16181d;
+}
 
-.dm-toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
-.dm-tool-btn { background: transparent; border: 1px solid #27272A; color: #A1A1AA; font-size: 11px; display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
-.dm-tool-btn:hover { background: #1E2025; color: #E4E4E7; }
-.mt-2 { margin-top: 8px; }
-.text-muted { color: #A1A1AA; }
+.ic-input,
+.plane-search-input {
+  width: 100%;
+  background: #111317;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  color: #e4e4e7;
+  padding: 8px 10px;
+}
+
+.dm-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dm-tool-btn {
+  border: 1px solid #27272a;
+  border-radius: 4px;
+  background: transparent;
+  color: #a1a1aa;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.mt-2 {
+  margin-top: 8px;
+}
 </style>

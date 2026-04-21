@@ -1,7 +1,23 @@
 // Các role được phép truy cập trang Admin (Audit Log, User Management)
-const adminAllowedRoles = ['System Admin', 'PM', 'PO']
+const adminAllowedRoles = [
+  'SuperAdmin',
+  'Admin',
+  'System Admin',
+  'Organization Admin',
+  'AccessAdmin',
+  'PM',
+  'PO',
+  'PROJECT_MANAGER',
+  'Developer',
+  'DEV'
+]
 
 export default [
+  {
+    path: '/admin',
+    redirect: '/admin/configuration',
+    meta: { requiredRoles: adminAllowedRoles }
+  },
   {
     path: '/admin/audit-log',
     name: 'AdminAuditLog',
@@ -30,6 +46,16 @@ export default [
     path: '/admin/configuration',
     name: 'AdminConfiguration',
     component: () => import('../views/admin/Configuration.vue'),
+    meta: { requiredRoles: adminAllowedRoles }
+  },
+  {
+    path: '/admin/customization',
+    redirect: '/admin/configuration',
+    meta: { requiredRoles: adminAllowedRoles }
+  },
+  {
+    path: '/settings',
+    redirect: '/admin/configuration',
     meta: { requiredRoles: adminAllowedRoles }
   },
   {

@@ -104,52 +104,22 @@
         <i class="fa-solid fa-chevron-down" style="font-size: 10px; cursor: pointer;"></i>
       </div>
       <ul class="nav-menu">
-        <!-- Active Project Folder -->
-        <li class="nav-item">
-          <div class="nav-link proj-folder" :class="{ active: isSpaceRoute }">
-            <span class="proj-icon">C</span>
-            <span>Cun</span>
-          </div>
-        </li>
-        
-        <!-- Project Sub-items -->
-        <li class="nav-item sub-item">
-          <router-link :to="`/space/${projectId}`" class="nav-link" active-class="active">
-            <i class="fa-solid fa-layer-group"></i>
-            <span>Work items</span>
-          </router-link>
-        </li>
-        <li class="nav-item sub-item">
-          <div class="nav-link" :class="{'active': route.name === 'CyclesView'}" @click="router.push(`/space/${projectId}/cycles`)">
-            <i class="fa-solid fa-arrows-spin"></i>
-            <span>Cycles</span>
-          </div>
-        </li>
-        <!-- Hidden as requested -->
-        <li class="nav-item sub-item" v-if="false">
-          <router-link :to="`/space/${projectId}/intakes`" class="nav-link">
-            <i class="fa-solid fa-inbox"></i>
-            <span>Intakes</span>
-          </router-link>
-        </li>
-        <li class="nav-item sub-item">
-          <div class="nav-link" :class="{'active': route.name === 'ModulesView'}" @click="router.push(`/space/${projectId}/modules`)">
-            <i class="fa-solid fa-table-cells-large"></i>
-            <span>Modules</span>
-          </div>
-        </li>
-        <li class="nav-item sub-item">
-          <router-link :to="`/space/${projectId}/views`" class="nav-link" active-class="active">
-            <i class="fa-solid fa-list-ul"></i>
-            <span>Views</span>
-          </router-link>
-        </li>
-        <li class="nav-item sub-item">
-          <router-link :to="`/space/${projectId}/pages`" class="nav-link" active-class="active">
-            <i class="fa-regular fa-file-lines" style="color: #38BDF8"></i>
-            <span>Pages</span>
-          </router-link>
-        </li>
+        <template v-for="project in projectTree" :key="project.id">
+          <li class="nav-item">
+            <div class="nav-link proj-folder" :class="{ active: currentProjectId === project.id }" @click="toggleProject(project.id)">
+              <span class="proj-icon">{{ projectIcon(project) }}</span>
+              <span class="truncate">{{ project.name }}</span>
+              <i class="fa-solid ms-auto" :class="project.expanded ? 'fa-chevron-down' : 'fa-chevron-right'" style="font-size: 10px;"></i>
+            </div>
+          </li>
+
+          <li v-for="child in project.children" v-show="project.expanded" :key="child.id" class="nav-item sub-item">
+            <router-link :to="child.route" class="nav-link" active-class="active">
+              <i :class="childIcon(child.key)"></i>
+              <span>{{ child.label }}</span>
+            </router-link>
+          </li>
+        </template>
       </ul>
     </div>
 
@@ -163,14 +133,16 @@
 </template>
 
 <script setup>
-import { computed, ref, defineProps, defineEmits, onMounted, watch } from 'vue'
+import { computed, ref, defineProps, defineEmits, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSprintStore } from '@/store/useSprintStore'
+import { useProjectStore } from '@/store/useProjectStore'
 
 const route = useRoute()
 const router = useRouter()
 const showMorePanel = ref(false)
-const projectId = computed(() => {
+const projectStore = useProjectStore()
+const currentProjectId = computed(() => {
   return route.params.id || localStorage.getItem('currentProjectId') || 'default'
 })
 
@@ -183,6 +155,7 @@ const props = defineProps({
 const emit = defineEmits(['close-mobile'])
 
 const sprintStore = useSprintStore()
+const projectTree = computed(() => projectStore.projectTree)
 const favoriteSprints = computed(() => {
    if (!sprintStore.sprints) return [];
    return sprintStore.sprints.filter(s => s.isFavorite);
@@ -190,11 +163,35 @@ const favoriteSprints = computed(() => {
 
 const isSpaceRoute = computed(() => route.path.startsWith('/space/'))
 
-watch(projectId, (newVal) => {
+watch(currentProjectId, async (newVal) => {
    if (newVal && newVal !== 'default') {
+      projectStore.expandProject(newVal)
+      localStorage.setItem('currentProjectId', newVal)
       sprintStore.fetchSprints(newVal)
+      await projectStore.fetchProjectDetails(newVal)
    }
 }, { immediate: true })
+
+onMounted(() => {
+  projectStore.fetchAllProjects().catch(() => {})
+})
+
+const toggleProject = (projectId) => {
+  if (currentProjectId.value !== projectId) {
+    router.push(`/space/${projectId}`)
+  }
+  projectStore.toggleProject(projectId)
+}
+
+const childIcon = (key) => ({
+  'work-items': 'fa-solid fa-layer-group',
+  'cycles': 'fa-solid fa-arrows-spin',
+  'modules': 'fa-solid fa-table-cells-large',
+  'views': 'fa-solid fa-list-ul',
+  'pages': 'fa-regular fa-file-lines'
+}[key] || 'fa-solid fa-chevron-right')
+
+const projectIcon = (project) => project.icon || project.name?.charAt(0)?.toUpperCase() || 'P'
 
 const triggerCreateTask = () => {
     window.dispatchEvent(new CustomEvent('global-create-task'))

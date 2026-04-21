@@ -14,10 +14,104 @@ namespace TaskManagement.API.Controllers
     public class DraftsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private static readonly JsonSerializerOptions PayloadSerializerOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
 
         public DraftsController(ApplicationDbContext context)
         {
             _context = context;
+        }
+
+        private static object? ConvertJsonElement(JsonElement value)
+        {
+            return value.ValueKind switch
+            {
+                JsonValueKind.String => value.GetString(),
+                JsonValueKind.Number when value.TryGetInt32(out var intValue) => intValue,
+                JsonValueKind.Number when value.TryGetInt64(out var longValue) => longValue,
+                JsonValueKind.Number when value.TryGetDecimal(out var decimalValue) => decimalValue,
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.Null => null,
+                JsonValueKind.Array => value.EnumerateArray().Select(ConvertJsonElement).ToList(),
+                JsonValueKind.Object => value.EnumerateObject()
+                    .ToDictionary(prop => prop.Name, prop => ConvertJsonElement(prop.Value)),
+                _ => value.ToString()
+            };
+        }
+
+        private static Dictionary<string, object?> DeserializePayload(string? payloadJson)
+        {
+            if (string.IsNullOrWhiteSpace(payloadJson))
+            {
+                return new Dictionary<string, object?>();
+            }
+
+            try
+            {
+                var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(payloadJson, PayloadSerializerOptions);
+                if (payload == null)
+                {
+                    return new Dictionary<string, object?>();
+                }
+
+                return payload.ToDictionary(kv => kv.Key, kv => ConvertJsonElement(kv.Value));
+            }
+            catch
+            {
+                return new Dictionary<string, object?>();
+            }
+        }
+
+        private static Dictionary<string, object?> BuildDraftResponse(TaskDraft draft)
+        {
+            var obj = new Dictionary<string, object?>
+            {
+                { "id", draft.Id },
+                { "userId", draft.UserId },
+                { "projectId", draft.ProjectId },
+                { "title", draft.Title },
+                { "description", draft.Description },
+                { "createdAt", draft.CreatedAt },
+                { "updatedAt", draft.UpdatedAt }
+            };
+
+            foreach (var kv in DeserializePayload(draft.PayloadJson))
+            {
+                if (!obj.ContainsKey(kv.Key))
+                {
+                    obj[kv.Key] = kv.Value;
+                }
+            }
+
+            if (!obj.ContainsKey("statusName")) obj["statusName"] = "BACKLOG";
+            if (!obj.ContainsKey("priority")) obj["priority"] = 3;
+
+            return obj;
+        }
+
+        private static Dictionary<string, object?> BuildPayloadFromDto(DraftCreateUpdateDto dto)
+        {
+            var payload = new Dictionary<string, object?>
+            {
+                { "statusName", string.IsNullOrWhiteSpace(dto.StatusName) ? "BACKLOG" : dto.StatusName },
+                { "priority", dto.Priority ?? 3 },
+                { "assignee", dto.Assignee },
+                { "label", dto.Label },
+                { "startDate", dto.StartDate },
+                { "dueDate", dto.DueDate },
+                { "cycle", dto.Cycle },
+                { "module", dto.Module }
+            };
+
+            if (dto.ProjectId.HasValue)
+            {
+                payload["projectId"] = dto.ProjectId.Value;
+            }
+
+            return payload;
         }
 
         private Guid GetUserId()
@@ -29,61 +123,53 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetDrafts()
+        public async Task<IActionResult> GetDrafts([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] Guid? projectId = null)
         {
             var userId = GetUserId();
-            var drafts = await _context.TaskDrafts
-                .Where(d => d.UserId == userId)
+            var normalizedPage = page < 1 ? 1 : page;
+            var normalizedPageSize = pageSize switch
+            {
+                < 1 => 20,
+                > 100 => 100,
+                _ => pageSize
+            };
+
+            var query = _context.TaskDrafts
+                .AsNoTracking()
+                .Where(d => d.UserId == userId);
+
+            if (projectId.HasValue)
+            {
+                query = query.Where(d => d.ProjectId == projectId.Value);
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var drafts = await query
                 .OrderByDescending(d => d.UpdatedAt)
+                .Skip((normalizedPage - 1) * normalizedPageSize)
+                .Take(normalizedPageSize)
                 .ToListAsync();
 
-            // Parse PayloadJson and merge into response so frontend gets statusName, priority etc.
-            var result = drafts.Select(d =>
+            var result = drafts.Select(BuildDraftResponse).ToList();
+
+            var totalPages = totalCount == 0
+                ? 0
+                : (int)Math.Ceiling(totalCount / (double)normalizedPageSize);
+
+            return Ok(new
             {
-                var obj = new Dictionary<string, object?>
+                data = result,
+                pagination = new
                 {
-                    { "id", d.Id },
-                    { "userId", d.UserId },
-                    { "title", d.Title },
-                    { "description", d.Description },
-                    { "createdAt", d.CreatedAt },
-                    { "updatedAt", d.UpdatedAt }
-                };
-
-                if (!string.IsNullOrEmpty(d.PayloadJson))
-                {
-                    try
-                    {
-                        var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(d.PayloadJson);
-                        if (payload != null)
-                        {
-                            foreach (var kv in payload)
-                            {
-                                if (!obj.ContainsKey(kv.Key))
-                                {
-                                    obj[kv.Key] = kv.Value.ValueKind switch
-                                    {
-                                        JsonValueKind.String => kv.Value.GetString(),
-                                        JsonValueKind.Number => kv.Value.GetInt32(),
-                                        JsonValueKind.True => true,
-                                        JsonValueKind.False => false,
-                                        _ => kv.Value.ToString()
-                                    };
-                                }
-                            }
-                        }
-                    }
-                    catch { /* Ignore parse errors */ }
+                    page = normalizedPage,
+                    pageSize = normalizedPageSize,
+                    totalCount,
+                    totalPages,
+                    hasPreviousPage = normalizedPage > 1,
+                    hasNextPage = normalizedPage < totalPages
                 }
-
-                // Ensure defaults
-                if (!obj.ContainsKey("statusName")) obj["statusName"] = "BACKLOG";
-                if (!obj.ContainsKey("priority")) obj["priority"] = 3;
-
-                return obj;
-            }).ToList();
-
-            return Ok(new { data = result });
+            });
         }
 
         [HttpPost]
@@ -91,16 +177,12 @@ namespace TaskManagement.API.Controllers
         {
             var userId = GetUserId();
 
-            // Store statusName and priority in PayloadJson
-            var payloadObj = new Dictionary<string, object?>
-            {
-                { "statusName", dto.StatusName ?? "BACKLOG" },
-                { "priority", dto.Priority ?? 3 }
-            };
+            var payloadObj = BuildPayloadFromDto(dto);
 
             var draft = new TaskDraft
             {
                 UserId = userId,
+                ProjectId = dto.ProjectId,
                 Title = dto.Title,
                 Description = dto.Description,
                 PayloadJson = JsonSerializer.Serialize(payloadObj),
@@ -113,17 +195,7 @@ namespace TaskManagement.API.Controllers
 
             return Ok(new
             {
-                data = new
-                {
-                    draft.Id,
-                    draft.UserId,
-                    draft.Title,
-                    draft.Description,
-                    statusName = dto.StatusName ?? "BACKLOG",
-                    priority = dto.Priority ?? 3,
-                    draft.CreatedAt,
-                    draft.UpdatedAt
-                }
+                data = BuildDraftResponse(draft)
             });
         }
 
@@ -138,32 +210,22 @@ namespace TaskManagement.API.Controllers
 
             draft.Title = dto.Title ?? draft.Title;
             draft.Description = dto.Description ?? draft.Description;
-
-            // Parse existing payload and merge updates
-            var payloadObj = new Dictionary<string, object?>();
-            if (!string.IsNullOrEmpty(draft.PayloadJson))
+            if (dto.ProjectId.HasValue)
             {
-                try
-                {
-                    var existing = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(draft.PayloadJson);
-                    if (existing != null)
-                    {
-                        foreach (var kv in existing)
-                        {
-                            payloadObj[kv.Key] = kv.Value.ValueKind switch
-                            {
-                                JsonValueKind.String => kv.Value.GetString(),
-                                JsonValueKind.Number => kv.Value.GetInt32(),
-                                _ => kv.Value.ToString()
-                            };
-                        }
-                    }
-                }
-                catch { }
+                draft.ProjectId = dto.ProjectId.Value;
             }
+
+            var payloadObj = DeserializePayload(draft.PayloadJson);
 
             if (dto.StatusName != null) payloadObj["statusName"] = dto.StatusName;
             if (dto.Priority.HasValue) payloadObj["priority"] = dto.Priority.Value;
+            if (dto.Assignee != null) payloadObj["assignee"] = dto.Assignee;
+            if (dto.Label != null) payloadObj["label"] = dto.Label;
+            if (dto.StartDate != null) payloadObj["startDate"] = dto.StartDate;
+            if (dto.DueDate != null) payloadObj["dueDate"] = dto.DueDate;
+            if (dto.Cycle != null) payloadObj["cycle"] = dto.Cycle;
+            if (dto.Module != null) payloadObj["module"] = dto.Module;
+            if (dto.ProjectId.HasValue) payloadObj["projectId"] = dto.ProjectId.Value;
 
             draft.PayloadJson = JsonSerializer.Serialize(payloadObj);
             draft.UpdatedAt = DateTime.UtcNow;
@@ -172,17 +234,7 @@ namespace TaskManagement.API.Controllers
 
             return Ok(new
             {
-                data = new
-                {
-                    draft.Id,
-                    draft.UserId,
-                    draft.Title,
-                    draft.Description,
-                    statusName = payloadObj.ContainsKey("statusName") ? payloadObj["statusName"] : "BACKLOG",
-                    priority = payloadObj.ContainsKey("priority") ? payloadObj["priority"] : 3,
-                    draft.CreatedAt,
-                    draft.UpdatedAt
-                }
+                data = BuildDraftResponse(draft)
             });
         }
 
@@ -209,6 +261,13 @@ namespace TaskManagement.API.Controllers
             public string? Description { get; set; }
             public string? StatusName { get; set; }
             public int? Priority { get; set; }
+            public string? Assignee { get; set; }
+            public string? Label { get; set; }
+            public string? StartDate { get; set; }
+            public string? DueDate { get; set; }
+            public string? Cycle { get; set; }
+            public string? Module { get; set; }
+            public Guid? ProjectId { get; set; }
         }
     }
 }

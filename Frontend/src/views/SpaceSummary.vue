@@ -59,7 +59,7 @@
                 </div>
                 <div class="dd-section border-top">
                    <label class="dd-item checkbox">
-                     <input type="checkbox" disabled /> Show sub-work items
+                     <input type="checkbox" v-model="showSubtasks" /> Show sub-work items
                    </label>
                 </div>
              </div>
@@ -84,13 +84,95 @@
 
       <!-- Other Tab Views -->
       <div v-if="currentTab === 'list'" class="list-wrapper" style="padding: 16px;">
-         <ListView
-           :tasks="filteredTasksList"
-           :projectMembers="projectMembers"
-           @task-click="openTaskDetail"
-           @task-created="handleListTaskCreate"
-           @update-task="updateTask"
-         />
+         <div class="plane-list-view">
+           <div v-for="group in listViewGroups" :key="group.id" class="list-group">
+             <div class="group-header" @click="toggleListGroup(group.id)">
+               <div class="gh-left">
+                 <i class="gh-chevron fa-solid" :class="collapsedListGroups[group.id] ? 'fa-chevron-right' : 'fa-chevron-down'"></i>
+                 <i class="status-icon" :class="group.icon" :style="{ color: group.color }"></i>
+                 <span class="group-name">{{ group.name }}</span>
+                 <span class="group-count">{{ group.items.length }}</span>
+               </div>
+               <div class="gh-right">
+                 <i class="fa-solid fa-plus add-icon" @click.stop="openCreateTask(group.statusName)"></i>
+               </div>
+             </div>
+
+             <div class="group-content" v-show="!collapsedListGroups[group.id]">
+               <div class="task-row" v-for="task in group.items" :key="task.id" @click="openTaskDetail(task)">
+                 <div class="tr-left">
+                   <span class="task-id">{{ task.sequenceId || task.id.substring(0,8).toUpperCase() }}</span>
+                   <span class="task-title" :style="group.statusName === 'DONE' ? { textDecoration: 'line-through', color: '#71717A' } : {}">
+                     {{ task.title }}
+                   </span>
+                 </div>
+                 <div class="tr-right" @click.stop>
+                   <div class="pill-group">
+                     <el-dropdown trigger="click" @command="(val) => updateTask(task, 'statusName', val, task.statusName)">
+                       <div class="pill pill-status cursor-pointer hover:bg-[#1E2025]">
+                         <i :class="getBoardStatusIcon(task.statusName)" :style="{ color: getStatusColor(task.statusName) }"></i>
+                         {{ normalizeStatusLabel(task.statusName) }}
+                       </div>
+                       <template #dropdown>
+                         <el-dropdown-menu class="plane-dropdown">
+                           <el-dropdown-item v-for="status in taskStatusOptions" :key="status.name" :command="status.name">
+                             <i :class="status.icon" :style="{ color: status.color }"></i>
+                             {{ status.label }}
+                           </el-dropdown-item>
+                         </el-dropdown-menu>
+                       </template>
+                     </el-dropdown>
+
+                     <el-dropdown trigger="click" @command="(val) => updateTask(task, 'priority', val, task.priority)">
+                       <div class="pill pill-priority cursor-pointer hover:bg-[#1E2025]">
+                         <i :class="getPriorityIcon(task.priority)"></i>
+                       </div>
+                       <template #dropdown>
+                         <el-dropdown-menu class="plane-dropdown">
+                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> Urgent</el-dropdown-item>
+                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> High</el-dropdown-item>
+                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> Normal</el-dropdown-item>
+                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> Low</el-dropdown-item>
+                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> None</el-dropdown-item>
+                         </el-dropdown-menu>
+                       </template>
+                     </el-dropdown>
+
+                     <el-popover placement="bottom" trigger="click" width="260" popper-class="plane-popover">
+                       <template #reference>
+                         <div class="pill pill-user cursor-pointer hover:bg-[#1E2025]">
+                           <div class="avatar-xxs">
+                             <i class="fa-regular fa-user" v-if="!getTaskAssigneeSummary(task).label"></i>
+                             <span v-else>{{ getTaskAssigneeSummary(task).avatar }}</span>
+                           </div>
+                           <span v-if="getTaskAssigneeSummary(task).label" class="pill-user-text">{{ getTaskAssigneeSummary(task).label }}</span>
+                         </div>
+                       </template>
+                       <div class="popover-content">
+                         <input type="text" class="plane-search-input" v-model="assigneeSearch" placeholder="Search members" />
+                         <div class="plane-list mt-2">
+                           <label
+                             class="plane-list-item"
+                             v-for="member in filteredProjectMembers"
+                             :key="member.userId || member.id"
+                             @click.stop="toggleTaskAssignee(task, member.userId || member.id)"
+                           >
+                             <input type="checkbox" :checked="getTaskAssigneeIds(task).includes(member.userId || member.id)" />
+                             {{ member.fullName || member.name || member.email }}
+                           </label>
+                         </div>
+                       </div>
+                     </el-popover>
+                   </div>
+                 </div>
+               </div>
+
+               <div class="add-row-placeholder" @click="openCreateTask(group.statusName)">
+                 <i class="fa-solid fa-plus"></i> New work item
+               </div>
+             </div>
+           </div>
+         </div>
       </div>
       <div v-if="currentTab === 'calendar'" class="calendar-wrapper">
          <CalendarTab :tasks="filteredTasksList" @open-task="openTaskDetail" @create-task="openCreateTaskFromCalendar" />
@@ -134,23 +216,59 @@
                 <div class="issue-card" :class="{ 'active-card': selectedTask?.id === element.id }" @click="openTaskDetail(element)">
                   <p class="issue-sequence mb-1">{{ element.sequenceId || element.id.substring(0,8).toUpperCase() }}</p>
                   <p class="issue-title" :style="element.statusName === 'DONE' ? { textDecoration: 'line-through', color: '#A1A1AA' } : {}">{{ element.title }}</p>
-                  <div class="issue-meta mt-2" style="display:flex; align-items:center; gap:8px;">
-                     <div class="badge">
-                       <i class="fa-regular fa-circle" v-if="(element.statusName||'').toUpperCase() === 'TO DO' || (element.statusName||'').toUpperCase() === 'TODO'"></i>
-                       <i class="fa-solid fa-circle-half-stroke text-orange" v-else-if="(element.statusName||'').toUpperCase() === 'IN PROGRESS'"></i>
-                       <i class="fa-regular fa-circle-dashed text-muted" v-else-if="(element.statusName||'').toUpperCase() === 'BACKLOG'"></i>
-                       <i class="fa-solid fa-circle-check text-green" v-else-if="(element.statusName||'').toUpperCase() === 'DONE'"></i>
-                       <i class="fa-solid fa-eye text-orange" v-else></i>
-                       <span>{{ element.statusName || 'Backlog' }}</span>
-                     </div>
-                     <div class="badge" v-if="element.priority">
-                        <i class="fa-solid fa-angles-up text-red" v-if="element.priority === 1"></i>
-                        <i class="fa-solid fa-chevron-up text-orange" v-else-if="element.priority === 2"></i>
-                        <i class="fa-solid fa-minus text-blue" v-else-if="element.priority === 3"></i>
-                        <i class="fa-solid fa-chevron-down text-muted" v-else></i>
-                     </div>
-                     <div class="avatar-xs ms-auto" v-if="element.assigneeName">{{ element.assigneeName.substring(0,2).toUpperCase() }}</div>
-                     <div class="avatar-xs ms-auto" style="border: 1px dashed #3f3f46; background: transparent; color: #3f3f46;" v-else><i class="fa-solid fa-user"></i></div>
+                  <div class="issue-meta mt-2" style="display:flex; align-items:center; gap:8px;" @click.stop>
+                     <el-dropdown trigger="click" @command="(val) => updateTask(element, 'statusName', val, element.statusName)">
+                       <div class="badge cursor-pointer hover:bg-[#1E2025]">
+                         <i :class="getBoardStatusIcon(element.statusName)" :style="{ color: getStatusColor(element.statusName) }"></i>
+                         <span>{{ normalizeStatusLabel(element.statusName) }}</span>
+                       </div>
+                       <template #dropdown>
+                         <el-dropdown-menu class="plane-dropdown">
+                           <el-dropdown-item v-for="status in taskStatusOptions" :key="status.name" :command="status.name">
+                             <i :class="status.icon" :style="{ color: status.color }"></i>
+                             {{ status.label }}
+                           </el-dropdown-item>
+                         </el-dropdown-menu>
+                       </template>
+                     </el-dropdown>
+
+                     <el-dropdown trigger="click" @command="(val) => updateTask(element, 'priority', val, element.priority)">
+                       <div class="badge cursor-pointer hover:bg-[#1E2025]">
+                         <i :class="getPriorityIcon(element.priority)"></i>
+                       </div>
+                       <template #dropdown>
+                         <el-dropdown-menu class="plane-dropdown">
+                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> Urgent</el-dropdown-item>
+                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> High</el-dropdown-item>
+                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> Medium</el-dropdown-item>
+                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> Low</el-dropdown-item>
+                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> None</el-dropdown-item>
+                         </el-dropdown-menu>
+                       </template>
+                     </el-dropdown>
+
+                     <el-popover placement="bottom" trigger="click" width="260" popper-class="plane-popover">
+                       <template #reference>
+                         <div class="avatar-xs ms-auto cursor-pointer hover:bg-[#1E2025]" v-if="getTaskAssigneeSummary(element).label">
+                           {{ getTaskAssigneeSummary(element).avatar }}
+                         </div>
+                         <div class="avatar-xs ms-auto cursor-pointer hover:bg-[#1E2025]" style="border: 1px dashed #3f3f46; background: transparent; color: #3f3f46;" v-else><i class="fa-solid fa-user"></i></div>
+                       </template>
+                       <div class="popover-content">
+                         <input type="text" class="plane-search-input" v-model="assigneeSearch" placeholder="Search members" />
+                         <div class="plane-list mt-2">
+                           <label
+                             class="plane-list-item"
+                             v-for="member in filteredProjectMembers"
+                             :key="member.userId || member.id"
+                             @click.stop="toggleTaskAssignee(element, member.userId || member.id)"
+                           >
+                             <input type="checkbox" :checked="getTaskAssigneeIds(element).includes(member.userId || member.id)" />
+                             {{ member.fullName || member.name || member.email }}
+                           </label>
+                         </div>
+                       </div>
+                     </el-popover>
                   </div>
                 </div>
               </template>
@@ -309,7 +427,6 @@ import axiosClient from '@/api/axiosClient'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import draggable from 'vuedraggable'
 import TaskDetailModal from '@/components/TaskDetailModal.vue'
-import ListView from '@/components/ListView.vue'
 import CalendarTab from '@/components/CalendarTab.vue'
 import TimelineTab from '@/components/TimelineTab.vue'
 import SpreadsheetTab from '@/components/SpreadsheetTab.vue'
@@ -335,6 +452,9 @@ use([
 const showDisplayDropdown = ref(false)
 const showAnalyticsSidebar = ref(false)
 const showFilterPanel = ref(false)
+const showSubtasks = ref(false)
+const collapsedListGroups = ref({})
+const assigneeSearch = ref('')
 
 const route = useRoute()
 const router = useRouter()
@@ -366,9 +486,31 @@ const getTaskAssigneeIds = (task) => {
 }
 
 const topLevelTasks = computed(() => rawTasks.value.filter(task => !isSubtask(task)))
+const visibleTasks = computed(() => showSubtasks.value ? rawTasks.value : topLevelTasks.value)
+const taskStatusOptions = [
+  { name: 'BACKLOG', label: 'Backlog', color: '#71717A', icon: 'fa-regular fa-circle-dashed' },
+  { name: 'TO DO', label: 'To Do', color: '#D4D4D8', icon: 'fa-regular fa-circle' },
+  { name: 'IN PROGRESS', label: 'In Progress', color: '#3B82F6', icon: 'fa-solid fa-circle-half-stroke' },
+  { name: 'IN REVIEW', label: 'In Review', color: '#F59E0B', icon: 'fa-solid fa-eye' },
+  { name: 'DONE', label: 'Done', color: '#10B981', icon: 'fa-solid fa-circle-check' },
+  { name: 'CANCELLED', label: 'Cancelled', color: '#EF4444', icon: 'fa-regular fa-circle-xmark' }
+]
 
 const normalizeText = (value) => `${value || ''}`.toLowerCase().trim()
 const normalizeStatus = (value) => `${value || 'BACKLOG'}`.toUpperCase().replace(/\s+/g, ' ').trim()
+const normalizeStatusLabel = (value) => {
+  const status = normalizeStatus(value)
+  return taskStatusOptions.find(item => item.name === status)?.label || status
+}
+const getBoardStatusIcon = (value) => taskStatusOptions.find(item => item.name === normalizeStatus(value))?.icon || 'fa-regular fa-circle-dashed'
+const getStatusColor = (value) => taskStatusOptions.find(item => item.name === normalizeStatus(value))?.color || '#71717A'
+const getPriorityIcon = (priority) => {
+  if (priority === 1) return 'fa-solid fa-angles-up text-red-500'
+  if (priority === 2) return 'fa-solid fa-chevron-up text-orange-500'
+  if (priority === 3) return 'fa-solid fa-minus text-blue-500'
+  if (priority === 4) return 'fa-solid fa-chevron-down text-gray-400'
+  return 'fa-solid fa-ban text-gray-500'
+}
 const normalizePriority = (value) => {
   const map = { urgent: 1, high: 2, normal: 3, low: 4, none: null }
   return Object.prototype.hasOwnProperty.call(map, normalizeText(value)) ? map[normalizeText(value)] : value
@@ -485,8 +627,16 @@ const getProjectId = () => {
     return p === 'default' ? null : p;
 }
 
+const filteredProjectMembers = computed(() => {
+  const keyword = assigneeSearch.value.trim().toLowerCase()
+  if (!keyword) return projectMembers.value
+  return projectMembers.value.filter(member =>
+    `${member.fullName || member.name || member.email || ''}`.toLowerCase().includes(keyword)
+  )
+})
+
 const filteredTasksList = computed(() => {
-  let filteredTasks = [...topLevelTasks.value];
+  let filteredTasks = [...visibleTasks.value];
 
   if (searchQuery.value) {
      filteredTasks = filteredTasks.filter(t => t.title.toLowerCase().includes(searchQuery.value.toLowerCase()) || (t.sequenceId && t.sequenceId.toLowerCase().includes(searchQuery.value.toLowerCase())));
@@ -562,7 +712,8 @@ const kanbanColumns = computed(() => {
     { id: 'todo', name: 'TO DO', color: '#D4D4D8', icon: 'fa-regular fa-circle', priorityValue: null, items: [] },
     { id: 'inprogress', name: 'IN PROGRESS', color: '#3B82F6', icon: 'fa-solid fa-circle-half-stroke', priorityValue: null, items: [] },
     { id: 'review', name: 'IN REVIEW', color: '#F59E0B', icon: 'fa-solid fa-eye', priorityValue: null, items: [] },
-    { id: 'done', name: 'DONE', color: '#10B981', icon: 'fa-solid fa-circle-check', priorityValue: null, items: [] }
+    { id: 'done', name: 'DONE', color: '#10B981', icon: 'fa-solid fa-circle-check', priorityValue: null, items: [] },
+    { id: 'cancelled', name: 'CANCELLED', color: '#EF4444', icon: 'fa-regular fa-circle-xmark', priorityValue: null, items: [] }
   ];
 
   const pGroups = [
@@ -590,6 +741,7 @@ const kanbanColumns = computed(() => {
        else if (s === 'IN PROGRESS' || s === 'INPROGRESS') col = groups[2];
        else if (s === 'IN REVIEW' || s === 'REVIEW') col = groups[3];
        else if (s === 'DONE') col = groups[4];
+       else if (s === 'CANCELLED' || s === 'CANCELED') col = groups[5];
        else col = groups[0]; // fallback to backlog
        
        col.items.push(t);
@@ -597,6 +749,40 @@ const kanbanColumns = computed(() => {
      return groups;
   }
 });
+
+const listViewGroups = computed(() => {
+  const groups = [
+    { id: 'backlog', name: 'Backlog', statusName: 'BACKLOG', icon: 'fa-regular fa-circle-dashed', color: '#71717A', items: [] },
+    { id: 'todo', name: 'To Do', statusName: 'TO DO', icon: 'fa-regular fa-circle', color: '#D4D4D8', items: [] },
+    { id: 'inprogress', name: 'In Progress', statusName: 'IN PROGRESS', icon: 'fa-solid fa-circle-half-stroke', color: '#3B82F6', items: [] },
+    { id: 'review', name: 'In Review', statusName: 'IN REVIEW', icon: 'fa-solid fa-eye', color: '#F59E0B', items: [] },
+    { id: 'done', name: 'Done', statusName: 'DONE', icon: 'fa-solid fa-circle-check', color: '#10B981', items: [] },
+    { id: 'cancelled', name: 'Cancelled', statusName: 'CANCELLED', icon: 'fa-regular fa-circle-xmark', color: '#EF4444', items: [] }
+  ]
+
+  filteredTasksList.value.forEach(task => {
+    const status = normalizeStatus(task.statusName)
+    const target = groups.find(group => group.statusName === status) || groups[0]
+    target.items.push(task)
+  })
+
+  return groups
+})
+
+const toggleListGroup = (groupId) => {
+  collapsedListGroups.value[groupId] = !collapsedListGroups.value[groupId]
+}
+
+const toggleTaskAssignee = (task, memberId) => {
+  const currentIds = getTaskAssigneeIds(task)
+  const nextIds = currentIds.includes(memberId)
+    ? currentIds.filter(id => id !== memberId)
+    : [...currentIds, memberId]
+
+  task.assigneeIds = nextIds
+  task.assignedUserId = nextIds[0] || null
+  updateTask(task, 'assigneeIds', nextIds, currentIds)
+}
 
 const loadInitialData = async () => {
   let pid = getProjectId()
@@ -652,15 +838,49 @@ const closeTaskDetail = () => {
   selectedTask.value = null;
 }
 
+const putBackedTaskFields = new Set([
+  'title',
+  'description',
+  'priority',
+  'storyPoints',
+  'assignedUserId',
+  'plannedStartDate',
+  'plannedEndDate',
+  'dueDate',
+  'sprintId',
+  'taskTypeId'
+])
+
+const buildPutTaskPayload = (task, overrides = {}) => {
+  const mergedTask = { ...task, ...overrides }
+
+  return {
+    title: mergedTask.title || '',
+    description: mergedTask.description ?? '',
+    priority: mergedTask.priority ?? 0,
+    storyPoints: mergedTask.storyPoints ?? 0,
+    assignedUserId: mergedTask.assignedUserId ?? mergedTask.assigneeId ?? null,
+    plannedStartDate: mergedTask.plannedStartDate || null,
+    plannedEndDate: mergedTask.plannedEndDate || null,
+    dueDate: mergedTask.dueDate || null,
+    sprintId: mergedTask.sprintId || null,
+    taskTypeId: mergedTask.taskTypeId || '00000000-0000-0000-0000-000000000000',
+    rowVersion: mergedTask.rowVersion || null
+  }
+}
+
 const updateTask = async (task, field, value, previousValue = task ? task[field] : undefined) => {
    try {
       const pid = getProjectId();
       if (!pid || !task?.id) return;
       
-      const payload = {};
-      payload[field] = value;
       task[field] = value;
-      await store.updateTask(pid, task.id, payload);
+      const usesPutUpdate = putBackedTaskFields.has(field);
+      const payload = usesPutUpdate
+        ? buildPutTaskPayload(task, { [field]: value })
+        : { [field]: value };
+
+      await store.updateTask(pid, task.id, payload, { method: usesPutUpdate ? 'put' : 'patch' });
       await fetchTasks();
    } catch (error) {
       console.error('Failed to update task:', error);
@@ -670,28 +890,21 @@ const updateTask = async (task, field, value, previousValue = task ? task[field]
    }
 }
 
-const openCreateTask = (statusName) => {
-   selectedTask.value = { 
-     isNew: true, 
-     title: '', 
-     description: '', 
-     statusName: statusName || 'BACKLOG', 
-      priority: 3,
-      sprintId: activeSprintFilterId.value || null
-   };
-}
-
-const openCreateTaskFromCalendar = (dates) => {
+const openCreateTask = (statusName, defaults = {}) => {
    selectedTask.value = {
      isNew: true,
      title: '',
      description: '',
-     statusName: 'TO DO',
+     statusName: statusName || 'BACKLOG',
      priority: 3,
-     plannedStartDate: dates?.plannedStartDate || null,
-     dueDate: dates?.dueDate || null,
-     sprintId: activeSprintFilterId.value || null
+     sprintId: activeSprintFilterId.value || null,
+     plannedStartDate: defaults?.plannedStartDate || null,
+     dueDate: defaults?.dueDate || null
    };
+}
+
+const openCreateTaskFromCalendar = (dates) => {
+   openCreateTask('TO DO', dates);
 }
 
 const inlineInput = ref(null);
@@ -806,8 +1019,12 @@ const handleDraggableChange = async (evt, group) => {
 }
 
 
-const handleGlobalCreate = () => {
-    openCreateTask('TO DO')
+const handleGlobalCreate = (event) => {
+    const detail = event?.detail || {};
+    openCreateTask(detail.statusName || 'TO DO', {
+      plannedStartDate: detail.plannedStartDate || null,
+      dueDate: detail.dueDate || null
+    });
 }
 
 const syncFiltersToUrl = () => {
@@ -1277,6 +1494,199 @@ onUnmounted(() => {
 .dd-list { display: flex; flex-direction: column; gap: 8px; }
 .dd-item { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .dd-item input[type="radio"], .dd-item input[type="checkbox"] { accent-color: #0EA5E9; cursor: pointer; }
+
+.plane-list-view {
+  display: flex;
+  flex-direction: column;
+  color: #E4E4E7;
+}
+
+.list-group {
+  margin-bottom: 24px;
+}
+
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  cursor: pointer;
+  border-bottom: 1px solid #1E2025;
+  margin-bottom: 8px;
+}
+
+.group-header:hover .add-icon {
+  opacity: 1;
+}
+
+.gh-left,
+.gh-right,
+.group-content,
+.pill-group {
+  display: flex;
+  align-items: center;
+}
+
+.gh-left {
+  gap: 10px;
+}
+
+.gh-chevron {
+  font-size: 10px;
+  color: #71717A;
+  width: 14px;
+  text-align: center;
+}
+
+.group-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #E4E4E7;
+}
+
+.group-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: #71717A;
+  margin-left: 4px;
+}
+
+.add-icon {
+  color: #71717A;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  padding: 4px;
+}
+
+.task-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0 10px 24px;
+  border-bottom: 1px solid #1E2025;
+  cursor: pointer;
+}
+
+.task-row:hover {
+  background-color: #16181D;
+}
+
+.tr-left,
+.tr-right {
+  display: flex;
+  align-items: center;
+}
+
+.tr-left {
+  gap: 16px;
+  min-width: 0;
+}
+
+.tr-right {
+  justify-content: flex-end;
+}
+
+.task-id {
+  font-size: 12px;
+  color: #71717A;
+  font-weight: 600;
+  min-width: 86px;
+}
+
+.task-title {
+  color: #E4E4E7;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pill-group {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #27272A;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: #D4D4D8;
+}
+
+.pill-user-text {
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.avatar-xxs {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #1E2025;
+  color: #E4E4E7;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  border: 1px solid #3F3F46;
+}
+
+.add-row-placeholder {
+  color: #A1A1AA;
+  font-size: 13px;
+  padding: 10px 0 10px 24px;
+  cursor: pointer;
+}
+
+.add-row-placeholder:hover {
+  color: #FFFFFF;
+  background: #16181D;
+}
+
+.plane-dropdown {
+  background: #1E2025 !important;
+  border: 1px solid #333 !important;
+}
+
+.plane-search-input {
+  width: 100%;
+  background: transparent;
+  border: 1px solid #27272A;
+  color: #E4E4E7;
+  border-radius: 6px;
+  padding: 8px 10px;
+  outline: none;
+}
+
+.plane-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.plane-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #D4D4D8;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+
+.plane-list-item:hover {
+  background: #27272A;
+}
 
 /* Analytics Sidebar */
 .analytics-overlay {

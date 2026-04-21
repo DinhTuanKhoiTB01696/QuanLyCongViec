@@ -55,13 +55,17 @@ namespace TaskManagement.API.Controllers
                     .ThenInclude(ur => ur.Role)
                     .FirstOrDefaultAsync(u => u.Id == userId);
                 
-                var isAdmin = user?.UserRoles?.Any(ur => ur.Role.Name.Equals("Admin", StringComparison.OrdinalIgnoreCase)) ?? false;
+                var isAdmin = user?.UserRoles?.Any(ur =>
+                    ur.Role.Name.Equals("Admin", StringComparison.OrdinalIgnoreCase) ||
+                    ur.Role.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) ||
+                    ur.Role.Name.Equals("System Admin", StringComparison.OrdinalIgnoreCase) ||
+                    ur.Role.Name.Equals("Organization Admin", StringComparison.OrdinalIgnoreCase)) ?? false;
 
                 var pmProjectIds = new List<Guid>();
                 if (!isAdmin && user != null)
                 {
                     pmProjectIds = await _context.ProjectMembers
-                        .Where(pm => pm.UserId == userId && (pm.ProjectRole == "PM" || pm.ProjectRole == "PROJECT_MANAGER" || pm.ProjectRole == "PO" || pm.ProjectRole == "Admin"))
+                        .Where(pm => pm.UserId == userId && pm.Status)
                         .Select(pm => pm.ProjectId)
                         .ToListAsync();
                 }

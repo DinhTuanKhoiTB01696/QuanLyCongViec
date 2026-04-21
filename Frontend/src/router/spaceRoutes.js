@@ -38,5 +38,13 @@ export default [
     path: '/space/:id/pages',
     name: 'PagesView',
     component: () => import('../views/PagesView.vue')
+  },
+  {
+    path: '/space/:id/settings',
+    name: 'ProjectSettings',
+    redirect: to => ({
+      path: '/admin/configuration',
+      query: { projectId: to.params.id }
+    })
   }
 ]

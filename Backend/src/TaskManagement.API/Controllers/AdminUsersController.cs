@@ -6,6 +6,7 @@ using System.Text;
 using TaskManagement.API.Filters;
 using TaskManagement.Application.DTOs.Admin;
 using TaskManagement.Application.Interfaces;
+using TaskManagement.Domain.Entities;
 using TaskManagement.Infrastructure.Data;
 
 namespace TaskManagement.API.Controllers
@@ -37,6 +38,8 @@ namespace TaskManagement.API.Controllers
                 var query = _context.Users
                     .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
+                    .Include(u => u.DepartmentMemberships)
+                    .ThenInclude(dm => dm.Department)
                     .Where(u => !u.IsDeleted)
                     .AsQueryable();
 
@@ -62,6 +65,7 @@ namespace TaskManagement.API.Controllers
                             : string.IsNullOrEmpty(u.PasswordHash) ? "Invited" : "Suspended",
                         avatar = u.AvatarUrl,
                         roles = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
+                        departments = u.DepartmentMemberships.Select(dm => dm.Department.Name).ToList(),
                         createdAt = u.CreatedAt
                     })
                     .ToListAsync();
@@ -343,6 +347,230 @@ namespace TaskManagement.API.Controllers
             {
                 return StatusCode(500, new { statusCode = 500, message = ex.Message });
             }
+        }
+
+        [HttpGet("departments")]
+        public async Task<IActionResult> GetDepartments()
+        {
+            var departments = await _context.Departments
+                .Where(d => !d.IsDeleted)
+                .OrderBy(d => d.Name)
+                .Select(d => new
+                {
+                    id = d.Id,
+                    name = d.Name,
+                    managerId = d.ManagerId,
+                    isActive = d.IsActive,
+                    require2FA = d.Require2FA,
+                    memberCount = d.DepartmentMembers.Count(dm => dm.DepartmentId == d.Id)
+                })
+                .ToListAsync();
+
+            return Ok(new { statusCode = 200, data = departments });
+        }
+
+        [HttpPost("departments")]
+        public async Task<IActionResult> CreateDepartment([FromBody] DepartmentRequest request)
+        {
+            var normalizedName = request.Name?.Trim();
+            if (string.IsNullOrWhiteSpace(normalizedName))
+            {
+                return BadRequest(new { statusCode = 400, message = "Department name is required." });
+            }
+
+            var exists = await _context.Departments.AnyAsync(d => !d.IsDeleted && d.Name.ToLower() == normalizedName.ToLower());
+            if (exists)
+            {
+                return Conflict(new { statusCode = 409, message = "Department already exists." });
+            }
+
+            var department = new Department
+            {
+                Id = Guid.NewGuid(),
+                Name = normalizedName,
+                ManagerId = request.ManagerId,
+                Require2FA = request.Require2FA,
+                IsActive = request.IsActive,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Departments.Add(department);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "Department created successfully.", data = new { id = department.Id } });
+        }
+
+        [HttpPut("departments/{departmentId}")]
+        public async Task<IActionResult> UpdateDepartment(Guid departmentId, [FromBody] DepartmentRequest request)
+        {
+            var department = await _context.Departments.FirstOrDefaultAsync(d => d.Id == departmentId && !d.IsDeleted);
+            if (department == null)
+            {
+                return NotFound(new { statusCode = 404, message = "Department not found." });
+            }
+
+            var normalizedName = request.Name?.Trim();
+            if (string.IsNullOrWhiteSpace(normalizedName))
+            {
+                return BadRequest(new { statusCode = 400, message = "Department name is required." });
+            }
+
+            var duplicated = await _context.Departments.AnyAsync(d =>
+                d.Id != departmentId &&
+                !d.IsDeleted &&
+                d.Name.ToLower() == normalizedName.ToLower());
+
+            if (duplicated)
+            {
+                return Conflict(new { statusCode = 409, message = "Department already exists." });
+            }
+
+            department.Name = normalizedName;
+            department.ManagerId = request.ManagerId;
+            department.Require2FA = request.Require2FA;
+            department.IsActive = request.IsActive;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "Department updated successfully." });
+        }
+
+        [HttpDelete("departments/{departmentId}")]
+        public async Task<IActionResult> DeleteDepartment(Guid departmentId)
+        {
+            var department = await _context.Departments.FirstOrDefaultAsync(d => d.Id == departmentId && !d.IsDeleted);
+            if (department == null)
+            {
+                return NotFound(new { statusCode = 404, message = "Department not found." });
+            }
+
+            department.IsDeleted = true;
+            department.IsActive = false;
+
+            var memberships = await _context.DepartmentMembers
+                .Where(dm => dm.DepartmentId == departmentId)
+                .ToListAsync();
+
+            if (memberships.Count > 0)
+            {
+                _context.DepartmentMembers.RemoveRange(memberships);
+            }
+
+            var projectRoles = await _context.ProjectDepartmentRoles
+                .Where(role => role.DepartmentId == departmentId)
+                .ToListAsync();
+
+            if (projectRoles.Count > 0)
+            {
+                _context.ProjectDepartmentRoles.RemoveRange(projectRoles);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "Department removed successfully." });
+        }
+
+        [HttpGet("project-role-assignments")]
+        public async Task<IActionResult> GetProjectRoleAssignments()
+        {
+            var assignments = await _context.ProjectDepartmentRoles
+                .Include(item => item.Project)
+                .Include(item => item.Department)
+                .OrderBy(item => item.Project.Name)
+                .ThenBy(item => item.Department.Name)
+                .ThenBy(item => item.RoleName)
+                .Select(item => new
+                {
+                    projectId = item.ProjectId,
+                    projectName = item.Project.Name,
+                    departmentId = item.DepartmentId,
+                    departmentName = item.Department.Name,
+                    roleName = item.RoleName,
+                    assignedAt = item.AssignedAt
+                })
+                .ToListAsync();
+
+            return Ok(new { statusCode = 200, data = assignments });
+        }
+
+        [HttpPut("project-role-assignments")]
+        public async Task<IActionResult> UpsertProjectRoleAssignment([FromBody] ProjectDepartmentRoleRequest request)
+        {
+            if (request.ProjectId == Guid.Empty || request.DepartmentId == Guid.Empty || string.IsNullOrWhiteSpace(request.RoleName))
+            {
+                return BadRequest(new { statusCode = 400, message = "Project, department, and role are required." });
+            }
+
+            var projectExists = await _context.Projects.AnyAsync(project => project.Id == request.ProjectId && !project.IsDeleted);
+            if (!projectExists)
+            {
+                return NotFound(new { statusCode = 404, message = "Project not found." });
+            }
+
+            var departmentExists = await _context.Departments.AnyAsync(department => department.Id == request.DepartmentId && !department.IsDeleted);
+            if (!departmentExists)
+            {
+                return NotFound(new { statusCode = 404, message = "Department not found." });
+            }
+
+            var normalizedRoleName = request.RoleName.Trim();
+            var existing = await _context.ProjectDepartmentRoles.FirstOrDefaultAsync(item =>
+                item.ProjectId == request.ProjectId &&
+                item.DepartmentId == request.DepartmentId &&
+                item.RoleName == normalizedRoleName);
+
+            if (existing == null)
+            {
+                _context.ProjectDepartmentRoles.Add(new ProjectDepartmentRole
+                {
+                    ProjectId = request.ProjectId,
+                    DepartmentId = request.DepartmentId,
+                    RoleName = normalizedRoleName,
+                    AssignedAt = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                existing.AssignedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "Project role assignment saved successfully." });
+        }
+
+        [HttpDelete("project-role-assignments")]
+        public async Task<IActionResult> DeleteProjectRoleAssignment([FromBody] ProjectDepartmentRoleRequest request)
+        {
+            var existing = await _context.ProjectDepartmentRoles.FirstOrDefaultAsync(item =>
+                item.ProjectId == request.ProjectId &&
+                item.DepartmentId == request.DepartmentId &&
+                item.RoleName == request.RoleName);
+
+            if (existing == null)
+            {
+                return NotFound(new { statusCode = 404, message = "Project role assignment not found." });
+            }
+
+            _context.ProjectDepartmentRoles.Remove(existing);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "Project role assignment removed successfully." });
+        }
+
+        public class DepartmentRequest
+        {
+            public string Name { get; set; } = string.Empty;
+            public Guid? ManagerId { get; set; }
+            public bool IsActive { get; set; } = true;
+            public bool Require2FA { get; set; }
+        }
+
+        public class ProjectDepartmentRoleRequest
+        {
+            public Guid ProjectId { get; set; }
+            public Guid DepartmentId { get; set; }
+            public string RoleName { get; set; } = string.Empty;
         }
 
         private static string NormalizeSystemRole(string? role)

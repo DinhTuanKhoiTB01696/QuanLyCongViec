@@ -139,6 +139,8 @@ namespace TaskManagement.Infrastructure.Data
             modelBuilder.Entity<WorkTask>().HasIndex(wt => new { wt.WorkspaceId, wt.ProjectId });
             modelBuilder.Entity<WorkTask>().HasIndex(wt => wt.SortOrder);
             modelBuilder.Entity<ProjectMember>().HasIndex(pm => pm.UserId);
+            modelBuilder.Entity<TaskDraft>().HasIndex(td => new { td.UserId, td.UpdatedAt });
+            modelBuilder.Entity<TaskDraft>().HasIndex(td => new { td.UserId, td.ProjectId, td.UpdatedAt });
 
             // =============================================
             // 3. Relationships - Group 1: System & Access
@@ -545,6 +547,12 @@ namespace TaskManagement.Infrastructure.Data
                 .HasOne(ts => ts.User)
                 .WithMany()
                 .HasForeignKey(ts => ts.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TaskDraft>()
+                .HasOne(td => td.User)
+                .WithMany()
+                .HasForeignKey(td => td.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Intake -> Project, Users

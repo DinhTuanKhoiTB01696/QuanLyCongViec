@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 
 const props = defineProps({
   filters: {
@@ -11,6 +11,8 @@ const props = defineProps({
 const emit = defineEmits(['remove', 'clear', 'add', 'add-filter', 'apply', 'update:filters'])
 
 const showBuilder = ref(false)
+const addButtonRef = ref(null)
+const builderStyle = ref({ top: '0px', left: '0px', width: '260px' })
 const draft = ref({ field: 'status', operator: 'is', value: '' })
 
 const filterFields = [
@@ -45,6 +47,32 @@ const selectedField = computed(() => filterFields.find(field => field.key === dr
 const availableOperators = computed(() => operatorsByField[draft.value.field] || ['is'])
 const valueRequired = computed(() => !['empty', 'not empty', 'overdue'].includes(draft.value.operator))
 
+const syncBuilderPosition = () => {
+  if (!addButtonRef.value) return
+  const rect = addButtonRef.value.getBoundingClientRect()
+  builderStyle.value = {
+    top: `${rect.bottom + 8}px`,
+    left: `${Math.max(rect.left, 12)}px`,
+    width: '260px'
+  }
+}
+
+const closeBuilder = () => {
+  showBuilder.value = false
+}
+
+const handleWindowChange = () => {
+  if (showBuilder.value) {
+    syncBuilderPosition()
+  }
+}
+
+const handleDocumentClick = (event) => {
+  if (!showBuilder.value) return
+  if (event.target.closest('.filter-builder') || event.target.closest('.add-filter-icon-btn')) return
+  closeBuilder()
+}
+
 const removeFilter = (id) => {
   const next = props.filters.filter(filter => filter.id !== id)
   emit('update:filters', next)
@@ -56,11 +84,16 @@ const clearAll = () => {
   emit('update:filters', [])
   emit('clear')
   emit('apply', [])
+  closeBuilder()
 }
 
-const addFilter = () => {
+const addFilter = async () => {
   emit('add')
   showBuilder.value = !showBuilder.value
+  if (showBuilder.value) {
+    await nextTick()
+    syncBuilderPosition()
+  }
 }
 
 const applyFilter = () => {
@@ -82,9 +115,19 @@ const applyFilter = () => {
   emit('add', filter)
   emit('add-filter', filter)
   emit('apply', next)
-  showBuilder.value = false
   draft.value = { field: 'status', operator: 'is', value: '' }
+  closeBuilder()
 }
+
+window.addEventListener('resize', handleWindowChange)
+window.addEventListener('scroll', handleWindowChange, true)
+document.addEventListener('click', handleDocumentClick)
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleWindowChange)
+  window.removeEventListener('scroll', handleWindowChange, true)
+  document.removeEventListener('click', handleDocumentClick)
+})
 </script>
 
 <template>
@@ -95,57 +138,64 @@ const applyFilter = () => {
           <i v-if="filter.icon" :class="filter.icon" class="mr-2"></i>
           <span>{{ filter.label }}</span>
         </div>
-        <div class="chip-segment condition-sec">
-          {{ filter.condition }}
-        </div>
-        <div class="chip-segment value-sec">
-          {{ filter.displayValue || filter.value || '--' }}
-        </div>
+        <div class="chip-segment condition-sec">{{ filter.condition }}</div>
+        <div class="chip-segment value-sec">{{ filter.displayValue || filter.value || '--' }}</div>
         <button class="chip-segment remove-sec" type="button" @click="removeFilter(filter.id)" aria-label="Remove filter">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
       <span v-if="filters.length === 0" class="empty-filter-copy">No filters applied</span>
-      
+
       <div class="add-filter-wrapper">
-        <button class="add-filter-icon-btn" type="button" @click="addFilter" :class="{ active: showBuilder }" :aria-expanded="showBuilder">
+        <button
+          ref="addButtonRef"
+          class="add-filter-icon-btn"
+          type="button"
+          :class="{ active: showBuilder }"
+          :aria-expanded="showBuilder"
+          @click.stop="addFilter"
+        >
           <i class="fa-solid fa-filter-circle-plus"></i>
         </button>
-
-        <div class="filter-builder" v-if="showBuilder" @click.stop>
-          <label>
-            <span>Field</span>
-            <select v-model="draft.field" @change="draft.operator = availableOperators[0]; draft.value = ''">
-              <option v-for="field in filterFields" :key="field.key" :value="field.key">{{ field.label }}</option>
-            </select>
-          </label>
-
-          <label>
-            <span>Operator</span>
-            <select v-model="draft.operator" @change="draft.value = ''">
-              <option v-for="operator in availableOperators" :key="operator" :value="operator">{{ operator }}</option>
-            </select>
-          </label>
-
-          <label v-if="valueRequired">
-            <span>Value</span>
-            <select v-model="draft.value">
-              <option value="" disabled>Select value</option>
-              <option v-for="value in selectedField.values" :key="value" :value="value">{{ value }}</option>
-            </select>
-          </label>
-
-          <button class="apply-filter-btn" type="button" @click="applyFilter" :disabled="valueRequired && !draft.value">Apply filter</button>
-        </div>
       </div>
     </div>
 
     <div class="filter-bar-actions" v-if="filters.length > 0">
-        <div class="v-divider"></div>
-        <button class="clear-all-btn" type="button" @click="clearAll">Clear all</button>
+      <div class="v-divider"></div>
+      <button class="clear-all-btn" type="button" @click="clearAll">Clear all</button>
     </div>
   </div>
+
+  <Teleport to="body">
+    <div v-if="showBuilder" class="filter-builder" :style="builderStyle" @click.stop>
+      <label>
+        <span>Field</span>
+        <select v-model="draft.field" @change="draft.operator = availableOperators[0]; draft.value = ''">
+          <option v-for="field in filterFields" :key="field.key" :value="field.key">{{ field.label }}</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Operator</span>
+        <select v-model="draft.operator" @change="draft.value = ''">
+          <option v-for="operator in availableOperators" :key="operator" :value="operator">{{ operator }}</option>
+        </select>
+      </label>
+
+      <label v-if="valueRequired">
+        <span>Value</span>
+        <select v-model="draft.value">
+          <option value="" disabled>Select value</option>
+          <option v-for="value in selectedField.values" :key="value" :value="value">{{ value }}</option>
+        </select>
+      </label>
+
+      <button class="apply-filter-btn" type="button" :disabled="valueRequired && !draft.value" @click="applyFilter">
+        Apply filter
+      </button>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -153,12 +203,14 @@ const applyFilter = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #16181D;
-  border: 1px solid #1E2025;
-  border-radius: 12px;
+  background: #16181d;
+  border: 1px solid #1e2025;
+  border-radius: 8px;
   padding: 8px 12px;
   width: 100%;
   min-height: 48px;
+  position: relative;
+  z-index: 9999;
 }
 
 .filters-scroll-area {
@@ -170,23 +222,18 @@ const applyFilter = () => {
 }
 
 .empty-filter-copy {
-  color: #71717A;
+  color: #71717a;
   font-size: 13px;
 }
 
 .filter-chip {
   display: flex;
   align-items: stretch;
-  background: #1B1C20;
-  border: 1px solid #2D2F36;
+  background: #1b1c20;
+  border: 1px solid #2d2f36;
   border-radius: 6px;
   overflow: hidden;
   height: 32px;
-  transition: all 0.2s;
-}
-
-.filter-chip:hover {
-  border-color: #3F3F46;
 }
 
 .chip-segment {
@@ -194,41 +241,45 @@ const applyFilter = () => {
   align-items: center;
   padding: 0 10px;
   font-size: 13px;
-  border-right: 1px solid #2D2F36;
+  border-right: 1px solid #2d2f36;
   white-space: nowrap;
 }
 
 .label-sec {
-  color: #A1A1AA;
-}
-.label-sec i {
-  font-size: 11px;
+  color: #a1a1aa;
 }
 
 .condition-sec {
-  color: #71717A;
+  color: #71717a;
   background: rgba(255, 255, 255, 0.02);
 }
 
 .value-sec {
-  color: #E4E4E7;
+  color: #e4e4e7;
   font-weight: 500;
 }
 
 .remove-sec {
-  border-right: none;
-  border-top: 0;
-  border-bottom: 0;
-  border-left: 0;
-  cursor: pointer;
-  color: #71717A;
-  padding: 0 8px;
+  border: 0;
   background: transparent;
+  color: #71717a;
+  cursor: pointer;
+  padding: 0 8px;
 }
 
 .remove-sec:hover {
   background: rgba(255, 60, 60, 0.1);
-  color: #EF4444;
+  color: #ef4444;
+}
+
+.add-filter-wrapper {
+  position: relative;
+}
+
+.add-filter-icon-btn,
+.clear-all-btn,
+.apply-filter-btn {
+  border-radius: 6px;
 }
 
 .add-filter-icon-btn {
@@ -237,36 +288,22 @@ const applyFilter = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #1B1C20;
-  border: 1px solid #2D2F36;
-  border-radius: 6px;
-  color: #71717A;
+  background: #1b1c20;
+  border: 1px solid #2d2f36;
+  color: #71717a;
   cursor: pointer;
-  transition: all 0.2s;
-}
-
-.add-filter-icon-btn:hover {
-  border-color: #3F3F46;
-  color: #fff;
 }
 
 .add-filter-icon-btn.active {
-  border-color: #38BDF8;
+  border-color: #38bdf8;
   color: #fff;
 }
 
-.add-filter-wrapper {
-  position: relative;
-}
-
 .filter-builder {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  z-index: 20;
-  width: 260px;
-  background: #1B1C20;
-  border: 1px solid #2D2F36;
+  position: fixed;
+  z-index: 9999;
+  background: #1b1c20;
+  border: 1px solid #2d2f36;
   border-radius: 8px;
   padding: 12px;
   display: flex;
@@ -279,25 +316,23 @@ const applyFilter = () => {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  color: #A1A1AA;
+  color: #a1a1aa;
   font-size: 12px;
 }
 
 .filter-builder select {
   background: #111315;
-  border: 1px solid #2D2F36;
+  border: 1px solid #2d2f36;
   border-radius: 6px;
-  color: #E4E4E7;
+  color: #e4e4e7;
   padding: 8px;
   outline: none;
 }
 
 .apply-filter-btn {
-  background: #0EA5E9;
+  background: #0ea5e9;
   border: none;
-  border-radius: 6px;
   color: #fff;
-  cursor: pointer;
   font-size: 13px;
   font-weight: 600;
   padding: 8px 10px;
@@ -318,25 +353,17 @@ const applyFilter = () => {
 .v-divider {
   width: 1px;
   height: 20px;
-  background: #2D2F36;
+  background: #2d2f36;
 }
 
 .clear-all-btn {
-  background: #1B1C20;
-  border: 1px solid #2D2F36;
-  border-radius: 6px;
-  color: #D4D4D8;
+  background: #1b1c20;
+  border: 1px solid #2d2f36;
+  color: #d4d4d8;
   padding: 6px 14px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s;
-}
-
-.clear-all-btn:hover {
-  background: #27272A;
-  border-color: #3F3F46;
-  color: #fff;
 }
 </style>

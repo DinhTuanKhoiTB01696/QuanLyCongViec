@@ -135,8 +135,8 @@ const handlePageChange = (page) => {
 
 const fetchProjects = async () => {
     try {
-        const res = await axiosClient.get('/projects')
-        projects.value = res.data.data || []
+        const res = await axiosClient.get('/security/accessible-projects')
+        projects.value = res.data?.data?.items || []
     } catch(e) {
         console.error(e)
     }
@@ -177,7 +177,7 @@ const startPolling = () => {
         if (isRealtime.value && currentPage.value === 1) {
             fetchLogs(true) // background fetch
         }
-    }, 1000) // Poll every 1 seconds
+    }, 10000)
 }
 
 const stopPolling = () => {

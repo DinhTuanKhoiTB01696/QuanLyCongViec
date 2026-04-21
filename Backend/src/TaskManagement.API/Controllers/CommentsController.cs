@@ -3,9 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TaskManagement.API.Hubs;
 using TaskManagement.Domain.Entities;
@@ -18,6 +23,9 @@ namespace TaskManagement.API.Controllers
     [Authorize]
     public class CommentsController : ControllerBase
     {
+        private const string ReactionMarkerPrefix = "<!--reactions:";
+        private const string ReactionMarkerSuffix = "-->";
+
         private readonly ApplicationDbContext _context;
         private readonly IHubContext<NotificationHub> _notificationHub;
         private readonly IWebHostEnvironment _env;
@@ -29,15 +37,108 @@ namespace TaskManagement.API.Controllers
             _env = env;
         }
 
+        private async Task TriggerNotificationEventAsync(string relativePath, object payload)
+        {
+            var authorizationHeader = Request.Headers.Authorization.ToString();
+            if (string.IsNullOrWhiteSpace(authorizationHeader) || string.IsNullOrWhiteSpace(Request.Host.Value))
+            {
+                return;
+            }
+
+            try
+            {
+                using var client = new HttpClient
+                {
+                    BaseAddress = new Uri($"{Request.Scheme}://{Request.Host}")
+                };
+                client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authorizationHeader);
+
+                using var content = new StringContent(
+                    JsonSerializer.Serialize(payload),
+                    Encoding.UTF8,
+                    "application/json");
+
+                await client.PostAsync(relativePath, content);
+            }
+            catch
+            {
+                // Notification event failures must not block comment creation.
+            }
+        }
+
         private Guid? GetUserId()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             return Guid.TryParse(claim, out var id) ? id : null;
         }
 
-        /// <summary>
-        /// GET /api/projects/{projectId}/WorkTasks/{taskId}/comments
-        /// </summary>
+        private static (string Content, Dictionary<string, int> Reactions) ParseCommentContent(string? rawContent)
+        {
+            var content = rawContent ?? string.Empty;
+            var markerStart = content.LastIndexOf(ReactionMarkerPrefix, StringComparison.Ordinal);
+            if (markerStart < 0)
+            {
+                return (content, new Dictionary<string, int>());
+            }
+
+            var markerEnd = content.IndexOf(ReactionMarkerSuffix, markerStart, StringComparison.Ordinal);
+            if (markerEnd < 0)
+            {
+                return (content, new Dictionary<string, int>());
+            }
+
+            var jsonStart = markerStart + ReactionMarkerPrefix.Length;
+            var json = content.Substring(jsonStart, markerEnd - jsonStart);
+            var cleanContent = content.Remove(markerStart, markerEnd + ReactionMarkerSuffix.Length - markerStart).TrimEnd();
+
+            try
+            {
+                var reactions = JsonSerializer.Deserialize<Dictionary<string, int>>(json) ?? new Dictionary<string, int>();
+                return (cleanContent, reactions);
+            }
+            catch
+            {
+                return (cleanContent, new Dictionary<string, int>());
+            }
+        }
+
+        private static string ComposeCommentContent(string? content, IDictionary<string, int>? reactions)
+        {
+            var cleanContent = content ?? string.Empty;
+            if (reactions == null || reactions.Count == 0)
+            {
+                return cleanContent;
+            }
+
+            return $"{cleanContent}{ReactionMarkerPrefix}{JsonSerializer.Serialize(reactions)}{ReactionMarkerSuffix}";
+        }
+
+        private static object MapComment(Comment comment)
+        {
+            var parsed = ParseCommentContent(comment.Content);
+            return new
+            {
+                comment.Id,
+                Content = parsed.Content,
+                Reactions = parsed.Reactions,
+                comment.ParentCommentId,
+                comment.CreatedAt,
+                comment.UpdatedAt,
+                UserId = comment.UserId,
+                FullName = comment.User.FullName ?? comment.User.Email,
+                AvatarUrl = comment.User.AvatarUrl,
+                Attachments = comment.CommentAttachments.Select(a => new
+                {
+                    a.Id,
+                    a.FileName,
+                    a.FileUrl,
+                    a.ContentType,
+                    a.FileSize,
+                    a.CreatedAt
+                }).ToList()
+            };
+        }
+
         [HttpGet("projects/{projectId}/WorkTasks/{taskId}/comments")]
         public async Task<IActionResult> GetComments(Guid projectId, Guid taskId)
         {
@@ -46,35 +147,11 @@ namespace TaskManagement.API.Controllers
                 .Include(c => c.User)
                 .Include(c => c.CommentAttachments)
                 .OrderBy(c => c.CreatedAt)
-                .Select(c => new
-                {
-                    c.Id,
-                    c.Content,
-                    c.ParentCommentId,
-                    c.CreatedAt,
-                    c.UpdatedAt,
-                    UserId = c.UserId,
-                    FullName = c.User.FullName ?? c.User.Email,
-                    AvatarUrl = c.User.AvatarUrl,
-                    Attachments = c.CommentAttachments.Select(a => new
-                    {
-                        a.Id,
-                        a.FileName,
-                        a.FileUrl,
-                        a.ContentType,
-                        a.FileSize,
-                        a.CreatedAt
-                    }).ToList()
-                })
                 .ToListAsync();
 
-            return Ok(new { statusCode = 200, message = "Success", data = comments });
+            return Ok(new { statusCode = 200, message = "Success", data = comments.Select(MapComment).ToList() });
         }
 
-        /// <summary>
-        /// POST /api/projects/{projectId}/WorkTasks/{taskId}/comments
-        /// Supports multipart form: content (text) + files[] (attachments)
-        /// </summary>
         [HttpPost("projects/{projectId}/WorkTasks/{taskId}/comments")]
         public async Task<IActionResult> CreateComment(Guid projectId, Guid taskId, [FromForm] string content, [FromForm] Guid? parentCommentId, [FromForm] List<IFormFile>? files)
         {
@@ -82,36 +159,44 @@ namespace TaskManagement.API.Controllers
             if (userId == null) return Unauthorized();
 
             if (string.IsNullOrWhiteSpace(content) && (files == null || files.Count == 0))
-                return BadRequest(new { message = "Comment phải có nội dung hoặc file đính kèm." });
+            {
+                return BadRequest(new { message = "Comment phai co noi dung hoac file dinh kem." });
+            }
 
             var task = await _context.WorkTasks.FirstOrDefaultAsync(t => t.Id == taskId && !t.IsDeleted);
-            if (task == null) return NotFound(new { message = "Task không tồn tại." });
+            if (task == null)
+            {
+                return NotFound(new { message = "Task khong ton tai." });
+            }
 
             var comment = new Comment
             {
                 Id = Guid.NewGuid(),
                 WorkTaskId = taskId,
                 UserId = userId.Value,
-                Content = content ?? "",
+                Content = content ?? string.Empty,
                 ParentCommentId = parentCommentId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
             _context.Comments.Add(comment);
 
-            // Process file attachments
             if (files != null && files.Count > 0)
             {
                 var uploadsDir = Path.Combine(_env.ContentRootPath, "uploads", "comments");
-                if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
+                if (!Directory.Exists(uploadsDir))
+                {
+                    Directory.CreateDirectory(uploadsDir);
+                }
 
                 foreach (var file in files)
                 {
-                    if (file.Length > 10 * 1024 * 1024) // 10MB limit
+                    if (file.Length > 10 * 1024 * 1024)
+                    {
                         continue;
+                    }
 
-                    var ext = Path.GetExtension(file.FileName);
-                    var uniqueName = $"{Guid.NewGuid()}{ext}";
+                    var uniqueName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
                     var filePath = Path.Combine(uploadsDir, uniqueName);
 
                     using (var stream = new FileStream(filePath, FileMode.Create))
@@ -135,89 +220,81 @@ namespace TaskManagement.API.Controllers
 
             await _context.SaveChangesAsync();
 
-            // Create notification for task assignee/reporter
             var currentUser = await _context.Users.FindAsync(userId.Value);
-            var notifyUserIds = new HashSet<Guid>();
-            if (task.AssignedUserId.HasValue && task.AssignedUserId.Value != userId.Value)
-                notifyUserIds.Add(task.AssignedUserId.Value);
-            if (task.ReporterId != userId.Value)
-                notifyUserIds.Add(task.ReporterId);
+            var projectName = await _context.Projects
+                .Where(project => project.Id == projectId)
+                .Select(project => project.Name)
+                .FirstOrDefaultAsync();
 
-            // @Username Tags Regex
-            if (!string.IsNullOrWhiteSpace(content))
+            if (!string.IsNullOrWhiteSpace(projectName))
             {
-                var taggedUsernames = System.Text.RegularExpressions.Regex.Matches(content, @"@(\w+)")
-                    .Select(m => m.Groups[1].Value)
-                    .ToList();
-                if (taggedUsernames.Any())
+                await TriggerNotificationEventAsync("/api/notifications/events/comment-added", new
                 {
-                    var allUsers = await _context.Users.ToListAsync();
-                    var taggedUserIds = allUsers.Where(u => 
-                        taggedUsernames.Any(t => 
-                            (u.FullName != null && u.FullName.Replace(" ", "").Equals(t, StringComparison.OrdinalIgnoreCase)) ||
-                            (u.Email != null && u.Email.Split('@')[0].Equals(t, StringComparison.OrdinalIgnoreCase))
-                        )
-                    ).Select(u => u.Id).ToList();
-
-                    foreach(var tid in taggedUserIds)
-                    {
-                        if (tid != userId.Value) notifyUserIds.Add(tid);
-                    }
-                }
+                    ProjectId = projectId,
+                    TaskId = taskId,
+                    ProjectName = projectName,
+                    ActorName = currentUser?.FullName ?? currentUser?.Email ?? "System",
+                    TaskTitle = task.Title
+                });
             }
 
-            foreach (var notifyId in notifyUserIds)
-            {
-                var notification = new Notification
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = notifyId,
-                    Title = "Bình luận mới",
-                    Content = $"{currentUser?.FullName ?? "Ai đó"} đã bình luận trên \"{task.Title}\"",
-                    NotificationType = "COMMENT_ADDED",
-                    RelatedTaskId = taskId,
-                    RelatedProjectId = projectId,
-                    TriggeredByUserId = userId.Value,
-                    LinkUrl = $"/projects/{projectId}/tasks/{taskId}",
-                    CreatedAt = DateTime.UtcNow
-                };
-                _context.Notifications.Add(notification);
-
-                // Push via SignalR
-                await _notificationHub.Clients.Group($"user_{notifyId}")
-                    .SendAsync("ReceiveNotification", new
-                    {
-                        notification.Id,
-                        notification.Title,
-                        notification.Content,
-                        notification.NotificationType,
-                        notification.RelatedTaskId,
-                        notification.CreatedAt,
-                        TriggeredByName = currentUser?.FullName
-                    });
-            }
-            await _context.SaveChangesAsync();
-
-            // Return the created comment with attachments
-            var result = await _context.Comments
+            var createdComment = await _context.Comments
                 .Where(c => c.Id == comment.Id)
                 .Include(c => c.User)
                 .Include(c => c.CommentAttachments)
-                .Select(c => new
-                {
-                    c.Id,
-                    c.Content,
-                    c.CreatedAt,
-                    FullName = c.User.FullName ?? c.User.Email,
-                    AvatarUrl = c.User.AvatarUrl,
-                    Attachments = c.CommentAttachments.Select(a => new
-                    {
-                        a.Id, a.FileName, a.FileUrl, a.ContentType, a.FileSize
-                    }).ToList()
-                })
                 .FirstOrDefaultAsync();
 
-            return Ok(new { statusCode = 201, message = "Đã thêm bình luận.", data = result });
+            return Ok(new
+            {
+                statusCode = 201,
+                message = "Da them binh luan.",
+                data = createdComment == null ? null : MapComment(createdComment)
+            });
+        }
+
+        [HttpPost("projects/{projectId}/WorkTasks/{taskId}/comments/{commentId}/reactions")]
+        public async Task<IActionResult> AddReaction(Guid projectId, Guid taskId, Guid commentId, [FromBody] AddReactionRequest request)
+        {
+            var userId = GetUserId();
+            if (userId == null) return Unauthorized();
+
+            if (string.IsNullOrWhiteSpace(request.Emoji))
+            {
+                return BadRequest(new { message = "Emoji is required." });
+            }
+
+            var comment = await _context.Comments
+                .Include(c => c.User)
+                .Include(c => c.CommentAttachments)
+                .FirstOrDefaultAsync(c => c.Id == commentId && c.WorkTaskId == taskId && !c.IsDeleted);
+
+            if (comment == null)
+            {
+                return NotFound(new { message = "Comment khong ton tai." });
+            }
+
+            var parsed = ParseCommentContent(comment.Content);
+            if (!parsed.Reactions.ContainsKey(request.Emoji))
+            {
+                parsed.Reactions[request.Emoji] = 0;
+            }
+
+            parsed.Reactions[request.Emoji] += 1;
+            comment.Content = ComposeCommentContent(parsed.Content, parsed.Reactions);
+            comment.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Da them reaction.",
+                data = new
+                {
+                    comment.Id,
+                    Reactions = parsed.Reactions
+                }
+            });
         }
 
         [HttpPut("projects/{projectId}/WorkTasks/{taskId}/comments/{commentId}")]
@@ -232,7 +309,8 @@ namespace TaskManagement.API.Controllers
             if (comment == null) return NotFound(new { message = "Comment khong ton tai." });
             if (comment.UserId != userId.Value) return Forbid();
 
-            comment.Content = request.Content ?? string.Empty;
+            var parsed = ParseCommentContent(comment.Content);
+            comment.Content = ComposeCommentContent(request.Content ?? string.Empty, parsed.Reactions);
             comment.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -245,9 +323,34 @@ namespace TaskManagement.API.Controllers
             return DeleteComment(commentId);
         }
 
-        /// <summary>
-        /// DELETE /api/comments/{commentId}
-        /// </summary>
+        [HttpDelete("projects/{projectId}/WorkTasks/{taskId}/comments/{commentId}/attachments/{attachmentId}")]
+        public async Task<IActionResult> DeleteCommentAttachment(Guid projectId, Guid taskId, Guid commentId, Guid attachmentId)
+        {
+            var userId = GetUserId();
+            if (userId == null) return Unauthorized();
+
+            var comment = await _context.Comments
+                .FirstOrDefaultAsync(c => c.Id == commentId && c.WorkTaskId == taskId && !c.IsDeleted);
+            if (comment == null) return NotFound(new { message = "Comment khong ton tai." });
+            if (comment.UserId != userId.Value) return Forbid();
+
+            var attachment = await _context.CommentAttachments
+                .FirstOrDefaultAsync(a => a.Id == attachmentId && a.CommentId == commentId);
+            if (attachment == null) return NotFound(new { message = "Attachment khong ton tai." });
+
+            _context.CommentAttachments.Remove(attachment);
+            await _context.SaveChangesAsync();
+
+            var relativePath = (attachment.FileUrl ?? string.Empty).TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            var absolutePath = Path.Combine(_env.ContentRootPath, relativePath);
+            if (System.IO.File.Exists(absolutePath))
+            {
+                System.IO.File.Delete(absolutePath);
+            }
+
+            return Ok(new { statusCode = 200, message = "Da xoa attachment." });
+        }
+
         [HttpDelete("comments/{commentId}")]
         public async Task<IActionResult> DeleteComment(Guid commentId)
         {
@@ -262,26 +365,25 @@ namespace TaskManagement.API.Controllers
             comment.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            return Ok(new { statusCode = 200, message = "Đã xóa bình luận." });
+            return Ok(new { statusCode = 200, message = "Da xoa binh luan." });
         }
 
-        /// <summary>
-        /// POST /api/upload  — Generic file upload for attachments, avatars, etc.
-        /// </summary>
         [HttpPost("upload")]
         public async Task<IActionResult> Upload([FromForm] IFormFile file, [FromForm] string? folder)
         {
             var userId = GetUserId();
             if (userId == null) return Unauthorized();
             if (file == null || file.Length == 0) return BadRequest(new { message = "No file." });
-            if (file.Length > 10 * 1024 * 1024) return BadRequest(new { message = "File quá lớn (max 10MB)." });
+            if (file.Length > 10 * 1024 * 1024) return BadRequest(new { message = "File qua lon (max 10MB)." });
 
             var targetFolder = folder ?? "general";
             var uploadsDir = Path.Combine(_env.ContentRootPath, "uploads", targetFolder);
-            if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
+            if (!Directory.Exists(uploadsDir))
+            {
+                Directory.CreateDirectory(uploadsDir);
+            }
 
-            var ext = Path.GetExtension(file.FileName);
-            var uniqueName = $"{Guid.NewGuid()}{ext}";
+            var uniqueName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
             var filePath = Path.Combine(uploadsDir, uniqueName);
 
             using (var stream = new FileStream(filePath, FileMode.Create))
@@ -290,12 +392,27 @@ namespace TaskManagement.API.Controllers
             }
 
             var fileUrl = $"/uploads/{targetFolder}/{uniqueName}";
-            return Ok(new { statusCode = 200, data = new { fileUrl, fileName = file.FileName, contentType = file.ContentType, fileSize = file.Length } });
+            return Ok(new
+            {
+                statusCode = 200,
+                data = new
+                {
+                    fileUrl,
+                    fileName = file.FileName,
+                    contentType = file.ContentType,
+                    fileSize = file.Length
+                }
+            });
         }
     }
 
     public class UpdateCommentRequest
     {
         public string? Content { get; set; }
+    }
+
+    public class AddReactionRequest
+    {
+        public string Emoji { get; set; } = string.Empty;
     }
 }

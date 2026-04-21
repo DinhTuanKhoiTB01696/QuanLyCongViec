@@ -6,7 +6,7 @@
         <div class="dr-left">
           <i class="fa-solid fa-pen-nib text-muted"></i>
           <span class="dr-title">Drafts</span>
-          <span class="dr-badge">{{ drafts.length }}</span>
+          <span class="dr-badge">{{ pagination.totalCount }}</span>
         </div>
         <div class="dr-right">
           <button class="plane-primary-btn" @click="openModal">Draft a work item</button>
@@ -14,8 +14,14 @@
       </header>
 
       <!-- Body / List -->
-      <div class="dr-body">
-         <div class="list-row" v-for="draft in drafts" :key="draft.id" @dblclick="openEditModal(draft)">
+      <div class="dr-body" ref="draftListContainer" @scroll="handleDraftListScroll">
+         <div
+           v-if="drafts.length > 0"
+           class="drafts-virtual-spacer"
+           :style="{ height: `${virtualContentHeight}px` }"
+         >
+           <div class="drafts-virtual-inner" :style="{ transform: `translateY(${virtualOffsetTop}px)` }">
+         <div class="list-row" v-for="draft in visibleDrafts" :key="draft.id" @dblclick="openEditModal(draft)">
             <div class="lr-left">
                <span class="text-muted fw-500 text-xs" style="min-width: 60px;">{{ draft.sequenceId || 'DRAFT' }}</span>
                <span class="lr-title">{{ draft.title || 'Untitled Draft' }}</span>
@@ -172,8 +178,31 @@
                </div>
             </div>
          </div>
+           </div>
+         </div>
          <div v-if="drafts.length === 0" style="padding: 24px; color: #71717A;">
             No drafts found.
+         </div>
+         <div v-else class="drafts-pagination">
+            <div class="pagination-summary">
+              Page {{ pagination.page }} / {{ pagination.totalPages || 1 }}
+            </div>
+            <div class="pagination-actions">
+              <button
+                class="pagination-btn"
+                :disabled="loadingDrafts || !pagination.hasPreviousPage"
+                @click="changePage(pagination.page - 1)"
+              >
+                Previous
+              </button>
+              <button
+                class="pagination-btn"
+                :disabled="loadingDrafts || !pagination.hasNextPage"
+                @click="changePage(pagination.page + 1)"
+              >
+                Next
+              </button>
+            </div>
          </div>
       </div>
     </div>
@@ -367,7 +396,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, nextTick } from 'vue'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import axiosClient from '@/api/axiosClient'
 import { ElMessage } from 'element-plus'
@@ -378,9 +407,23 @@ const editMode = ref(false)
 const drafts = ref([])
 const projects = ref([])
 const movingDraft = ref(null)
+const loadingDrafts = ref(false)
+const draftListContainer = ref(null)
+const scrollTop = ref(0)
+const pagination = ref({
+  page: 1,
+  pageSize: 20,
+  totalCount: 0,
+  totalPages: 0,
+  hasPreviousPage: false,
+  hasNextPage: false
+})
 
 // Popovers Control
 const popovers = ref({ assignees: false, labels: false, cycles: false, modules: false })
+
+const ROW_HEIGHT = 56
+const OVERSCAN = 6
 
 const togglePopover = (key) => {
   const current = popovers.value[key]
@@ -408,8 +451,17 @@ const setPickerRef = (key, el) => {
 const openPicker = (key) => {
   const picker = pickerRefs.value[key]
   if (picker) {
-    // In Vue 3 Element Plus, el-date-picker has a internal focus method or we can extract the input
-    picker.focus ? picker.focus() : (picker.$el?.querySelector('input')?.focus())
+    if (typeof picker.handleOpen === 'function') {
+      picker.handleOpen()
+      return
+    }
+
+    if (typeof picker.focus === 'function') {
+      picker.focus()
+      return
+    }
+
+    picker.$el?.querySelector('input')?.focus()
   }
 }
 
@@ -430,6 +482,14 @@ const filteredMembers = computed(() => dbMembers.value.filter(x => x.name.toLowe
 const filteredLabels = computed(() => dbLabels.value.filter(x => x.name.toLowerCase().includes(searchLabel.value.toLowerCase())))
 const filteredCycles = computed(() => dbCycles.value.filter(x => x.name.toLowerCase().includes(searchCycle.value.toLowerCase())))
 const filteredModules = computed(() => dbModules.value.filter(x => x.name.toLowerCase().includes(searchModule.value.toLowerCase())))
+
+const viewportHeight = computed(() => draftListContainer.value?.clientHeight || 0)
+const visibleCount = computed(() => Math.max(Math.ceil(viewportHeight.value / ROW_HEIGHT) + OVERSCAN, 1))
+const startIndex = computed(() => Math.max(Math.floor(scrollTop.value / ROW_HEIGHT) - Math.floor(OVERSCAN / 2), 0))
+const endIndex = computed(() => Math.min(startIndex.value + visibleCount.value, drafts.value.length))
+const visibleDrafts = computed(() => drafts.value.slice(startIndex.value, endIndex.value))
+const virtualOffsetTop = computed(() => startIndex.value * ROW_HEIGHT)
+const virtualContentHeight = computed(() => drafts.value.length * ROW_HEIGHT)
 
 const form = ref({
   id: null,
@@ -532,13 +592,48 @@ const openEditModal = (draft) => {
 
 // ============ DATA ============
 
-const fetchDrafts = async () => {
+const fetchDrafts = async (page = pagination.value.page) => {
+  loadingDrafts.value = true
   try {
-    const res = await axiosClient.get('/drafts')
+    const res = await axiosClient.get('/drafts', {
+      params: {
+        page,
+        pageSize: pagination.value.pageSize,
+        projectId: projects.value[0]?.id || undefined
+      }
+    })
     drafts.value = res.data?.data || []
+    const serverPagination = res.data?.pagination || {}
+    pagination.value = {
+      page: serverPagination.page || page,
+      pageSize: serverPagination.pageSize || pagination.value.pageSize,
+      totalCount: serverPagination.totalCount || 0,
+      totalPages: serverPagination.totalPages || 0,
+      hasPreviousPage: Boolean(serverPagination.hasPreviousPage),
+      hasNextPage: Boolean(serverPagination.hasNextPage)
+    }
   } catch(e) {
     console.error(e)
+  } finally {
+    loadingDrafts.value = false
+    await nextTick()
+    if (draftListContainer.value) {
+      draftListContainer.value.scrollTop = 0
+      scrollTop.value = 0
+    }
   }
+}
+
+const changePage = async (page) => {
+  if (page < 1 || page === pagination.value.page) {
+    return
+  }
+
+  await fetchDrafts(page)
+}
+
+const handleDraftListScroll = () => {
+  scrollTop.value = draftListContainer.value?.scrollTop || 0
 }
 
 const loadProjectContextData = async (projectId) => {
@@ -569,6 +664,7 @@ const fetchProjects = async () => {
     projects.value = res.data?.data || []
     if (projects.value.length > 0) {
       await loadProjectContextData(projects.value[0].id)
+      await fetchDrafts(1)
     }
   } catch(e) {
     console.error(e)
@@ -591,7 +687,8 @@ const saveDraft = async () => {
       startDate: form.value.startDate,
       dueDate: form.value.dueDate,
       cycle: form.value.cycle,
-      module: form.value.module
+      module: form.value.module,
+      projectId: projects.value[0]?.id || null
     }
     
     if (editMode.value && form.value.id) {
@@ -603,7 +700,7 @@ const saveDraft = async () => {
     }
     
     showModal.value = false
-    fetchDrafts()
+    fetchDrafts(pagination.value.page)
   } catch(e) {
     console.error(e)
     ElMessage.error('Failed to save draft')
@@ -622,7 +719,8 @@ const updateDraftProperty = async (draft, field, value) => {
       startDate: draft.startDate,
       dueDate: draft.dueDate,
       cycle: draft.cycle,
-      module: draft.module
+      module: draft.module,
+      projectId: draft.projectId || projects.value[0]?.id || null
     }
     payload[field] = value
     await axiosClient.put(`/drafts/${draft.id}`, payload)
@@ -638,7 +736,11 @@ const deleteDraft = async (id) => {
   try {
     await axiosClient.delete(`/drafts/${id}`)
     ElMessage.success('Draft deleted')
-    fetchDrafts()
+    const targetPage =
+      drafts.value.length === 1 && pagination.value.page > 1
+        ? pagination.value.page - 1
+        : pagination.value.page
+    fetchDrafts(targetPage)
   } catch(e) {
     console.error(e)
     ElMessage.error('Failed to delete draft')
@@ -676,10 +778,11 @@ const makeCopy = async (draft) => {
       startDate: draft.startDate,
       dueDate: draft.dueDate,
       cycle: draft.cycle,
-      module: draft.module
+      module: draft.module,
+      projectId: draft.projectId || projects.value[0]?.id || null
     })
     ElMessage.success('Draft duplicated')
-    fetchDrafts()
+    fetchDrafts(1)
   } catch(e) {
     console.error(e)
     ElMessage.error('Failed to duplicate draft')
@@ -718,7 +821,11 @@ const moveToProject = async (projectId) => {
     ElMessage.success('Draft moved to project successfully')
     showMoveModal.value = false
     movingDraft.value = null
-    fetchDrafts()
+    const targetPage =
+      drafts.value.length === 1 && pagination.value.page > 1
+        ? pagination.value.page - 1
+        : pagination.value.page
+    fetchDrafts(targetPage)
   } catch(e) {
     console.error(e)
     ElMessage.error('Failed to move draft to project')
@@ -729,6 +836,10 @@ onMounted(() => {
   fetchDrafts()
   fetchProjects()
   document.addEventListener('click', clickOutsidePopover)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', clickOutsidePopover)
 })
 </script>
 
@@ -781,6 +892,8 @@ onMounted(() => {
 
 /* List Styles */
 .dr-body { padding: 0 24px; overflow-y: auto; flex: 1; }
+.drafts-virtual-spacer { position: relative; width: 100%; }
+.drafts-virtual-inner { position: absolute; top: 0; left: 0; right: 0; }
 .list-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border: 1px solid transparent; border-bottom: 1px solid #1E2025; transition: background 0.2s, border 0.2s; cursor: pointer; }
 .list-row:hover { background: #16181D; border-radius: 4px; border-color: #27272A; }
 .lr-left { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
@@ -936,5 +1049,44 @@ onMounted(() => {
 .project-item:hover {
   background: #16181D;
   border-color: #27272A;
+}
+
+.drafts-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 0 24px;
+  border-top: 1px solid #1E2025;
+  margin-top: 8px;
+}
+
+.pagination-summary {
+  color: #A1A1AA;
+  font-size: 12px;
+}
+
+.pagination-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pagination-btn {
+  background: transparent;
+  border: 1px solid #27272A;
+  color: #E4E4E7;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pagination-btn:not(:disabled):hover {
+  background: #16181D;
 }
 </style>

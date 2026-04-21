@@ -240,8 +240,8 @@ const fetchBurndowns = async () => {
   burndownCharts.value = chartEntries
 }
 
-const loadCycles = async () => {
-  await sprintStore.fetchSprints(props.projectId)
+const loadCycles = async (force = false) => {
+  await sprintStore.fetchSprints(props.projectId, { force })
   await fetchBurndowns()
 }
 
@@ -377,7 +377,7 @@ const btnDateText = computed(() => {
   return `${start} -> ${end}`
 })
 
-watch(() => props.projectId, loadCycles, { immediate: true })
+watch(() => props.projectId, () => loadCycles(true), { immediate: true })
 
 let cycleRefreshTimer = null
 onMounted(() => {

@@ -2,8 +2,8 @@
   <header class="plane-topbar">
     <div class="nav-left">
       <div class="workspace-switcher" @click="$router.push('/spaces')">
-        <div class="ws-icon">C</div>
-        <span class="ws-name">Cun</span>
+        <div class="ws-icon">{{ workspaceBadge }}</div>
+        <span class="ws-name">{{ workspaceName }}</span>
         <i class="fa-solid fa-chevron-down"></i>
       </div>
       <button class="menu-toggle" @click="$emit('toggle-sidebar')">
@@ -14,7 +14,18 @@
     <div class="nav-center">
       <div class="search-input-wrapper">
         <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        <input type="text" placeholder="Search commands..." v-model="searchQuery" />
+        <input type="text" placeholder="Search work items..." v-model="searchQuery" @input="handleSearchInput" />
+        <div v-if="showSearchDropdown" class="search-dropdown">
+          <div v-if="searching" class="search-state">Searching...</div>
+          <template v-else-if="searchResults.length">
+            <button v-for="result in searchResults" :key="result.id" type="button" class="search-result" @click="openSearchResult(result)">
+              <strong>{{ result.sequenceId || result.title }}</strong>
+              <span>{{ result.title }}</span>
+              <small>{{ result.projectName }}</small>
+            </button>
+          </template>
+          <div v-else class="search-state">No work items found.</div>
+        </div>
       </div>
     </div>
 
@@ -29,13 +40,63 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import axiosClient from '@/api/axiosClient'
 import UserDropdown from '@/components/UserDropdown.vue'
 import NotificationsDropdown from '@/components/NotificationsDropdown.vue'
+import { useProjectStore } from '@/store/useProjectStore'
 
 const router = useRouter()
+const route = useRoute()
+const projectStore = useProjectStore()
 const searchQuery = ref('')
+const searchResults = ref([])
+const searching = ref(false)
+let searchTimer = null
+
+const currentProjectId = computed(() => route.params.id || localStorage.getItem('currentProjectId') || '')
+const activeProject = computed(() => projectStore.allProjects.find(project => project.id === currentProjectId.value) || projectStore.currentProject)
+const workspaceName = computed(() => activeProject.value?.name || 'SprintA')
+const workspaceBadge = computed(() => activeProject.value?.icon || workspaceName.value.charAt(0).toUpperCase())
+const showSearchDropdown = computed(() => searching.value || searchResults.value.length > 0 || searchQuery.value.trim().length > 0)
+
+const runSearch = async () => {
+  const keyword = searchQuery.value.trim()
+  if (!keyword) {
+    searchResults.value = []
+    searching.value = false
+    return
+  }
+
+  searching.value = true
+  try {
+    const response = await axiosClient.get('/worktasks', { params: { search: keyword } })
+    searchResults.value = response.data?.data || []
+  } catch {
+    searchResults.value = []
+  } finally {
+    searching.value = false
+  }
+}
+
+const handleSearchInput = () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(runSearch, 250)
+}
+
+const openSearchResult = (result) => {
+  searchResults.value = []
+  searchQuery.value = ''
+  router.push(`/space/${result.projectId}?task=${result.id}`)
+}
+
+onMounted(() => {
+  projectStore.fetchAllProjects().catch(() => {})
+  if (currentProjectId.value) {
+    projectStore.fetchProjectDetails(currentProjectId.value).catch(() => {})
+  }
+})
 </script>
 
 <style scoped>
@@ -114,6 +175,7 @@ const searchQuery = ref('')
 }
 
 .search-input-wrapper {
+  position: relative;
   display: flex;
   align-items: center;
   background-color: #1e2025;
@@ -143,6 +205,44 @@ const searchQuery = ref('')
   font-size: 13px; 
   width: 100%; 
   outline: none; 
+}
+
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: #111315;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+}
+
+.search-result,
+.search-state {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  padding: 12px 14px;
+  color: #e4e4e7;
+}
+
+.search-result {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.search-result:hover {
+  background: #18181b;
+}
+
+.search-result span,
+.search-result small,
+.search-state {
+  color: #a1a1aa;
 }
 
 .nav-right {

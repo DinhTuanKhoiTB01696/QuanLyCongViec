@@ -27,9 +27,6 @@ namespace TaskManagement.API.Controllers
             return Guid.TryParse(claim, out var id) ? id : null;
         }
 
-        /// <summary>
-        /// GET /api/notifications — List notifications for current user (last 30 days)
-        /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetNotifications([FromQuery] bool? unreadOnly)
         {
@@ -37,11 +34,14 @@ namespace TaskManagement.API.Controllers
             if (userId == null) return Unauthorized();
 
             var query = _context.Notifications
+                .AsNoTracking()
                 .Where(n => n.UserId == userId.Value)
                 .Where(n => n.CreatedAt >= DateTime.UtcNow.AddDays(-30));
 
             if (unreadOnly == true)
+            {
                 query = query.Where(n => !n.IsRead);
+            }
 
             var notifications = await query
                 .OrderByDescending(n => n.CreatedAt)
@@ -63,47 +63,38 @@ namespace TaskManagement.API.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(new { statusCode = 200, data = notifications });
+            return Ok(new
+            {
+                statusCode = 200,
+                data = notifications,
+                unreadCount = notifications.Count(n => !n.IsRead)
+            });
         }
 
-        /// <summary>
-        /// GET /api/notifications/unread-count
-        /// </summary>
         [HttpGet("unread-count")]
         public async Task<IActionResult> GetUnreadCount()
         {
             var userId = GetUserId();
             if (userId == null) return Unauthorized();
 
-            var count = await _context.Notifications
-                .CountAsync(n => n.UserId == userId.Value && !n.IsRead);
-
+            var count = await _context.Notifications.CountAsync(n => n.UserId == userId.Value && !n.IsRead);
             return Ok(new { statusCode = 200, data = count });
         }
 
-        /// <summary>
-        /// PUT /api/notifications/{id}/read
-        /// </summary>
         [HttpPut("{id}/read")]
         public async Task<IActionResult> MarkAsRead(Guid id)
         {
             var userId = GetUserId();
             if (userId == null) return Unauthorized();
 
-            var notification = await _context.Notifications
-                .FirstOrDefaultAsync(n => n.Id == id && n.UserId == userId.Value);
-
+            var notification = await _context.Notifications.FirstOrDefaultAsync(n => n.Id == id && n.UserId == userId.Value);
             if (notification == null) return NotFound();
 
             notification.IsRead = true;
             await _context.SaveChangesAsync();
-
-            return Ok(new { statusCode = 200, message = "Đã đánh dấu đã đọc." });
+            return Ok(new { statusCode = 200, message = "Marked as read." });
         }
 
-        /// <summary>
-        /// PUT /api/notifications/read-all
-        /// </summary>
         [HttpPut("read-all")]
         public async Task<IActionResult> MarkAllAsRead()
         {
@@ -114,10 +105,136 @@ namespace TaskManagement.API.Controllers
                 .Where(n => n.UserId == userId.Value && !n.IsRead)
                 .ToListAsync();
 
-            foreach (var n in unread) n.IsRead = true;
-            await _context.SaveChangesAsync();
+            foreach (var notification in unread)
+            {
+                notification.IsRead = true;
+            }
 
-            return Ok(new { statusCode = 200, message = "Đã đánh dấu tất cả đã đọc." });
+            await _context.SaveChangesAsync();
+            return Ok(new { statusCode = 200, message = "Marked all as read." });
         }
+
+        [HttpPost("events/task-assigned")]
+        public async Task<IActionResult> CreateTaskAssignedNotification([FromBody] TaskAssignedNotificationRequest request)
+        {
+            var actorId = GetUserId();
+            if (actorId == null) return Unauthorized();
+            if (request.AssigneeUserId == Guid.Empty || request.AssigneeUserId == actorId.Value) return Ok(new { statusCode = 200, message = "Skipped." });
+
+            _context.Notifications.Add(new TaskManagement.Domain.Entities.Notification
+            {
+                Id = Guid.NewGuid(),
+                UserId = request.AssigneeUserId,
+                Title = request.ProjectName ?? "Project",
+                Content = $"{request.ActorName ?? "System"} assigned you to {request.TaskTitle ?? "a work item"}",
+                NotificationType = "TASK_ASSIGNED",
+                RelatedTaskId = request.TaskId,
+                RelatedProjectId = request.ProjectId,
+                TriggeredByUserId = actorId.Value,
+                LinkUrl = $"/space/{request.ProjectId}?task={request.TaskId}",
+                CreatedAt = DateTime.UtcNow,
+                IsRead = false
+            });
+
+            await _context.SaveChangesAsync();
+            return Ok(new { statusCode = 200, message = "Created." });
+        }
+
+        [HttpPost("events/task-status-changed")]
+        public async Task<IActionResult> CreateTaskStatusNotification([FromBody] TaskStatusNotificationRequest request)
+        {
+            var actorId = GetUserId();
+            if (actorId == null) return Unauthorized();
+
+            var targetUserIds = await _context.TaskAssignments
+                .Where(ta => ta.WorkTaskId == request.TaskId && ta.Status && ta.UserId != actorId.Value)
+                .Select(ta => ta.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            foreach (var targetUserId in targetUserIds)
+            {
+                _context.Notifications.Add(new TaskManagement.Domain.Entities.Notification
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = targetUserId,
+                    Title = request.ProjectName ?? "Project",
+                    Content = $"{request.ActorName ?? "System"} changed {request.TaskTitle ?? "a work item"} to {request.StatusName ?? "updated"}",
+                    NotificationType = "TASK_STATUS_CHANGED",
+                    RelatedTaskId = request.TaskId,
+                    RelatedProjectId = request.ProjectId,
+                    TriggeredByUserId = actorId.Value,
+                    LinkUrl = $"/space/{request.ProjectId}?task={request.TaskId}",
+                    CreatedAt = DateTime.UtcNow,
+                    IsRead = false
+                });
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { statusCode = 200, message = "Created.", count = targetUserIds.Count });
+        }
+
+        [HttpPost("events/comment-added")]
+        public async Task<IActionResult> CreateCommentNotification([FromBody] CommentNotificationRequest request)
+        {
+            var actorId = GetUserId();
+            if (actorId == null) return Unauthorized();
+
+            var targetUserIds = await _context.TaskAssignments
+                .Where(ta => ta.WorkTaskId == request.TaskId && ta.Status && ta.UserId != actorId.Value)
+                .Select(ta => ta.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            foreach (var targetUserId in targetUserIds)
+            {
+                _context.Notifications.Add(new TaskManagement.Domain.Entities.Notification
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = targetUserId,
+                    Title = request.ProjectName ?? "Project",
+                    Content = $"{request.ActorName ?? "System"} commented on {request.TaskTitle ?? "a work item"}",
+                    NotificationType = "COMMENT_ADDED",
+                    RelatedTaskId = request.TaskId,
+                    RelatedProjectId = request.ProjectId,
+                    TriggeredByUserId = actorId.Value,
+                    LinkUrl = $"/space/{request.ProjectId}?task={request.TaskId}",
+                    CreatedAt = DateTime.UtcNow,
+                    IsRead = false
+                });
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { statusCode = 200, message = "Created.", count = targetUserIds.Count });
+        }
+    }
+
+    public class TaskAssignedNotificationRequest
+    {
+        public Guid ProjectId { get; set; }
+        public Guid TaskId { get; set; }
+        public Guid AssigneeUserId { get; set; }
+        public string? ProjectName { get; set; }
+        public string? TaskTitle { get; set; }
+        public string? ActorName { get; set; }
+    }
+
+    public class TaskStatusNotificationRequest
+    {
+        public Guid ProjectId { get; set; }
+        public Guid TaskId { get; set; }
+        public string? ProjectName { get; set; }
+        public string? TaskTitle { get; set; }
+        public string? StatusName { get; set; }
+        public string? ActorName { get; set; }
+    }
+
+    public class CommentNotificationRequest
+    {
+        public Guid ProjectId { get; set; }
+        public Guid TaskId { get; set; }
+        public string? ProjectName { get; set; }
+        public string? TaskTitle { get; set; }
+        public string? ActorName { get; set; }
     }
 }

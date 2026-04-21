@@ -2,8 +2,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using TaskManagement.API.Filters;
 using TaskManagement.Application.DTOs.WorkTask;
@@ -23,6 +27,128 @@ namespace TaskManagement.API.Controllers
         public WorkTasksController(IWorkTaskService workTaskService)
         {
             _workTaskService = workTaskService;
+        }
+
+        private async Task TriggerNotificationEventAsync(string relativePath, object payload)
+        {
+            var authorizationHeader = Request.Headers.Authorization.ToString();
+            if (string.IsNullOrWhiteSpace(authorizationHeader) || string.IsNullOrWhiteSpace(Request.Host.Value))
+            {
+                return;
+            }
+
+            try
+            {
+                using var client = new HttpClient
+                {
+                    BaseAddress = new Uri($"{Request.Scheme}://{Request.Host}")
+                };
+                client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authorizationHeader);
+
+                using var content = new StringContent(
+                    JsonSerializer.Serialize(payload),
+                    Encoding.UTF8,
+                    "application/json");
+
+                await client.PostAsync(relativePath, content);
+            }
+            catch
+            {
+                // Notification event failures must not block task updates.
+            }
+        }
+
+        private async Task<NotificationActorContext?> BuildNotificationActorContextAsync(
+            ApplicationDbContext context,
+            Guid projectId,
+            Guid actorUserId,
+            string taskTitle)
+        {
+            var projectName = await context.Projects
+                .Where(project => project.Id == projectId)
+                .Select(project => project.Name)
+                .FirstOrDefaultAsync();
+
+            var actorName = await context.Users
+                .Where(user => user.Id == actorUserId)
+                .Select(user => user.FullName ?? user.Email)
+                .FirstOrDefaultAsync();
+
+            if (string.IsNullOrWhiteSpace(projectName))
+            {
+                return null;
+            }
+
+            return new NotificationActorContext
+            {
+                ActorName = string.IsNullOrWhiteSpace(actorName) ? "System" : actorName,
+                ProjectName = projectName,
+                TaskTitle = taskTitle
+            };
+        }
+
+        private async Task TriggerTaskAssignedNotificationsAsync(
+            ApplicationDbContext context,
+            Guid projectId,
+            Guid taskId,
+            Guid actorUserId,
+            string taskTitle,
+            IEnumerable<Guid> assigneeIds)
+        {
+            var assigneeList = assigneeIds.Distinct().ToList();
+            if (!assigneeList.Any())
+            {
+                return;
+            }
+
+            var actorContext = await BuildNotificationActorContextAsync(context, projectId, actorUserId, taskTitle);
+            if (actorContext == null)
+            {
+                return;
+            }
+
+            foreach (var assigneeId in assigneeList)
+            {
+                await TriggerNotificationEventAsync("/api/notifications/events/task-assigned", new
+                {
+                    AssigneeUserId = assigneeId,
+                    ProjectId = projectId,
+                    TaskId = taskId,
+                    ProjectName = actorContext.ProjectName,
+                    ActorName = actorContext.ActorName,
+                    TaskTitle = actorContext.TaskTitle
+                });
+            }
+        }
+
+        private async Task TriggerTaskStatusChangedNotificationAsync(
+            ApplicationDbContext context,
+            Guid projectId,
+            Guid taskId,
+            Guid actorUserId,
+            string taskTitle,
+            string? statusName)
+        {
+            if (string.IsNullOrWhiteSpace(statusName))
+            {
+                return;
+            }
+
+            var actorContext = await BuildNotificationActorContextAsync(context, projectId, actorUserId, taskTitle);
+            if (actorContext == null)
+            {
+                return;
+            }
+
+            await TriggerNotificationEventAsync("/api/notifications/events/task-status-changed", new
+            {
+                ProjectId = projectId,
+                TaskId = taskId,
+                ProjectName = actorContext.ProjectName,
+                ActorName = actorContext.ActorName,
+                TaskTitle = actorContext.TaskTitle,
+                StatusName = statusName
+            });
         }
 
         [HttpGet("projects/{projectId}/WorkTasks")]
@@ -183,7 +309,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPut("projects/{projectId}/WorkTasks/{id}/status")]
-        public async Task<IActionResult> UpdateStatus(Guid projectId, Guid id, [FromBody] UpdateTaskStatusRequestDto request)
+        public async Task<IActionResult> UpdateStatus(Guid projectId, Guid id, [FromBody] UpdateTaskStatusRequestDto request, [FromServices] ApplicationDbContext context)
         {
             try
             {
@@ -193,7 +319,32 @@ namespace TaskManagement.API.Controllers
                     return Unauthorized(new { statusCode = 401, message = "Vui long dang nhap." });
                 }
 
+                var previousTask = await context.WorkTasks
+                    .AsNoTracking()
+                    .Include(wt => wt.TaskStatus)
+                    .FirstOrDefaultAsync(wt => wt.Id == id && wt.ProjectId == projectId && !wt.IsDeleted);
+                if (previousTask == null)
+                {
+                    return NotFound(new { statusCode = 404, message = "Task khong ton tai trong du an nay." });
+                }
+
                 await _workTaskService.UpdateTaskStatusAsync(id, userId, request);
+
+                var updatedTask = await context.WorkTasks
+                    .AsNoTracking()
+                    .Include(wt => wt.TaskStatus)
+                    .FirstOrDefaultAsync(wt => wt.Id == id && wt.ProjectId == projectId && !wt.IsDeleted);
+
+                if (updatedTask != null && !string.Equals(previousTask.TaskStatus?.Name, updatedTask.TaskStatus?.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    await TriggerTaskStatusChangedNotificationAsync(
+                        context,
+                        projectId,
+                        id,
+                        userId,
+                        updatedTask.Title,
+                        updatedTask.TaskStatus?.Name);
+                }
                 return Ok(new { statusCode = 200, message = "Success", data = "Cập nhật trạng thái tác vụ thành công." });
             }
             catch (DbUpdateConcurrencyException)
@@ -215,7 +366,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPut("projects/{projectId}/WorkTasks/{id}")]
-        public async Task<IActionResult> Update(Guid projectId, Guid id, [FromBody] UpdateWorkTaskDto dto)
+        public async Task<IActionResult> Update(Guid projectId, Guid id, [FromBody] UpdateWorkTaskDto dto, [FromServices] ApplicationDbContext context)
         {
             try
             {
@@ -225,7 +376,70 @@ namespace TaskManagement.API.Controllers
                     return Unauthorized(new { statusCode = 401, message = "Vui lòng đăng nhập." });
                 }
 
+                var taskExistsInProject = await context.WorkTasks
+                    .AnyAsync(wt => wt.Id == id && wt.ProjectId == projectId && !wt.IsDeleted);
+                if (!taskExistsInProject)
+                {
+                    return NotFound(new { statusCode = 404, message = "Task khong ton tai trong du an nay." });
+                }
+
+                if (dto.RowVersion == null || dto.RowVersion.Length == 0)
+                {
+                    return BadRequest(new { statusCode = 400, message = "Thieu RowVersion. Vui long tai lai cong viec truoc khi cap nhat." });
+                }
+
+                var previousTask = await context.WorkTasks
+                    .AsNoTracking()
+                    .Include(wt => wt.TaskAssignments)
+                    .FirstOrDefaultAsync(wt => wt.Id == id && wt.ProjectId == projectId && !wt.IsDeleted);
+                var previousAssigneeIds = new HashSet<Guid>();
+                if (previousTask?.AssignedUserId is Guid previousAssignedUserId)
+                {
+                    previousAssigneeIds.Add(previousAssignedUserId);
+                }
+
+                if (previousTask != null)
+                {
+                    foreach (var assignment in previousTask.TaskAssignments.Where(ta => ta.Status))
+                    {
+                        previousAssigneeIds.Add(assignment.UserId);
+                    }
+                }
+
                 var result = await _workTaskService.UpdateAsync(id, userId, dto);
+
+                var updatedTask = await context.WorkTasks
+                    .AsNoTracking()
+                    .Include(wt => wt.TaskAssignments)
+                    .FirstOrDefaultAsync(wt => wt.Id == id && wt.ProjectId == projectId && !wt.IsDeleted);
+
+                if (updatedTask != null)
+                {
+                    var currentAssigneeIds = updatedTask.TaskAssignments
+                        .Where(ta => ta.Status)
+                        .Select(ta => ta.UserId)
+                        .ToHashSet();
+
+                    if (updatedTask.AssignedUserId is Guid currentAssignedUserId)
+                    {
+                        currentAssigneeIds.Add(currentAssignedUserId);
+                    }
+
+                    var newAssigneeIds = currentAssigneeIds
+                        .Except(previousAssigneeIds)
+                        .ToList();
+
+                    if (newAssigneeIds.Any())
+                    {
+                        await TriggerTaskAssignedNotificationsAsync(
+                            context,
+                            projectId,
+                            id,
+                            userId,
+                            updatedTask.Title,
+                            newAssigneeIds);
+                    }
+                }
                 return Ok(new { statusCode = 200, message = "Cập nhật công việc thành công.", data = result });
             }
             catch (DbUpdateConcurrencyException)
@@ -285,6 +499,14 @@ namespace TaskManagement.API.Controllers
                 }
                 var oldStatusName = task.TaskStatus?.Name;
                 string? newStatusName = null;
+                var previousAssigneeIds = task.TaskAssignments
+                    .Where(ta => ta.Status)
+                    .Select(ta => ta.UserId)
+                    .ToHashSet();
+                if (task.AssignedUserId is Guid previousAssignedUserId)
+                {
+                    previousAssigneeIds.Add(previousAssignedUserId);
+                }
 
                 if (updates.TryGetProperty("title", out var titleProp) && titleProp.ValueKind != System.Text.Json.JsonValueKind.Null)
                     task.Title = titleProp.GetString() ?? task.Title;
@@ -532,11 +754,67 @@ namespace TaskManagement.API.Controllers
                 if (userId != Guid.Empty && !string.IsNullOrWhiteSpace(newStatusName))
                 {
                     await gamificationService.ApplyStatusChangeRewardsAsync(id, userId, oldStatusName, newStatusName);
+                    if (!string.Equals(oldStatusName, newStatusName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        await TriggerTaskStatusChangedNotificationAsync(
+                            context,
+                            projectId,
+                            id,
+                            userId,
+                            task.Title,
+                            newStatusName);
+                    }
+                    if (!string.Equals(oldStatusName, newStatusName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        await TriggerTaskStatusChangedNotificationAsync(
+                            context,
+                            projectId,
+                            id,
+                            userId,
+                            task.Title,
+                            newStatusName);
+                    }
                 }
                 foreach (var rewardRequest in progressRewardRequests)
                 {
                     await gamificationService.ApplyAssignmentProgressRewardsAsync(id, rewardRequest.AssigneeId, userId, rewardRequest.OldProgress, rewardRequest.NewProgress);
                 }
+
+                var currentAssigneeIds = task.TaskAssignments
+                    .Where(ta => ta.Status)
+                    .Select(ta => ta.UserId)
+                    .ToHashSet();
+                if (task.AssignedUserId is Guid currentAssignedUserId)
+                {
+                    currentAssigneeIds.Add(currentAssignedUserId);
+                }
+
+                var newAssigneeIds = currentAssigneeIds
+                    .Except(previousAssigneeIds)
+                    .ToList();
+
+                if (newAssigneeIds.Any())
+                {
+                    await TriggerTaskAssignedNotificationsAsync(
+                        context,
+                        projectId,
+                        id,
+                        userId,
+                        task.Title,
+                        newAssigneeIds);
+                }
+
+                if (!string.IsNullOrWhiteSpace(newStatusName) && !string.Equals(oldStatusName, newStatusName, StringComparison.OrdinalIgnoreCase))
+                {
+                    await TriggerTaskStatusChangedNotificationAsync(
+                        context,
+                        projectId,
+                        id,
+                        userId,
+                        task.Title,
+                        newStatusName);
+                }
+
                 return Ok(new { statusCode = 200, message = "Saved", data = task });
             }
             catch (Exception ex)
@@ -801,6 +1079,13 @@ namespace TaskManagement.API.Controllers
     {
         public double SortOrder { get; set; }
         public string? NewStatusName { get; set; }
+    }
+
+    public class NotificationActorContext
+    {
+        public string ActorName { get; set; } = "System";
+        public string ProjectName { get; set; } = string.Empty;
+        public string TaskTitle { get; set; } = string.Empty;
     }
 }
 

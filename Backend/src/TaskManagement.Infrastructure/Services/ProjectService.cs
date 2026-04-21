@@ -17,6 +17,15 @@ namespace TaskManagement.Infrastructure.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private static readonly string[] FullAccessRoles =
+        {
+            "superadmin",
+            "admin",
+            "system admin",
+            "organization admin",
+            "accessadmin",
+            "access admin"
+        };
 
         public ProjectService(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
         {
@@ -154,7 +163,18 @@ namespace TaskManagement.Infrastructure.Services
         public async Task<List<ProjectDiscoveryDto>> GetAllForDiscoveryAsync()
         {
             var userIdString = _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            Guid? userId = Guid.TryParse(userIdString, out Guid uid) ? uid : null;
+            if (!Guid.TryParse(userIdString, out var userId))
+            {
+                return new List<ProjectDiscoveryDto>();
+            }
+
+            var normalizedRoles = await _context.UserRoles
+                .AsNoTracking()
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.Role.Name.Trim().ToLower())
+                .ToListAsync();
+
+            var canAccessAllProjects = normalizedRoles.Any(role => FullAccessRoles.Contains(role));
 
             var query = _context.Projects
                 .AsNoTracking()
@@ -162,21 +182,15 @@ namespace TaskManagement.Infrastructure.Services
                 .Include(p => p.Department)
                 .Where(p => !p.IsDeleted && !p.IsArchived && p.Status);
 
-            if (userId.HasValue)
+            if (!canAccessAllProjects)
             {
-                var workspaceIds = await _context.WorkspaceMembers
+                var assignedProjectIds = await _context.ProjectMembers
                     .AsNoTracking()
-                    .Where(wm => wm.UserId == userId.Value && wm.IsActive)
-                    .Select(wm => wm.WorkspaceId)
+                    .Where(pm => pm.UserId == userId && pm.Status)
+                    .Select(pm => pm.ProjectId)
                     .ToListAsync();
 
-                query = query.Where(p =>
-                    p.ProjectMembers.Any(pm => pm.UserId == userId.Value && pm.Status) ||
-                    (p.NetworkType == "Public" && workspaceIds.Contains(p.WorkspaceId)));
-            }
-            else
-            {
-                query = query.Where(p => false);
+                query = query.Where(p => assignedProjectIds.Contains(p.Id));
             }
 
             var projects = await query
@@ -207,10 +221,11 @@ namespace TaskManagement.Infrastructure.Services
                     Cover = p.NavigationConfig,
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
-                    IsMember = userId.HasValue && p.ProjectMembers.Any(pm => pm.UserId == userId.Value && pm.Status),
-                    MyRole = userId.HasValue
-                        ? p.ProjectMembers.Where(pm => pm.UserId == userId.Value && pm.Status).Select(pm => pm.ProjectRole).FirstOrDefault()
-                        : null
+                    IsMember = canAccessAllProjects || p.ProjectMembers.Any(pm => pm.UserId == userId && pm.Status),
+                    MyRole = p.ProjectMembers
+                        .Where(pm => pm.UserId == userId && pm.Status)
+                        .Select(pm => pm.ProjectRole)
+                        .FirstOrDefault()
                 })
                 .ToListAsync();
 
@@ -221,13 +236,37 @@ namespace TaskManagement.Infrastructure.Services
         public async Task<List<ProjectDiscoveryDto>> GetArchivedAsync()
         {
             var userIdString = _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            Guid? userId = Guid.TryParse(userIdString, out Guid uid) ? uid : null;
+            if (!Guid.TryParse(userIdString, out var userId))
+            {
+                return new List<ProjectDiscoveryDto>();
+            }
 
-            var projects = await _context.Projects
+            var normalizedRoles = await _context.UserRoles
+                .AsNoTracking()
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.Role.Name.Trim().ToLower())
+                .ToListAsync();
+
+            var canAccessAllProjects = normalizedRoles.Any(role => FullAccessRoles.Contains(role));
+
+            var query = _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Creator)
                 .Include(p => p.Department)
-                .Where(p => !p.IsDeleted && p.IsArchived)
+                .Where(p => !p.IsDeleted && p.IsArchived);
+
+            if (!canAccessAllProjects)
+            {
+                var assignedProjectIds = await _context.ProjectMembers
+                    .AsNoTracking()
+                    .Where(pm => pm.UserId == userId && pm.Status)
+                    .Select(pm => pm.ProjectId)
+                    .ToListAsync();
+
+                query = query.Where(p => assignedProjectIds.Contains(p.Id));
+            }
+
+            var projects = await query
                 .Select(p => new ProjectDiscoveryDto
                 {
                     Id = p.Id,
@@ -242,10 +281,11 @@ namespace TaskManagement.Infrastructure.Services
                     ActiveMemberCount = p.ProjectMembers.Count(m => m.Status),
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
-                    IsMember = userId.HasValue && p.ProjectMembers.Any(pm => pm.UserId == userId.Value && pm.Status),
-                    MyRole = userId.HasValue
-                        ? p.ProjectMembers.Where(pm => pm.UserId == userId.Value && pm.Status).Select(pm => pm.ProjectRole).FirstOrDefault()
-                        : null
+                    IsMember = canAccessAllProjects || p.ProjectMembers.Any(pm => pm.UserId == userId && pm.Status),
+                    MyRole = p.ProjectMembers
+                        .Where(pm => pm.UserId == userId && pm.Status)
+                        .Select(pm => pm.ProjectRole)
+                        .FirstOrDefault()
                 })
                 .ToListAsync();
 

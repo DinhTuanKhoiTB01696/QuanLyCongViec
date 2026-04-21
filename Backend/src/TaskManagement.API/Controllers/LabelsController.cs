@@ -1,9 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
-using TaskManagement.Infrastructure.Data;
 using TaskManagement.Domain.Entities;
+using TaskManagement.Infrastructure.Data;
 
 namespace TaskManagement.API.Controllers
 {
@@ -22,16 +21,29 @@ namespace TaskManagement.API.Controllers
         [HttpGet("labels")]
         public async Task<IActionResult> GetByProject(Guid projectId)
         {
+            var project = await _context.Projects
+                .AsNoTracking()
+                .Where(p => p.Id == projectId)
+                .Select(p => new { p.Id, p.WorkspaceId })
+                .FirstOrDefaultAsync();
+
+            if (project == null)
+            {
+                return NotFound(new { statusCode = 404, message = "Du an khong ton tai." });
+            }
+
             var labels = await _context.Labels
                 .AsNoTracking()
-                .Where(l => l.ProjectId == projectId)
+                .Where(l => l.ProjectId == projectId || (l.ProjectId == null && l.WorkspaceId == project.WorkspaceId))
                 .Select(l => new
                 {
                     l.Id,
                     l.Name,
                     l.ColorCode,
+                    color = l.ColorCode,
                     l.Description,
-                    IssueCount = l.IssueLabels.Count(),
+                    l.ProjectId,
+                    IssueCount = l.IssueLabels.Count(il => !il.WorkTask.IsDeleted),
                     l.CreatedAt
                 })
                 .OrderBy(l => l.Name)
@@ -45,7 +57,9 @@ namespace TaskManagement.API.Controllers
         {
             var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == projectId);
             if (project == null)
-                return BadRequest(new { statusCode = 400, message = "Dự án không tồn tại." });
+            {
+                return BadRequest(new { statusCode = 400, message = "Du an khong ton tai." });
+            }
 
             var label = new Label
             {
@@ -53,7 +67,7 @@ namespace TaskManagement.API.Controllers
                 ProjectId = projectId,
                 WorkspaceId = project.WorkspaceId,
                 Name = request.Name,
-                ColorCode = request.ColorCode ?? "#3b82f6",
+                ColorCode = request.ColorCode ?? request.Color ?? "#3b82f6",
                 Description = request.Description,
                 CreatedAt = DateTime.UtcNow
             };
@@ -62,7 +76,12 @@ namespace TaskManagement.API.Controllers
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetByProject), new { projectId },
-                new { statusCode = 201, message = "Tạo nhãn thành công.", data = new { label.Id, label.Name, label.ColorCode } });
+                new
+                {
+                    statusCode = 201,
+                    message = "Tao nhan thanh cong.",
+                    data = new { label.Id, label.Name, label.ColorCode, color = label.ColorCode }
+                });
         }
 
         [HttpPut("labels/{labelId}")]
@@ -70,15 +89,17 @@ namespace TaskManagement.API.Controllers
         {
             var label = await _context.Labels.FirstOrDefaultAsync(l => l.Id == labelId && l.ProjectId == projectId);
             if (label == null)
-                return NotFound(new { statusCode = 404, message = "Nhãn không tồn tại." });
+            {
+                return NotFound(new { statusCode = 404, message = "Nhan khong ton tai." });
+            }
 
             label.Name = request.Name ?? label.Name;
-            label.ColorCode = request.ColorCode ?? label.ColorCode;
+            label.ColorCode = request.ColorCode ?? request.Color ?? label.ColorCode;
             label.Description = request.Description ?? label.Description;
 
             await _context.SaveChangesAsync();
 
-            return Ok(new { statusCode = 200, message = "Cập nhật thành công." });
+            return Ok(new { statusCode = 200, message = "Cap nhat thanh cong." });
         }
 
         [HttpDelete("labels/{labelId}")]
@@ -86,37 +107,47 @@ namespace TaskManagement.API.Controllers
         {
             var label = await _context.Labels.FirstOrDefaultAsync(l => l.Id == labelId && l.ProjectId == projectId);
             if (label == null)
-                return NotFound(new { statusCode = 404, message = "Nhãn không tồn tại." });
+            {
+                return NotFound(new { statusCode = 404, message = "Nhan khong ton tai." });
+            }
 
             _context.Labels.Remove(label);
             await _context.SaveChangesAsync();
 
-            return Ok(new { statusCode = 200, message = "Xóa thành công." });
+            return Ok(new { statusCode = 200, message = "Xoa thanh cong." });
         }
 
-        // === Issue-Label Assignment ===
-
         [HttpPost("tasks/{taskId}/labels")]
+        [HttpPost("WorkTasks/{taskId}/labels")]
         public async Task<IActionResult> AssignLabel(Guid projectId, Guid taskId, [FromBody] AssignLabelRequest request)
         {
             var task = await _context.WorkTasks
                 .AsNoTracking()
                 .FirstOrDefaultAsync(wt => wt.Id == taskId && wt.ProjectId == projectId && !wt.IsDeleted);
             if (task == null)
+            {
                 return NotFound(new { statusCode = 404, message = "Tac vu khong ton tai trong du an nay." });
+            }
 
             var project = await _context.Projects.AsNoTracking().FirstOrDefaultAsync(p => p.Id == projectId);
             if (project == null)
+            {
                 return NotFound(new { statusCode = 404, message = "Du an khong ton tai." });
+            }
 
-            var labelExists = await _context.Labels.AnyAsync(label => label.Id == request.LabelId
-                && (label.ProjectId == projectId || (label.ProjectId == null && label.WorkspaceId == project.WorkspaceId)));
+            var labelExists = await _context.Labels.AnyAsync(label =>
+                label.Id == request.LabelId &&
+                (label.ProjectId == projectId || (label.ProjectId == null && label.WorkspaceId == project.WorkspaceId)));
             if (!labelExists)
+            {
                 return BadRequest(new { statusCode = 400, message = "Nhan khong thuoc du an nay." });
+            }
 
             var exists = await _context.IssueLabels.AnyAsync(il => il.WorkTaskId == taskId && il.LabelId == request.LabelId);
             if (exists)
-                return BadRequest(new { statusCode = 400, message = "Nhãn đã được gán cho công việc này." });
+            {
+                return BadRequest(new { statusCode = 400, message = "Nhan da duoc gan cho cong viec nay." });
+            }
 
             _context.IssueLabels.Add(new IssueLabel
             {
@@ -124,29 +155,35 @@ namespace TaskManagement.API.Controllers
                 LabelId = request.LabelId,
                 AssignedAt = DateTime.UtcNow
             });
+
             await _context.SaveChangesAsync();
 
-            return Ok(new { statusCode = 200, message = "Gán nhãn thành công." });
+            return Ok(new { statusCode = 200, message = "Gan nhan thanh cong." });
         }
 
         [HttpDelete("tasks/{taskId}/labels/{labelId}")]
+        [HttpDelete("WorkTasks/{taskId}/labels/{labelId}")]
         public async Task<IActionResult> RemoveLabel(Guid projectId, Guid taskId, Guid labelId)
         {
             var link = await _context.IssueLabels
                 .Include(il => il.WorkTask)
                 .Include(il => il.Label)
-                .FirstOrDefaultAsync(il => il.WorkTaskId == taskId
-                    && il.LabelId == labelId
-                    && il.WorkTask.ProjectId == projectId
-                    && !il.WorkTask.IsDeleted
-                    && (il.Label.ProjectId == projectId || il.Label.ProjectId == null));
+                .FirstOrDefaultAsync(il =>
+                    il.WorkTaskId == taskId &&
+                    il.LabelId == labelId &&
+                    il.WorkTask.ProjectId == projectId &&
+                    !il.WorkTask.IsDeleted &&
+                    (il.Label.ProjectId == projectId || il.Label.ProjectId == null));
+
             if (link == null)
-                return NotFound(new { statusCode = 404, message = "Nhãn chưa được gán." });
+            {
+                return NotFound(new { statusCode = 404, message = "Nhan chua duoc gan." });
+            }
 
             _context.IssueLabels.Remove(link);
             await _context.SaveChangesAsync();
 
-            return Ok(new { statusCode = 200, message = "Gỡ nhãn thành công." });
+            return Ok(new { statusCode = 200, message = "Go nhan thanh cong." });
         }
     }
 
@@ -154,6 +191,7 @@ namespace TaskManagement.API.Controllers
     {
         public string Name { get; set; } = string.Empty;
         public string? ColorCode { get; set; }
+        public string? Color { get; set; }
         public string? Description { get; set; }
     }
 
@@ -161,6 +199,7 @@ namespace TaskManagement.API.Controllers
     {
         public string? Name { get; set; }
         public string? ColorCode { get; set; }
+        public string? Color { get; set; }
         public string? Description { get; set; }
     }
 

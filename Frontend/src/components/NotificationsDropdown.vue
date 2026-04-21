@@ -5,6 +5,7 @@
         <i class="fa-solid fa-bell"></i>
       </el-badge>
     </div>
+
     <template #dropdown>
       <div class="jira-notifications-menu">
         <div class="notif-header">
@@ -12,45 +13,47 @@
           <div class="header-actions">
             <span class="unread-toggle-label">Chỉ hiện chưa đọc</span>
             <el-switch v-model="onlyUnread" size="small" />
-            <el-button type="primary" link size="small" @click="markAllAsRead" v-if="unreadCount > 0">Đánh dấu đã đọc</el-button>
+            <el-button v-if="unreadCount > 0" type="primary" link size="small" @click="markAllAsRead">Đánh dấu đã đọc</el-button>
           </div>
-        </div>
-
-        <div class="notif-tabs">
-          <div class="notif-tab active">Trực tiếp</div>
-          <div class="notif-tab">Đang theo dõi</div>
         </div>
 
         <div class="notif-scroll-area">
-          <div v-if="filteredNotifications.length === 0" class="notif-empty-state">
-            <div class="empty-icon"><i class="fa-solid fa-flag"></i></div>
-            <p>Đó là tất cả thông báo của bạn từ 30 ngày qua.</p>
+          <div v-if="loading" class="notif-empty-state">
+            <div class="empty-icon"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            <p>Loading notifications...</p>
           </div>
+
+          <div v-else-if="filteredNotifications.length === 0" class="notif-empty-state">
+            <div class="empty-icon"><i class="fa-solid fa-flag"></i></div>
+            <p>Không có thông báo phù hợp trong 30 ngày gần đây.</p>
+          </div>
+
           <div v-else class="notif-section">
-            <div v-for="n in filteredNotifications" :key="n.id" class="notif-item" :class="{ unread: !n.isRead }" @click="markAsRead(n)">
-              <div class="notif-avatar" :style="n.triggeredByAvatar ? `background-image: url(${getBaseUrl()}${n.triggeredByAvatar}); background-size: cover; color: transparent;` : ''">
-                {{ n.triggeredByAvatar ? '' : getInitials(n.triggeredByName || 'HT') }}
+            <button
+              v-for="notification in filteredNotifications"
+              :key="notification.id"
+              type="button"
+              class="notif-item"
+              :class="{ unread: !notification.isRead }"
+              @click="openNotification(notification)"
+            >
+              <div class="notif-avatar">
+                {{ getInitials(notification.triggeredByName || 'HT') }}
               </div>
               <div class="notif-content">
                 <div class="notif-text">
-                  <span class="user-name">{{ n.triggeredByName || 'Hệ thống' }}</span> {{ n.content.replace((n.triggeredByName || 'Ai đó') + ' ', '') }}
+                  <span class="user-name">{{ notification.triggeredByName || 'Hệ thống' }}</span>
+                  <span>{{ notification.content }}</span>
                 </div>
                 <div class="notif-context">
                   <i class="fa-solid fa-bell"></i>
-                  <span>{{ n.title }}</span>
-                  <span class="time-ago">{{ formatTimeAgo(n.createdAt) }}</span>
+                  <span>{{ notification.title }}</span>
+                  <span class="time-ago">{{ formatTimeAgo(notification.createdAt) }}</span>
                 </div>
               </div>
-              <div class="unread-dot" v-if="!n.isRead"></div>
-            </div>
+              <div v-if="!notification.isRead" class="unread-dot"></div>
+            </button>
           </div>
-        </div>
-
-        <div class="notif-footer">
-          <div class="shortcuts-info">
-            Nhấn <span class="key-badge"><i class="fa-solid fa-arrow-down"></i></span> <span class="key-badge"><i class="fa-solid fa-arrow-up"></i></span> để di chuyển qua các thông báo.
-          </div>
-          <button class="btn-all-shortcuts">Xem tất cả phím tắt</button>
         </div>
       </div>
     </template>
@@ -58,28 +61,27 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import axiosClient from '@/api/axiosClient'
 import * as signalR from '@microsoft/signalr'
-import { useRouter } from 'vue-router'
 
-const onlyUnread = ref(false)
-const notifications = ref([])
-const connection = ref(null)
 const router = useRouter()
+const notifications = ref([])
+const onlyUnread = ref(false)
+const loading = ref(false)
+const connection = ref(null)
 
-const unreadCount = computed(() => notifications.value.filter(n => !n.isRead).length)
-
+const unreadCount = computed(() => notifications.value.filter(item => !item.isRead).length)
 const filteredNotifications = computed(() => {
-  if (onlyUnread.value) return notifications.value.filter(n => !n.isRead)
+  if (onlyUnread.value) return notifications.value.filter(item => !item.isRead)
   return notifications.value
 })
 
-const getBaseUrl = () => 'http://localhost:5136'
-
 const getInitials = (name) => {
   if (!name) return '?'
-  return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase()
+  return name.split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase()
 }
 
 const formatTimeAgo = (dateStr) => {
@@ -92,43 +94,61 @@ const formatTimeAgo = (dateStr) => {
   return `${Math.floor(diffHours / 24)} ngày trước`
 }
 
+const normalizeLink = (notification) => {
+  if (notification.linkUrl?.startsWith('/space/')) return notification.linkUrl
+  if (notification.relatedProjectId && notification.relatedTaskId) return `/space/${notification.relatedProjectId}?task=${notification.relatedTaskId}`
+  if (notification.relatedProjectId) return `/space/${notification.relatedProjectId}`
+  if (notification.linkUrl?.startsWith('/projects/')) {
+    const parts = notification.linkUrl.split('/').filter(Boolean)
+    if (parts[1]) return `/space/${parts[1]}`
+  }
+  return notification.linkUrl || null
+}
+
 const fetchNotifications = async () => {
+  loading.value = true
   try {
-    const res = await axiosClient.get('/notifications')
-    notifications.value = res.data.data
-  } catch(e) {
-    console.error('Cannot load notifications', e)
+    const response = await axiosClient.get('/notifications', {
+      params: onlyUnread.value ? { unreadOnly: true } : {}
+    })
+    notifications.value = (response.data?.data || []).map(item => ({
+      ...item,
+      linkUrl: normalizeLink(item)
+    }))
+  } catch (error) {
+    ElMessage.error('Could not load notifications')
+  } finally {
+    loading.value = false
   }
 }
 
-const markAsRead = async (n) => {
-  if (n.isRead) return
-  n.isRead = true
+const openNotification = async (notification) => {
   try {
-    await axiosClient.put(`/notifications/${n.id}/read`)
-    if (n.linkUrl) {
-      router.push(n.linkUrl)
+    if (!notification.isRead) {
+      notification.isRead = true
+      await axiosClient.put(`/notifications/${notification.id}/read`)
     }
-  } catch(e) {
-    console.error('Lỗi khi đánh dấu đã đọc')
+    if (notification.linkUrl) router.push(notification.linkUrl)
+  } catch (error) {
+    ElMessage.error('Could not update notification')
   }
 }
 
 const markAllAsRead = async () => {
-  notifications.value.forEach(n => n.isRead = true)
   try {
     await axiosClient.put('/notifications/read-all')
-  } catch(e) {}
-}
-
-const handleDropdownOpen = (visible) => {
-  if (visible) {
-    fetchNotifications()
+    notifications.value = notifications.value.map(item => ({ ...item, isRead: true }))
+  } catch (error) {
+    ElMessage.error('Could not mark all notifications as read')
   }
 }
 
+const handleDropdownOpen = (visible) => {
+  if (visible) fetchNotifications()
+}
+
 const initSignalR = () => {
-  const token = localStorage.getItem('accessToken')
+  const token = localStorage.getItem('accessToken') || localStorage.getItem('token')
   if (!token) return
 
   connection.value = new signalR.HubConnectionBuilder()
@@ -138,19 +158,20 @@ const initSignalR = () => {
     .withAutomaticReconnect()
     .build()
 
-  connection.value.on('ReceiveNotification', (notif) => {
-    notifications.value.unshift({ ...notif, isRead: false })
+  connection.value.on('ReceiveNotification', (notification) => {
+    notifications.value.unshift({
+      ...notification,
+      isRead: false,
+      linkUrl: normalizeLink(notification)
+    })
   })
 
-  connection.value.start()
-    .then(() => {
-      const user = JSON.parse(localStorage.getItem('user'))
-      if (user && user.id) {
-        connection.value.invoke('JoinUserChannel', user.id)
-      }
-    })
-    .catch(err => console.error('SignalR Err:', err))
+  connection.value.start().catch(() => {})
 }
+
+watch(onlyUnread, () => {
+  fetchNotifications()
+})
 
 onMounted(() => {
   fetchNotifications()
@@ -158,133 +179,90 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (connection.value) {
-    connection.value.stop()
-  }
+  if (connection.value) connection.value.stop()
 })
 </script>
 
 <style scoped>
 .jira-notifications-menu {
   width: 480px;
-  background-color: var(--bg-card);
-  color: var(--text-primary);
+  max-height: 80vh;
   display: flex;
   flex-direction: column;
-  max-height: 85vh;
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.notif-header,
+.header-actions,
+.notif-context {
+  display: flex;
+  align-items: center;
 }
 
 .notif-header {
-  padding: 16px 20px 12px;
-  display: flex;
   justify-content: space-between;
-  align-items: center;
-}
-
-.notif-title {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0;
+  gap: 12px;
+  padding: 16px 20px 12px;
 }
 
 .header-actions {
-  display: flex;
-  align-items: center;
   gap: 12px;
 }
 
-.unread-toggle-label {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.icon-btn {
-  color: var(--text-secondary);
-  font-size: 14px;
-  cursor: pointer;
-  padding: 4px;
-}
-.icon-btn:hover { color: var(--text-primary); }
-
-.notif-tabs {
-  display: flex;
-  padding: 0 20px;
-  border-bottom: 2px solid var(--border-color);
-  gap: 24px;
-}
-
-.notif-tab {
-  padding: 8px 0 12px;
-  font-size: 14px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  position: relative;
-}
-
-.notif-tab.active {
-  color: #3b82f6;
+.notif-title {
+  margin: 0;
+  font-size: 20px;
   font-weight: 600;
 }
 
-.notif-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: #3b82f6;
+.unread-toggle-label {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .notif-scroll-area {
-  flex: 1;
+  min-height: 360px;
   overflow-y: auto;
-  min-height: 400px;
 }
 
 .notif-section {
-  padding: 16px 0 0;
-}
-
-.section-label {
-  padding: 0 20px 8px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin: 0;
+  padding: 10px 0;
 }
 
 .notif-item {
+  width: 100%;
   display: flex;
-  padding: 12px 20px;
   gap: 16px;
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
   cursor: pointer;
-  transition: background-color 0.2s;
-  position: relative;
 }
 
 .notif-item:hover {
-  background-color: var(--hover-bg);
+  background: var(--hover-bg);
 }
 
 .notif-item.unread {
-  background-color: rgba(7, 71, 166, 0.05);
+  background: rgba(7, 71, 166, 0.06);
 }
 
 .notif-avatar {
   width: 32px;
   height: 32px;
-  background-color: #0052cc;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
   font-size: 12px;
-  font-weight: 600;
-  color: white;
+  font-weight: 700;
 }
 
 .notif-content {
@@ -292,133 +270,79 @@ onUnmounted(() => {
 }
 
 .notif-text {
-  font-size: 14px;
-  line-height: 1.5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
   color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
 .user-name {
-  font-weight: 600;
   color: var(--text-primary);
+  font-weight: 700;
 }
 
+.notif-context,
 .time-ago {
   color: var(--text-muted);
   font-size: 12px;
-  margin-left: 4px;
-}
-
-.notif-context {
-  display: flex;
-  align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: var(--text-muted);
 }
 
 .unread-dot {
   width: 6px;
   height: 6px;
-  background-color: #3b82f6;
-  border-radius: 50%;
-  margin-top: 8px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: #3b82f6;
 }
 
 .notif-empty-state {
+  min-height: 280px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  gap: 12px;
   text-align: center;
   color: var(--text-secondary);
 }
 
 .empty-icon {
-  font-size: 32px;
+  font-size: 30px;
   color: var(--text-muted);
-  margin-bottom: 16px;
-  opacity: 0.5;
 }
 
-.empty-icon i { transform: rotate(-10deg); }
-
-.notif-empty-state p {
-  font-size: 14px;
-  max-width: 240px;
-  line-height: 1.6;
-}
-
-.notif-footer {
-  padding: 16px 20px;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.shortcuts-info {
-  font-size: 13px;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.key-badge {
-  background-color: var(--hover-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 3px;
-  padding: 1px 6px;
-  font-size: 11px;
-}
-
-.btn-all-shortcuts {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-}
-.btn-all-shortcuts:hover { background: var(--hover-bg); }
-
-/* Navbar Icon Style */
 .nav-icon {
   width: 32px;
   height: 32px;
-  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 6px;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s;
 }
 
-.nav-icon i { font-size: 18px; }
-.nav-icon:hover { background-color: var(--hover-bg); color: var(--text-primary); }
+.nav-icon:hover {
+  background: var(--hover-bg);
+}
 
 .notification-badge :deep(.el-badge__content) {
-  background-color: #f87171;
+  background: #f87171;
   border: none;
   font-size: 9px;
   height: 14px;
   line-height: 14px;
-  padding: 0 4px;
-  top: 4px;
 }
 </style>
 
 <style>
 .el-popper.notifications-dropdown-popper {
-  background: var(--bg-card) !important;
-  border: 1px solid var(--border-color) !important;
   padding: 0 !important;
+  border: 1px solid var(--border-color) !important;
   border-radius: 8px !important;
-  box-shadow: 0 12px 32px rgba(0,0,0,0.2) !important;
+  background: var(--bg-card) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22) !important;
 }
 </style>

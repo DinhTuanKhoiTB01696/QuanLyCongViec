@@ -5,31 +5,105 @@
         <div>
           <p class="eyebrow">Gamification</p>
           <h1>Rewards</h1>
-          <p class="muted">Theo doi diem thuong, cap do va cac lan rollback khi task bi tra lai.</p>
+          <p class="muted">Theo doi diem, cap bac nghe nghiep, contribution share va bonus hoan thanh som.</p>
         </div>
-        <button class="refresh-btn" @click="loadRewards" :disabled="loading">
+        <button class="refresh-btn" type="button" :disabled="loading" @click="loadRewards">
           <i class="fa-solid fa-rotate"></i> Refresh
         </button>
       </header>
 
       <section class="wallet-band">
-        <div>
+        <div class="wallet-card">
           <span class="label">Current balance</span>
           <strong>{{ wallet.totalPoints }}</strong>
           <span class="unit">points</span>
         </div>
-        <div>
-          <span class="label">Level</span>
-          <strong>{{ wallet.level }}</strong>
-          <span class="unit">{{ pointsToNextLevel }} pts to next</span>
+        <div class="wallet-card">
+          <span class="label">Career level</span>
+          <strong>{{ career.level }}</strong>
+          <span class="unit">{{ career.title }}</span>
         </div>
-        <div class="progress-wrap">
-          <span class="label">Level progress</span>
-          <div class="progress-track"><div class="progress-fill" :style="{ width: levelProgress + '%' }"></div></div>
+        <div class="wallet-card wide">
+          <div class="wallet-card-head">
+            <span class="label">Level progress</span>
+            <span class="unit">{{ career.nextThreshold - wallet.totalPoints }} pts to next</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" :style="{ width: `${career.progressPercent}%` }"></div></div>
+        </div>
+      </section>
+
+      <section class="formula-band">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Point formula</h2>
+            <span>{{ formula.expression }}</span>
+          </div>
+          <div class="formula-grid">
+            <div class="formula-cell">
+              <span>Gia tri</span>
+              <strong>{{ formula.sample.value }}</strong>
+            </div>
+            <div class="formula-cell">
+              <span>Anh huong</span>
+              <strong>{{ formula.sample.impact }}</strong>
+            </div>
+            <div class="formula-cell">
+              <span>So ngay</span>
+              <strong>{{ formula.sample.days }}</strong>
+            </div>
+            <div class="formula-cell total">
+              <span>Tong diem</span>
+              <strong>{{ formula.sample.total }}</strong>
+            </div>
+          </div>
+          <p class="helper-copy">{{ formula.sample.note }}</p>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Summary</h2>
+            <span>This sprint</span>
+          </div>
+          <div class="summary-list">
+            <div class="summary-row"><span>Completed tasks</span><strong>{{ summary.completedTasks }}</strong></div>
+            <div class="summary-row"><span>Early bonuses</span><strong>{{ summary.earlyBonuses }}</strong></div>
+            <div class="summary-row"><span>Contribution share</span><strong>{{ summary.contributionPercent }}%</strong></div>
+            <div class="summary-row"><span>Rollback points</span><strong>{{ summary.rollbackPoints }}</strong></div>
+          </div>
         </div>
       </section>
 
       <main class="rewards-grid">
+        <section class="panel">
+          <div class="panel-head"><h2>Spotlight tasks</h2><span>Top value</span></div>
+          <div v-if="!spotlightTasks.length" class="empty">Chua co task nao du de tinh spotlight.</div>
+          <article v-for="task in spotlightTasks" :key="task.id" class="spotlight-row">
+            <div class="spotlight-main">
+              <strong>{{ task.sequenceId || 'TASK' }}</strong>
+              <div class="spotlight-title">{{ task.title }}</div>
+              <small>{{ task.estimatedDays }} day x share {{ task.contributionShare }}%</small>
+            </div>
+            <div class="spotlight-side">
+              <span class="chip">{{ task.formulaPoints }} pts</span>
+              <span class="chip muted">{{ task.progressPercent }}%</span>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Recent achievements</h2><span>{{ recentAchievements.length }}</span></div>
+          <div v-if="!recentAchievements.length" class="empty">Chua co achievement moi.</div>
+          <article v-for="item in recentAchievements" :key="item.id" class="achievement-row">
+            <div>
+              <strong>{{ item.title }}</strong>
+              <div class="muted">{{ item.reason }}</div>
+            </div>
+            <div class="achievement-points">+{{ item.amount }}</div>
+          </article>
+        </section>
+      </main>
+
+      <section class="rewards-grid lower-grid">
         <section class="panel">
           <div class="panel-head"><h2>Point history</h2><span>{{ transactions.length }}</span></div>
           <div v-if="loading" class="empty">Loading rewards...</div>
@@ -53,31 +127,36 @@
           <article v-for="(item, index) in leaderboard" :key="item.userId" class="leader-row">
             <span class="rank">#{{ index + 1 }}</span>
             <span class="avatar">{{ getInitials(item.userName) }}</span>
-            <div class="leader-main"><strong>{{ item.userName || 'User' }}</strong><small>Level {{ item.level }}</small></div>
+            <div class="leader-main">
+              <strong>{{ item.userName || 'User' }}</strong>
+              <small>{{ item.careerTitle || `Level ${item.level}` }}</small>
+            </div>
             <span class="leader-points">{{ item.totalPoints }} pts</span>
           </article>
         </section>
-      </main>
+      </section>
     </div>
   </NexusLayout>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import axiosClient from '@/api/axiosClient'
 
 const loading = ref(false)
 const wallet = ref({ totalPoints: 0, level: 1, nextLevelAt: 1000 })
+const career = ref({ level: 1, title: 'Contributor', progressPercent: 0, nextThreshold: 1000 })
+const formula = ref({ expression: 'Gia tri x Anh huong x So ngay', sample: { value: 0, impact: 0, days: 0, total: 0, note: '' } })
+const summary = ref({ completedTasks: 0, earlyBonuses: 0, contributionPercent: 0, rollbackPoints: 0 })
+const spotlightTasks = ref([])
+const recentAchievements = ref([])
 const transactions = ref([])
 const leaderboard = ref([])
 
-const levelBase = computed(() => Math.max(0, (wallet.value.level - 1) * 1000))
-const levelProgress = computed(() => Math.min(100, Math.round((Math.max(0, wallet.value.totalPoints - levelBase.value) / 1000) * 100)))
-const pointsToNextLevel = computed(() => Math.max(0, wallet.value.nextLevelAt - wallet.value.totalPoints))
+const formatDate = (value) => (value ? new Date(value).toLocaleString('vi-VN') : '')
 
-const formatDate = (value) => value ? new Date(value).toLocaleString('vi-VN') : ''
 const getInitials = (name = '') => {
   const parts = name.trim().split(/\s+/).filter(Boolean)
   return (parts.length > 1 ? `${parts[0][0]}${parts.at(-1)[0]}` : name.slice(0, 2)).toUpperCase() || 'U'
@@ -90,8 +169,15 @@ const loadRewards = async () => {
       axiosClient.get('/gamification/me'),
       axiosClient.get('/gamification/leaderboard')
     ])
-    wallet.value = mine.data?.data?.wallet || wallet.value
-    transactions.value = mine.data?.data?.transactions || []
+
+    const data = mine.data?.data || {}
+    wallet.value = data.wallet || wallet.value
+    career.value = data.career || career.value
+    formula.value = data.formula || formula.value
+    summary.value = data.summary || summary.value
+    spotlightTasks.value = data.spotlightTasks || []
+    recentAchievements.value = data.recentAchievements || []
+    transactions.value = data.transactions || []
     leaderboard.value = leaders.data?.data || []
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Khong tai duoc diem thuong.')
@@ -104,36 +190,316 @@ onMounted(loadRewards)
 </script>
 
 <style scoped>
-.rewards-page { min-height: calc(100vh - 56px); background: #0d0f11; color: #e4e4e7; padding: 32px; }
-.rewards-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; margin-bottom: 24px; }
-.eyebrow { color: #60a5fa; font-size: 12px; text-transform: uppercase; font-weight: 700; margin: 0 0 8px; }
-h1 { margin: 0; font-size: 28px; }
-.muted, time, small { color: #a1a1aa; font-size: 13px; }
-.refresh-btn { border: 1px solid #27272a; background: #16181d; color: #e4e4e7; border-radius: 6px; padding: 8px 12px; display: flex; gap: 8px; align-items: center; cursor: pointer; }
-.wallet-band { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 16px; border: 1px solid #27272a; background: #111317; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-.label { display: block; color: #a1a1aa; font-size: 12px; margin-bottom: 8px; }
-strong { font-size: 28px; }
-.unit { color: #71717a; margin-left: 8px; }
-.progress-track { height: 10px; background: #27272a; border-radius: 999px; overflow: hidden; }
-.progress-fill { height: 100%; background: #22c55e; transition: width .2s ease; }
-.rewards-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, .8fr); gap: 20px; }
-.panel { border: 1px solid #27272a; background: #111317; border-radius: 8px; overflow: hidden; }
-.panel-head, .tx-row, .leader-row { display: flex; align-items: center; border-bottom: 1px solid #27272a; padding: 14px 16px; }
-.panel-head { justify-content: space-between; }
-.panel-head h2 { margin: 0; font-size: 15px; }
-.empty { padding: 28px; color: #a1a1aa; text-align: center; }
-.tx-row, .leader-row { gap: 12px; border-bottom-color: #1e2025; }
-.tx-icon, .avatar { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 6px; }
-.tx-icon { background: rgba(34,197,94,.14); color: #22c55e; }
-.tx-icon.negative { background: rgba(248,113,113,.14); color: #f87171; }
-.tx-main, .leader-main { flex: 1; min-width: 0; }
-.tx-title { font-weight: 600; }
-.tx-reason { color: #a1a1aa; font-size: 13px; margin: 3px 0; }
-.tx-points { color: #22c55e; font-size: 18px; }
-.tx-points.negative { color: #f87171; }
-.rank { width: 36px; color: #71717a; }
-.avatar { background: #2563eb; font-size: 11px; font-weight: 700; }
-.leader-main strong { display: block; font-size: 14px; }
-.leader-points { color: #facc15; font-weight: 700; }
-@media (max-width: 900px) { .wallet-band, .rewards-grid { grid-template-columns: 1fr; } .rewards-header { flex-direction: column; } }
+.rewards-page {
+  min-height: calc(100vh - 56px);
+  background: #0d0f11;
+  color: #e4e4e7;
+  padding: 32px;
+}
+
+.rewards-header,
+.wallet-band,
+.formula-band,
+.rewards-grid,
+.panel-head,
+.summary-row,
+.tx-row,
+.leader-row,
+.achievement-row,
+.spotlight-row,
+.wallet-card-head {
+  display: flex;
+}
+
+.rewards-header,
+.panel-head,
+.summary-row,
+.tx-row,
+.leader-row,
+.achievement-row,
+.spotlight-row,
+.wallet-card-head {
+  align-items: center;
+}
+
+.rewards-header,
+.panel-head,
+.summary-row,
+.achievement-row,
+.spotlight-row {
+  justify-content: space-between;
+}
+
+.rewards-header {
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  color: #38bdf8;
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.muted,
+time,
+small,
+.helper-copy {
+  color: #a1a1aa;
+}
+
+.refresh-btn {
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  background: #16181d;
+  color: #e4e4e7;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.wallet-band,
+.formula-band,
+.rewards-grid {
+  gap: 16px;
+}
+
+.wallet-band {
+  margin-bottom: 20px;
+}
+
+.wallet-card,
+.panel {
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  background: #111317;
+}
+
+.wallet-card {
+  flex: 1;
+  padding: 18px 20px;
+}
+
+.wallet-card.wide {
+  flex: 2;
+}
+
+.label {
+  display: block;
+  color: #a1a1aa;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.wallet-card strong,
+.formula-cell strong {
+  font-size: 28px;
+}
+
+.unit {
+  color: #71717a;
+  margin-left: 8px;
+}
+
+.progress-track {
+  height: 10px;
+  background: #27272a;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #38bdf8);
+}
+
+.formula-band,
+.rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 20px;
+}
+
+.lower-grid {
+  margin-bottom: 0;
+}
+
+.panel {
+  overflow: hidden;
+}
+
+.panel-head {
+  padding: 14px 16px;
+  border-bottom: 1px solid #27272a;
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.formula-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 18px 16px 0;
+}
+
+.formula-cell {
+  padding: 12px;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  background: #0d0f11;
+}
+
+.formula-cell span {
+  display: block;
+  color: #71717a;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.formula-cell.total strong {
+  color: #22c55e;
+}
+
+.helper-copy,
+.summary-list,
+.empty {
+  padding: 16px;
+}
+
+.summary-row {
+  padding: 10px 0;
+  border-bottom: 1px solid #1e2025;
+}
+
+.summary-row:last-child {
+  border-bottom: 0;
+}
+
+.spotlight-row,
+.achievement-row,
+.tx-row,
+.leader-row {
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #1e2025;
+}
+
+.spotlight-main,
+.tx-main,
+.leader-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.spotlight-title,
+.tx-title {
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.spotlight-side {
+  display: flex;
+  gap: 8px;
+}
+
+.chip {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chip.muted {
+  background: #1f2937;
+  color: #a1a1aa;
+}
+
+.tx-icon,
+.avatar {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+}
+
+.tx-icon {
+  background: rgba(34, 197, 94, 0.14);
+  color: #22c55e;
+}
+
+.tx-icon.negative {
+  background: rgba(248, 113, 113, 0.14);
+  color: #f87171;
+}
+
+.tx-reason {
+  color: #a1a1aa;
+  font-size: 13px;
+  margin: 3px 0;
+}
+
+.tx-points,
+.achievement-points {
+  color: #22c55e;
+  font-size: 18px;
+}
+
+.tx-points.negative {
+  color: #f87171;
+}
+
+.rank {
+  width: 36px;
+  color: #71717a;
+}
+
+.avatar {
+  background: #2563eb;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.leader-main strong {
+  display: block;
+  font-size: 14px;
+}
+
+.leader-points {
+  color: #facc15;
+  font-weight: 700;
+}
+
+.empty {
+  text-align: center;
+}
+
+@media (max-width: 960px) {
+  .wallet-band,
+  .formula-band,
+  .rewards-grid,
+  .formula-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wallet-band {
+    flex-direction: column;
+  }
+
+  .rewards-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
 </style>

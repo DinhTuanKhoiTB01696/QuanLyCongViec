@@ -1225,6 +1225,9 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Property<string>("PayloadJson")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Title")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
@@ -1236,6 +1239,10 @@ namespace TaskManagement.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId", "ProjectId", "UpdatedAt");
+
+                    b.HasIndex("UserId", "UpdatedAt");
 
                     b.HasIndex("UserId");
 

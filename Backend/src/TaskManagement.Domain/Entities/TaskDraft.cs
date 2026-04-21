@@ -10,6 +10,7 @@ namespace TaskManagement.Domain.Entities
         public Guid Id { get; set; } = Guid.NewGuid();
 
         public Guid UserId { get; set; } // User who created the draft
+        public Guid? ProjectId { get; set; }
 
         [MaxLength(255)]
         public string? Title { get; set; }

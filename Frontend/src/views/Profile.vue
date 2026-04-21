@@ -1,39 +1,45 @@
 <template>
   <NexusLayout class="profile-page">
-    <div class="profile-body-container" style="padding: 40px 0; display: flex; justify-content: center;">
-      <div class="profile-container">
-        <!-- Header Banner & Avatar Section -->
+    <div class="profile-body-container">
+      <div class="profile-container" v-loading="isLoading">
         <div class="profile-header-section">
           <el-dropdown trigger="click" class="header-image-dropdown">
             <div class="header-image-box">
               <div class="avatar-inside-wrapper">
                 <el-dropdown trigger="click">
-                  <div class="large-profile-avatar" :style="profileData.avatarUrl ? `background-image: url(${getBaseUrl()}${profileData.avatarUrl}); background-size: cover; color: transparent; background-position: center;` : ''">
+                  <div class="large-profile-avatar" :style="avatarStyle">
                     {{ profileData.avatarUrl ? '' : getInitials(profileData.fullName) }}
                   </div>
                   <template #dropdown>
                     <el-dropdown-menu>
-                      <el-dropdown-item @click="$refs.avatarInput.click()"><i class="fa-solid fa-plus"></i> Thêm ảnh hồ sơ</el-dropdown-item>
+                      <el-dropdown-item @click="triggerAvatarUpload">
+                        <i class="fa-solid fa-plus"></i> Thêm ảnh hồ sơ
+                      </el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
-                  <input type="file" ref="avatarInput" style="display: none" accept="image/*" @change="uploadAvatar" />
+                  <input ref="avatarInput" type="file" style="display: none" accept="image/*" @change="uploadAvatar" />
                 </el-dropdown>
               </div>
-              
+
               <div class="banner-upload-prompt">
                 <i class="fa-regular fa-image"></i>
-                <span>Add your header image</span>
+                <span>Cập nhật ảnh bìa sau</span>
               </div>
             </div>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item><i class="fa-solid fa-upload"></i> Tải ảnh lên</el-dropdown-item>
-                <el-dropdown-item class="danger-item"><i class="fa-solid fa-trash"></i> Xóa ảnh</el-dropdown-item>
+                <el-dropdown-item @click="triggerAvatarUpload">
+                  <i class="fa-solid fa-upload"></i> Tải ảnh lên
+                </el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-          
+
           <div class="header-footer-privacy">
+            <div class="profile-name-block">
+              <strong>{{ profileData.publicName || profileData.fullName || 'Thành viên' }}</strong>
+              <span>{{ profileData.jobTitle || 'Cập nhật chức danh của bạn' }}</span>
+            </div>
             <div class="header-privacy-info">
               <span>Ai có thể xem ảnh hồ sơ của bạn?</span>
               <el-dropdown trigger="click">
@@ -49,12 +55,10 @@
           </div>
         </div>
 
-        <!-- Main Content Form -->
         <div class="profile-content-form">
           <h2 class="section-title">Giới thiệu về bạn</h2>
 
           <div class="form-grid">
-            <!-- Full Name -->
             <div class="form-row">
               <div class="field-label">Họ tên</div>
               <div class="field-input-wrapper">
@@ -63,92 +67,64 @@
                   <span class="privacy-label">Ai có thể thấy được nội dung này?</span>
                   <el-dropdown trigger="click">
                     <span class="privacy-select"><i class="fa-solid fa-globe"></i> Bất kỳ ai <i class="fa-solid fa-chevron-down"></i></span>
-                    <template #dropdown><el-dropdown-menu><el-dropdown-item>Bất kỳ ai</el-dropdown-item></el-dropdown-menu></template>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item>Bất kỳ ai</el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
                   </el-dropdown>
                 </div>
               </div>
             </div>
 
-            <!-- Public Name -->
             <div class="form-row">
               <div class="field-label">Tên công khai <i class="fa-solid fa-circle-info info-icon"></i></div>
               <div class="field-input-wrapper">
                 <el-input v-model="profileData.publicName" />
-                <div class="field-privacy">
-                  <el-dropdown trigger="click">
-                    <span class="privacy-select"><i class="fa-solid fa-globe"></i> Bất kỳ ai <i class="fa-solid fa-chevron-down"></i></span>
-                    <template #dropdown><el-dropdown-menu><el-dropdown-item>Bất kỳ ai</el-dropdown-item></el-dropdown-menu></template>
-                  </el-dropdown>
-                </div>
               </div>
             </div>
 
-            <!-- Job Title -->
             <div class="form-row">
               <div class="field-label">Chức danh</div>
               <div class="field-input-wrapper">
                 <el-input v-model="profileData.jobTitle" placeholder="Chức danh của bạn" />
-                <div class="field-privacy">
-                  <el-dropdown trigger="click">
-                    <span class="privacy-select"><i class="fa-solid fa-globe"></i> Bất kỳ ai <i class="fa-solid fa-chevron-down"></i></span>
-                    <template #dropdown><el-dropdown-menu><el-dropdown-item>Bất kỳ ai</el-dropdown-item></el-dropdown-menu></template>
-                  </el-dropdown>
-                </div>
               </div>
             </div>
 
-            <!-- Department -->
             <div class="form-row">
               <div class="field-label">Phòng ban</div>
               <div class="field-input-wrapper">
                 <el-input v-model="profileData.department" placeholder="Phòng ban của bạn" />
-                <div class="field-privacy">
-                  <el-dropdown trigger="click">
-                    <span class="privacy-select"><i class="fa-solid fa-globe"></i> Bất kỳ ai <i class="fa-solid fa-chevron-down"></i></span>
-                    <template #dropdown><el-dropdown-menu><el-dropdown-item>Bất kỳ ai</el-dropdown-item></el-dropdown-menu></template>
-                  </el-dropdown>
-                </div>
               </div>
             </div>
 
-            <!-- Organization -->
             <div class="form-row">
               <div class="field-label">Tổ chức</div>
               <div class="field-input-wrapper">
                 <el-input v-model="profileData.organization" placeholder="Tổ chức của bạn" />
-                <div class="field-privacy">
-                  <el-dropdown trigger="click">
-                    <span class="privacy-select"><i class="fa-solid fa-globe"></i> Bất kỳ ai <i class="fa-solid fa-chevron-down"></i></span>
-                    <template #dropdown><el-dropdown-menu><el-dropdown-item>Bất kỳ ai</el-dropdown-item></el-dropdown-menu></template>
-                  </el-dropdown>
-                </div>
               </div>
             </div>
 
-            <!-- Collaboration -->
             <div class="form-row">
               <div class="field-label">Cộng tác với bạn</div>
               <div class="field-input-wrapper">
-                <el-input v-model="profileData.collaboration" type="textarea" :rows="3" placeholder="Giúp người khác nắm được thời điểm và cách thức cộng tác với bạn" />
-                <div class="field-privacy">
-                  <el-dropdown trigger="click">
-                    <span class="privacy-select"><i class="fa-solid fa-globe"></i> Bất kỳ ai <i class="fa-solid fa-chevron-down"></i></span>
-                    <template #dropdown><el-dropdown-menu><el-dropdown-item>Bất kỳ ai</el-dropdown-item></el-dropdown-menu></template>
-                  </el-dropdown>
-                </div>
+                <el-input
+                  v-model="profileData.collaboration"
+                  type="textarea"
+                  :rows="3"
+                  placeholder="Giúp người khác biết cách phối hợp tốt hơn với bạn"
+                />
               </div>
             </div>
 
-            <!-- Save Action -->
             <div class="form-row">
               <div class="field-label"></div>
-              <div class="field-input-wrapper" style="margin-top: 16px;">
+              <div class="field-input-wrapper save-row">
                 <el-button type="primary" :loading="isSaving" @click="saveProfile">Lưu thay đổi</el-button>
               </div>
             </div>
           </div>
 
-          <!-- Contact Section -->
           <h2 class="section-title mt-40">Liên hệ</h2>
           <div class="contact-card">
             <div class="form-row">
@@ -159,27 +135,31 @@
                   <span class="privacy-label">Ai có thể thấy được nội dung này?</span>
                   <el-dropdown trigger="click">
                     <span class="privacy-select"><i class="fa-solid fa-lock"></i> Chỉ bạn và quản trị viên <i class="fa-solid fa-chevron-down"></i></span>
-                    <template #dropdown><el-dropdown-menu><el-dropdown-item>Riêng tư</el-dropdown-item></el-dropdown-menu></template>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item>Riêng tư</el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
                   </el-dropdown>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div> <!-- Closes profile-container -->
-    </div> <!-- Closes profile-body-container -->
+      </div>
+    </div>
   </NexusLayout>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import logoImg from '../assets/logo_QLCV.png'
+import { computed, onMounted, ref } from 'vue'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import axiosClient from '@/api/axiosClient'
 import { ElMessage } from 'element-plus'
 
 const isLoading = ref(false)
 const isSaving = ref(false)
+const avatarInput = ref(null)
 
 const profileData = ref({
   fullName: '',
@@ -192,52 +172,68 @@ const profileData = ref({
   avatarUrl: ''
 })
 
-const avatarInput = ref(null)
-
 const getBaseUrl = () => 'http://localhost:5136'
+
+const avatarStyle = computed(() => {
+  if (!profileData.value.avatarUrl) {
+    return ''
+  }
+
+  return `background-image: url(${getBaseUrl()}${profileData.value.avatarUrl}); background-size: cover; color: transparent; background-position: center;`
+})
 
 const getInitials = (name) => {
   if (!name) return '?'
-  return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase()
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase()
 }
 
-const uploadAvatar = async (e) => {
-  const file = e.target.files[0]
+const triggerAvatarUpload = () => {
+  avatarInput.value?.click()
+}
+
+const uploadAvatar = async (event) => {
+  const file = event.target.files?.[0]
   if (!file) return
+
   const formData = new FormData()
   formData.append('file', file)
+
   try {
     const res = await axiosClient.put('/users/avatar', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
-    profileData.value.avatarUrl = res.data.data.avatarUrl
+    profileData.value.avatarUrl = res.data?.data?.avatarUrl || ''
     ElMessage.success('Đã cập nhật ảnh đại diện')
-  } catch(err) {
-    ElMessage.error(err.response?.data?.message || 'Lỗi khi tải ảnh')
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || 'Lỗi khi tải ảnh')
+  } finally {
+    event.target.value = ''
   }
 }
-
-onMounted(async () => {
-  await fetchProfile()
-})
 
 const fetchProfile = async () => {
   try {
     isLoading.value = true
     const response = await axiosClient.get('/users/me')
-    const data = response.data.data
+    const data = response.data?.data || {}
     profileData.value = {
-      fullName: data.fullName,
-      publicName: data.publicName,
-      jobTitle: data.jobTitle,
-      department: data.departmentName,
-      organization: data.organizationName,
-      email: data.email,
-      collaboration: data.collaborationRules,
+      fullName: data.fullName || '',
+      publicName: data.publicName || '',
+      jobTitle: data.jobTitle || '',
+      department: data.departmentName || '',
+      organization: data.organizationName || '',
+      email: data.email || '',
+      collaboration: data.collaborationRules || '',
       avatarUrl: data.avatarUrl || ''
     }
-  } catch (err) {
-    console.error('Lỗi khi tải profile', err)
+  } catch (error) {
+    console.error('Lỗi khi tải profile', error)
     ElMessage.error('Không thể tải thông tin cá nhân.')
   } finally {
     isLoading.value = false
@@ -256,17 +252,30 @@ const saveProfile = async () => {
       collaborationRules: profileData.value.collaboration
     })
     ElMessage.success('Đã lưu thông tin hồ sơ.')
-  } catch (err) {
-    console.error('Lỗi khi lưu profile', err)
-    ElMessage.error('Lưu thông tin thất bại.')
+    await fetchProfile()
+  } catch (error) {
+    console.error('Lỗi khi lưu profile', error)
+    ElMessage.error(error.response?.data?.message || 'Lưu thông tin thất bại.')
   } finally {
     isSaving.value = false
   }
 }
+
+onMounted(fetchProfile)
 </script>
 
 <style scoped>
+.profile-page {
+  height: 100%;
+}
 
+.profile-body-container {
+  height: 100%;
+  overflow-y: auto;
+  padding: 40px 0;
+  display: flex;
+  justify-content: center;
+}
 
 .profile-container {
   width: 100%;
@@ -275,7 +284,6 @@ const saveProfile = async () => {
   flex-direction: column;
 }
 
-/* Header Section Styling */
 .profile-header-section {
   position: relative;
   background-color: var(--bg-card);
@@ -287,7 +295,7 @@ const saveProfile = async () => {
 }
 
 .header-image-dropdown {
-  display: block; /* Important for full width */
+  display: block;
   width: 100%;
 }
 
@@ -337,7 +345,28 @@ const saveProfile = async () => {
 .header-footer-privacy {
   background-color: var(--bg-card);
   border-radius: 0 0 12px 12px;
-  padding: 40px 24px 12px; /* Increased top padding for avatar overlap */
+  padding: 40px 24px 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.profile-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-name-block strong {
+  color: var(--text-primary);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.profile-name-block span {
+  color: #8b949e;
+  font-size: 14px;
 }
 
 .header-privacy-info {
@@ -357,7 +386,6 @@ const saveProfile = async () => {
   gap: 4px;
 }
 
-/* Form Styling */
 .profile-content-form {
   padding: 0 40px;
 }
@@ -369,7 +397,9 @@ const saveProfile = async () => {
   margin-bottom: 24px;
 }
 
-.mt-40 { margin-top: 40px; }
+.mt-40 {
+  margin-top: 40px;
+}
 
 .form-grid {
   display: flex;
@@ -392,7 +422,10 @@ const saveProfile = async () => {
   gap: 6px;
 }
 
-.info-icon { font-size: 12px; color: #8b949e; }
+.info-icon {
+  font-size: 12px;
+  color: #8b949e;
+}
 
 .field-input-wrapper {
   max-width: 500px;
@@ -407,58 +440,63 @@ const saveProfile = async () => {
   color: #8b949e;
 }
 
+.save-row {
+  margin-top: 16px;
+}
+
+.contact-card {
+  padding-bottom: 40px;
+}
+
 .email-value {
   padding: 10px 0;
   font-size: 14px;
 }
 
-.field-hint {
-  font-size: 13px;
-  color: #8b949e;
-  line-height: 1.5;
+.danger-item {
+  color: #f87171 !important;
 }
 
-.danger-item { color: #f87171 !important; }
-
-
-/* Component-specific overrides removed as they are now globalized in style.css */
-
 @media (max-width: 768px) {
-  .nav-brand span {
-    display: none;
-  }
-  .main-body {
-    padding: 20px 10px;
-  }
   .profile-header-section {
     margin-bottom: 60px;
   }
+
   .header-image-box {
     height: 120px;
   }
+
   .large-profile-avatar {
     height: 80px;
     width: 80px;
     font-size: 24px;
-    left: 20px;
-    bottom: -40px;
   }
+
   .avatar-inside-wrapper {
     left: 20px;
     bottom: -40px;
   }
+
+  .header-footer-privacy {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header-privacy-info {
+    align-items: flex-start;
+  }
+
   .profile-content-form {
     padding: 0 16px;
   }
+
   .form-row {
     grid-template-columns: 1fr;
     gap: 8px;
   }
+
   .field-input-wrapper {
     max-width: 100%;
-  }
-  .top-nav .nav-right :not(:first-child) {
-    display: none;
   }
 }
 </style>

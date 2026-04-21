@@ -2,9 +2,11 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using TaskManagement.Application.DTOs.Common;
 using TaskManagement.Application.DTOs.Project;
 using TaskManagement.Application.Interfaces;
+using TaskManagement.Infrastructure.Data;
 
 namespace TaskManagement.API.Controllers
 {
@@ -14,10 +16,52 @@ namespace TaskManagement.API.Controllers
     public class ProjectsController : ControllerBase
     {
         private readonly IProjectService _projectService;
+        private readonly ApplicationDbContext _context;
 
-        public ProjectsController(IProjectService projectService)
+        public ProjectsController(IProjectService projectService, ApplicationDbContext context)
         {
             _projectService = projectService;
+            _context = context;
+        }
+
+        private static Dictionary<string, object?> ParseNavigationConfig(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                return new Dictionary<string, object?>();
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<Dictionary<string, object?>>(raw) ?? new Dictionary<string, object?>();
+            }
+            catch (JsonException)
+            {
+                return new Dictionary<string, object?>();
+            }
+        }
+
+        private static bool ReadFavoriteFlag(string? raw)
+        {
+            var config = ParseNavigationConfig(raw);
+            if (!config.TryGetValue("favorite", out var value) || value == null) return false;
+
+            return value switch
+            {
+                bool boolValue => boolValue,
+                JsonElement json when json.ValueKind == JsonValueKind.True => true,
+                JsonElement json when json.ValueKind == JsonValueKind.False => false,
+                JsonElement json when json.ValueKind == JsonValueKind.String && bool.TryParse(json.GetString(), out var parsed) => parsed,
+                string text when bool.TryParse(text, out var parsed) => parsed,
+                _ => false
+            };
+        }
+
+        private static string MergeFavoriteIntoNavigationConfig(string? raw, bool favorite)
+        {
+            var config = ParseNavigationConfig(raw);
+            config["favorite"] = favorite;
+            return JsonSerializer.Serialize(config);
         }
 
         /// <summary>
@@ -27,7 +71,33 @@ namespace TaskManagement.API.Controllers
         public async Task<IActionResult> GetAll()
         {
             var projects = await _projectService.GetAllAsync();
-            return Ok(ApiResponse<List<ProjectResponseDto>>.Success(projects));
+            var favoriteMap = await _context.Projects
+                .AsNoTracking()
+                .Where(project => projects.Select(p => p.Id).Contains(project.Id))
+                .ToDictionaryAsync(project => project.Id, project => ReadFavoriteFlag(project.NavigationConfig));
+
+            return Ok(ApiResponse<object>.Success(projects.Select(project => new
+            {
+                project.Id,
+                project.Name,
+                project.Key,
+                project.Description,
+                project.StartDate,
+                project.EndDate,
+                project.Status,
+                project.CreatorName,
+                project.DepartmentId,
+                project.DepartmentName,
+                project.ActiveMemberCount,
+                project.NetworkType,
+                project.Cover,
+                project.Icon,
+                project.LeadUserId,
+                project.LeadName,
+                project.CreatedAt,
+                project.UpdatedAt,
+                IsFavorite = favoriteMap.TryGetValue(project.Id, out var favorite) && favorite
+            }).ToList()));
         }
 
         /// <summary>
@@ -38,7 +108,35 @@ namespace TaskManagement.API.Controllers
         public async Task<IActionResult> GetAllForDiscovery()
         {
             var projects = await _projectService.GetAllForDiscoveryAsync();
-            return Ok(ApiResponse<List<ProjectDiscoveryDto>>.Success(projects));
+            var favoriteMap = await _context.Projects
+                .AsNoTracking()
+                .Where(project => projects.Select(p => p.Id).Contains(project.Id))
+                .ToDictionaryAsync(project => project.Id, project => ReadFavoriteFlag(project.NavigationConfig));
+
+            return Ok(ApiResponse<object>.Success(projects.Select(project => new
+            {
+                project.Id,
+                project.Name,
+                project.Key,
+                project.Description,
+                project.StartDate,
+                project.EndDate,
+                project.Status,
+                project.CreatorName,
+                project.DepartmentId,
+                project.DepartmentName,
+                project.ActiveMemberCount,
+                project.NetworkType,
+                project.Cover,
+                project.Icon,
+                project.LeadUserId,
+                project.LeadName,
+                project.CreatedAt,
+                project.UpdatedAt,
+                project.IsMember,
+                project.MyRole,
+                IsFavorite = favoriteMap.TryGetValue(project.Id, out var favorite) && favorite
+            }).ToList()));
         }
 
         [HttpGet("archived")]
@@ -47,7 +145,35 @@ namespace TaskManagement.API.Controllers
             try
             {
                 var projects = await _projectService.GetArchivedAsync();
-                return Ok(ApiResponse<List<ProjectDiscoveryDto>>.Success(projects));
+                var favoriteMap = await _context.Projects
+                    .AsNoTracking()
+                    .Where(project => projects.Select(p => p.Id).Contains(project.Id))
+                    .ToDictionaryAsync(project => project.Id, project => ReadFavoriteFlag(project.NavigationConfig));
+
+                return Ok(ApiResponse<object>.Success(projects.Select(project => new
+                {
+                    project.Id,
+                    project.Name,
+                    project.Key,
+                    project.Description,
+                    project.StartDate,
+                    project.EndDate,
+                    project.Status,
+                    project.CreatorName,
+                    project.DepartmentId,
+                    project.DepartmentName,
+                    project.ActiveMemberCount,
+                    project.NetworkType,
+                    project.Cover,
+                    project.Icon,
+                    project.LeadUserId,
+                    project.LeadName,
+                    project.CreatedAt,
+                    project.UpdatedAt,
+                    project.IsMember,
+                    project.MyRole,
+                    IsFavorite = favoriteMap.TryGetValue(project.Id, out var favorite) && favorite
+                }).ToList()));
             }
             catch (Exception ex)
             {
@@ -62,7 +188,65 @@ namespace TaskManagement.API.Controllers
             if (project == null)
                 return NotFound(ApiResponse<object>.Error("Dự án không tồn tại.", 404));
 
-            return Ok(ApiResponse<ProjectResponseDto>.Success(project));
+            var rawProject = await _context.Projects
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            return Ok(ApiResponse<object>.Success(new
+            {
+                project.Id,
+                project.Name,
+                project.Key,
+                project.Description,
+                project.StartDate,
+                project.EndDate,
+                project.Status,
+                project.CreatorName,
+                project.DepartmentId,
+                project.DepartmentName,
+                project.ActiveMemberCount,
+                project.NetworkType,
+                project.Cover,
+                project.Icon,
+                project.LeadUserId,
+                project.LeadName,
+                project.CreatedAt,
+                project.UpdatedAt,
+                IsFavorite = ReadFavoriteFlag(rawProject?.NavigationConfig)
+            }));
+        }
+
+        [HttpPut("{id:guid}/favorite")]
+        public async Task<IActionResult> UpdateFavorite(Guid id, [FromBody] JsonElement payload)
+        {
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdString, out var userId))
+                return Unauthorized(ApiResponse<object>.Error("Unauthorized.", 401));
+
+            var project = await _context.Projects
+                .Include(p => p.ProjectMembers)
+                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+
+            if (project == null)
+                return NotFound(ApiResponse<object>.Error("Project not found.", 404));
+
+            var isMember = project.ProjectMembers.Any(pm => pm.UserId == userId && pm.Status);
+            if (!isMember)
+                return StatusCode(403, ApiResponse<object>.Error("Forbidden.", 403));
+
+            var favorite = true;
+            if (payload.ValueKind == JsonValueKind.Object &&
+                payload.TryGetProperty("favorite", out var favoriteProperty) &&
+                (favoriteProperty.ValueKind == JsonValueKind.True || favoriteProperty.ValueKind == JsonValueKind.False))
+            {
+                favorite = favoriteProperty.GetBoolean();
+            }
+
+            project.NavigationConfig = MergeFavoriteIntoNavigationConfig(project.NavigationConfig, favorite);
+            project.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(ApiResponse<object>.Success(new { id = project.Id, favorite }));
         }
 
         [HttpPost]
@@ -204,6 +388,93 @@ namespace TaskManagement.API.Controllers
             {
                 return StatusCode(500, new { statusCode = 500, message = ex.Message });
             }
+        }
+
+        [HttpGet("{id:guid}/work-items")]
+        public async Task<IActionResult> GetProjectWorkItems(Guid id, [FromQuery] string? search)
+        {
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdString, out var userId))
+                return Unauthorized(ApiResponse<object>.Error("Unauthorized.", 401));
+
+            var isMember = await _context.ProjectMembers.AnyAsync(pm => pm.ProjectId == id && pm.UserId == userId && pm.Status);
+            if (!isMember)
+                return StatusCode(403, ApiResponse<object>.Error("Forbidden.", 403));
+
+            var query = _context.WorkTasks
+                .AsNoTracking()
+                .Include(wt => wt.TaskStatus)
+                .Where(wt => wt.ProjectId == id && !wt.IsDeleted && !wt.IsArchived);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                query = query.Where(wt => wt.Title.ToLower().Contains(keyword)
+                    || (wt.Description != null && wt.Description.ToLower().Contains(keyword)));
+            }
+
+            var tasks = await query
+                .OrderByDescending(wt => wt.UpdatedAt)
+                .Take(50)
+                .Select(wt => new
+                {
+                    wt.Id,
+                    wt.ProjectId,
+                    wt.Title,
+                    wt.SequenceId,
+                    wt.Priority,
+                    wt.UpdatedAt,
+                    wt.CreatedAt,
+                    StatusName = wt.TaskStatus.Name
+                })
+                .ToListAsync();
+
+            return Ok(ApiResponse<object>.Success(tasks));
+        }
+
+        [HttpGet("/api/worktasks")]
+        public async Task<IActionResult> SearchWorkTasks([FromQuery] string? search)
+        {
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdString, out var userId))
+                return Unauthorized(ApiResponse<object>.Error("Unauthorized.", 401));
+
+            var userProjectIds = await _context.ProjectMembers
+                .AsNoTracking()
+                .Where(pm => pm.UserId == userId && pm.Status)
+                .Select(pm => pm.ProjectId)
+                .ToListAsync();
+
+            var query = _context.WorkTasks
+                .AsNoTracking()
+                .Include(wt => wt.Project)
+                .Include(wt => wt.TaskStatus)
+                .Where(wt => userProjectIds.Contains(wt.ProjectId) && !wt.IsDeleted && !wt.IsArchived);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                query = query.Where(wt => wt.Title.ToLower().Contains(keyword)
+                    || (wt.Description != null && wt.Description.ToLower().Contains(keyword)));
+            }
+
+            var results = await query
+                .OrderByDescending(wt => wt.UpdatedAt)
+                .Take(20)
+                .Select(wt => new
+                {
+                    wt.Id,
+                    wt.ProjectId,
+                    ProjectName = wt.Project.Name,
+                    wt.Title,
+                    wt.SequenceId,
+                    wt.Priority,
+                    wt.UpdatedAt,
+                    StatusName = wt.TaskStatus.Name
+                })
+                .ToListAsync();
+
+            return Ok(ApiResponse<object>.Success(results));
         }
     }
 }

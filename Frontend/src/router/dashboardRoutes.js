@@ -22,7 +22,7 @@ export default [
   {
     path: '/rewards',
     name: 'Rewards',
-    component: () => import('../views/RewardsView.vue')
+    redirect: '/dashboard'
   },
   {
     path: '/drafts',
