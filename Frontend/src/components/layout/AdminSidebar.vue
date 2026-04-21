@@ -41,6 +41,16 @@
         <span>{{ t('Configuration', 'Cấu hình') }}</span>
       </el-menu-item>
 
+      <el-sub-menu index="/admin/instance">
+        <template #title>
+          <i class="fa-solid fa-server menu-icon"></i>
+          <span>{{ t('Instance', 'Cáº¥p há»‡ thá»‘ng') }}</span>
+        </template>
+        <el-menu-item index="/admin/instance/general">{{ t('General settings', 'CÃ i Ä‘áº·t chung') }}</el-menu-item>
+        <el-menu-item index="/admin/instance/authentication">{{ t('Authentication', 'Quáº£n lÃ½ Ä‘Äƒng nháº­p') }}</el-menu-item>
+        <el-menu-item index="/admin/instance/email">{{ t('Email / SMTP', 'Email / SMTP') }}</el-menu-item>
+      </el-sub-menu>
+
       <el-sub-menu index="/admin/security">
         <template #title>
           <i class="fa-solid fa-shield-halved menu-icon"></i>

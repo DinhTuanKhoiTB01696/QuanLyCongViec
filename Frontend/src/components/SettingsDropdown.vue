@@ -33,6 +33,22 @@
               <span class="item-text">Configuration</span>
             </div>
 
+            <div class="settings-menu-header">
+              <span class="item-text">Instance</span>
+            </div>
+
+            <div class="settings-menu-item indented" @click="handleCommand('/admin/instance/general')">
+              <span class="item-text">General settings</span>
+            </div>
+
+            <div class="settings-menu-item indented" @click="handleCommand('/admin/instance/authentication')">
+              <span class="item-text">Authentication</span>
+            </div>
+
+            <div class="settings-menu-item indented" @click="handleCommand('/admin/instance/email')">
+              <span class="item-text">Email / SMTP</span>
+            </div>
+
             <div class="settings-menu-item" @click="handleCommand('/admin/customization')">
               <span class="item-text">Customization</span>
             </div>

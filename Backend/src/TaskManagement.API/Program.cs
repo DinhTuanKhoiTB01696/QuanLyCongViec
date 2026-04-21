@@ -184,16 +184,29 @@ IF COL_LENGTH('dbo.Pages', 'IsStarred') IS NULL
 BEGIN
     ALTER TABLE dbo.Pages ADD IsStarred bit NOT NULL CONSTRAINT DF_Pages_IsStarred DEFAULT(0);
 END;
+IF OBJECT_ID('dbo.TaskSubscribers', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.TaskSubscribers (
+        WorkTaskId uniqueidentifier NOT NULL,
+        UserId uniqueidentifier NOT NULL,
+        SubscribedAt datetime2 NOT NULL CONSTRAINT DF_TaskSubscribers_SubscribedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_TaskSubscribers PRIMARY KEY (WorkTaskId, UserId),
+        CONSTRAINT FK_TaskSubscribers_WorkTasks_WorkTaskId FOREIGN KEY (WorkTaskId) REFERENCES dbo.WorkTasks(Id) ON DELETE CASCADE,
+        CONSTRAINT FK_TaskSubscribers_Users_UserId FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE CASCADE
+    );
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TaskSubscribers_UserId' AND object_id = OBJECT_ID('dbo.TaskSubscribers'))
+BEGIN
+    CREATE INDEX IX_TaskSubscribers_UserId ON dbo.TaskSubscribers(UserId);
+END;
 IF COL_LENGTH('dbo.TaskDrafts', 'ProjectId') IS NOT NULL
 BEGIN
-    EXEC('
-        UPDATE td
-        SET ProjectId = TRY_CONVERT(uniqueidentifier, JSON_VALUE(td.PayloadJson, ''''$.projectId''''))
-        FROM dbo.TaskDrafts td
-        WHERE td.ProjectId IS NULL
-          AND ISJSON(td.PayloadJson) = 1
-          AND JSON_VALUE(td.PayloadJson, ''''$.projectId'''') IS NOT NULL;
-    ');
+    UPDATE td
+    SET ProjectId = TRY_CONVERT(uniqueidentifier, JSON_VALUE(td.PayloadJson, '$.projectId'))
+    FROM dbo.TaskDrafts td
+    WHERE td.ProjectId IS NULL
+      AND ISJSON(td.PayloadJson) = 1
+      AND JSON_VALUE(td.PayloadJson, '$.projectId') IS NOT NULL;
 END;
 ");
         }

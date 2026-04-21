@@ -109,7 +109,8 @@ namespace TaskManagement.Infrastructure.Services
                     UpdatedAt = wt.UpdatedAt,
                     RowVersion = wt.RowVersion,
                     SortOrder = wt.SortOrder,
-                    SequenceId = wt.SequenceId
+                    SequenceId = wt.SequenceId,
+                    IsSubscribed = wt.Subscribers.Any(s => s.UserId == userId)
                 })
                 .ToListAsync();
 
@@ -368,11 +369,11 @@ namespace TaskManagement.Infrastructure.Services
             taskToUpdate.Description = dto.Description;
             taskToUpdate.Priority = dto.Priority ?? taskToUpdate.Priority;
             taskToUpdate.StoryPoints = dto.StoryPoints ?? taskToUpdate.StoryPoints;
-            taskToUpdate.AssignedUserId = dto.AssignedUserId ?? taskToUpdate.AssignedUserId;
-            taskToUpdate.PlannedStartDate = dto.PlannedStartDate ?? taskToUpdate.PlannedStartDate;
-            taskToUpdate.PlannedEndDate = dto.PlannedEndDate ?? taskToUpdate.PlannedEndDate;
-            taskToUpdate.DueDate = dto.DueDate ?? taskToUpdate.DueDate;
-            taskToUpdate.SprintId = dto.SprintId ?? taskToUpdate.SprintId;
+            taskToUpdate.AssignedUserId = dto.AssignedUserId;
+            taskToUpdate.PlannedStartDate = dto.PlannedStartDate;
+            taskToUpdate.PlannedEndDate = dto.PlannedEndDate;
+            taskToUpdate.DueDate = dto.DueDate;
+            taskToUpdate.SprintId = dto.SprintId;
             taskToUpdate.TaskTypeId = dto.TaskTypeId != Guid.Empty ? dto.TaskTypeId : taskToUpdate.TaskTypeId;
             
             taskToUpdate.UpdatedAt = DateTime.UtcNow;
@@ -578,7 +579,8 @@ namespace TaskManagement.Infrastructure.Services
                     RowVersion = wt.RowVersion,
                     CreatedAt = wt.CreatedAt,
                     UpdatedAt = wt.UpdatedAt,
-                    ProjectName = wt.Project.Name
+                    ProjectName = wt.Project.Name,
+                    IsSubscribed = wt.Subscribers.Any(s => s.UserId == userId)
                 })
                 .ToListAsync();
 
@@ -597,6 +599,8 @@ namespace TaskManagement.Infrastructure.Services
 
             var upper = dbStatusName.ToUpper().Replace(" ", "");
 
+            if (upper.Contains("CANCEL") || upper.Contains("HUY"))
+                return "CANCELLED";
             if (upper.Contains("DONE") || upper.Contains("HOANTHANH") || upper.Contains("COMPLETE"))
                 return "DONE";
             if (upper.Contains("INREVIEW") || upper.Contains("REVIEW") || upper.Contains("KIEMTRA"))
@@ -753,7 +757,8 @@ namespace TaskManagement.Infrastructure.Services
                     Priority = wt.Priority,
                     StoryPoints = wt.StoryPoints,
                     DueDate = wt.DueDate,
-                    CreatedAt = wt.CreatedAt
+                    CreatedAt = wt.CreatedAt,
+                    IsSubscribed = wt.Subscribers.Any(s => s.UserId == userId)
                 })
                 .ToListAsync();
 
@@ -797,7 +802,8 @@ namespace TaskManagement.Infrastructure.Services
             _context.TaskSubscribers.Add(new TaskManagement.Domain.Entities.TaskSubscriber
             {
                 WorkTaskId = taskId,
-                UserId = userId
+                UserId = userId,
+                SubscribedAt = DateTime.UtcNow
             });
             await _context.SaveChangesAsync();
             return true;
@@ -829,7 +835,8 @@ namespace TaskManagement.Infrastructure.Services
                 "IN PROGRESS" => 2,
                 "IN REVIEW" => 3,
                 "DONE" => 4,
-                _ => 0 // BACKLOG
+                "CANCELLED" => 5,
+                _ => 0
             };
 
             taskStatus = new TaskManagement.Domain.Entities.TaskStatus

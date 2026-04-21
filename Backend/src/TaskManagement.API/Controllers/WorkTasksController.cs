@@ -29,6 +29,85 @@ namespace TaskManagement.API.Controllers
             _workTaskService = workTaskService;
         }
 
+        private static string NormalizeStatusName(string? statusName)
+        {
+            if (string.IsNullOrWhiteSpace(statusName))
+            {
+                return "BACKLOG";
+            }
+
+            var upper = statusName.ToUpperInvariant().Replace(" ", string.Empty);
+            if (upper.Contains("CANCEL"))
+            {
+                return "CANCELLED";
+            }
+
+            if (upper.Contains("DONE") || upper.Contains("COMPLETE"))
+            {
+                return "DONE";
+            }
+
+            if (upper.Contains("INREVIEW") || upper.Contains("REVIEW"))
+            {
+                return "IN REVIEW";
+            }
+
+            if (upper.Contains("INPROGRESS") || upper.Contains("ACTIVE"))
+            {
+                return "IN PROGRESS";
+            }
+
+            if (upper.Contains("TODO"))
+            {
+                return "TO DO";
+            }
+
+            return "BACKLOG";
+        }
+
+        private static readonly (string Name, int Position)[] DefaultTaskStatuses =
+        {
+            ("BACKLOG", 0),
+            ("TO DO", 1),
+            ("IN PROGRESS", 2),
+            ("IN REVIEW", 3),
+            ("DONE", 4),
+            ("CANCELLED", 5)
+        };
+
+        private static async Task EnsureDefaultTaskStatusesAsync(ApplicationDbContext context, Guid projectId)
+        {
+            var existingStatuses = await context.TaskStatuses
+                .Where(ts => ts.ProjectId == projectId)
+                .ToListAsync();
+
+            var existingNormalized = existingStatuses
+                .Select(ts => NormalizeStatusName(ts.Name))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var missingStatuses = DefaultTaskStatuses
+                .Where(status => !existingNormalized.Contains(status.Name))
+                .ToList();
+
+            if (!missingStatuses.Any())
+            {
+                return;
+            }
+
+            foreach (var status in missingStatuses)
+            {
+                context.TaskStatuses.Add(new TaskManagement.Domain.Entities.TaskStatus
+                {
+                    Id = Guid.NewGuid(),
+                    ProjectId = projectId,
+                    Name = status.Name,
+                    Position = status.Position
+                });
+            }
+
+            await context.SaveChangesAsync();
+        }
+
         private async Task TriggerNotificationEventAsync(string relativePath, object payload)
         {
             var authorizationHeader = Request.Headers.Authorization.ToString();
@@ -220,6 +299,8 @@ namespace TaskManagement.API.Controllers
         {
             try
             {
+                await EnsureDefaultTaskStatusesAsync(context, projectId);
+
                 var statuses = await context.TaskStatuses
                     .Where(ts => ts.ProjectId == projectId)
                     .OrderBy(ts => ts.Position)
@@ -230,42 +311,6 @@ namespace TaskManagement.API.Controllers
                         DisplayName = ts.Name
                     })
                     .ToListAsync();
-
-                if (!statuses.Any())
-                {
-                    var defaults = new[]
-                    {
-                        new { Name = "BACKLOG", Position = 0 },
-                        new { Name = "TO DO", Position = 1 },
-                        new { Name = "IN PROGRESS", Position = 2 },
-                        new { Name = "DONE", Position = 3 },
-                        new { Name = "CANCELLED", Position = 4 }
-                    };
-
-                    foreach (var item in defaults)
-                    {
-                        context.TaskStatuses.Add(new TaskManagement.Domain.Entities.TaskStatus
-                        {
-                            Id = Guid.NewGuid(),
-                            ProjectId = projectId,
-                            Name = item.Name,
-                            Position = item.Position
-                        });
-                    }
-
-                    await context.SaveChangesAsync();
-
-                    statuses = await context.TaskStatuses
-                        .Where(ts => ts.ProjectId == projectId)
-                        .OrderBy(ts => ts.Position)
-                        .Select(ts => new
-                        {
-                            ts.Id,
-                            ts.Name,
-                            DisplayName = ts.Name
-                        })
-                        .ToListAsync();
-                }
 
                 return Ok(new { statusCode = 200, message = "Success", data = statuses });
             }
@@ -461,6 +506,45 @@ namespace TaskManagement.API.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { statusCode = 500, message = "Lỗi máy chủ nội bộ: " + ex.Message });
+            }
+        }
+
+        [HttpPost("projects/{projectId}/WorkTasks/{id}/subscription")]
+        public async Task<IActionResult> ToggleSubscription(Guid projectId, Guid id, [FromServices] ApplicationDbContext context)
+        {
+            try
+            {
+                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!Guid.TryParse(userIdString, out Guid userId))
+                {
+                    return Unauthorized(new { statusCode = 401, message = "Vui long dang nhap." });
+                }
+
+                var taskExistsInProject = await context.WorkTasks
+                    .AnyAsync(wt => wt.Id == id && wt.ProjectId == projectId && !wt.IsDeleted);
+                if (!taskExistsInProject)
+                {
+                    return NotFound(new { statusCode = 404, message = "Task khong ton tai trong du an nay." });
+                }
+
+                var isProjectMember = await context.ProjectMembers
+                    .AnyAsync(pm => pm.ProjectId == projectId && pm.UserId == userId && pm.Status);
+                if (!isProjectMember)
+                {
+                    return StatusCode(403, new { statusCode = 403, message = "Ban khong phai thanh vien cua du an nay." });
+                }
+
+                var isSubscribed = await _workTaskService.ToggleSubscriptionAsync(id, userId);
+                return Ok(new
+                {
+                    statusCode = 200,
+                    message = isSubscribed ? "Da theo doi cong viec." : "Da huy theo doi cong viec.",
+                    data = new { isSubscribed }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { statusCode = 500, message = "Loi may chu noi bo: " + ex.Message });
             }
         }
 
@@ -734,7 +818,13 @@ namespace TaskManagement.API.Controllers
                 if (updates.TryGetProperty("statusName", out var statusProp) && statusProp.ValueKind != System.Text.Json.JsonValueKind.Null)
                 {
                     var statusName = statusProp.GetString();
-                    var newStatus = await context.TaskStatuses.FirstOrDefaultAsync(ts => ts.ProjectId == projectId && ts.Name == statusName);
+                    await EnsureDefaultTaskStatusesAsync(context, projectId);
+                    var normalizedStatusName = NormalizeStatusName(statusName);
+                    var projectStatuses = await context.TaskStatuses
+                        .Where(ts => ts.ProjectId == projectId)
+                        .ToListAsync();
+                    var newStatus = projectStatuses.FirstOrDefault(ts =>
+                        string.Equals(NormalizeStatusName(ts.Name), normalizedStatusName, StringComparison.OrdinalIgnoreCase));
                     if (newStatus != null)
                     {
                         var isDoneStatus = newStatus.Name.Contains("DONE", StringComparison.OrdinalIgnoreCase) ||
@@ -754,26 +844,6 @@ namespace TaskManagement.API.Controllers
                 if (userId != Guid.Empty && !string.IsNullOrWhiteSpace(newStatusName))
                 {
                     await gamificationService.ApplyStatusChangeRewardsAsync(id, userId, oldStatusName, newStatusName);
-                    if (!string.Equals(oldStatusName, newStatusName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        await TriggerTaskStatusChangedNotificationAsync(
-                            context,
-                            projectId,
-                            id,
-                            userId,
-                            task.Title,
-                            newStatusName);
-                    }
-                    if (!string.Equals(oldStatusName, newStatusName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        await TriggerTaskStatusChangedNotificationAsync(
-                            context,
-                            projectId,
-                            id,
-                            userId,
-                            task.Title,
-                            newStatusName);
-                    }
                 }
                 foreach (var rewardRequest in progressRewardRequests)
                 {
@@ -896,8 +966,13 @@ namespace TaskManagement.API.Controllers
                 // If status also changed (dragged to a different column)
                 if (!string.IsNullOrEmpty(dto.NewStatusName))
                 {
-                    var newStatus = await context.TaskStatuses
-                        .FirstOrDefaultAsync(ts => ts.ProjectId == projectId && ts.Name == dto.NewStatusName);
+                    await EnsureDefaultTaskStatusesAsync(context, projectId);
+                    var normalizedStatusName = NormalizeStatusName(dto.NewStatusName);
+                    var projectStatuses = await context.TaskStatuses
+                        .Where(ts => ts.ProjectId == projectId)
+                        .ToListAsync();
+                    var newStatus = projectStatuses.FirstOrDefault(ts =>
+                        string.Equals(NormalizeStatusName(ts.Name), normalizedStatusName, StringComparison.OrdinalIgnoreCase));
                     if (newStatus != null)
                     {
                         var isDoneStatus = newStatus.Name.Contains("DONE", StringComparison.OrdinalIgnoreCase) ||
@@ -931,23 +1006,55 @@ namespace TaskManagement.API.Controllers
         [HttpGet("projects/{projectId}/WorkTasks/{parentId}/subtasks")]
         public async Task<IActionResult> GetSubtasks(Guid projectId, Guid parentId, [FromServices] ApplicationDbContext context)
         {
+            await EnsureDefaultTaskStatusesAsync(context, projectId);
+
             var subtasks = await context.WorkTasks
-                .Where(wt => wt.ParentTaskId == parentId && !wt.IsDeleted)
+                .Where(wt => wt.ProjectId == projectId && wt.ParentTaskId == parentId && !wt.IsDeleted)
                 .Include(wt => wt.TaskStatus)
                 .Include(wt => wt.AssignedUser)
+                .Include(wt => wt.TaskAssignments)
+                    .ThenInclude(ta => ta.User)
                 .OrderBy(wt => wt.SortOrder)
                 .Select(wt => new
                 {
                     wt.Id,
+                    wt.ProjectId,
+                    wt.ParentTaskId,
                     wt.Title,
+                    wt.Description,
                     wt.Priority,
                     wt.SortOrder,
                     wt.SequenceId,
-                    StatusName = wt.TaskStatus != null ? wt.TaskStatus.Name : "TO DO",
-                    AssigneeName = wt.AssignedUser != null ? wt.AssignedUser.FullName : null,
+                    wt.TaskTypeId,
+                    StatusName = wt.TaskStatus != null ? NormalizeStatusName(wt.TaskStatus.Name) : "BACKLOG",
+                    wt.AssignedUserId,
+                    AssigneeIds = wt.TaskAssignments
+                        .Where(ta => ta.Status)
+                        .Select(ta => ta.UserId)
+                        .ToList(),
+                    Assignees = wt.TaskAssignments
+                        .Where(ta => ta.Status)
+                        .Select(ta => new TaskAssigneeDto
+                        {
+                            UserId = ta.UserId,
+                            FullName = ta.User.FullName,
+                            Email = ta.User.Email,
+                            ProgressPercent = ta.ProgressPercent,
+                            ContributionWeight = ta.ContributionWeight,
+                            EstimatedHours = ta.EstimatedHours,
+                            TotalActualHours = ta.TotalActualHours,
+                            IsBlocked = ta.BlockedByUserId.HasValue,
+                            BlockedByUserId = ta.BlockedByUserId,
+                            BlockReason = ta.BlockReason
+                        })
+                        .ToList(),
+                    AssigneeName = wt.AssignedUser != null ? (wt.AssignedUser.FullName ?? wt.AssignedUser.Email) : null,
                     AssigneeAvatar = wt.AssignedUser != null ? wt.AssignedUser.AvatarUrl : null,
+                    wt.PlannedStartDate,
+                    wt.PlannedEndDate,
                     wt.DueDate,
-                    wt.CreatedAt
+                    wt.CreatedAt,
+                    wt.UpdatedAt
                 }).ToListAsync();
 
             return Ok(new { statusCode = 200, data = subtasks });
@@ -963,11 +1070,18 @@ namespace TaskManagement.API.Controllers
             if (!Guid.TryParse(userIdStr, out Guid userId))
                 return Unauthorized();
 
-            var parent = await context.WorkTasks.FirstOrDefaultAsync(t => t.Id == parentId && !t.IsDeleted);
+            var parent = await context.WorkTasks.FirstOrDefaultAsync(t => t.Id == parentId && t.ProjectId == projectId && !t.IsDeleted);
             if (parent == null) return NotFound(new { message = "Task cha không tồn tại." });
 
-            // Get default status and type from project
-            var defaultStatus = await context.TaskStatuses.FirstOrDefaultAsync(ts => ts.ProjectId == projectId);
+            await EnsureDefaultTaskStatusesAsync(context, projectId);
+
+            // Get default BACKLOG status and type from project
+            var projectStatuses = await context.TaskStatuses
+                .Where(ts => ts.ProjectId == projectId)
+                .OrderBy(ts => ts.Position)
+                .ToListAsync();
+            var defaultStatus = projectStatuses.FirstOrDefault(ts => NormalizeStatusName(ts.Name) == "BACKLOG")
+                ?? projectStatuses.FirstOrDefault();
             var defaultType = await context.TaskTypes.FirstOrDefaultAsync(tt => tt.ProjectId == projectId);
 
             if (defaultStatus == null || defaultType == null)
@@ -1005,12 +1119,22 @@ namespace TaskManagement.API.Controllers
                 data = new
                 {
                     subtask.Id,
+                    subtask.ProjectId,
                     subtask.Title,
+                    subtask.Description,
                     subtask.Priority,
                     subtask.ParentTaskId,
                     subtask.SequenceId,
-                    StatusName = defaultStatus.Name,
-                    subtask.CreatedAt
+                    subtask.TaskTypeId,
+                    subtask.AssignedUserId,
+                    AssigneeIds = new List<Guid>(),
+                    Assignees = new List<TaskAssigneeDto>(),
+                    StatusName = NormalizeStatusName(defaultStatus.Name),
+                    subtask.PlannedStartDate,
+                    subtask.PlannedEndDate,
+                    subtask.DueDate,
+                    subtask.CreatedAt,
+                    subtask.UpdatedAt
                 }
             });
         }

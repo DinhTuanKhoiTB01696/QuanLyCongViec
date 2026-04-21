@@ -28,6 +28,10 @@ Files final integration AI sua truc tiep trong pass nay:
 - `Backend/src/TaskManagement.Infrastructure/Migrations/20260421121000_TaskDraftProjectIdIndex.cs`
 - `Frontend/src/components/layout/NexusSidebar.vue`
 - `Frontend/src/components/layout/NexusTopbar.vue`
+- `Frontend/src/components/NotificationsDropdown.vue`
+- `Frontend/src/views/SpaceSummary.vue`
+- `Backend/src/TaskManagement.API/Controllers/WorkTasksController.cs`
+- `Backend/src/TaskManagement.Infrastructure/Services/WorkTaskService.cs`
 - `docs/Y3_205_TestCases_Results.md`
 - `docs/MASTER_FINAL_REPORT.md`
 
@@ -52,6 +56,11 @@ Files final integration AI sua truc tiep trong pass nay:
   - early completion bonus 10%
   - contribution-based split cho assignment
   - level progression theo threshold tang dan, khop hon voi controller/UI
+- Rà soat them theo `docs/5_Prompt_Cho_5_AI.md`:
+  - bo duplicate notification trigger trong task partial update
+  - fix update service de PUT task co the luu dung cac field nullable nhu assignee/date/sprint thay vi bi giu gia tri cu
+  - Notifications dropdown khong con hardcode hub URL `localhost`, nay dung theo `VITE_API_BASE_URL`
+  - SpaceSummary khong con fallback hardcode ten project `Cun`
 
 ## 4. Ket qua build frontend/backend
 
@@ -62,7 +71,10 @@ Files final integration AI sua truc tiep trong pass nay:
 - Backend:
   - Lenh: `dotnet build Backend/src/TaskManagement.API/TaskManagement.API.csproj`
   - Ket qua: PASS
-  - Ghi chu: con 2 warning nullability o `AuditLogsController.cs` va `StickiesController.cs`
+  - Ghi chu: trang thai build hien tai PASS sach, khong con warning build o lan kiem tra moi nhat
+- Retest bo sung sau pass fix gap tu `5_Prompt_Cho_5_AI.md`:
+  - `npm run build` trong `Frontend/`: PASS
+  - `dotnet build Backend/src/TaskManagement.API/TaskManagement.API.csproj`: PASS
 
 ## 5. Tom tat viec cap nhat `docs/Y3_205_TestCases_Results.md`
 
@@ -108,3 +120,23 @@ Da bo sung 8 test case moi:
 - Cac blocker build/runtime cap cao da duoc go.
 - Muc san sang de demo/QA noi bo: tot hon ro ret so voi handoff ban dau.
 - Muc san sang de chot release chinh thuc: can them 1 vong lam sach EF migration va 1 vong browser regression/system test day du.
+
+## 9. Bo sung sau pass tiep tuc Phase 2-5
+
+- Hoan tat them mot lop preload khi hover project:
+  - sidebar nay goi prefetch bundle cho `project details`, `members`, `labels`, `task statuses`, `task list`
+  - cache nong 30 giay trong `useProjectStore` de giam do tre khi click vao project ngay sau khi hover
+- Chot them stale-request handling cho topbar search:
+  - tim kiem work item gio abort request cu khi nguoi dung go nhanh
+  - ket qua cu khong con de len ket qua moi
+- Chot hanh vi `Discard` cho create task:
+  - `TaskDetailModal.vue` gio dong modal thay vi chi xoa field trong form
+- Don them mot duong date serialization de tranh lech ngay:
+  - `CreateSpaceModal.vue` khong con gui `toISOString()` cho ngay bat dau project
+  - `CreateProjectModal.vue` khong con khoi tao date mac dinh bang `toISOString().slice(0, 10)`
+- Mo root scroll cho landing page/Home:
+  - bo sung `html/body/#app` min-height va `body` `overflow-y: auto`
+  - `Home.vue` khong con de landing page co nguy co khoa scroll ngang/doc
+- Verification bo sung:
+  - `npm run build` trong `Frontend/`: PASS
+  - pass nay van la code/build-only, chua them browser regression

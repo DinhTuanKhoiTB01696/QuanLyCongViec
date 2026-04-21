@@ -6,127 +6,103 @@
           <img :src="logoImg" alt="SprintA Logo" class="custom-logo" />
           <span class="logo-text">SprintA</span>
         </router-link>
-        <div class="nav-actions" style="display: flex; align-items: center; gap: 16px;">
-          <el-button link @click="$router.push('/login')">Đăng nhập</el-button>
-          <el-button type="primary" round @click="$router.push('/register')">Đăng ký</el-button>
+        <div class="nav-actions">
+          <router-link class="nav-link" to="/login">Dang nhap</router-link>
+          <router-link class="nav-primary" to="/register">Dang ky</router-link>
         </div>
       </div>
     </header>
 
-    <div class="auth-container">
-      <div class="auth-card">
-        <h1 class="auth-title">{{ requires2FA ? 'Xác minh 2 bước' : 'Chào mừng trở lại' }}</h1>
-        <p class="auth-subtitle">{{ requires2FA ? 'Nhập mã 6 số (OTP) vừa được gửi đến email của bạn để tiếp tục.' : 'Đăng nhập để tiếp tục quản lý công việc của bạn với SprintA.' }}</p>
-        
-        <!-- 2FA OTP Form -->
+    <main class="auth-container">
+      <section class="auth-card">
+        <h1 class="auth-title">{{ requires2FA ? 'Xac minh OTP' : 'Dang nhap vao SprintA' }}</h1>
+        <p class="auth-subtitle">
+          {{ requires2FA
+            ? 'Nhap ma OTP da duoc gui toi email cua ban de tiep tuc.'
+            : 'Ban can dang nhap de vao dashboard chinh va su dung cac chuc nang noi bo.' }}
+        </p>
+
         <el-form v-if="requires2FA" class="auth-form" @submit.prevent="handleLogin2FA" label-position="top">
-           <el-form-item label="Mã bảo mật (OTP)">
-             <el-input v-model="otpCode" placeholder="Nhập 6 số..." size="large" />
-           </el-form-item>
-           
-           <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">Xác thực OTP</el-button>
-           
-           <div class="divider"></div>
-           <p class="auth-footer-text">
-             Chưa nhận được mã? <a href="#" @click.prevent="handleLogin">Gửi lại</a> hoặc <a href="#" @click.prevent="requires2FA = false">Quay lại</a>
-           </p>
+          <el-form-item label="Ma OTP">
+            <el-input v-model="otpCode" placeholder="Nhap 6 so" size="large" />
+          </el-form-item>
+
+          <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">
+            Xac thuc
+          </el-button>
+
+          <p class="auth-footer-text">
+            Muon quay lai? <button type="button" class="link-btn" @click="requires2FA = false">Nhap lai tai khoan</button>
+          </p>
         </el-form>
 
         <el-form v-else class="auth-form" @submit.prevent="handleLogin" label-position="top">
           <el-form-item label="Email">
             <el-input v-model="form.email" placeholder="name@email.com" size="large" />
           </el-form-item>
-          
-          <el-form-item class="password-item">
-            <template #label>
-              <div class="password-label">
-                <span>Mật khẩu</span>
-                <a href="#" class="forgot-pwd">Quên mật khẩu?</a>
-              </div>
-            </template>
-            <el-input 
-              v-model="form.password" 
-              type="password" 
-              placeholder="••••••••" 
-              size="large" 
-              show-password 
+
+          <el-form-item label="Mat khau">
+            <el-input
+              v-model="form.password"
+              type="password"
+              placeholder="••••••••"
+              size="large"
+              show-password
             />
           </el-form-item>
-          
+
           <div class="remember-action">
-            <el-checkbox v-model="form.remember">Ghi nhớ đăng nhập</el-checkbox>
+            <el-checkbox v-model="form.remember">Ghi nho dang nhap</el-checkbox>
           </div>
-          
-          <el-button 
-            type="primary" 
-            native-type="submit" 
-            class="auth-btn" 
-            size="large"
-            :loading="isLoading"
-          >
-            Đăng nhập
+
+          <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">
+            Dang nhap
           </el-button>
         </el-form>
 
-        <div v-if="!requires2FA">
-          <div class="divider">
-            <span>HOẶC TIẾP TỤC VỚI</span>
-          </div>
-          
+        <div v-if="!requires2FA" class="social-shell">
+          <div class="divider"><span>HOAC TIEP TUC VOI</span></div>
+
           <div class="social-login">
-            <!-- Sử dụng slot custom để thiết kế nút Google GIỐNG HỆT nút GitHub -->
             <GoogleLogin :callback="handleGoogleLogin" popup-type="TOKEN" class="social-btn-wrapper">
               <el-button native-type="button" class="social-btn google-btn">
                 <img :src="googleIcon" alt="Google" class="social-icon" /> Google
               </el-button>
             </GoogleLogin>
-            
+
             <el-button native-type="button" class="social-btn github-btn" @click="handleGitHubLogin">
               <img :src="githubIcon" alt="GitHub" class="social-icon" /> GitHub
             </el-button>
           </div>
 
-          <!-- Dev Login Button -->
-          <el-button 
-            type="warning" 
-            class="auth-btn" 
-            size="large" 
-            style="margin-bottom: 16px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none;"
-            :loading="isLoading"
-            @click="handleDevLogin"
-          >
-            🚀 Dev Login (Bỏ qua đăng nhập)
-          </el-button>
-          
           <p class="auth-footer-text">
-            Chưa có tài khoản? <router-link to="/register">Đăng ký</router-link>
+            Chua co tai khoan? <router-link to="/register">Dang ky</router-link>
           </p>
         </div>
-      </div>
-    </div>
-    
+      </section>
+    </main>
+
     <div class="auth-bottom">
-      <p>© 2024 SprintA Inc. Đã đăng ký bản quyền.</p>
+      <p>© 2026 SprintA. Tat ca quyen duoc bao luu.</p>
     </div>
   </div>
 </template>
 
 <script setup>
 import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import axiosClient from '../api/axiosClient'
 import logoImg from '../assets/logo_QLCV.png'
 import googleIcon from '../assets/Icongoogle.png'
 import githubIcon from '../assets/Icongithub.png'
-import { useRouter } from 'vue-router'
-import axiosClient from '../api/axiosClient'
 
+const router = useRouter()
 
 const form = reactive({
   email: '',
   password: '',
   remember: false
 })
-
-const router = useRouter()
 
 const isLoading = ref(false)
 const requires2FA = ref(false)
@@ -139,9 +115,15 @@ const getSafeRedirect = () => {
     : '/dashboard'
 }
 
+const saveAuthSession = (payload) => {
+  const { accessToken, fullName, email, systemRoles, id } = payload
+  localStorage.setItem('accessToken', accessToken)
+  localStorage.setItem('user', JSON.stringify({ id, fullName, email, systemRoles }))
+}
+
 const handleLogin = async () => {
   if (!form.email || !form.password) {
-    ElMessage.warning('Vui lòng nhập đầy đủ email và mật khẩu')
+    ElMessage.warning('Vui long nhap day du email va mat khau')
     return
   }
 
@@ -154,24 +136,15 @@ const handleLogin = async () => {
 
     if (response.data.requires2FA) {
       requires2FA.value = true
-      ElMessage.success('Tài khoản được bảo vệ. Vui lòng kiểm tra email để lấy mã OTP.')
+      ElMessage.success('Tai khoan yeu cau OTP. Vui long kiem tra email.')
       return
     }
 
-    const { accessToken, fullName, email, systemRoles, id } = response.data.data
-    
-    // Store in localStorage
-    localStorage.setItem('accessToken', accessToken)
-    localStorage.setItem('user', JSON.stringify({ id, fullName, email, systemRoles }))
-    
-    ElMessage.success('Đăng nhập thành công!')
-    
-    // Check if there's a redirect query param
+    saveAuthSession(response.data.data)
+    ElMessage.success('Dang nhap thanh cong')
     router.push(getSafeRedirect())
   } catch (error) {
-    console.error('Login error:', error)
-    let errorMsg = error.response?.data?.message || 'Email hoặc mật khẩu không chính xác'
-    ElMessage.error(errorMsg)
+    ElMessage.error(error.response?.data?.message || 'Email hoac mat khau khong chinh xac')
   } finally {
     isLoading.value = false
   }
@@ -179,10 +152,10 @@ const handleLogin = async () => {
 
 const handleLogin2FA = async () => {
   if (!otpCode.value) {
-    ElMessage.warning('Vui lòng nhập mã OTP')
+    ElMessage.warning('Vui long nhap ma OTP')
     return
   }
-  
+
   isLoading.value = true
   try {
     const response = await axiosClient.post('/auth/login-2fa', {
@@ -191,47 +164,34 @@ const handleLogin2FA = async () => {
       otpCode: otpCode.value
     })
 
-    const { accessToken, fullName, email, systemRoles, id } = response.data.data
-    
-    localStorage.setItem('accessToken', accessToken)
-    localStorage.setItem('user', JSON.stringify({ id, fullName, email, systemRoles }))
-    
-    ElMessage.success('Đăng nhập thành công!')
-    
+    saveAuthSession(response.data.data)
+    ElMessage.success('Dang nhap thanh cong')
     router.push(getSafeRedirect())
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || 'OTP không hợp lệ')
+    ElMessage.error(error.response?.data?.message || 'OTP khong hop le')
   } finally {
     isLoading.value = false
   }
 }
 
 const handleGoogleLogin = async (response) => {
-  console.log('Google Response:', response) // Debug log 
+  const token = response?.access_token || response?.credential
+  if (!token) {
+    ElMessage.error('Khong nhan duoc token tu Google')
+    return
+  }
+
   isLoading.value = true
   try {
-    const token = response.access_token || response.credential
-    if (!token) {
-      ElMessage.error('Không nhận được token từ Google. Vui lòng thử lại.')
-      isLoading.value = false
-      return
-    }
     const res = await axiosClient.post('/auth/google-login', {
       Credential: token
     })
-    
-    const { accessToken, fullName, email, systemRoles, id } = res.data.data
-    
-    localStorage.setItem('accessToken', accessToken)
-    localStorage.setItem('user', JSON.stringify({ id, fullName, email, systemRoles }))
-    
-    ElMessage.success('Đăng nhập bằng Google thành công!')
-    
+
+    saveAuthSession(res.data.data)
+    ElMessage.success('Dang nhap bang Google thanh cong')
     router.push(getSafeRedirect())
   } catch (error) {
-    console.error('Google login error:', error)
-    const errorMsg = error.response?.data?.message || 'Không thể đăng nhập bằng Google'
-    ElMessage.error(errorMsg)
+    ElMessage.error(error.response?.data?.message || 'Khong the dang nhap bang Google')
   } finally {
     isLoading.value = false
   }
@@ -239,29 +199,9 @@ const handleGoogleLogin = async (response) => {
 
 const handleGitHubLogin = () => {
   const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID || 'Ov23liYQdySKrDme697t'
-  const redirectUri = window.location.origin + '/auth/github/callback'
+  const redirectUri = `${window.location.origin}/auth/github/callback`
   const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user:email`
-  
   window.location.href = githubAuthUrl
-}
-
-const handleDevLogin = async () => {
-  isLoading.value = true
-  try {
-    const response = await axiosClient.post('/auth/dev-login')
-    const { accessToken, fullName, email, systemRoles, id } = response.data.data
-    
-    localStorage.setItem('accessToken', accessToken)
-    localStorage.setItem('user', JSON.stringify({ id, fullName, email, systemRoles }))
-    
-    ElMessage.success('Dev Login thành công!')
-    router.push(getSafeRedirect())
-  } catch (error) {
-    console.error('Dev login error:', error)
-    ElMessage.error(error.response?.data?.message || 'Dev login thất bại')
-  } finally {
-    isLoading.value = false
-  }
 }
 </script>
 
@@ -270,49 +210,76 @@ const handleDevLogin = async () => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #f8fafc;
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 26%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
 }
 
 .auth-navbar {
-  height: 80px;
+  min-height: 80px;
   display: flex;
   align-items: center;
-  background: transparent;
 }
 
 .container {
-  max-width: 1440px;
-  width: 100%;
+  width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 0 24px;
+}
+
+.nav-content,
+.nav-actions,
+.social-login {
+  display: flex;
+  align-items: center;
 }
 
 .nav-content {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
+  gap: 24px;
 }
 
-/* Logo Styles */
+.nav-actions,
+.social-login {
+  gap: 12px;
+}
+
 .logo {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 800;
-  font-size: 24px;
-  color: #1a1a1a;
+  color: inherit;
   text-decoration: none;
 }
 
 .custom-logo {
-  height: 48px;
-  width: auto;
-  object-fit: contain;
+  height: 56px;
 }
 
-.nav-actions {
-  display: flex;
-  gap: 16px;
+.logo-text {
+  margin-left: -8px;
+  font-size: 24px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.nav-link,
+.nav-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.nav-link {
+  padding: 10px 14px;
+  color: #1f2937;
+}
+
+.nav-primary {
+  padding: 10px 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%);
 }
 
 .auth-container {
@@ -320,210 +287,122 @@ const handleDevLogin = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  padding: 32px 16px 48px;
 }
 
 .auth-card {
-  background: white;
-  width: 100%;
-  max-width: 440px;
-  padding: 48px 40px;
-  border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.02);
+  width: min(100%, 520px);
+  padding: 32px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
 }
 
 .auth-title {
-  font-size: 28px;
-  font-weight: 700;
+  margin: 0;
+  font-size: 32px;
   color: #0f172a;
-  text-align: center;
-  margin-bottom: 12px;
 }
 
 .auth-subtitle {
+  margin: 10px 0 0;
   color: #64748b;
-  text-align: center;
-  font-size: 14px;
-  margin-bottom: 40px;
+  line-height: 1.6;
 }
 
-.auth-form {
-  width: 100%;
-}
-
-:deep(.el-form-item__label) {
-  font-weight: 600;
-  color: #334155;
-  padding-bottom: 4px;
-}
-
-.password-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-}
-
-:deep(.password-item .el-form-item__label) {
-  width: 100%;
-}
-
-.forgot-pwd {
-  color: var(--el-color-primary);
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 13px;
+.auth-form,
+.social-shell {
+  margin-top: 24px;
 }
 
 .remember-action {
-  margin-bottom: 24px;
-  margin-top: -10px;
+  margin-bottom: 18px;
 }
 
-/* Beautified button */
 .auth-btn {
   width: 100%;
-  font-weight: 600;
-  border-radius: 12px;
-  height: 48px;
-  font-size: 15px;
-  background: linear-gradient(135deg, #0f4c81, var(--el-color-primary));
-  border: none;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.auth-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 97, 255, 0.3);
-}
-
-.demo-btn {
-  width: 100%;
-  margin-top: 12px;
-  height: 48px;
-  border-radius: 12px;
-  font-weight: 600;
-  border: 1px dashed #cbd5e1;
-  color: #475569;
-}
-
-.demo-btn:hover {
-  background-color: #f1f5f9;
-  border-color: #94a3b8;
-  color: #1e293b;
 }
 
 .divider {
-  display: flex;
-  align-items: center;
+  position: relative;
+  margin: 22px 0 18px;
   text-align: center;
-  margin: 32px 0;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
-.divider::before,
-.divider::after {
+.divider::before {
   content: '';
-  flex: 1;
-  border-bottom: 1px solid #e2e8f0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: #e2e8f0;
+  z-index: 0;
 }
 
 .divider span {
-  padding: 0 16px;
-  color: #94a3b8;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  position: relative;
+  z-index: 1;
+  padding: 0 10px;
+  background: #fff;
 }
 
-.social-login {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 32px;
-}
-
-:deep(.social-btn-wrapper) {
+.social-btn-wrapper,
+.social-btn {
   flex: 1;
-  display: flex;
-}
-
-:deep(.social-btn-wrapper > *) {
-  width: 100%;
-}
-
-@media (max-width: 640px) {
-  .logo-text {
-    display: none;
-  }
-  .auth-card {
-    padding: 32px 24px;
-    border-radius: 12px;
-  }
-  .auth-title {
-    font-size: 24px;
-  }
-  .social-login {
-    flex-direction: column;
-  }
 }
 
 .social-btn {
-  flex: 1;
-  height: 48px;
-  border-radius: 10px;
-  font-weight: 500;
-  font-size: 15px;
-  color: #334155;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.google-btn {
-  background-color: #ffffff;
-  border: 1px solid #60a5fa; /* Viền xanh dương nhạt như ảnh */
-}
-
-.google-btn:hover {
-  background-color: #eff6ff;
-  border-color: #3b82f6;
-  color: #1e3a8a;
-}
-
-.github-btn {
-  background-color: #ffffff;
-  border: 1px solid #cbd5e1; /* Viền xám nhạt như ảnh */
-}
-
-.github-btn:hover {
-  background-color: #f8fafc;
-  border-color: #94a3b8;
-  color: #0f172a;
+  width: 100%;
 }
 
 .social-icon {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
 }
 
 .auth-footer-text {
-  text-align: center;
-  font-size: 14px;
+  margin: 20px 0 0;
   color: #64748b;
+  text-align: center;
 }
 
-.auth-footer-text a {
-  color: var(--el-color-primary);
-  text-decoration: none;
-  font-weight: 600;
+.link-btn {
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
 }
 
 .auth-bottom {
+  padding: 0 0 32px;
   text-align: center;
-  padding: 24px;
-  color: #94a3b8;
-  font-size: 12px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .container {
+    width: min(100% - 24px, 1180px);
+  }
+
+  .nav-content,
+  .nav-actions,
+  .social-login {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .auth-card {
+    padding: 24px;
+  }
 }
 </style>

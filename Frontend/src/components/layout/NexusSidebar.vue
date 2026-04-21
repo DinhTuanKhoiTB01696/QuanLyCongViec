@@ -106,7 +106,13 @@
       <ul class="nav-menu">
         <template v-for="project in projectTree" :key="project.id">
           <li class="nav-item">
-            <div class="nav-link proj-folder" :class="{ active: currentProjectId === project.id }" @click="toggleProject(project.id)">
+            <div
+              class="nav-link proj-folder"
+              :class="{ active: currentProjectId === project.id }"
+              @click="toggleProject(project.id)"
+              @mouseenter="prefetchProject(project.id)"
+              @focusin="prefetchProject(project.id)"
+            >
               <span class="proj-icon">{{ projectIcon(project) }}</span>
               <span class="truncate">{{ project.name }}</span>
               <i class="fa-solid ms-auto" :class="project.expanded ? 'fa-chevron-down' : 'fa-chevron-right'" style="font-size: 10px;"></i>
@@ -114,7 +120,7 @@
           </li>
 
           <li v-for="child in project.children" v-show="project.expanded" :key="child.id" class="nav-item sub-item">
-            <router-link :to="child.route" class="nav-link" active-class="active">
+            <router-link :to="child.route" class="nav-link" active-class="active" @mouseenter="prefetchProject(project.id)" @focusin="prefetchProject(project.id)">
               <i :class="childIcon(child.key)"></i>
               <span>{{ child.label }}</span>
             </router-link>
@@ -133,8 +139,9 @@
 </template>
 
 <script setup>
-import { computed, ref, defineProps, defineEmits, watch, onMounted } from 'vue'
+import { computed, ref, defineProps, defineEmits, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { useSprintStore } from '@/store/useSprintStore'
 import { useProjectStore } from '@/store/useProjectStore'
 
@@ -163,10 +170,13 @@ const favoriteSprints = computed(() => {
 
 const isSpaceRoute = computed(() => route.path.startsWith('/space/'))
 
-watch(currentProjectId, async (newVal) => {
+watch(currentProjectId, async (newVal, oldVal) => {
    if (newVal && newVal !== 'default') {
-      projectStore.expandProject(newVal)
+      if (newVal !== oldVal) {
+        projectStore.expandProject(newVal)
+      }
       localStorage.setItem('currentProjectId', newVal)
+      localStorage.setItem('lastProjectId', newVal)
       sprintStore.fetchSprints(newVal)
       await projectStore.fetchProjectDetails(newVal)
    }
@@ -183,6 +193,12 @@ const toggleProject = (projectId) => {
   projectStore.toggleProject(projectId)
 }
 
+const prefetchProject = (projectId) => {
+  if (!projectId || projectId === 'default') return
+  projectStore.prefetchProjectBundle(projectId).catch(() => {})
+  sprintStore.fetchSprints(projectId).catch(() => {})
+}
+
 const childIcon = (key) => ({
   'work-items': 'fa-solid fa-layer-group',
   'cycles': 'fa-solid fa-arrows-spin',
@@ -193,8 +209,31 @@ const childIcon = (key) => ({
 
 const projectIcon = (project) => project.icon || project.name?.charAt(0)?.toUpperCase() || 'P'
 
-const triggerCreateTask = () => {
-    window.dispatchEvent(new CustomEvent('global-create-task'))
+const triggerCreateTask = async () => {
+  const projects = projectStore.allProjects.length
+    ? projectStore.allProjects
+    : await projectStore.fetchAllProjects()
+
+  if (!projects.length) {
+    ElMessage.warning('Bạn cần tạo project trước khi tạo work item.')
+    await router.push('/spaces')
+    return
+  }
+
+  const preferredProjectId = projects.some(project => project.id === currentProjectId.value)
+    ? currentProjectId.value
+    : projects[0].id
+
+  if (route.path !== `/space/${preferredProjectId}`) {
+    await router.push(`/space/${preferredProjectId}`)
+    await nextTick()
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('global-create-task'))
+    }, 120)
+    return
+  }
+
+  window.dispatchEvent(new CustomEvent('global-create-task'))
 }
 </script>
 

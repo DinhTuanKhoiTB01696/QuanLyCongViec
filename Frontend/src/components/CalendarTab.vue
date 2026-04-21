@@ -99,7 +99,7 @@ const getTasksForDay = (date) => {
   })
 }
 
-const dayKey = (date) => startOfDay(date).toISOString().slice(0, 10)
+const dayKey = (date) => formatDateOnly(date)
 
 const visibleTasksForDay = (date) => {
   const tasks = getTasksForDay(date)
@@ -142,8 +142,8 @@ const isOverdueTask = (task) => {
 
 const requestCreateTask = (date) => {
   emit('create-task', {
-    plannedStartDate: startOfDay(date).toISOString(),
-    dueDate: endOfDay(date).toISOString()
+    plannedStartDate: formatDateOnly(date),
+    dueDate: formatDateOnly(date)
   })
 }
 
@@ -171,15 +171,32 @@ const hideTooltip = () => {
 }
 
 function startOfDay(value) {
-  const date = new Date(value)
+  const date = parseCalendarDate(value)
   date.setHours(0, 0, 0, 0)
   return date
 }
 
 function endOfDay(value) {
-  const date = new Date(value)
+  const date = parseCalendarDate(value)
   date.setHours(23, 59, 59, 999)
   return date
+}
+
+function parseCalendarDate(value) {
+  if (value instanceof Date) return new Date(value)
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+  return new Date(value)
+}
+
+function formatDateOnly(value) {
+  const date = startOfDay(value)
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 </script>
 

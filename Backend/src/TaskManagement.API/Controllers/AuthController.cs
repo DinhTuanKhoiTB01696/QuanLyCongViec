@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using TaskManagement.Application.DTOs.Auth;
 using TaskManagement.Application.Interfaces;
-using System.Security.Claims;
+using TaskManagement.Infrastructure.Data;
 
 namespace TaskManagement.API.Controllers
 {
@@ -12,30 +14,56 @@ namespace TaskManagement.API.Controllers
         private readonly IAuthService _authService;
         private readonly IOtpService _otpService;
         private readonly IEmailService _emailService;
+        private readonly ApplicationDbContext _context;
 
-        public AuthController(IAuthService authService, IOtpService otpService, IEmailService emailService)
+        public AuthController(
+            IAuthService authService,
+            IOtpService otpService,
+            IEmailService emailService,
+            ApplicationDbContext context)
         {
             _authService = authService;
             _otpService = otpService;
             _emailService = emailService;
+            _context = context;
         }
 
-        /// <summary>
-        /// Gửi mã OTP 6 ký tự (chữ+số) đến email người dùng
-        /// </summary>
         [HttpPost("send-otp")]
         public async Task<IActionResult> SendOtp([FromBody] SendOtpRequestDto request)
         {
             try
             {
-                // Tạo mã OTP ngẫu nhiên 6 ký tự
+                var email = request.Email?.Trim();
+                if (string.IsNullOrWhiteSpace(email))
+                {
+                    return BadRequest(new { statusCode = 400, message = "Email là bắt buộc." });
+                }
+
+                var purpose = (request.Purpose ?? "register").Trim().ToLowerInvariant();
+                var userExists = await _context.Users.AnyAsync(u => u.Email == email && !u.IsDeleted);
+
+                if (purpose == "register")
+                {
+                    if (userExists)
+                    {
+                        return Conflict(new { statusCode = 409, message = "Email đã tồn tại trong hệ thống." });
+                    }
+                }
+                else if (purpose == "login" || purpose == "reset" || purpose == "forgot-password")
+                {
+                    if (!userExists)
+                    {
+                        return NotFound(new { statusCode = 404, message = "Email không tồn tại trong hệ thống." });
+                    }
+                }
+                else if (purpose != "invite")
+                {
+                    return BadRequest(new { statusCode = 400, message = "Mục đích gửi OTP không hợp lệ." });
+                }
+
                 var otpCode = _otpService.GenerateOtp();
-
-                // Lưu OTP vào cache (hết hạn sau 5 phút)
-                _otpService.StoreOtp(request.Email, otpCode);
-
-                // Gửi email chứa OTP (hiện tại đang in ra Console, bỏ comment trong EmailService để gửi thật)
-                await _emailService.SendOtpEmailAsync(request.Email, otpCode);
+                _otpService.StoreOtp(email, otpCode);
+                await _emailService.SendOtpEmailAsync(email, otpCode);
 
                 return Ok(new { statusCode = 200, message = "Đã gửi mã OTP đến email của bạn." });
             }
@@ -45,9 +73,6 @@ namespace TaskManagement.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Xác thực mã OTP mà người dùng nhập vào
-        /// </summary>
         [HttpPost("verify-otp")]
         public IActionResult VerifyOtp([FromBody] VerifyOtpRequestDto request)
         {
@@ -58,7 +83,6 @@ namespace TaskManagement.API.Controllers
                 return BadRequest(new { statusCode = 400, message = "Mã OTP không hợp lệ hoặc đã hết hạn.", verified = false });
             }
 
-            // OTP hợp lệ → tạo lại OTP mới và lưu lại để dùng khi register (xác minh lần cuối)
             var newOtp = _otpService.GenerateOtp();
             _otpService.StoreOtp(request.Email, newOtp);
 
@@ -77,7 +101,6 @@ namespace TaskManagement.API.Controllers
                     return Ok(new { statusCode = 200, message = "Requires 2FA", requires2FA = true });
                 }
 
-                // Set Refresh Token as HttpOnly Cookie
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
@@ -160,12 +183,11 @@ namespace TaskManagement.API.Controllers
             {
                 var (response, refreshToken) = await _authService.GoogleLoginAsync(request);
 
-                // Set Refresh Token as HttpOnly Cookie
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
                     Secure = Request.IsHttps,
-                    SameSite = SameSiteMode.Lax, // Changed to support Google OAuth
+                    SameSite = SameSiteMode.Lax,
                     Expires = DateTime.UtcNow.AddDays(7)
                 };
                 Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
@@ -174,8 +196,7 @@ namespace TaskManagement.API.Controllers
             }
             catch (Exception ex)
             {
-                // Log exception server-side for easier debugging and return clearer message to client
-                Console.WriteLine("GoogleLogin failure: " + ex.ToString());
+                Console.WriteLine("GoogleLogin failure: " + ex);
                 return BadRequest(new { statusCode = 400, message = "Không thể xác thực với Google: " + ex.Message });
             }
         }
@@ -187,7 +208,6 @@ namespace TaskManagement.API.Controllers
             {
                 var (response, refreshToken) = await _authService.GitHubLoginAsync(request);
 
-                // Set Refresh Token as HttpOnly Cookie
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
@@ -241,14 +261,13 @@ namespace TaskManagement.API.Controllers
                 }
 
                 var accessToken = authHeader.Substring("Bearer ".Length).Trim();
-
                 var (newAccessToken, newRefreshToken) = await _authService.RefreshTokenAsync(accessToken, refreshToken);
 
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
                     Secure = Request.IsHttps,
-                    SameSite = SameSiteMode.Lax, // Changed to support Google OAuth
+                    SameSite = SameSiteMode.Lax,
                     Expires = DateTime.UtcNow.AddDays(7)
                 };
                 Response.Cookies.Append("refreshToken", newRefreshToken, cookieOptions);
@@ -261,28 +280,24 @@ namespace TaskManagement.API.Controllers
             }
         }
 
-        /// <summary>
-        /// DEV ONLY: Auto-login without OTP/OAuth. Creates a test user if needed and returns JWT token.
-        /// </summary>
         [HttpPost("dev-login")]
-        public async Task<IActionResult> DevLogin([FromServices] TaskManagement.Application.Interfaces.IJwtService jwtService,
-            [FromServices] TaskManagement.Infrastructure.Data.ApplicationDbContext context,
+        public async Task<IActionResult> DevLogin(
+            [FromServices] IJwtService jwtService,
+            [FromServices] ApplicationDbContext context,
             [FromServices] IWebHostEnvironment env)
         {
             if (!env.IsDevelopment())
+            {
                 return NotFound();
+            }
 
             try
             {
                 var email = "dev@sprinta.local";
-                var user = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
-                    .FirstOrDefaultAsync(
-                        Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
-                            .ThenInclude(
-                                Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
-                                    .Include(context.Users, u => u.UserRoles),
-                                ur => ur.Role),
-                        u => u.Email == email && !u.IsDeleted);
+                var user = await context.Users
+                    .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                    .FirstOrDefaultAsync(u => u.Email == email && !u.IsDeleted);
 
                 if (user == null)
                 {
@@ -298,16 +313,14 @@ namespace TaskManagement.API.Controllers
                     };
                     context.Users.Add(user);
 
-                    // Ensure Admin role exists
-                    var adminRole = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
-                        .FirstOrDefaultAsync(context.Roles, r => r.Name == "Admin");
+                    var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
                     if (adminRole == null)
                     {
-                        adminRole = new TaskManagement.Domain.Entities.Role 
-                        { 
-                            Id = Guid.NewGuid(), 
-                            Name = "Admin", 
-                            Description = "System Administrator" 
+                        adminRole = new TaskManagement.Domain.Entities.Role
+                        {
+                            Id = Guid.NewGuid(),
+                            Name = "Admin",
+                            Description = "System Administrator"
                         };
                         context.Roles.Add(adminRole);
                     }
@@ -324,13 +337,10 @@ namespace TaskManagement.API.Controllers
                     await context.SaveChangesAsync();
                 }
 
-                // ─── Auto-enroll dev user into ALL projects & workspaces ───
-                var allProjects = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
-                    .ToListAsync(context.Projects);
+                var allProjects = await context.Projects.ToListAsync();
                 foreach (var proj in allProjects)
                 {
-                    var isMember = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
-                        .AnyAsync(context.ProjectMembers, pm => pm.ProjectId == proj.Id && pm.UserId == user.Id);
+                    var isMember = await context.ProjectMembers.AnyAsync(pm => pm.ProjectId == proj.Id && pm.UserId == user.Id);
                     if (!isMember)
                     {
                         context.ProjectMembers.Add(new TaskManagement.Domain.Entities.ProjectMember
@@ -344,12 +354,10 @@ namespace TaskManagement.API.Controllers
                     }
                 }
 
-                var allWorkspaces = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
-                    .ToListAsync(context.Workspaces);
+                var allWorkspaces = await context.Workspaces.ToListAsync();
                 foreach (var ws in allWorkspaces)
                 {
-                    var isWsMember = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
-                        .AnyAsync(context.WorkspaceMembers, wm => wm.WorkspaceId == ws.Id && wm.UserId == user.Id);
+                    var isWsMember = await context.WorkspaceMembers.AnyAsync(wm => wm.WorkspaceId == ws.Id && wm.UserId == user.Id);
                     if (!isWsMember)
                     {
                         context.WorkspaceMembers.Add(new TaskManagement.Domain.Entities.WorkspaceMember
@@ -364,7 +372,6 @@ namespace TaskManagement.API.Controllers
                 }
 
                 await context.SaveChangesAsync();
-                // ─── End auto-enroll ───
 
                 var roles = user.UserRoles?
                     .Where(ur => ur.Role != null)
@@ -375,6 +382,7 @@ namespace TaskManagement.API.Controllers
                 {
                     roles.Add("Admin");
                 }
+
                 var accessToken = jwtService.GenerateAccessToken(user, roles);
                 var refreshToken = jwtService.GenerateRefreshToken();
 
@@ -443,4 +451,3 @@ namespace TaskManagement.API.Controllers
         }
     }
 }
-

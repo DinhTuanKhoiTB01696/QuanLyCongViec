@@ -72,6 +72,7 @@ const notifications = ref([])
 const onlyUnread = ref(false)
 const loading = ref(false)
 const connection = ref(null)
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5136/api'
 
 const unreadCount = computed(() => notifications.value.filter(item => !item.isRead).length)
 const filteredNotifications = computed(() => {
@@ -151,8 +152,13 @@ const initSignalR = () => {
   const token = localStorage.getItem('accessToken') || localStorage.getItem('token')
   if (!token) return
 
+  const hubUrl = new URL(apiBaseUrl, window.location.origin)
+  hubUrl.pathname = '/notification-hub'
+  hubUrl.search = ''
+  hubUrl.hash = ''
+
   connection.value = new signalR.HubConnectionBuilder()
-    .withUrl('http://localhost:5136/notification-hub', {
+    .withUrl(hubUrl.toString(), {
       accessTokenFactory: () => token
     })
     .withAutomaticReconnect()

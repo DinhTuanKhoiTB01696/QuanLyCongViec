@@ -34,14 +34,31 @@ const fetchOptions = async () => {
   if (cyclesRes.status === 'fulfilled') cycles.value = cyclesRes.value.data?.data || []
 }
 
+const parseLocalDate = (value) => {
+  if (!value) return null
+  if (value instanceof Date) return new Date(value)
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+    const [year, month, day] = value.slice(0, 10).split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
 const formatDate = (dateString) => {
   if (!dateString) return '-'
-  return new Date(dateString).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const date = parseLocalDate(dateString)
+  return date ? date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'
 }
 
 const toInputDate = (value) => {
   if (!value) return ''
-  const date = new Date(value)
+  const date = parseLocalDate(value)
+  if (!date) return ''
   if (Number.isNaN(date.getTime())) return ''
   const year = date.getFullYear()
   const month = `${date.getMonth() + 1}`.padStart(2, '0')
@@ -49,7 +66,7 @@ const toInputDate = (value) => {
   return `${year}-${month}-${day}`
 }
 
-const toApiDate = (value) => (value ? `${value}T00:00:00` : null)
+const toApiDate = (value) => (value ? value : null)
 
 const getPrioIcon = (priority) => {
   if (priority === 1) return { class: 'fa-solid fa-angles-up text-red', label: 'Urgent' }

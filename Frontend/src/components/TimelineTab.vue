@@ -9,47 +9,50 @@ const props = defineProps({
   tasks: { type: Array, default: null }
 })
 
-const emit = defineEmits(['open-task'])
+const emit = defineEmits(['open-task', 'create-task'])
 
 const taskStore = useWorkTaskStore()
 const sourceTasks = computed(() => props.tasks || taskStore.tasks)
 const loading = computed(() => taskStore.loading)
-
-const today = new Date()
+const today = ref(new Date())
 const viewMode = ref('Week')
 const showOptions = ref(false)
 const createMode = ref(false)
 const scrollContainer = ref(null)
 const dragState = ref(null)
 const clickedBucket = ref(null)
+const timelineAnchorDate = ref(new Date())
 const expanded = ref({
-  showOnlyScheduled: true,
+  showOnlyScheduled: false,
   hideDone: false,
-  onlyCurrentWindow: true
+  onlyCurrentWindow: false
 })
 
 const viewModes = [
-  { key: 'Week', unit: 'day', cellWidth: 40 },
-  { key: 'Month', unit: 'week', cellWidth: 68 },
-  { key: 'Quarter', unit: 'month', cellWidth: 88 }
+  { key: 'Week', unit: 'day', cellWidth: 84 },
+  { key: 'Month', unit: 'day', cellWidth: 42 },
+  { key: 'Quarter', unit: 'week', cellWidth: 92 }
 ]
 
 const activeView = computed(() => viewModes.find(mode => mode.key === viewMode.value) || viewModes[0])
+const preferenceKey = computed(() => `timeline:display:${props.projectId || 'default'}`)
 
 const timelineRange = computed(() => {
-  const start = startOfDay(today)
-  const end = startOfDay(today)
+  const start = startOfDay(timelineAnchorDate.value)
+  const end = startOfDay(timelineAnchorDate.value)
 
   if (viewMode.value === 'Week') {
-    start.setDate(start.getDate() - 7)
-    end.setDate(end.getDate() + 21)
+    const currentWeekStart = startOfWeek(timelineAnchorDate.value)
+    start.setTime(currentWeekStart.getTime())
+    end.setTime(currentWeekStart.getTime())
+    end.setDate(end.getDate() + 13)
   } else if (viewMode.value === 'Month') {
     start.setDate(1)
-    start.setMonth(start.getMonth() - 1)
-    end.setMonth(end.getMonth() + 2, 0)
+    end.setFullYear(start.getFullYear(), start.getMonth() + 1, 0)
   } else {
-    start.setMonth(start.getMonth() - 1, 1)
-    end.setMonth(end.getMonth() + 4, 0)
+    const quarterStartMonth = Math.floor(start.getMonth() / 3) * 3
+    start.setMonth(quarterStartMonth, 1)
+    end.setFullYear(start.getFullYear(), quarterStartMonth + 3, 0)
   }
 
   return { start, end: endOfDay(end) }
@@ -106,7 +109,7 @@ const bucketProgress = computed(() => {
 })
 
 const todayOffset = computed(() => {
-  const todayBucketIndex = timeBuckets.value.findIndex(bucket => containsDay(bucket.start, bucket.end, today))
+  const todayBucketIndex = timeBuckets.value.findIndex(bucket => containsDay(bucket.start, bucket.end, today.value))
   return todayBucketIndex < 0 ? 0 : (todayBucketIndex * cellWidth.value) + (cellWidth.value / 2)
 })
 
@@ -117,8 +120,12 @@ const fetchTasks = () => {
 }
 
 const goToToday = () => {
+  today.value = new Date()
+  timelineAnchorDate.value = new Date()
   if (!scrollContainer.value) return
-  scrollContainer.value.scrollLeft = Math.max(0, todayOffset.value - 240)
+  requestAnimationFrame(() => {
+    scrollContainer.value.scrollLeft = Math.max(0, todayOffset.value - (scrollContainer.value.clientWidth * 0.45))
+  })
 }
 
 const taskDurationLabel = (task) => {
@@ -171,21 +178,20 @@ const getTaskIcon = (task) => {
 
 const requestQuickAdd = (bucket = null) => {
   clickedBucket.value = bucket
-  createMode.value = false
-  window.dispatchEvent(
-    new CustomEvent('global-create-task', {
-      detail: bucket
-        ? {
-            plannedStartDate: bucket.start.toISOString(),
-            dueDate: bucket.end.toISOString()
-          }
-        : undefined
-    })
-  )
+  emit('create-task', bucket
+    ? {
+        plannedStartDate: formatDateOnly(bucket.start),
+        dueDate: formatDateOnly(bucket.end)
+      }
+    : {
+        plannedStartDate: null,
+        dueDate: null
+      })
 }
 
 const toggleCreateMode = () => {
   createMode.value = !createMode.value
+  clickedBucket.value = null
   if (createMode.value) {
     ElMessage.info('Create mode dang bat. Click vao timeline de them work item nhanh.')
   }
@@ -231,7 +237,6 @@ const onMouseUp = async (event) => {
   document.removeEventListener('mousemove', onMouseMove)
   document.removeEventListener('mouseup', onMouseUp)
 
-  const daysStep = viewMode.value === 'Week' ? 1 : viewMode.value === 'Month' ? 7 : 30
   const stepsDiff = Math.round((event.clientX - current.startX) / cellWidth.value)
 
   if (stepsDiff === 0) return
@@ -239,16 +244,16 @@ const onMouseUp = async (event) => {
   const task = current.task
   const originalStart = task.plannedStartDate
   const originalEnd = task.dueDate || task.plannedEndDate
-  const startDate = task.plannedStartDate ? new Date(task.plannedStartDate) : task.createdAt ? new Date(task.createdAt) : startOfDay(today)
-  const endDate = (task.plannedEndDate || task.dueDate) ? new Date(task.plannedEndDate || task.dueDate) : new Date(startDate)
+  const startDate = parseTaskDate(task.plannedStartDate) || parseTaskDate(task.createdAt) || startOfDay(today.value)
+  const endDate = parseTaskDate(task.plannedEndDate || task.dueDate) || new Date(startDate)
 
   if (current.type === 'move') {
-    startDate.setDate(startDate.getDate() + (stepsDiff * daysStep))
-    endDate.setDate(endDate.getDate() + (stepsDiff * daysStep))
+    moveDateByView(startDate, stepsDiff)
+    moveDateByView(endDate, stepsDiff)
   } else if (current.type === 'resize-left') {
-    startDate.setDate(startDate.getDate() + (stepsDiff * daysStep))
+    moveDateByView(startDate, stepsDiff)
   } else if (current.type === 'resize-right') {
-    endDate.setDate(endDate.getDate() + (stepsDiff * daysStep))
+    moveDateByView(endDate, stepsDiff)
   }
 
   if (startDate > endDate) {
@@ -256,8 +261,8 @@ const onMouseUp = async (event) => {
     return
   }
 
-  task.plannedStartDate = startDate.toISOString()
-  task.dueDate = endDate.toISOString()
+  task.plannedStartDate = formatDateOnly(startDate)
+  task.dueDate = formatDateOnly(endDate)
 
   try {
     await axiosClient.put(`/projects/${task.projectId}/WorkTasks/${task.id}`, {
@@ -272,10 +277,51 @@ const onMouseUp = async (event) => {
   }
 }
 
+const shiftTimeline = (direction) => {
+  const next = new Date(timelineAnchorDate.value)
+  if (viewMode.value === 'Week') {
+    next.setDate(next.getDate() + (direction * 7))
+  } else if (viewMode.value === 'Month') {
+    next.setMonth(next.getMonth() + direction)
+  } else {
+    next.setMonth(next.getMonth() + (direction * 3))
+  }
+  timelineAnchorDate.value = next
+}
+
 watch(() => props.projectId, fetchTasks, { immediate: true })
+watch(() => props.projectId, () => {
+  try {
+    const saved = localStorage.getItem(preferenceKey.value)
+    if (!saved) {
+      expanded.value = {
+        showOnlyScheduled: false,
+        hideDone: false,
+        onlyCurrentWindow: false
+      }
+      return
+    }
+
+    const parsed = JSON.parse(saved)
+    expanded.value = {
+      showOnlyScheduled: Boolean(parsed.showOnlyScheduled),
+      hideDone: Boolean(parsed.hideDone),
+      onlyCurrentWindow: Boolean(parsed.onlyCurrentWindow)
+    }
+  } catch {
+    expanded.value = {
+      showOnlyScheduled: false,
+      hideDone: false,
+      onlyCurrentWindow: false
+    }
+  }
+}, { immediate: true })
 watch(viewMode, () => {
   window.setTimeout(goToToday, 60)
 })
+watch(expanded, (value) => {
+  localStorage.setItem(preferenceKey.value, JSON.stringify(value))
+}, { deep: true })
 
 onMounted(() => {
   window.setTimeout(goToToday, 120)
@@ -304,10 +350,11 @@ function buildBuckets(start, end, unit) {
       groupLabel = bucketStart.toLocaleString('en-US', { month: 'short', year: 'numeric' })
       cursor.setDate(cursor.getDate() + 1)
     } else if (unit === 'week') {
-      bucketEnd = endOfDay(addDays(bucketStart, 6))
-      label = `W${getWeekNumber(bucketStart)}`
-      subLabel = `${bucketStart.getDate()}-${bucketEnd.getDate()}`
-      groupLabel = bucketStart.toLocaleString('en-US', { month: 'short', year: 'numeric' })
+      const normalizedWeekStart = startOfWeek(bucketStart)
+      bucketEnd = endOfDay(addDays(normalizedWeekStart, 6))
+      label = `W${getWeekNumber(normalizedWeekStart)}`
+      subLabel = `${normalizedWeekStart.getDate()}-${bucketEnd.getDate()}`
+      groupLabel = normalizedWeekStart.toLocaleString('en-US', { month: 'short', year: 'numeric' })
       cursor.setDate(cursor.getDate() + 7)
     } else {
       bucketEnd = endOfDay(new Date(bucketStart.getFullYear(), bucketStart.getMonth() + 1, 0))
@@ -330,8 +377,8 @@ function buildBuckets(start, end, unit) {
 }
 
 function getTaskWindow(task) {
-  let start = task.plannedStartDate ? new Date(task.plannedStartDate) : null
-  let end = (task.plannedEndDate || task.dueDate) ? new Date(task.plannedEndDate || task.dueDate) : null
+  let start = parseTaskDate(task.plannedStartDate)
+  let end = parseTaskDate(task.plannedEndDate || task.dueDate)
 
   if (!start && !end) {
     return null
@@ -362,6 +409,54 @@ function addDays(value, amount) {
   const date = new Date(value)
   date.setDate(date.getDate() + amount)
   return date
+}
+
+function startOfWeek(value) {
+  const date = startOfDay(value)
+  const day = (date.getDay() + 6) % 7
+  date.setDate(date.getDate() - day)
+  return date
+}
+
+function parseTaskDate(value) {
+  if (!value) return null
+  if (value instanceof Date) return new Date(value)
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+    const dateOnly = value.slice(0, 10)
+    const [year, month, day] = dateOnly.split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function formatDateOnly(value) {
+  const parsed = parseTaskDate(value)
+  const date = startOfDay(parsed || value)
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function moveDateByView(date, steps) {
+  if (viewMode.value === 'Week') {
+    date.setDate(date.getDate() + steps)
+    return
+  }
+
+  if (viewMode.value === 'Month') {
+    date.setDate(date.getDate() + steps)
+    return
+  }
+
+  date.setDate(date.getDate() + (steps * 7))
 }
 
 function diffInDays(left, right) {
@@ -400,6 +495,10 @@ function getWeekNumber(value) {
             @click="viewMode = mode.key"
           >{{ mode.key }}</button>
         </div>
+        <div class="tl-nav-actions">
+          <button class="tl-btn" type="button" @click="shiftTimeline(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+          <button class="tl-btn" type="button" @click="shiftTimeline(1)"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
       </div>
 
       <div class="tl-header-right">
@@ -417,6 +516,11 @@ function getWeekNumber(value) {
         <button class="tl-btn" type="button" @click="requestQuickAdd()">New Work Item</button>
         <button class="tl-btn" type="button" @click="goToToday">Today</button>
       </div>
+    </div>
+
+    <div v-if="createMode" class="create-mode-banner">
+      <i class="fa-solid fa-wand-magic-sparkles"></i>
+      <span>Click any timeline cell to create a work item with start and due date prefilled.</span>
     </div>
 
     <div class="tl-body">
@@ -448,6 +552,10 @@ function getWeekNumber(value) {
       </div>
 
       <div class="tl-right-panel" ref="scrollContainer">
+        <div v-if="createMode" class="tl-create-banner">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          Click vao o thoi gian trong timeline de tao work item voi ngay bat dau va ket thuc tai vi tri da chon.
+        </div>
         <div class="tl-gantt" :style="{ width: `${totalWidth}px` }">
           <div class="tl-group-row">
             <div
@@ -466,7 +574,7 @@ function getWeekNumber(value) {
               :key="`${bucket.label}-${index}`"
               type="button"
               class="tl-day-cell"
-              :class="{ 'is-today': containsDay(bucket.start, bucket.end, today) }"
+              :class="{ 'is-today': containsDay(bucket.start, bucket.end, today.value), 'create-enabled': createMode, 'bucket-selected': clickedBucket && formatDateOnly(clickedBucket.start) === formatDateOnly(bucket.start) }"
               :style="{ width: `${cellWidth}px` }"
               @click="handleTimelineCanvasClick(bucket)"
             >
@@ -483,7 +591,7 @@ function getWeekNumber(value) {
                 :key="`grid-${index}`"
                 type="button"
                 class="tl-grid-line"
-                :class="{ 'is-today': containsDay(bucket.start, bucket.end, today), 'create-active': createMode }"
+                :class="{ 'is-today': containsDay(bucket.start, bucket.end, today.value), 'create-active': createMode }"
                 :style="{ left: `${index * cellWidth}px`, width: `${cellWidth}px` }"
                 @click="handleTimelineCanvasClick(bucket)"
               ></button>
@@ -525,7 +633,7 @@ function getWeekNumber(value) {
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: calc(100vh - 180px);
+  min-height: calc(100vh - 80px);
   background: #0d0f11;
   color: #e4e4e7;
   overflow: hidden;
@@ -542,13 +650,29 @@ function getWeekNumber(value) {
 .tl-header {
   justify-content: space-between;
   gap: 16px;
-  padding: 12px 20px;
+  padding: 14px 24px;
   border-bottom: 1px solid #1e2025;
+}
+
+.create-mode-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  border-bottom: 1px solid #1e2025;
+  background: linear-gradient(90deg, rgba(14, 165, 233, 0.16), rgba(59, 130, 246, 0.06));
+  color: #bae6fd;
+  font-size: 13px;
 }
 
 .tl-header-left,
 .tl-header-right {
   gap: 12px;
+}
+
+.tl-nav-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .tl-task-count {
@@ -620,20 +744,26 @@ function getWeekNumber(value) {
 .tl-body {
   display: flex;
   flex: 1;
-  overflow: hidden;
+  min-height: 0;
+  overflow: auto;
 }
 
 .tl-left-panel {
-  width: 320px;
-  min-width: 320px;
+  width: 440px;
+  min-width: 440px;
   border-right: 2px solid #1e2025;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  background: #0d0f11;
+  position: sticky;
+  left: 0;
+  z-index: 5;
 }
 
 .tl-left-header {
   display: flex;
-  height: 72px;
+  height: 88px;
   border-bottom: 1px solid #1e2025;
 }
 
@@ -654,7 +784,7 @@ function getWeekNumber(value) {
 }
 
 .tl-col-duration {
-  width: 78px;
+  width: 96px;
   justify-content: center;
   border-left: 1px solid #27272a;
   color: #71717a;
@@ -669,7 +799,7 @@ function getWeekNumber(value) {
 
 .tl-task-row {
   width: 100%;
-  height: 42px;
+  height: 52px;
   display: flex;
   border: 0;
   border-bottom: 1px solid #1e2025;
@@ -692,7 +822,7 @@ function getWeekNumber(value) {
 .task-key {
   color: #71717a;
   font-size: 12px;
-  min-width: 76px;
+  min-width: 86px;
 }
 
 .task-title-text {
@@ -721,12 +851,29 @@ function getWeekNumber(value) {
 
 .tl-right-panel {
   flex: 1;
+  min-height: 0;
   overflow: auto;
 }
 
 .tl-gantt {
   min-height: 100%;
   position: relative;
+  padding-bottom: 24px;
+}
+
+.tl-create-banner {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  margin: 0 0 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #1e2025;
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.12), rgba(37, 99, 235, 0.08));
+  color: #c4e7ff;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .tl-group-row,
@@ -739,13 +886,13 @@ function getWeekNumber(value) {
 
 .tl-group-row {
   top: 0;
-  height: 30px;
+  height: 34px;
   border-bottom: 1px solid #1e2025;
 }
 
 .tl-day-row {
-  top: 30px;
-  height: 42px;
+  top: 34px;
+  height: 48px;
   border-bottom: 1px solid #1e2025;
 }
 
@@ -770,8 +917,16 @@ function getWeekNumber(value) {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 2px;
-  padding: 4px 0;
+  gap: 3px;
+  padding: 6px 4px;
+}
+
+.tl-day-cell.create-enabled:hover {
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.tl-day-cell.bucket-selected {
+  background: rgba(56, 189, 248, 0.18);
 }
 
 .tl-day-cell.is-today {
@@ -779,7 +934,7 @@ function getWeekNumber(value) {
 }
 
 .day-num {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -795,6 +950,7 @@ function getWeekNumber(value) {
 
 .tl-bars-container {
   position: relative;
+  min-height: 100%;
 }
 
 .tl-grid-lines {
@@ -810,11 +966,12 @@ function getWeekNumber(value) {
   border: 0;
   border-right: 1px solid #1e2025;
   background: transparent;
-  cursor: pointer;
+  cursor: default;
 }
 
 .tl-grid-line.create-active:hover {
   background: rgba(56, 189, 248, 0.08);
+  cursor: crosshair;
 }
 
 .tl-grid-line.is-today {
@@ -828,26 +985,27 @@ function getWeekNumber(value) {
   width: 2px;
   background: #3b82f6;
   z-index: 2;
+  box-shadow: 0 0 18px rgba(59, 130, 246, 0.4);
 }
 
 .tl-bar-row {
   position: relative;
-  height: 42px;
+  height: 52px;
   border-bottom: 1px solid #1e2025;
 }
 
 .tl-task-bar {
   position: absolute;
-  top: 8px;
-  height: 26px;
-  border-radius: 6px;
+  top: 11px;
+  height: 30px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
-  padding: 0 10px;
+  padding: 0 12px;
   color: #ffffff;
   cursor: pointer;
   z-index: 3;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
 }
 
 .tl-task-bar:hover {
@@ -869,7 +1027,7 @@ function getWeekNumber(value) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 

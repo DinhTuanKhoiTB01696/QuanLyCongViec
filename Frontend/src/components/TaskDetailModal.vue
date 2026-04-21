@@ -8,7 +8,7 @@
         
         <div class="cm-badge-row">
            <div class="cm-badge">
-             <i class="fa-solid fa-bell" style="color: #F59E0B"></i> CYBWF
+             <i class="fa-solid fa-bell" style="color: #F59E0B"></i> {{ currentProjectBadge }}
            </div>
         </div>
 
@@ -97,8 +97,28 @@
            </el-popover>
 
            <!-- DATES -->
-           <el-date-picker v-model="selectedTask.plannedStartDate" type="date" placeholder="Start date" class="t-btn-date" format="MMM DD" value-format="YYYY-MM-DD" style="width:130px; height:28px" />
-           <el-date-picker v-model="selectedTask.dueDate" type="date" placeholder="Due date" class="t-btn-date" format="MMM DD" value-format="YYYY-MM-DD" style="width:125px; height:28px" />
+           <el-date-picker
+             v-model="selectedTask.plannedStartDate"
+             type="date"
+             placeholder="Start date"
+             class="t-btn-date"
+             format="MMM DD"
+             value-format="YYYY-MM-DD"
+             :disabled-date="disablePastDates"
+             style="width:130px; height:28px"
+             @change="val => handleTaskDateChange('plannedStartDate', val)"
+           />
+           <el-date-picker
+             v-model="selectedTask.dueDate"
+             type="date"
+             placeholder="Due date"
+             class="t-btn-date"
+             format="MMM DD"
+             value-format="YYYY-MM-DD"
+             :disabled-date="disableDueDates"
+             style="width:125px; height:28px"
+             @change="val => handleTaskDateChange('dueDate', val)"
+           />
 
            <!-- CYCLE -->
            <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover" :width="280" @show="cycleSearch = ''">
@@ -144,7 +164,7 @@
            <!-- PARENT -->
            <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover dark" :width="350" @show="parentSearch = ''">
              <template #reference>
-               <div class="t-btn"><i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i> {{ selectedTask?.parentId ? 'Parent selected' : 'Add parent' }}</div>
+               <div class="t-btn"><i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i> {{ getParentId(selectedTask) ? 'Parent selected' : 'Add parent' }}</div>
              </template>
              <div class="popover-content h-[250px] flex flex-col bg-[#1E2025]">
                <div class="p-2 border-b border-gray-700">
@@ -154,13 +174,13 @@
                  </div>
                </div>
                <div class="flex-1 overflow-y-auto no-scrollbar p-2">
-                 <div class="popover-item text-xs text-gray-400 hover:text-white cursor-pointer p-2 rounded hover:bg-gray-700 flex items-center" @click="selectedTask.parentId = null">
+                 <div class="popover-item text-xs text-gray-400 hover:text-white cursor-pointer p-2 rounded hover:bg-gray-700 flex items-center" @click="setTaskParent(selectedTask, null)">
                    <i class="fa-solid fa-ban mr-2"></i> Remove parent
                  </div>
-                 <div class="popover-item text-xs text-gray-300 hover:text-white cursor-pointer p-2 rounded hover:bg-gray-700 flex items-center" v-for="pt in filteredParents" :key="pt.id" @click="selectedTask.parentId = pt.id">
+                 <div class="popover-item text-xs text-gray-300 hover:text-white cursor-pointer p-2 rounded hover:bg-gray-700 flex items-center" v-for="pt in filteredParents" :key="pt.id" @click="setTaskParent(selectedTask, pt.id)">
                    <span class="text-gray-500 mr-3 w-16 truncate font-mono">{{ pt.sequenceId || pt.id.substring(0,8) }}</span>
                    <span class="truncate flex-1">{{ pt.title }}</span>
-                   <i v-if="selectedTask?.parentId === pt.id" class="fa-solid fa-check ml-2 text-blue-500"></i>
+                   <i v-if="getParentId(selectedTask) === pt.id" class="fa-solid fa-check ml-2 text-blue-500"></i>
                  </div>
                </div>
              </div>
@@ -202,6 +222,12 @@
             <!-- Header Title -->
             <div class="sp-breadcrumb">
                {{ selectedTask?.sequenceId || selectedTask?.id.substring(0,8).toUpperCase() }}
+            </div>
+            <div v-if="currentParentId" class="parent-context-banner">
+              <span class="parent-context-label">Parent</span>
+              <button class="parent-context-link" type="button" @click="openParentTask">
+                {{ currentParentLabel }}
+              </button>
             </div>
             
             <h1 class="sp-title" contenteditable @blur="(e) => updateTaskField(selectedTask, 'title', e.target.innerText)">{{ selectedTask?.title }}</h1>
@@ -309,15 +335,82 @@
                </button>
              </div>
              <div v-if="subtasksList.length && showSubtasks" class="subtask-list">
-               <button
+               <div
                  v-for="subtask in subtasksList"
-                :key="subtask.id"
-                class="subtask-item"
-                @click="openTaskDetail(subtask)"
-              >
-                <span class="subtask-seq">{{ subtask.sequenceId || subtask.id?.substring(0, 8) }}</span>
-                <span class="subtask-title">{{ subtask.title }}</span>
-              </button>
+                 :key="subtask.id"
+                 class="subtask-item"
+               >
+                <button class="subtask-open" type="button" @click="openTaskDetail(subtask)">
+                  <span class="subtask-seq">{{ subtask.sequenceId || subtask.id?.substring(0, 8) }}</span>
+                  <span class="subtask-title">{{ subtask.title }}</span>
+                </button>
+                <div class="subtask-controls" @click.stop>
+                  <el-dropdown trigger="click" @command="(cmd) => selectStatus({ name: cmd }, subtask)">
+                    <button class="subtask-chip" type="button">
+                      <i :class="getStatusIcon(subtask.statusName)"></i>
+                      <span>{{ getStatusLabel(subtask.statusName) }}</span>
+                    </button>
+                    <template #dropdown>
+                      <el-dropdown-menu class="dark-dropdown">
+                        <el-dropdown-item v-for="status in projectStatuses" :key="`${subtask.id}-${status.id}`" :command="status.name">
+                          <i :class="getStatusIcon(status.name)" class="mr-2"></i>
+                          {{ status.displayName || status.name }}
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+
+                  <el-dropdown trigger="click" @command="(cmd) => selectPriority(cmd, subtask)">
+                    <button class="subtask-chip" type="button">
+                      <i :class="getPrioIcon(subtask.priority)"></i>
+                      <span>{{ getPrioLabel(subtask.priority) }}</span>
+                    </button>
+                    <template #dropdown>
+                      <el-dropdown-menu class="dark-dropdown">
+                        <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: #ef4444"></i> Urgent</el-dropdown-item>
+                        <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: #f59e0b"></i> High</el-dropdown-item>
+                        <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: #3b82f6"></i> Medium</el-dropdown-item>
+                        <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: #9ca3af"></i> Low</el-dropdown-item>
+                        <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-gray-500"></i> None</el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+
+                  <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="240" @show="assigneeSearch = ''">
+                    <template #reference>
+                      <button class="subtask-chip" type="button">
+                        <i class="fa-regular fa-user"></i>
+                        <span>{{ getAssigneeSummary(subtask) }}</span>
+                      </button>
+                    </template>
+                    <div class="popover-content">
+                      <input v-model="assigneeSearch" type="text" class="popover-search" placeholder="Search members..." />
+                      <div class="popover-list">
+                        <div class="popover-item" v-for="member in filteredMembers" :key="`${subtask.id}-${member.userId}`" @click="toggleInlineTaskAssignee(subtask, member.userId)">
+                          <div class="avatar-xxs bg-gray-600 rounded-full w-5 h-5 flex-center text-white text-xs mr-2">{{ (member.fullName || member.email || 'U').charAt(0).toUpperCase() }}</div>
+                          <span>{{ member.fullName || member.email }}</span>
+                          <i v-if="getAssigneeIds(subtask).includes(member.userId)" class="fa-solid fa-check ms-auto"></i>
+                        </div>
+                      </div>
+                    </div>
+                  </el-popover>
+
+                  <label class="subtask-progress">
+                    <span>Progress</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      :value="getTaskProgressPercent(subtask)"
+                      :disabled="!canEditTaskProgress(subtask)"
+                      @click.stop
+                      @change="event => updateTaskProgress(subtask, event.target.value)"
+                    />
+                    <span>%</span>
+                  </label>
+                </div>
+              </div>
             </div>
 
             <h3 class="sp-section-title">Properties</h3>
@@ -344,6 +437,27 @@
                         </div>
                       </div>
                     </el-popover>
+                  </div>
+                </div>
+                <div class="p-row">
+                  <div class="p-label"><i class="fa-solid fa-percent"></i> Progress</div>
+                  <div class="p-val">
+                    <div class="task-progress-editor">
+                      <input
+                        class="task-progress-input"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        :value="getTaskProgressPercent(selectedTask)"
+                        :disabled="!canEditTaskProgress(selectedTask)"
+                        @change="event => updateTaskProgress(selectedTask, event.target.value)"
+                      />
+                      <span class="task-progress-suffix">%</span>
+                      <span class="task-progress-hint">
+                        {{ canEditTaskProgress(selectedTask) ? 'Synced to assigned members' : 'Assign at least one member to track progress' }}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div class="p-row">
@@ -409,8 +523,9 @@
                        type="date"
                        format="YYYY-MM-DD"
                        value-format="YYYY-MM-DD"
+                       :disabled-date="disablePastDates"
                        style="position:absolute; bottom:0; left:0; width:0; height:0; opacity:0; padding:0; border:0; visibility:hidden;"
-                       @change="val => updateTaskField(selectedTask, 'plannedStartDate', val)"
+                       @change="val => handleTaskDateChange('plannedStartDate', val)"
                      />
                    </div>
                  </div>
@@ -430,8 +545,9 @@
                        type="date"
                        format="YYYY-MM-DD"
                        value-format="YYYY-MM-DD"
+                       :disabled-date="disableDueDates"
                        style="position:absolute; bottom:0; left:0; width:0; height:0; opacity:0; padding:0; border:0; visibility:hidden;"
-                       @change="val => updateTaskField(selectedTask, 'dueDate', val)"
+                       @change="val => handleTaskDateChange('dueDate', val)"
                      />
                    </div>
                  </div>
@@ -499,24 +615,24 @@
                   <div class="p-val">
                     <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover dark" :width="340" @show="parentSearch = ''">
                       <template #reference>
-                        <button class="property-trigger" :class="{ 'muted-val': !selectedTask?.parentId }">
+                        <button class="property-trigger" :class="{ 'muted-val': !currentParentId }">
                           <i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i>
                           <span>Parent</span>
-                          <span class="property-value">{{ getParentLabel(selectedTask?.parentId) }}</span>
+                          <span class="property-value">{{ currentParentLabel }}</span>
                         </button>
                       </template>
                       <div class="popover-content">
                         <input v-model="parentSearch" type="text" class="popover-search" placeholder="Search parent task..." />
                         <div class="popover-list">
-                          <div class="popover-item" @click="updateTaskField(selectedTask, 'parentId', null); selectedTask.parentId = null">
+                          <div class="popover-item" @click="setTaskParent(selectedTask, null)">
                             <i class="fa-solid fa-ban mr-2"></i>
                             <span>No parent</span>
-                            <i v-if="!selectedTask?.parentId" class="fa-solid fa-check ms-auto"></i>
+                            <i v-if="!currentParentId" class="fa-solid fa-check ms-auto"></i>
                           </div>
-                          <div class="popover-item" v-for="parent in filteredParents" :key="parent.id" @click="updateTaskField(selectedTask, 'parentId', parent.id); selectedTask.parentId = parent.id">
+                          <div class="popover-item" v-for="parent in filteredParents" :key="parent.id" @click="setTaskParent(selectedTask, parent.id)">
                             <span class="text-gray-500 mr-2">{{ parent.sequenceId || parent.id?.substring(0, 8) }}</span>
                             <span class="truncate flex-1">{{ parent.title }}</span>
-                            <i v-if="selectedTask?.parentId === parent.id" class="fa-solid fa-check ms-auto"></i>
+                            <i v-if="currentParentId === parent.id" class="fa-solid fa-check ms-auto"></i>
                           </div>
                         </div>
                       </div>
@@ -734,6 +850,7 @@
 import { ref, watch, computed, nextTick } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import axiosClient from '@/api/axiosClient';
+import DOMPurify from 'dompurify';
 
 const props = defineProps({
   selectedTask: { type: Object, default: null },
@@ -745,24 +862,12 @@ const props = defineProps({
 const emit = defineEmits(['updateTask', 'close', 'open-task', 'create-subtask', 'refresh-tasks']);
 
 const showTaskModal = ref(true);
-const isSubscribed = ref(true);
+const isSubscribed = ref(false);
 const activitySortNewestFirst = ref(true);
 const showSubtasks = ref(true);
 
 const discardNewTask = () => {
-    if (props.selectedTask) {
-        props.selectedTask.title = '';
-        props.selectedTask.description = '';
-        props.selectedTask.statusName = 'Todo';
-        props.selectedTask.priority = 3;
-        props.selectedTask.assigneeId = null;
-        props.selectedTask.labelIds = [];
-        props.selectedTask.plannedStartDate = null;
-        props.selectedTask.dueDate = null;
-        props.selectedTask.sprintId = null;
-        props.selectedTask.moduleId = null;
-        props.selectedTask.parentId = null;
-    }
+    showTaskModal.value = false;
 };
 
 // ====================== CREATE TASK POPOVER REFS ======================
@@ -778,6 +883,55 @@ const projectCycles = ref([]);
 const projectModules = ref([]);
 const projectMemberOptions = ref([]);
 const projectStatuses = ref([]);
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+const parseDateValue = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) return new Date(value);
+  if (typeof value === 'string' && DATE_ONLY_PATTERN.test(value)) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+    const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const formatDateOnly = (value) => {
+  const date = parseDateValue(value);
+  if (!date) return null;
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getTodayDateString = () => formatDateOnly(new Date());
+const getParentId = (task = props.selectedTask) => task?.parentId || task?.parentTaskId || null;
+
+const currentProjectBadge = computed(() => {
+  const sequencePrefix = props.selectedTask?.sequenceId?.split('-')?.[0]
+    || cachedProjectTasks.value[0]?.sequenceId?.split('-')?.[0];
+  if (sequencePrefix) return sequencePrefix;
+  return `${props.projectId || 'WORK'}`.slice(0, 6).toUpperCase();
+});
+
+const disablePastDates = (date) => {
+  const candidate = formatDateOnly(date);
+  const today = getTodayDateString();
+  return Boolean(candidate && today && candidate < today);
+};
+
+const disableDueDates = (date) => {
+  if (disablePastDates(date)) return true;
+  const candidate = formatDateOnly(date);
+  const start = formatDateOnly(props.selectedTask?.plannedStartDate);
+  return Boolean(candidate && start && candidate < start);
+};
 
 const filteredMembers = computed(() => {
     const members = projectMemberOptions.value;
@@ -804,8 +958,7 @@ const filteredParents = computed(() => {
     let tasks = cachedProjectTasks.value.filter(t =>
       t.projectId === props.projectId &&
       t.id !== props.selectedTask?.id &&
-      !t.parentTaskId &&
-      !t.parentId
+      !getParentId(t)
     );
     if (!parentSearch.value) return tasks;
     return tasks.filter(t => t.title?.toLowerCase().includes(parentSearch.value.toLowerCase()) || t.sequenceId?.toLowerCase().includes(parentSearch.value.toLowerCase()));
@@ -861,21 +1014,16 @@ const getAssigneeLabel = (id) => {
 const getAssigneeIds = (task = props.selectedTask) => {
    if (!task) return [];
    if (Array.isArray(task.assigneeIds) && task.assigneeIds.length) return task.assigneeIds;
-   if (Array.isArray(task.assignees) && task.assignees.length) return task.assignees.map(item => item.userId);
+   if (Array.isArray(task.assignees) && task.assignees.length) return task.assignees.map(item => item.userId || item.id).filter(Boolean);
    if (task.assignedUserId) return [task.assignedUserId];
    if (task.assigneeId) return [task.assigneeId];
    return [];
 };
 
-const selectedAssigneeMembers = computed(() => {
-   const selectedIds = getAssigneeIds();
-   return projectMemberOptions.value.filter(member => selectedIds.includes(member.userId));
-});
-
-const selectedAssigneeRows = computed(() => {
-   const selectedIds = getAssigneeIds();
+const buildTaskAssigneeRows = (task = props.selectedTask) => {
+   const selectedIds = getAssigneeIds(task);
    return selectedIds.map(id => {
-      const existing = props.selectedTask?.assignees?.find(item => item.userId === id) || {};
+      const existing = task?.assignees?.find(item => (item.userId || item.id) === id) || {};
       const member = projectMemberOptions.value.find(item => item.userId === id) || {};
       return {
          userId: id,
@@ -885,13 +1033,47 @@ const selectedAssigneeRows = computed(() => {
          contributionWeight: existing.contributionWeight ?? 1
       };
    });
-});
+};
 
-const getAssigneeSummary = () => {
-   const members = selectedAssigneeMembers.value;
+const selectedAssigneeRows = computed(() => buildTaskAssigneeRows());
+
+const getAssigneeSummary = (task = props.selectedTask) => {
+   const members = buildTaskAssigneeRows(task);
    if (!members.length) return 'Assignees';
-   if (members.length === 1) return members[0].fullName || members[0].name || members[0].email;
+   if (members.length === 1) return members[0].fullName || members[0].email || 'Assignee';
    return `${members.length} assignees`;
+};
+
+const getTaskProgressPercent = (task = props.selectedTask) => {
+   const rows = buildTaskAssigneeRows(task);
+   if (!rows.length) {
+      return normalizeStatusName(task?.statusName) === 'DONE' ? 100 : 0;
+   }
+
+   const total = rows.reduce((sum, assignee) => sum + (Number(assignee.progressPercent) || 0), 0);
+   return Math.round(total / rows.length);
+};
+
+const canEditTaskProgress = (task = props.selectedTask) => getAssigneeIds(task).length > 0;
+
+const setTaskParent = (task, parentId) => {
+   if (!task) return;
+   task.parentId = parentId;
+   task.parentTaskId = parentId;
+   if (!task.isNew) {
+      updateTaskField(task, 'parentId', parentId);
+   }
+};
+
+const currentParentId = computed(() => getParentId(props.selectedTask));
+const currentParentLabel = computed(() => getParentLabel(currentParentId.value));
+
+const openParentTask = () => {
+   if (!currentParentId.value) return;
+   const parentTask = cachedProjectTasks.value.find(task => task.id === currentParentId.value);
+   if (parentTask) {
+      openTaskDetail(parentTask);
+   }
 };
 
 const getCycleLabel = (id) => {
@@ -1032,10 +1214,62 @@ const focusEditor = (editorName) => {
 
 const getActiveEditorElement = () => activeEditor.value === 'description' ? descriptionEditor.value : commentEditor.value;
 
+const unwrapFormattingNode = (node) => {
+  const parent = node?.parentNode;
+  if (!parent) return;
+  while (node.firstChild) {
+    parent.insertBefore(node.firstChild, node);
+  }
+  parent.removeChild(node);
+};
+
+const toggleInlineFormat = (editorName, tagName) => {
+  restoreEditorSelection(editorName);
+  const selection = window.getSelection();
+  if (!selection || !selection.rangeCount) return;
+
+  const range = selection.getRangeAt(0);
+  if (range.collapsed) return;
+
+  const anchorNode = selection.anchorNode?.nodeType === Node.ELEMENT_NODE
+    ? selection.anchorNode
+    : selection.anchorNode?.parentElement;
+  const existingTag = anchorNode?.closest?.(tagName);
+
+  if (existingTag) {
+    unwrapFormattingNode(existingTag);
+    syncEditorModel(editorName);
+    saveEditorSelection(editorName);
+    return;
+  }
+
+  const wrapper = document.createElement(tagName);
+  const fragment = range.extractContents();
+  wrapper.appendChild(fragment);
+  range.insertNode(wrapper);
+  range.selectNodeContents(wrapper);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  syncEditorModel(editorName);
+  saveEditorSelection(editorName);
+};
+
 const execEditorCommand = (command, value = null, editorName = activeEditor.value) => {
   const editor = editorName === 'description' ? descriptionEditor.value : commentEditor.value;
   if (!editor) return;
   activeEditor.value = editorName;
+  const inlineCommandMap = {
+    bold: 'strong',
+    italic: 'em',
+    underline: 'u',
+    strikeThrough: 's'
+  };
+
+  if (inlineCommandMap[command]) {
+    toggleInlineFormat(editorName, inlineCommandMap[command]);
+    return;
+  }
+
   restoreEditorSelection(editorName);
   document.execCommand(command, false, value);
   saveEditorSelection(editorName);
@@ -1163,10 +1397,15 @@ const syncEditorModel = (editorName) => {
   newComment.value = commentEditor.value?.innerHTML || '';
 };
 
+const sanitizeRichText = (html) => DOMPurify.sanitize(html || '', {
+  ALLOWED_TAGS: ['p', 'br', 'div', 'span', 'strong', 'b', 'em', 'i', 'u', 's', 'code', 'pre', 'ul', 'ol', 'li', 'blockquote', 'a', 'img'],
+  ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class', 'style']
+});
+
 const formatCommentDisplay = (text) => {
   if(!text) return '';
   if (/<[a-z][\s\S]*>/i.test(text)) {
-    return `<div class="comment-rendered">${text}</div>`;
+    return `<div class="comment-rendered">${sanitizeRichText(text)}</div>`;
   }
   let res = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   res = res.replace(/```([\s\S]*?)```/g, '<pre class="comment-code-block"><code>$1</code></pre>');
@@ -1217,7 +1456,7 @@ const formatCommentDisplay = (text) => {
   });
 
   closeList();
-  return `<div class="comment-rendered">${html}</div>`;
+  return `<div class="comment-rendered">${sanitizeRichText(html)}</div>`;
 };
 
 const editingCommentId = ref(null);
@@ -1240,10 +1479,11 @@ const cancelEditingComment = () => {
 };
 const saveEditedComment = async (cId, cRef) => {
     try {
+        const sanitizedContent = sanitizeRichText(editingContent.value);
         await axiosClient.put(`/projects/${props.projectId}/WorkTasks/${props.selectedTask.id}/comments/${cId}`, {
-            content: editingContent.value
+            content: sanitizedContent
         });
-        cRef.content = editingContent.value;
+        cRef.content = sanitizedContent;
         cRef.isEdited = true;
         cancelEditingComment();
         fetchAuditTimeline();
@@ -1269,8 +1509,36 @@ const copyTaskLink = async () => {
     ElMessage.success("Đã copy link công việc");
 };
 
-const toggleSubscription = () => {
-    isSubscribed.value = !isSubscribed.value;
+const toggleSubscription = async () => {
+    if (!props.selectedTask?.id || props.selectedTask?.isNew) {
+        ElMessage.warning('Cần tạo work item trước khi subscribe.');
+        return;
+    }
+    if (props.selectedTask?.plannedStartDate && props.selectedTask.plannedStartDate < getTodayDateString()) {
+        ElMessage.warning('Cannot select a past start date.');
+        return;
+    }
+    if (props.selectedTask?.dueDate && props.selectedTask.dueDate < getTodayDateString()) {
+        ElMessage.warning('Cannot select a past due date.');
+        return;
+    }
+    if (props.selectedTask?.plannedStartDate && props.selectedTask?.dueDate && props.selectedTask.dueDate < props.selectedTask.plannedStartDate) {
+        ElMessage.warning('Due date cannot be before start date.');
+        return;
+    }
+
+    try {
+        const response = await axiosClient.post(`/projects/${props.projectId}/WorkTasks/${props.selectedTask.id}/subscription`);
+        const subscribed = Boolean(response.data?.data?.isSubscribed);
+        isSubscribed.value = subscribed;
+        props.selectedTask.isSubscribed = subscribed;
+        emit('refresh-tasks');
+        ElMessage.success(subscribed ? 'Đã theo dõi công việc' : 'Đã hủy theo dõi công việc');
+    } catch (error) {
+        ElMessage.error(error.response?.data?.message || 'Không thể cập nhật trạng thái theo dõi');
+    }
+
+    return;
     ElMessage.success(isSubscribed.value ? "Đã theo dõi công việc" : "Đã hủy theo dõi công việc");
 };
 
@@ -1345,13 +1613,13 @@ const fetchAdditionalProjectData = async () => {
         projectCycles.value = cyclesRes.data?.data || [];
         projectModules.value = modulesRes.data?.data || [];
         projectLabels.value = labelsRes.data?.data || [];
-        cachedProjectTasks.value = tasksRes.data?.data || [];
+        cachedProjectTasks.value = (tasksRes.data?.data || []).map(item => normalizeTaskSnapshot({ ...item }));
         projectMemberOptions.value = (membersRes.data?.data || []).map(member => ({
             ...member,
             userId: member.userId || member.id,
             fullName: member.fullName || member.name || member.email
         }));
-        const desiredOrder = ['BACKLOG', 'TO DO', 'IN PROGRESS', 'DONE', 'CANCELLED'];
+        const desiredOrder = ['BACKLOG', 'TO DO', 'IN PROGRESS', 'IN REVIEW', 'DONE', 'CANCELLED'];
         const statusMap = new Map();
         for (const status of (statusesRes.data?.data || [])) {
             const normalized = normalizeStatusName(status.name);
@@ -1400,7 +1668,8 @@ watch(showTaskModal, (val) => {
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
+  const d = parseDateValue(dateStr);
+  if (!d) return '';
   return d.toLocaleDateString('vi-VN');
 };
 
@@ -1513,16 +1782,16 @@ const updateTaskField = (task, field, value) => {
   emit('updateTask', task, field, value);
 };
 
-const applySelectedAssignees = async (assigneeIds) => {
-  if (!props.selectedTask) return;
-  const existingAssignees = Array.isArray(props.selectedTask.assignees) ? props.selectedTask.assignees : [];
-  props.selectedTask.assigneeIds = assigneeIds;
-  props.selectedTask.assignedUserId = assigneeIds[0] || null;
-  props.selectedTask.assigneeId = assigneeIds[0] || null;
-  props.selectedTask.assignees = projectMemberOptions.value
+const syncTaskAssignees = (task, assigneeIds) => {
+  if (!task) return;
+  const existingAssignees = Array.isArray(task.assignees) ? task.assignees : [];
+  task.assigneeIds = assigneeIds;
+  task.assignedUserId = assigneeIds[0] || null;
+  task.assigneeId = assigneeIds[0] || null;
+  task.assignees = projectMemberOptions.value
     .filter(member => assigneeIds.includes(member.userId))
     .map(member => {
-      const existing = existingAssignees.find(item => item.userId === member.userId) || {};
+      const existing = existingAssignees.find(item => (item.userId || item.id) === member.userId) || {};
       return {
         userId: member.userId,
         fullName: member.fullName || member.name || member.email,
@@ -1531,48 +1800,120 @@ const applySelectedAssignees = async (assigneeIds) => {
         contributionWeight: existing.contributionWeight ?? 1
       };
     });
+};
 
-  if (!props.selectedTask.isNew) {
-    updateTaskField(props.selectedTask, 'assigneeIds', assigneeIds);
+const applySelectedAssignees = async (assigneeIds, task = props.selectedTask) => {
+  if (!task) return;
+  syncTaskAssignees(task, assigneeIds);
+
+  if (!task.isNew) {
+    updateTaskField(task, 'assigneeIds', assigneeIds);
   }
 };
 
-const toggleAssignee = async (memberId) => {
-  const currentIds = getAssigneeIds();
+const toggleAssignee = async (memberId, task = props.selectedTask) => {
+  const currentIds = getAssigneeIds(task);
   const nextIds = currentIds.includes(memberId)
     ? currentIds.filter(id => id !== memberId)
     : [...currentIds, memberId];
-  await applySelectedAssignees(nextIds);
+  await applySelectedAssignees(nextIds, task);
 };
 
-const updateAssigneeProgress = (memberId, rawValue) => {
-  if (!props.selectedTask) return;
+const toggleInlineTaskAssignee = async (task, memberId) => {
+  await toggleAssignee(memberId, task);
+};
+
+const updateAssigneeProgress = (memberId, rawValue, task = props.selectedTask) => {
+  if (!task) return;
   const progressPercent = Math.min(100, Math.max(0, Number(rawValue) || 0));
-  props.selectedTask.assignees = (props.selectedTask.assignees || []).map(assignee =>
-    assignee.userId === memberId ? { ...assignee, progressPercent } : assignee
+  task.assignees = (task.assignees || []).map(assignee =>
+    (assignee.userId || assignee.id) === memberId ? { ...assignee, progressPercent } : assignee
   );
 
-  if (!props.selectedTask.isNew) {
-    updateTaskField(props.selectedTask, 'assigneeProgress', [{
+  if (!task.isNew) {
+    updateTaskField(task, 'assigneeProgress', [{
       userId: memberId,
       progressPercent
     }]);
   }
 };
 
-const selectStatus = (status) => {
-  if (!props.selectedTask) return;
-  props.selectedTask.statusName = status.name;
-  if (!props.selectedTask.isNew) {
-    updateTaskField(props.selectedTask, 'statusName', status.name);
+const updateTaskProgress = (task, rawValue) => {
+  if (!task) return;
+  const progressPercent = Math.min(100, Math.max(0, Number(rawValue) || 0));
+  const assigneeIds = getAssigneeIds(task);
+  if (!assigneeIds.length) {
+    ElMessage.warning('Assign at least one member to track progress.');
+    return;
+  }
+
+  syncTaskAssignees(task, assigneeIds);
+  task.assignees = (task.assignees || []).map(assignee => ({
+    ...assignee,
+    progressPercent
+  }));
+
+  if (!task.isNew) {
+    updateTaskField(task, 'assigneeProgress', assigneeIds.map(userId => ({
+      userId,
+      progressPercent
+    })));
   }
 };
 
-const selectPriority = (priority) => {
-  if (!props.selectedTask) return;
-  props.selectedTask.priority = priority;
-  if (!props.selectedTask.isNew) {
-    updateTaskField(props.selectedTask, 'priority', priority);
+const handleTaskDateChange = (field, rawValue, task = props.selectedTask) => {
+  if (!task) return;
+
+  const normalizedValue = rawValue ? formatDateOnly(rawValue) : null;
+  if (normalizedValue && normalizedValue < getTodayDateString()) {
+    ElMessage.warning('Cannot select a past date.');
+    return;
+  }
+
+  if (field === 'dueDate') {
+    const startDate = formatDateOnly(task.plannedStartDate);
+    if (normalizedValue && startDate && normalizedValue < startDate) {
+      ElMessage.warning('Due date cannot be before start date.');
+      task.dueDate = startDate;
+      if (!task.isNew) {
+        updateTaskField(task, 'dueDate', startDate);
+      }
+      return;
+    }
+  }
+
+  task[field] = normalizedValue;
+
+  if (field === 'plannedStartDate') {
+    const startDate = normalizedValue;
+    const dueDate = formatDateOnly(task.dueDate);
+    if (startDate && dueDate && dueDate < startDate) {
+      task.dueDate = startDate;
+      if (!task.isNew) {
+        updateTaskField(task, 'dueDate', startDate);
+      }
+    }
+  }
+
+  if (!task.isNew) {
+    updateTaskField(task, field, normalizedValue);
+  }
+};
+
+const selectStatus = (status, task = props.selectedTask) => {
+  if (!task) return;
+  const nextStatus = typeof status === 'string' ? status : status.name;
+  task.statusName = nextStatus;
+  if (!task.isNew) {
+    updateTaskField(task, 'statusName', nextStatus);
+  }
+};
+
+const selectPriority = (priority, task = props.selectedTask) => {
+  if (!task) return;
+  task.priority = priority;
+  if (!task.isNew) {
+    updateTaskField(task, 'priority', priority);
   }
 };
 
@@ -1646,7 +1987,45 @@ const handleDescriptionPaste = async (event) => {
   }
 };
 
-const openTaskDetail = (task) => emit('open-task', task);
+const normalizeTaskSnapshot = (task) => {
+  if (!task) return task;
+
+  const parentId = getParentId(task);
+  task.parentId = parentId;
+  task.parentTaskId = parentId;
+  task.plannedStartDate = formatDateOnly(task.plannedStartDate);
+  task.plannedEndDate = formatDateOnly(task.plannedEndDate);
+  task.dueDate = formatDateOnly(task.dueDate);
+
+  if (Array.isArray(task.assignees)) {
+    task.assignees = task.assignees.map(item => ({
+      ...item,
+      userId: item.userId || item.id
+    }));
+  }
+
+  const assigneeIds = getAssigneeIds(task);
+  task.assigneeIds = assigneeIds;
+  task.assigneeId = task.assigneeId || task.assignedUserId || assigneeIds[0] || null;
+  task.assignedUserId = task.assignedUserId || task.assigneeId || assigneeIds[0] || null;
+  return task;
+};
+
+const mergeCachedTask = (task) => {
+  if (!task?.id) return;
+  const index = cachedProjectTasks.value.findIndex(item => item.id === task.id);
+  if (index >= 0) {
+    cachedProjectTasks.value[index] = { ...cachedProjectTasks.value[index], ...task };
+  } else {
+    cachedProjectTasks.value = [task, ...cachedProjectTasks.value];
+  }
+};
+
+const openTaskDetail = (task) => {
+  const normalized = normalizeTaskSnapshot({ ...task });
+  const cachedTask = cachedProjectTasks.value.find(item => item.id === normalized?.id);
+  emit('open-task', normalizeTaskSnapshot(cachedTask ? { ...cachedTask, ...normalized } : normalized));
+};
 const createSubtask = (task) => emit('create-subtask', task);
 
 const submitNewTask = async () => {
@@ -1666,7 +2045,7 @@ const submitNewTask = async () => {
             dueDate: props.selectedTask.dueDate,
             sprintId: props.selectedTask.sprintId,
             moduleId: props.selectedTask.moduleId,
-            parentTaskId: props.selectedTask.parentId,
+            parentTaskId: getParentId(props.selectedTask),
             labelIds: props.selectedTask.labelIds || []
         });
         ElMessage.success('Đã tạo thành công');
@@ -1691,7 +2070,11 @@ const subtaskInputRef = ref(null);
 async function fetchSubtasks() {
     try {
         const res = await axiosClient.get(`/projects/${props.projectId}/WorkTasks/${props.selectedTask.id}/subtasks`);
-        subtasksList.value = res.data?.data || [];
+        subtasksList.value = (res.data?.data || []).map(item => {
+            const normalized = normalizeTaskSnapshot({ ...item });
+            mergeCachedTask(normalized);
+            return normalized;
+        });
     } catch(e) {}
 }
 
@@ -1711,7 +2094,7 @@ const submitSubtask = async () => {
     try {
         const response = await axiosClient.post(`/projects/${props.projectId}/WorkTasks/${props.selectedTask.id}/subtasks`, {
             title: newSubtaskTitle.value.trim(),
-            statusName: 'To Do',
+            statusName: 'BACKLOG',
             taskTypeId: props.selectedTask.taskTypeId,
             priority: props.selectedTask.priority
         });
@@ -1719,9 +2102,11 @@ const submitSubtask = async () => {
         newSubtaskTitle.value = '';
         const createdSubtask = response.data?.data;
         if (createdSubtask) {
-            subtasksList.value = [createdSubtask, ...subtasksList.value];
+            const normalized = normalizeTaskSnapshot({ ...createdSubtask });
+            mergeCachedTask(normalized);
+            subtasksList.value = [normalized, ...subtasksList.value];
         } else {
-            fetchSubtasks();
+            await fetchSubtasks();
         }
         emit('refresh-tasks');
     } catch(e) {
@@ -1765,7 +2150,12 @@ const createSubtasksWithAI = async () => {
 
         const created = res.data?.data || [];
         if (created.length) {
-            subtasksList.value = [...created, ...subtasksList.value];
+            const normalized = created.map(item => {
+                const snapshot = normalizeTaskSnapshot({ ...item });
+                mergeCachedTask(snapshot);
+                return snapshot;
+            });
+            subtasksList.value = [...normalized, ...subtasksList.value];
         } else {
             await fetchSubtasks();
         }
@@ -1956,8 +2346,9 @@ const cancelReply = () => { replyingToCommentId.value = null; newComment.value =
 const submitComment = async () => {
     if (!commentHasContent.value) return;
     try {
+        const sanitizedContent = sanitizeRichText(newComment.value || '');
         const formData = new FormData();
-        formData.append('content', newComment.value || '');
+        formData.append('content', sanitizedContent);
         if (replyingToCommentId.value) {
             formData.append('parentCommentId', replyingToCommentId.value);
         }
@@ -1984,9 +2375,8 @@ const submitComment = async () => {
 
 watch(() => props.selectedTask, (newTask) => {
   if (newTask) {
-    newTask.assigneeIds = getAssigneeIds(newTask);
-    newTask.assigneeId = newTask.assigneeIds[0] || null;
-    newTask.assignedUserId = newTask.assigneeIds[0] || null;
+    normalizeTaskSnapshot(newTask);
+    isSubscribed.value = Boolean(newTask.isSubscribed);
     // Only fetch data for EXISTING tasks (have an id)
     // New tasks (isNew: true) have no id, so API calls would crash
     fetchAdditionalProjectData();
@@ -2465,19 +2855,33 @@ watch(() => props.selectedTask, (newTask) => {
 .subtask-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
   border: 1px solid #27272A;
   border-radius: 8px;
   background: #111111;
   color: #E4E4E7;
-  cursor: pointer;
   text-align: left;
 }
 
 .subtask-item:hover {
   border-color: #3F3F46;
   background: #17181C;
+}
+
+.subtask-open {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
 }
 
 .subtask-seq {
@@ -2489,6 +2893,118 @@ watch(() => props.selectedTask, (newTask) => {
 .subtask-title {
   font-size: 13px;
   color: #D4D4D8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtask-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.subtask-chip,
+.subtask-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #27272A;
+  border-radius: 999px;
+  background: #0D0F11;
+  color: #D4D4D8;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.subtask-chip {
+  cursor: pointer;
+}
+
+.subtask-chip:hover {
+  border-color: #3F3F46;
+  background: #17181C;
+}
+
+.subtask-progress {
+  color: #A1A1AA;
+}
+
+.subtask-progress input {
+  width: 48px;
+  border: none;
+  background: transparent;
+  color: #E4E4E7;
+  font-size: 12px;
+  text-align: right;
+}
+
+.subtask-progress input:disabled {
+  color: #71717A;
+  cursor: not-allowed;
+}
+
+.parent-context-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 12px;
+  padding: 6px 10px;
+  border: 1px solid #1F2937;
+  border-radius: 999px;
+  background: #0F172A;
+}
+
+.parent-context-label {
+  color: #94A3B8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.parent-context-link {
+  border: none;
+  background: transparent;
+  color: #38BDF8;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.task-progress-editor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.task-progress-input {
+  width: 72px;
+  border: 1px solid #27272A;
+  border-radius: 6px;
+  background: #111111;
+  color: #E4E4E7;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.task-progress-input:disabled {
+  color: #71717A;
+  cursor: not-allowed;
+}
+
+.task-progress-suffix {
+  color: #A1A1AA;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.task-progress-hint {
+  color: #71717A;
+  font-size: 12px;
 }
 
 .sp-section-title {
