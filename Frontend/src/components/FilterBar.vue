@@ -203,14 +203,14 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #16181d;
-  border: 1px solid #1e2025;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 8px 12px;
   width: 100%;
   min-height: 48px;
   position: relative;
-  z-index: 9999;
+  z-index: 1000;
 }
 
 .filters-scroll-area {
@@ -222,15 +222,15 @@ onBeforeUnmount(() => {
 }
 
 .empty-filter-copy {
-  color: #71717a;
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
 .filter-chip {
   display: flex;
   align-items: stretch;
-  background: #1b1c20;
-  border: 1px solid #2d2f36;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   overflow: hidden;
   height: 32px;
@@ -241,28 +241,28 @@ onBeforeUnmount(() => {
   align-items: center;
   padding: 0 10px;
   font-size: 13px;
-  border-right: 1px solid #2d2f36;
+  border-right: 1px solid var(--color-border);
   white-space: nowrap;
 }
 
 .label-sec {
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
 }
 
 .condition-sec {
-  color: #71717a;
-  background: rgba(255, 255, 255, 0.02);
+  color: var(--color-text-muted);
+  background: var(--color-surface-hover);
 }
 
 .value-sec {
-  color: #e4e4e7;
-  font-weight: 500;
+  color: var(--color-text-primary);
+  font-weight: 600;
 }
 
 .remove-sec {
   border: 0;
   background: transparent;
-  color: #71717a;
+  color: var(--color-text-muted);
   cursor: pointer;
   padding: 0 8px;
 }
@@ -288,51 +288,52 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #1b1c20;
-  border: 1px solid #2d2f36;
-  color: #71717a;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
   cursor: pointer;
 }
 
 .add-filter-icon-btn.active {
-  border-color: #38bdf8;
-  color: #fff;
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
+  background: var(--color-surface-hover);
 }
 
 .filter-builder {
   position: fixed;
   z-index: 9999;
-  background: #1b1c20;
-  border: 1px solid #2d2f36;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-md);
 }
 
 .filter-builder label {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
   font-size: 12px;
 }
 
 .filter-builder select {
-  background: #111315;
-  border: 1px solid #2d2f36;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  color: #e4e4e7;
+  color: var(--color-text-primary);
   padding: 8px;
   outline: none;
 }
 
 .apply-filter-btn {
-  background: #0ea5e9;
+  background: var(--color-accent);
   border: none;
-  color: #fff;
+  color: #ffffff;
   font-size: 13px;
   font-weight: 600;
   padding: 8px 10px;
@@ -353,17 +354,26 @@ onBeforeUnmount(() => {
 .v-divider {
   width: 1px;
   height: 20px;
-  background: #2d2f36;
+  background: var(--color-border);
 }
 
 .clear-all-btn {
-  background: #1b1c20;
-  border: 1px solid #2d2f36;
-  color: #d4d4d8;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
   padding: 6px 14px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
 }
+
+.clear-all-btn:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
 </style>
+
+
+
+

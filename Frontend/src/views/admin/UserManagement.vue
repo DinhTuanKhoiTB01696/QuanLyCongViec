@@ -3,12 +3,9 @@
     <div class="directory-page" :class="{ 'is-dimmed': showInvitePanel || showExportModal }" @click="closePageMenus">
       <div class="page-header">
         <div class="header-copy">
-          <div class="breadcrumb">
-            <i class="fa-solid fa-users"></i>
-            <span>{{ t('Admin / User Directory', 'Quản trị / Danh sách Người dùng') }}</span>
-          </div>
-          <h1 class="page-title">{{ t('Users', 'Người dùng') }}</h1>
-          <p class="page-subtitle">
+          <div class="breadcrumb">ADMIN / USER DIRECTORY</div>
+          <h1 class="text-hero">{{ t('Users', 'Người dùng') }}</h1>
+          <p class="text-desc">
             {{ t('Manage accounts, invitations, and access permissions for members in the organization.', 'Quản lý tài khoản, lời mời và quyền truy cập của thành viên trong tổ chức.') }}
             <a href="#" @click.prevent="openAppAccessHint">{{ t('Go to app access settings', 'Đi tới cài đặt quyền truy cập ứng dụng') }}</a>
           </p>
@@ -60,8 +57,8 @@
           <section class="admin-subcard">
             <div class="subcard-header">
               <div>
-                <h3>{{ t('Departments', 'Phòng ban') }}</h3>
-                <p>{{ t('Create and maintain departments used across user and project access.', 'Tạo và quản lý phòng ban dùng cho người dùng và phân quyền dự án.') }}</p>
+                <h3 class="text-section">{{ t('Departments', 'Phòng ban') }}</h3>
+                <p class="text-desc">{{ t('Create and maintain departments used across user and project access.', 'Tạo và quản lý phòng ban dùng cho người dùng và phân quyền dự án.') }}</p>
               </div>
               <button type="button" class="primary-btn" @click="createDepartmentFromDraft">
                 <i class="fa-solid fa-plus"></i>
@@ -1392,13 +1389,13 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
 .page-title {
   margin: 0;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 28px;
   font-weight: 700;
 }
@@ -1406,7 +1403,7 @@ onUnmounted(() => {
 .page-subtitle {
   max-width: 760px;
   margin: 8px 0 0;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -1437,9 +1434,9 @@ onUnmounted(() => {
   position: relative;
   overflow: visible;
   padding: 24px;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background: var(--bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background: var(--color-surface);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
 }
 
@@ -1452,7 +1449,7 @@ onUnmounted(() => {
 
 .admin-subcard {
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
+  border-radius: 2px;
   background: rgba(255, 255, 255, 0.03);
   padding: 16px;
 }
@@ -1466,13 +1463,13 @@ onUnmounted(() => {
 
 .subcard-header h3 {
   margin: 0;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 16px;
 }
 
 .subcard-header p {
   margin: 6px 0 0;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -1488,10 +1485,10 @@ onUnmounted(() => {
 .department-form input,
 .assignment-grid input {
   min-height: 36px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
   background: rgba(255, 255, 255, 0.03);
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   padding: 0 12px;
 }
 
@@ -1509,7 +1506,7 @@ onUnmounted(() => {
   align-items: center;
   padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
+  border-radius: 2px;
   background: rgba(255, 255, 255, 0.02);
 }
 
@@ -1527,13 +1524,13 @@ onUnmounted(() => {
 
 .department-copy strong,
 .assignment-copy strong {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .department-copy span,
 .assignment-copy span {
   margin-top: 4px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 13px;
 }
 
@@ -1549,7 +1546,7 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 13px;
 }
 
@@ -1564,7 +1561,7 @@ onUnmounted(() => {
 .plain-action,
 .clear-filters-btn {
   min-height: 34px;
-  border-radius: 8px;
+  border-radius: 2px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
@@ -1590,9 +1587,9 @@ onUnmounted(() => {
 .neutral-btn,
 .icon-btn,
 .filter-button {
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
   background: rgba(255, 255, 255, 0.02);
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .neutral-btn {
@@ -1612,9 +1609,9 @@ onUnmounted(() => {
   height: 20px;
   margin-left: 8px;
   padding: 0 6px;
-  border-radius: 6px;
+  border-radius: 2px;
   background: rgba(255, 255, 255, 0.08);
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
@@ -1634,8 +1631,8 @@ onUnmounted(() => {
   position: absolute;
   z-index: 30;
   overflow: hidden;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
   background: #1a1d24;
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.3);
 }
@@ -1658,7 +1655,7 @@ onUnmounted(() => {
   padding: 0 14px;
   border: 0;
   background: transparent;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   cursor: pointer;
   font-size: 14px;
   text-align: left;
@@ -1689,14 +1686,14 @@ onUnmounted(() => {
 
 .metric-card span {
   display: block;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
 .metric-card strong {
   display: block;
   margin-top: 10px;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 28px;
   line-height: 1;
 }
@@ -1717,10 +1714,10 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
   background: rgba(255, 255, 255, 0.03);
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 .table-search {
@@ -1735,7 +1732,7 @@ onUnmounted(() => {
   border: 0;
   outline: 0;
   background: transparent;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 14px;
 }
 
@@ -1779,7 +1776,7 @@ onUnmounted(() => {
   gap: 10px;
   min-height: 30px;
   padding: 0 16px;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   cursor: pointer;
   font-size: 14px;
 }
@@ -1800,7 +1797,7 @@ onUnmounted(() => {
 .filter-org-label {
   margin: 0;
   padding: 8px 16px 4px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 700;
 }
@@ -1816,14 +1813,14 @@ onUnmounted(() => {
 }
 
 .app-check-option strong {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 14px;
   font-weight: 500;
 }
 
 .app-check-option small {
   margin-top: 2px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
@@ -1832,7 +1829,7 @@ onUnmounted(() => {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  border-radius: 6px;
+  border-radius: 2px;
 }
 
 .mini-app-icon {
@@ -1853,15 +1850,15 @@ onUnmounted(() => {
 }
 
 .tone-dark {
-  background: #172b4d;
+  background: var(--color-text-primary);
   color: #ffffff;
 }
 
 .filter-menu-footer {
   min-height: 36px;
   padding: 10px 12px;
-  border-top: 1px solid var(--border-color);
-  color: var(--text-muted);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
   font-size: 13px;
   text-align: right;
 }
@@ -1873,7 +1870,7 @@ onUnmounted(() => {
   min-height: 18px;
   padding: 0 6px;
   border: 1px solid currentColor;
-  border-radius: 4px;
+  border-radius: 2px;
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
@@ -1910,7 +1907,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   margin-bottom: 16px;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 15px;
 }
 
@@ -1926,7 +1923,7 @@ onUnmounted(() => {
   place-items: center;
   gap: 12px;
   min-height: 220px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   text-align: center;
 }
 
@@ -1942,7 +1939,7 @@ onUnmounted(() => {
 .users-table th {
   height: 44px;
   padding: 0 16px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-size: 13px;
   font-weight: 700;
   text-align: left;
@@ -1951,7 +1948,7 @@ onUnmounted(() => {
 .users-table td {
   padding: 12px 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.04);
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 14px;
   vertical-align: middle;
 }
@@ -1983,19 +1980,19 @@ onUnmounted(() => {
 }
 
 .user-copy strong {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 14px;
   font-weight: 600;
 }
 
 .user-copy span {
   margin-top: 2px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
 .last-seen-cell {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .actions-heading,
@@ -2013,14 +2010,14 @@ onUnmounted(() => {
   width: 28px;
   height: 28px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 2px;
   background: transparent;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   cursor: pointer;
 }
 
 .row-more-btn:hover {
-  border-color: var(--border-color);
+  border-color: var(--color-border);
   background: rgba(255, 255, 255, 0.04);
 }
 
@@ -2043,7 +2040,7 @@ onUnmounted(() => {
   border: 1px solid transparent;
   border-radius: 50%;
   background: #ffffff;
-  color: #44546f;
+  color: var(--color-text-secondary);
   cursor: pointer;
   font-size: 18px;
 }
@@ -2063,7 +2060,7 @@ onUnmounted(() => {
 
 .invite-copy h2 {
   margin: 0;
-  color: #172b4d;
+  color: var(--color-text-primary);
   font-size: 25px;
   font-weight: 800;
 }
@@ -2071,7 +2068,7 @@ onUnmounted(() => {
 .invite-copy p {
   max-width: 860px;
   margin: 8px 0 0;
-  color: #172b4d;
+  color: var(--color-text-primary);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -2084,7 +2081,7 @@ onUnmounted(() => {
 .field-label {
   display: block;
   margin-bottom: 7px;
-  color: #44546f;
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 800;
 }
@@ -2098,7 +2095,7 @@ onUnmounted(() => {
   gap: 6px;
   padding: 5px 8px;
   border: 1px solid #8590a2;
-  border-radius: 4px;
+  border-radius: 2px;
   background: #ffffff;
 }
 
@@ -2114,7 +2111,7 @@ onUnmounted(() => {
   flex: 1 1 220px;
   border: 0;
   outline: 0;
-  color: #172b4d;
+  color: var(--color-text-primary);
   font-size: 14px;
 }
 
@@ -2126,9 +2123,9 @@ onUnmounted(() => {
   min-height: 26px;
   padding: 0 7px;
   border: 1px solid #dfe1e6;
-  border-radius: 4px;
+  border-radius: 2px;
   background: #f1f2f4;
-  color: #172b4d;
+  color: var(--color-text-primary);
   font-size: 13px;
 }
 
@@ -2139,7 +2136,7 @@ onUnmounted(() => {
   width: 18px;
   height: 18px;
   border: 0;
-  border-radius: 4px;
+  border-radius: 2px;
   background: transparent;
   color: #626f86;
   cursor: pointer;
@@ -2154,7 +2151,7 @@ onUnmounted(() => {
 .access-table {
   margin-bottom: 42px;
   border: 1px solid #dfe1e6;
-  border-radius: 4px;
+  border-radius: 2px;
   background: #ffffff;
 }
 
@@ -2171,7 +2168,7 @@ onUnmounted(() => {
 .access-header {
   min-height: 40px;
   border-bottom: 1px solid #dfe1e6;
-  color: #172b4d;
+  color: var(--color-text-primary);
   font-size: 13px;
   font-weight: 800;
 }
@@ -2206,14 +2203,14 @@ onUnmounted(() => {
 }
 
 .app-cell strong {
-  color: #172b4d;
+  color: var(--color-text-primary);
   font-size: 14px;
   font-weight: 500;
 }
 
 .app-cell span,
 .plan-cell {
-  color: #44546f;
+  color: var(--color-text-secondary);
   font-size: 13px;
 }
 
@@ -2235,9 +2232,9 @@ onUnmounted(() => {
   min-height: 34px;
   padding: 0 10px;
   border: 1px solid #dfe1e6;
-  border-radius: 4px;
+  border-radius: 2px;
   background: #ffffff;
-  color: #172b4d;
+  color: var(--color-text-primary);
   cursor: pointer;
   font-size: 14px;
 }
@@ -2255,7 +2252,7 @@ onUnmounted(() => {
   width: 334px;
   overflow: hidden;
   border: 1px solid #dfe1e6;
-  border-radius: 4px;
+  border-radius: 2px;
   background: #ffffff;
   box-shadow: 0 8px 20px rgba(9, 30, 66, 0.2);
 }
@@ -2268,7 +2265,7 @@ onUnmounted(() => {
   padding: 12px 16px;
   border: 0;
   background: #ffffff;
-  color: #172b4d;
+  color: var(--color-text-primary);
   cursor: pointer;
   text-align: left;
 }
@@ -2301,7 +2298,7 @@ onUnmounted(() => {
 }
 
 .role-option-copy strong {
-  color: #172b4d;
+  color: var(--color-text-primary);
   font-size: 14px;
   font-weight: 500;
   line-height: 1.3;
@@ -2309,7 +2306,7 @@ onUnmounted(() => {
 
 .role-option-copy small {
   margin-top: 4px;
-  color: #44546f;
+  color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 1.45;
 }
@@ -2347,7 +2344,7 @@ onUnmounted(() => {
   padding: 9px 10px;
   border: 0;
   background: #ffffff;
-  color: #172b4d;
+  color: var(--color-text-primary);
   cursor: pointer;
   text-align: left;
 }
@@ -2362,14 +2359,14 @@ onUnmounted(() => {
 }
 
 .group-option strong {
-  color: #172b4d;
+  color: var(--color-text-primary);
   font-size: 13px;
   line-height: 1.35;
 }
 
 .group-option span {
   margin-top: 3px;
-  color: #44546f;
+  color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 1.4;
 }
@@ -2386,7 +2383,7 @@ onUnmounted(() => {
   gap: 8px;
   border: 0;
   background: transparent;
-  color: #172b4d;
+  color: var(--color-text-primary);
   cursor: pointer;
   font-size: 14px;
   font-weight: 700;
@@ -2401,13 +2398,13 @@ onUnmounted(() => {
 }
 
 .invite-footer strong {
-  color: #172b4d;
+  color: var(--color-text-primary);
   font-size: 14px;
 }
 
 .invite-footer p {
   margin: 6px 0 0;
-  color: #44546f;
+  color: var(--color-text-secondary);
   font-size: 13px;
 }
 
@@ -2415,7 +2412,7 @@ onUnmounted(() => {
   padding: 0 12px;
   border: 0;
   background: transparent;
-  color: #44546f;
+  color: var(--color-text-secondary);
 }
 
 .modal-backdrop {
@@ -2433,7 +2430,7 @@ onUnmounted(() => {
   padding: 18px 20px 20px;
   border-radius: 10px;
   background: #ffffff;
-  color: #172b4d;
+  color: var(--color-text-primary);
   box-shadow: 0 8px 24px rgba(9, 30, 66, 0.28);
 }
 
@@ -2445,7 +2442,7 @@ onUnmounted(() => {
 
 .export-modal p {
   margin: 0 0 14px;
-  color: #172b4d;
+  color: var(--color-text-primary);
   font-size: 13px;
   line-height: 1.45;
 }
@@ -2460,12 +2457,12 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #172b4d;
+  color: var(--color-text-primary);
   font-size: 13px;
 }
 
 .export-label {
-  color: #44546f;
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 700;
 }
@@ -2478,7 +2475,7 @@ onUnmounted(() => {
 :deep(.el-input__wrapper),
 :deep(.el-select__wrapper),
 :deep(.el-textarea__inner) {
-  border-radius: 8px !important;
+  border-radius: 2px !important;
 }
 
 :deep(.invite-panel .el-input__wrapper),
@@ -2492,7 +2489,7 @@ onUnmounted(() => {
 :deep(.invite-panel .el-textarea__inner),
 :deep(.invite-panel .el-select__placeholder),
 :deep(.invite-panel .el-select__selected-item) {
-  color: #172b4d !important;
+  color: var(--color-text-primary) !important;
 }
 
 @media (max-width: 980px) {
@@ -2582,3 +2579,7 @@ onUnmounted(() => {
   font-weight: 600;
 }
 </style>
+
+
+
+

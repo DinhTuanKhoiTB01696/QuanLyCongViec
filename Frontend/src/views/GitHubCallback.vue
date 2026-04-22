@@ -81,7 +81,9 @@ onMounted(async () => {
 
 .loading-state p,
 .error-state p {
-  color: #64748b;
+  color: var(--color-text-muted);
   font-size: 16px;
 }
 </style>
+
+

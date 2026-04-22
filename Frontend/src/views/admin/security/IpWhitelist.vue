@@ -154,7 +154,7 @@ const removeIp = (idx) => {
 
 .breadcrumb {
   font-size: 13px;
-  color: #8b949e;
+  color: var(--color-text-muted);
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -164,20 +164,20 @@ const removeIp = (idx) => {
 .page-title {
   font-size: 24px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   margin-bottom: 4px;
 }
 
 .page-subtitle {
   font-size: 14px;
-  color: #8b949e;
+  color: var(--color-text-muted);
 }
 
 .settings-card {
-  background-color: var(--bg-card);
+  background-color: var(--color-surface);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 32px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
@@ -195,34 +195,34 @@ const removeIp = (idx) => {
 .card-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   margin-bottom: 8px;
 }
 
 .section-desc {
   font-size: 13px;
-  color: #8b949e;
+  color: var(--color-text-muted);
 }
 
 .switch-wrapper {
   display: flex;
   gap: 12px;
   align-items: center;
-  background: var(--bg-secondary);
+  background: var(--color-surface);
   padding: 12px 16px;
   border-radius: 8px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
 }
 
 .switch-label {
   font-weight: 500;
   font-size: 14px;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .divider {
   height: 1px;
-  background-color: var(--border-color);
+  background-color: var(--color-border);
   margin: 24px 0;
 }
 
@@ -234,7 +234,7 @@ const removeIp = (idx) => {
 
 .current-ip-info {
   font-size: 14px;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   background: rgba(13, 148, 136, 0.1);
   border-left: 3px solid #0d9488;
   padding: 8px 16px;
@@ -256,22 +256,22 @@ const removeIp = (idx) => {
   background-color: transparent !important;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
 }
 
 :deep(.glass-table th.el-table__cell) {
   background-color: rgba(0,0,0,0.02) !important;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-color);
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border);
 }
 
 :deep(.glass-table td.el-table__cell) {
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--color-border);
   background-color: transparent !important;
 }
 
 :deep(.glass-table .el-table__row:hover > td) {
-  background-color: var(--hover-bg) !important;
+  background-color: var(--color-surface-hover) !important;
 }
 
 .disabled-table {
@@ -285,3 +285,6 @@ const removeIp = (idx) => {
   font-size: 14px;
 }
 </style>
+
+
+

@@ -2,7 +2,7 @@
   <aside class="plane-sidebar" :class="{ 'collapsed': !isVisible }">
     <div class="sidebar-scrollable">
       <div class="sidebar-top-action">
-        <button class="new-issue-btn" @click="triggerCreateTask">
+        <button class="new-work-btn" @click="triggerCreateTask">
           <i class="fa-solid fa-pen-to-square"></i>
           <span>New work item</span>
         </button>
@@ -46,7 +46,7 @@
       <ul class="nav-menu" v-if="favoriteSprints.length > 0">
         <li class="nav-item" v-for="fs in favoriteSprints" :key="fs.id">
           <router-link :to="`/space/${fs.projectId}/cycles`" class="nav-link">
-             <i class="fa-solid fa-arrows-spin text-orange-400"></i>
+             <i class="fa-solid fa-arrows-spin fav-icon"></i>
              <span class="truncate">{{ fs.name }}</span>
           </router-link>
         </li>
@@ -101,7 +101,7 @@
       <!-- Projects Division -->
       <div class="nav-section-title flex-between">
         Projects
-        <i class="fa-solid fa-chevron-down" style="font-size: 10px; cursor: pointer;"></i>
+        <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
       </div>
       <ul class="nav-menu">
         <template v-for="project in projectTree" :key="project.id">
@@ -110,17 +110,15 @@
               class="nav-link proj-folder"
               :class="{ active: currentProjectId === project.id }"
               @click="toggleProject(project.id)"
-              @mouseenter="prefetchProject(project.id)"
-              @focusin="prefetchProject(project.id)"
             >
-              <span class="proj-icon">{{ projectIcon(project) }}</span>
+              <span class="proj-icon" :style="{ background: projectColor(project) }">{{ projectIcon(project) }}</span>
               <span class="truncate">{{ project.name }}</span>
               <i class="fa-solid ms-auto" :class="project.expanded ? 'fa-chevron-down' : 'fa-chevron-right'" style="font-size: 10px;"></i>
             </div>
           </li>
 
           <li v-for="child in project.children" v-show="project.expanded" :key="child.id" class="nav-item sub-item">
-            <router-link :to="child.route" class="nav-link" active-class="active" @mouseenter="prefetchProject(project.id)" @focusin="prefetchProject(project.id)">
+            <router-link :to="child.route" class="nav-link" active-class="active">
               <i :class="childIcon(child.key)"></i>
               <span>{{ child.label }}</span>
             </router-link>
@@ -154,10 +152,7 @@ const currentProjectId = computed(() => {
 })
 
 const props = defineProps({
-  isVisible: {
-    type: Boolean,
-    default: true
-  }
+  isVisible: { type: Boolean, default: true }
 })
 const emit = defineEmits(['close-mobile'])
 
@@ -168,15 +163,12 @@ const favoriteSprints = computed(() => {
    return sprintStore.sprints.filter(s => s.isFavorite);
 })
 
-const isSpaceRoute = computed(() => route.path.startsWith('/space/'))
-
 watch(currentProjectId, async (newVal, oldVal) => {
    if (newVal && newVal !== 'default') {
       if (newVal !== oldVal) {
         projectStore.expandProject(newVal)
       }
       localStorage.setItem('currentProjectId', newVal)
-      localStorage.setItem('lastProjectId', newVal)
       sprintStore.fetchSprints(newVal)
       await projectStore.fetchProjectDetails(newVal)
    }
@@ -193,12 +185,6 @@ const toggleProject = (projectId) => {
   projectStore.toggleProject(projectId)
 }
 
-const prefetchProject = (projectId) => {
-  if (!projectId || projectId === 'default') return
-  projectStore.prefetchProjectBundle(projectId).catch(() => {})
-  sprintStore.fetchSprints(projectId).catch(() => {})
-}
-
 const childIcon = (key) => ({
   'work-items': 'fa-solid fa-layer-group',
   'cycles': 'fa-solid fa-arrows-spin',
@@ -208,6 +194,10 @@ const childIcon = (key) => ({
 }[key] || 'fa-solid fa-chevron-right')
 
 const projectIcon = (project) => project.icon || project.name?.charAt(0)?.toUpperCase() || 'P'
+const projectColor = (project) => {
+  const colors = ['#579dff', '#c97cf4', '#00b8d9', '#22a06b', '#f5cd47']
+  return colors[project.name?.length % colors.length] || '#579dff'
+}
 
 const triggerCreateTask = async () => {
   const projects = projectStore.allProjects.length
@@ -220,7 +210,7 @@ const triggerCreateTask = async () => {
     return
   }
 
-  const preferredProjectId = projects.some(project => project.id === currentProjectId.value)
+  const preferredProjectId = projects.some(p => p.id === currentProjectId.value)
     ? currentProjectId.value
     : projects[0].id
 
@@ -232,7 +222,6 @@ const triggerCreateTask = async () => {
     }, 120)
     return
   }
-
   window.dispatchEvent(new CustomEvent('global-create-task'))
 }
 </script>
@@ -240,8 +229,8 @@ const triggerCreateTask = async () => {
 <style scoped>
 .plane-sidebar {
   width: 250px;
-  background-color: #0d0f11;
-  border-right: 1px solid #1e2025;
+  background-color: var(--color-bg);
+  border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -251,194 +240,111 @@ const triggerCreateTask = async () => {
   position: relative;
 }
 
-.plane-sidebar.collapsed {
-  width: 0;
-  border-right: none;
-  overflow: hidden;
-}
+.plane-sidebar.collapsed { width: 0; border-right: none; overflow: hidden; }
 
-.sidebar-scrollable {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px 12px;
-}
+.sidebar-scrollable { flex: 1; overflow-y: auto; padding: 16px 12px; }
 
-.sidebar-top-action {
-  margin-bottom: 20px;
-}
+.sidebar-top-action { margin-bottom: 20px; }
 
-.new-issue-btn {
+.new-work-btn {
   width: 100%;
-  background: #1e2025;
-  color: #e4e4e7;
-  border: 1px solid #27272a;
-  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
   padding: 8px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
-.new-issue-btn:hover {
-  background: #27272a;
-}
-
-.new-issue-btn i {
-  font-size: 14px;
-}
+.new-work-btn:hover { background: var(--color-surface-hover); border-color: var(--color-accent); }
 
 .nav-section-title {
   font-size: 11px;
-  color: #71717a;
+  color: var(--color-text-muted);
   text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   margin: 20px 8px 8px;
 }
 
-.flex-between {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-right: 4px;
-}
+.flex-between { display: flex; justify-content: space-between; align-items: center; padding-right: 4px; }
 
-.nav-menu {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+.nav-menu { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; }
 
 .nav-link {
   display: flex;
   align-items: center;
-  padding: 6px 10px;
-  color: #a1a1aa;
+  padding: 8px 10px;
+  color: var(--color-text-secondary);
   font-size: 13.5px;
   font-weight: 500;
-  border-radius: 6px;
+  border-radius: 2px;
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
-.nav-link i:first-child {
-  width: 16px;
-  font-size: 14px;
-  margin-right: 12px;
-  text-align: center;
-}
+.nav-link i:first-child { width: 16px; font-size: 14px; margin-right: 12px; text-align: center; }
 
-.nav-link:hover {
-  background-color: #1e2025;
-  color: #e4e4e7;
-}
+.nav-link:hover { background-color: var(--color-surface-hover); color: var(--color-text-primary); }
 
 .nav-link.active {
-  background-color: #1e2025;
-  color: #e4e4e7;
+  background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  color: var(--color-accent);
+  font-weight: 700;
 }
 
-.nav-link.dropdown-active {
-  border: 1px solid #71717A;
-  background: #16181D;
-  color: #E4E4E7;
-}
+.fav-icon { color: #f59e0b; }
 
-/* Secondary Panel */
 .more-panel {
   position: absolute;
   top: 0;
   left: 250px;
   width: 250px;
   height: 100vh;
-  background-color: #0d0f11;
-  border-right: 1px solid #1e2025;
+  background-color: var(--color-bg);
+  border-right: 1px solid var(--color-border);
   padding: 16px 12px;
   z-index: 998;
+  box-shadow: var(--shadow-xl);
 }
 
-.pin-icon {
-  margin-left: auto;
-  font-size: 11px;
-  color: #71717A;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-.nav-link:hover .pin-icon {
-  opacity: 1;
-}
+.pin-icon { margin-left: auto; font-size: 11px; color: var(--color-text-muted); opacity: 0; }
+.nav-link:hover .pin-icon { opacity: 1; }
 
-.slide-left-enter-active, .slide-left-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.slide-left-enter-from, .slide-left-leave-to {
-  transform: translateX(-100%);
-  opacity: 0;
-}
-
-.proj-folder {
-  color: #e4e4e7;
-  margin-bottom: 2px;
-}
+.proj-folder { color: var(--color-text-primary); margin-bottom: 2px; }
 
 .proj-icon {
-  background: #0ea5e9;
-  color: white;
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: bold;
-  margin-right: 10px;
+  width: 20px; height: 20px; border-radius: 2px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #fff; margin-right: 10px;
 }
 
-.sub-item .nav-link {
-  padding-left: 28px;
-}
+.sub-item .nav-link { padding-left: 28px; }
 
-.sidebar-bottom {
-  padding: 16px;
-  border-top: 1px solid #1e2025;
-}
+.sidebar-bottom { padding: 16px; border-top: 1px solid var(--color-border); }
 
 .community-link {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #a1a1aa;
-  font-size: 13px;
-  text-decoration: none;
-  font-weight: 500;
-  padding: 6px;
-  border-radius: 6px;
-  transition: background 0.2s;
+  display: flex; align-items: center; gap: 8px;
+  color: var(--color-text-secondary); font-size: 13px; text-decoration: none;
+  padding: 6px; border-radius: 2px; transition: all 0.2s;
 }
 
-.community-link:hover {
-  background: #1e2025;
-  color: #e4e4e7;
-}
+.community-link:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
 
-/* Scrollbar customization */
-.sidebar-scrollable::-webkit-scrollbar {
-  width: 4px;
-}
-.sidebar-scrollable::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 10px;
-}
-.sidebar-scrollable:hover::-webkit-scrollbar-thumb {
-  background: #27272a;
-}
+.ms-auto { margin-left: auto; }
+
+.slide-left-enter-active, .slide-left-leave-active { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.slide-left-enter-from, .slide-left-leave-to { transform: translateX(-100%); opacity: 0; }
+
+.sidebar-scrollable::-webkit-scrollbar { width: 4px; }
+.sidebar-scrollable::-webkit-scrollbar-thumb { background: transparent; border-radius: 10px; }
+.sidebar-scrollable:hover::-webkit-scrollbar-thumb { background: var(--color-border); }
 </style>

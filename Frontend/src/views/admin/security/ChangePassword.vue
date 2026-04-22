@@ -32,7 +32,7 @@
                   prefix-icon=""
                 >
                   <template #prefix>
-                    <i class="fa-solid fa-at" style="color: #64748b;"></i>
+                    <i class="fa-solid fa-at" style="color: var(--color-text-muted);"></i>
                   </template>
                 </el-input>
               </div>
@@ -48,7 +48,7 @@
                     style="flex: 1"
                   >
                     <template #prefix>
-                      <i class="fa-solid fa-key" style="color: #64748b;"></i>
+                      <i class="fa-solid fa-key" style="color: var(--color-text-muted);"></i>
                     </template>
                   </el-input>
                 </div>
@@ -351,7 +351,7 @@ onMounted(() => {
 
 .breadcrumb {
   font-size: 13px;
-  color: #71717a;
+  color: var(--color-text-muted);
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -361,20 +361,20 @@ onMounted(() => {
 .page-title {
   font-size: 24px;
   font-weight: 600;
-  color: #e4e4e7;
+  color: var(--color-text-primary);
   margin-bottom: 4px;
 }
 
 .page-subtitle {
   font-size: 14px;
-  color: #71717a;
+  color: var(--color-text-muted);
 }
 
 .settings-card {
-  background-color: #16181d;
+  background-color: var(--color-surface);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid #1e2025;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 32px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -384,7 +384,7 @@ onMounted(() => {
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: #e4e4e7;
+  color: var(--color-text-primary);
   margin-bottom: 8px;
 }
 
@@ -400,8 +400,8 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #27272a;
-  color: #71717a;
+  background: var(--color-border);
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -426,7 +426,7 @@ onMounted(() => {
 .step-line {
   flex: 1;
   height: 2px;
-  background: #27272a;
+  background: var(--color-border);
   margin: 0 12px;
   max-width: 80px;
   transition: background 0.3s ease;
@@ -439,7 +439,7 @@ onMounted(() => {
 .step-title {
   font-size: 18px;
   font-weight: 600;
-  color: #e4e4e7;
+  color: var(--color-text-primary);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -452,7 +452,7 @@ onMounted(() => {
 
 .step-desc {
   font-size: 14px;
-  color: #8b949e;
+  color: var(--color-text-muted);
   margin: 0 0 24px 0;
   line-height: 1.5;
 }
@@ -475,13 +475,13 @@ onMounted(() => {
 }
 
 .verified-badge strong {
-  color: #e4e4e7;
+  color: var(--color-text-primary);
 }
 
 /* OTP hint */
 .otp-hint {
   font-size: 12px;
-  color: #64748b;
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -541,13 +541,13 @@ onMounted(() => {
 .success-title {
   font-size: 22px;
   font-weight: 700;
-  color: #e4e4e7;
+  color: var(--color-text-primary);
   margin: 0 0 12px 0;
 }
 
 .success-desc {
   font-size: 14px;
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
   max-width: 400px;
   margin: 0 auto;
   line-height: 1.7;
@@ -564,7 +564,7 @@ onMounted(() => {
 
 .divider {
   height: 1px;
-  background-color: #1e2025;
+  background-color: var(--color-border);
   margin: 24px 0;
 }
 
@@ -584,7 +584,7 @@ onMounted(() => {
 .strength-bars .bar {
   flex: 1;
   height: 6px;
-  background-color: #27272a;
+  background-color: var(--color-border);
   border-radius: 3px;
   transition: background-color 0.3s ease;
 }
@@ -614,7 +614,7 @@ onMounted(() => {
 
 .password-hints li {
   font-size: 13px;
-  color: #8b949e;
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -645,13 +645,13 @@ onMounted(() => {
 
 .checkbox-title {
   font-weight: 600;
-  color: #e4e4e7;
+  color: var(--color-text-primary);
   font-size: 14px;
 }
 
 .checkbox-desc {
   font-size: 13px;
-  color: #8b949e;
+  color: var(--color-text-muted);
   margin-top: 2px;
 }
 
@@ -666,7 +666,7 @@ onMounted(() => {
 :deep(.el-input__inner:-webkit-autofill:hover),
 :deep(.el-input__inner:-webkit-autofill:focus),
 :deep(.el-input__inner:-webkit-autofill:active) {
-  -webkit-text-fill-color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--color-text-primary) !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 
@@ -686,3 +686,7 @@ onMounted(() => {
   }
 }
 </style>
+
+
+
+

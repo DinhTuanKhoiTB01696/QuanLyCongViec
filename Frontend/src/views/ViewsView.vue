@@ -5,8 +5,11 @@ import ViewsTab from '@/components/ViewsTab.vue'
 
 <template>
   <NexusLayout>
-    <div style="background-color: #0D0F11; height: 100vh; overflow-y: auto;">
+    <div style="background-color: var(--color-bg); height: 100vh; overflow-y: auto;">
       <ViewsTab />
     </div>
   </NexusLayout>
 </template>
+
+
+

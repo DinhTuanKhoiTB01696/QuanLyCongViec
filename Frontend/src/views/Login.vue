@@ -1,5 +1,5 @@
 <template>
-  <div class="auth-page" data-theme="light">
+  <div class="auth-page">
     <header class="auth-navbar">
       <div class="container nav-content">
         <router-link to="/" class="logo">
@@ -212,7 +212,7 @@ const handleGitHubLogin = () => {
   flex-direction: column;
   background:
     radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 26%),
-    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    var(--color-bg);
 }
 
 .auth-navbar {
@@ -258,7 +258,7 @@ const handleGitHubLogin = () => {
   margin-left: -8px;
   font-size: 24px;
   font-weight: 900;
-  color: #0f172a;
+  color: var(--color-text-primary);
 }
 
 .nav-link,
@@ -266,20 +266,21 @@ const handleGitHubLogin = () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
+  border-radius: 2px;
   text-decoration: none;
   font-weight: 700;
+  transition: all 0.2s;
 }
 
 .nav-link {
   padding: 10px 14px;
-  color: #1f2937;
+  color: var(--color-text-secondary);
 }
 
 .nav-primary {
   padding: 10px 18px;
-  color: #fff;
-  background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%);
+  color: #ffffff;
+  background: var(--color-accent);
 }
 
 .auth-container {
@@ -293,21 +294,21 @@ const handleGitHubLogin = () => {
 .auth-card {
   width: min(100%, 520px);
   padding: 32px;
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+  border-radius: 2px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
 }
 
 .auth-title {
   margin: 0;
   font-size: 32px;
-  color: #0f172a;
+  color: var(--color-text-primary);
 }
 
 .auth-subtitle {
   margin: 10px 0 0;
-  color: #64748b;
+  color: var(--color-text-secondary);
   line-height: 1.6;
 }
 
@@ -328,7 +329,7 @@ const handleGitHubLogin = () => {
   position: relative;
   margin: 22px 0 18px;
   text-align: center;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -341,7 +342,7 @@ const handleGitHubLogin = () => {
   right: 0;
   top: 50%;
   height: 1px;
-  background: #e2e8f0;
+  background: var(--color-border);
   z-index: 0;
 }
 
@@ -349,7 +350,7 @@ const handleGitHubLogin = () => {
   position: relative;
   z-index: 1;
   padding: 0 10px;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .social-btn-wrapper,
@@ -369,7 +370,7 @@ const handleGitHubLogin = () => {
 
 .auth-footer-text {
   margin: 20px 0 0;
-  color: #64748b;
+  color: var(--color-text-secondary);
   text-align: center;
 }
 
@@ -385,7 +386,7 @@ const handleGitHubLogin = () => {
 .auth-bottom {
   padding: 0 0 32px;
   text-align: center;
-  color: #64748b;
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 
@@ -406,3 +407,5 @@ const handleGitHubLogin = () => {
   }
 }
 </style>
+
+

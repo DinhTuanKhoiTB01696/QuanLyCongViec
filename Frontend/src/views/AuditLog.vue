@@ -1,13 +1,9 @@
 <template>
   <NexusLayout>
-          <div class="page-header-flex">
-            <h1 class="page-title">Giao diện trang Audit Log</h1>
-            <div class="page-actions">
-              <el-button type="primary" @click="exportToCSV">
-                <i class="fa-solid fa-download" style="margin-right: 8px;"></i> Export CSV
-              </el-button>
-            </div>
-          </div>
+    <div class="page-header">
+      <h1 class="text-hero">Audit Log</h1>
+      <p class="text-desc">Review and track project activities, changes, and access logs.</p>
+    </div>
 
           <!-- Filters Section -->
           <div class="filters-card">
@@ -342,23 +338,23 @@ const handleSidebarSaved = (prefs) => {
 
 
 .page-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
-.page-title { font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0; }
+.page-title { font-size: 26px; font-weight: 700; color: var(--color-text-primary); margin: 0; }
 
 .filters-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
   padding: 20px;
   margin-bottom: 24px;
 }
 
 .filter-item { margin-bottom: 16px; }
-.filter-item label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; }
+.filter-item label { display: block; font-size: 12px; font-weight: 600; color: var(--color-text-muted); margin-bottom: 8px; text-transform: uppercase; }
 
 .table-container {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
   padding: 0;
   overflow: hidden;
 }
@@ -367,9 +363,9 @@ const handleSidebarSaved = (prefs) => {
 
 /* Custom Element Plus theme styles local to this component */
 :deep(.el-table) {
-  --el-table-bg-color: var(--bg-card);
-  --el-table-tr-bg-color: var(--bg-card);
-  --el-table-header-bg-color: var(--bg-layout);
+  --el-table-bg-color: var(--table-bg);
+  --el-table-tr-bg-color: var(--table-bg);
+  --el-table-header-bg-color: var(--bg-secondary);
   --el-table-header-text-color: var(--text-secondary);
   --el-table-text-color: var(--text-primary);
   --el-table-border-color: var(--border-color);
@@ -377,7 +373,7 @@ const handleSidebarSaved = (prefs) => {
 }
 
 :deep(.el-input__wrapper), :deep(.el-select__wrapper) {
-  background-color: var(--bg-secondary) !important;
+  background-color: var(--input-bg) !important;
   box-shadow: 0 0 0 1px var(--border-color) inset !important;
 }
 
@@ -391,26 +387,28 @@ const handleSidebarSaved = (prefs) => {
 
 :deep(.el-pagination) {
   --el-pagination-bg-color: transparent;
-  --el-pagination-hover-color: #3b82f6;
-  color: var(--text-secondary);
+  --el-pagination-hover-color: var(--color-accent);
+  color: var(--color-text-secondary);
 }
 
 /* Drawer styles */
 .log-details-content { padding: 0 20px; }
 .detail-item { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
-.detail-item .label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
-.detail-item .value { font-size: 15px; color: var(--text-primary); }
+.detail-item .label { font-size: 13px; font-weight: 600; color: var(--color-text-muted); }
+.detail-item .value { font-size: 15px; color: var(--color-text-primary); }
 
 .user-info-flex { display: flex; align-items: center; gap: 12px; }
 .user-avatar-small { 
-  width: 28px; height: 28px; background: #3b82f6; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: white;
+  width: 28px; height: 28px; background: var(--color-accent); border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: white;
 }
 
 .json-viewer {
-  background: var(--bg-layout); border-radius: 8px; padding: 16px; overflow: auto; max-height: 400px;
+  background: var(--bg-primary); border-radius: 2px; padding: 16px; overflow: auto; max-height: 400px;
   border: 1px solid var(--border-color);
 }
 .json-viewer pre { color: #10b981; font-family: 'Fira Code', 'Courier New', monospace; font-size: 13px; margin: 0; }
 
 
 </style>
+
+

@@ -9,8 +9,10 @@ const projectId = route.params.id || localStorage.getItem('lastProjectId')
 
 <template>
   <NexusLayout>
-    <div style="background-color: var(--bg-layout); height: 100vh; overflow-y: auto; padding: 24px;">
+    <div style="background-color: var(--color-bg); height: 100vh; overflow-y: auto; padding: 24px;">
       <IntakeInbox :projectId="projectId" />
     </div>
   </NexusLayout>
 </template>
+
+

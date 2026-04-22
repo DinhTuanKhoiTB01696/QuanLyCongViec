@@ -114,7 +114,7 @@ const handleCommand = (path) => {
 
 .settings-menu-header {
   padding: 10px 20px 4px 20px;
-  color: #64748b;
+  color: var(--color-text-muted);
   font-size: 14px;
   font-weight: 400;
 }
@@ -140,7 +140,7 @@ const handleCommand = (path) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -150,22 +150,25 @@ const handleCommand = (path) => {
 }
 
 .settings-nav-icon:hover {
-  background-color: var(--hover-bg);
-  color: var(--text-primary);
+  background-color: var(--color-surface-hover);
+  color: var(--color-text-primary);
 }
 </style>
 
 <style>
 .el-popper.settings-dropdown-popper {
-  background: var(--bg-card) !important;
-  border: 1px solid var(--border-color) !important;
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
   padding: 0 !important;
   z-index: 100001 !important;
   box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important;
 }
 
 .el-popper.settings-dropdown-popper .el-popper__arrow::before {
-  background: var(--bg-card) !important;
-  border-color: var(--border-color) !important;
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
 }
 </style>
+
+
+

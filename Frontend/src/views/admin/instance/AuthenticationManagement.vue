@@ -6,21 +6,22 @@
           <i class="fa-solid fa-lock"></i>
           <span>Admin / Instance / Authentication</span>
         </div>
-        <h1 class="page-title">Authentication management</h1>
-        <p class="page-subtitle">
-          Control which sign-in methods are exposed at the instance level and keep provider settings organized in one
-          place. This scaffold stores state locally until dedicated backend config endpoints are introduced.
+        <h1 class="text-hero">Authentication management</h1>
+        <p class="text-desc">
+          Control which sign-in methods are exposed at the instance level and keep provider settings organized in one place. 
+          Manage OAuth flows and security policies for all users.
         </p>
       </div>
 
       <div class="layout-grid">
+        <!-- Login Methods Section -->
         <section class="settings-card">
           <div class="section-head">
             <div>
-              <h2>Login methods</h2>
-              <p>Toggle providers without rewriting the admin shell later.</p>
+              <h2 class="text-section">Login methods</h2>
+              <p class="text-small">Enable or disable authentication providers for your instance.</p>
             </div>
-            <button type="button" class="primary-btn" @click="saveSettings">Save</button>
+            <button type="button" class="primary-btn" @click="saveSettings">Save Changes</button>
           </div>
 
           <div class="toggle-list">
@@ -43,51 +44,54 @@
           </div>
         </section>
 
-        <section class="settings-card">
+        <!-- GitHub Configuration -->
+        <section class="settings-card" v-if="settings.github.enabled">
           <div class="section-head">
             <div>
-              <h2>GitHub provider</h2>
-              <p>Client values can be filled now and wired to secure storage later.</p>
+              <h2 class="text-section">GitHub provider</h2>
+              <p class="text-small">Configure OAuth credentials for GitHub authentication.</p>
             </div>
           </div>
 
           <div class="field-grid">
-            <label class="field">
-              <span>Client ID</span>
+            <div class="field">
+              <span class="field-label">Client ID</span>
               <input v-model="settings.github.clientId" type="text" placeholder="github-client-id" />
-            </label>
-            <label class="field">
-              <span>Callback URL</span>
+            </div>
+            <div class="field">
+              <span class="field-label">Callback URL</span>
               <input v-model="settings.github.callbackUrl" type="text" placeholder="https://app.example.com/auth/github/callback" />
-            </label>
+            </div>
           </div>
         </section>
 
-        <section class="settings-card">
+        <!-- Google Configuration -->
+        <section class="settings-card" v-if="settings.google.enabled">
           <div class="section-head">
             <div>
-              <h2>Google provider</h2>
-              <p>Useful for later Plane-style authentication administration.</p>
+              <h2 class="text-section">Google provider</h2>
+              <p class="text-small">Configure OAuth credentials for Google authentication.</p>
             </div>
           </div>
 
           <div class="field-grid">
-            <label class="field">
-              <span>Client ID</span>
+            <div class="field">
+              <span class="field-label">Client ID</span>
               <input v-model="settings.google.clientId" type="text" placeholder="google-client-id" />
-            </label>
-            <label class="field">
-              <span>Callback URL</span>
+            </div>
+            <div class="field">
+              <span class="field-label">Callback URL</span>
               <input v-model="settings.google.callbackUrl" type="text" placeholder="https://app.example.com/auth/google/callback" />
-            </label>
+            </div>
           </div>
         </section>
 
+        <!-- Security Policy -->
         <section class="settings-card">
           <div class="section-head">
             <div>
-              <h2>Policy</h2>
-              <p>High-level controls for login safety and tenant onboarding.</p>
+              <h2 class="text-section">Security policy</h2>
+              <p class="text-small">High-level controls for login safety and tenant onboarding.</p>
             </div>
           </div>
 
@@ -161,122 +165,41 @@ onMounted(loadSettings)
 </script>
 
 <style scoped>
-.admin-page {
-  padding: 32px;
-  color: #e5e7eb;
-}
-
-.page-header {
-  margin-bottom: 24px;
-}
-
 .breadcrumb {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #94a3b8;
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   margin-bottom: 8px;
-}
-
-.page-title {
-  margin: 0;
-  font-size: 28px;
-}
-
-.page-subtitle {
-  margin: 8px 0 0;
-  max-width: 820px;
-  color: #94a3b8;
-  line-height: 1.6;
 }
 
 .layout-grid {
   display: grid;
-  gap: 16px;
+  gap: 20px;
 }
 
-.settings-card {
-  border: 1px solid #1f2937;
-  border-radius: 16px;
-  background: #0f172a;
-  padding: 20px;
-}
-
-.section-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: flex-start;
-  margin-bottom: 18px;
-}
-
-.section-head h2 {
-  margin: 0 0 6px;
-  font-size: 18px;
-}
-
-.section-head p {
-  margin: 0;
-  color: #94a3b8;
-  line-height: 1.5;
-}
-
-.toggle-list {
+.toggle-text {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 2px;
 }
 
-.toggle-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #e2e8f0;
-}
-
-.field-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+.toggle-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.field span {
-  color: #cbd5e1;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.field input {
-  border: 1px solid #334155;
-  border-radius: 10px;
-  background: #020617;
-  color: #e5e7eb;
-  padding: 12px 14px;
-  font: inherit;
-}
-
-.primary-btn {
-  border: none;
-  border-radius: 999px;
-  background: #38bdf8;
-  color: #082f49;
-  padding: 10px 16px;
-  font-weight: 700;
-  cursor: pointer;
 }
 
 @media (max-width: 900px) {
-  .admin-page {
-    padding: 20px;
-  }
-
   .field-grid {
     grid-template-columns: 1fr;
   }

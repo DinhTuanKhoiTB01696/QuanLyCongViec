@@ -1,5 +1,7 @@
 import { ref, watch } from 'vue'
 
+const EXCLUDED_ROUTES = ['/', '/login', '/register', '/AcceptInvite']
+
 const getInitialTheme = () => {
   const savedTheme = localStorage.getItem('theme')
   if (savedTheme) return savedTheme
@@ -16,13 +18,22 @@ export const toggleTheme = (theme) => {
   }
 }
 
-watch(currentTheme, (newTheme) => {
-  if (newTheme === 'dark') {
+// Function to update document attributes based on theme and route
+export const updateThemeAttributes = (path) => {
+  const isExcluded = EXCLUDED_ROUTES.some(route => path === route || path.startsWith(route + '?'))
+  const themeToApply = isExcluded ? 'light' : currentTheme.value
+  
+  document.documentElement.setAttribute('data-theme', themeToApply)
+  if (themeToApply === 'dark') {
     document.documentElement.classList.add('dark')
-    document.documentElement.setAttribute('data-theme', 'dark')
   } else {
     document.documentElement.classList.remove('dark')
-    document.documentElement.setAttribute('data-theme', 'light')
   }
-  localStorage.setItem('theme', newTheme)
+}
+
+// Initialize watcher
+watch(currentTheme, () => {
+  const path = window.location.pathname
+  updateThemeAttributes(path)
+  localStorage.setItem('theme', currentTheme.value)
 }, { immediate: true })

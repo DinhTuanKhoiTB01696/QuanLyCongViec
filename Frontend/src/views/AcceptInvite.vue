@@ -1,6 +1,6 @@
 <template>
-  <div class="invite-page" data-theme="light">
-    <!-- Blurred skeleton background to mimic Jira/SprintA dashboard -->
+  <div class="invite-page">
+    <!-- Blurred skeleton background to mimic dashboard -->
     <div class="skeleton-bg">
       <div class="sk-topbar"></div>
       <div class="sk-body">
@@ -42,9 +42,9 @@
         <i class="fa-solid fa-circle-xmark danger"></i>
         <h1>Liên kết không hợp lệ</h1>
         <p>{{ error }}</p>
-        <el-button type="primary" class="primary-btn" @click="router.push('/login')">
+        <button type="button" class="primary-btn" @click="router.push('/login')">
           Về trang đăng nhập
-        </el-button>
+        </button>
       </div>
 
       <div v-else-if="success" class="state-block">
@@ -57,9 +57,9 @@
         <p v-else>
           Tài khoản của bạn đã sẵn sàng. Bạn sẽ được chuyển tới bảng điều khiển.
         </p>
-        <el-button type="primary" class="primary-btn mt-6" @click="continueAfterSuccess">
+        <button type="button" class="primary-btn mt-24" @click="continueAfterSuccess">
           {{ requiresLogin ? 'Đăng nhập' : 'Vào SprintA' }}
-        </el-button>
+        </button>
       </div>
 
       <template v-else>
@@ -85,16 +85,15 @@
             />
           </div>
 
-          <el-button
-            type="primary"
+          <button
+            type="button"
             class="primary-btn"
-            size="large"
-            :loading="isVerifyingOtp"
-            :disabled="!isOtpComplete"
+            :disabled="!isOtpComplete || isVerifyingOtp"
             @click="verifyOtp"
           >
-            Xác thực
-          </el-button>
+            <i v-if="isVerifyingOtp" class="fa-solid fa-spinner fa-spin"></i>
+            <span>Xác thực</span>
+          </button>
 
           <div class="resend-link">
             <span v-if="isSendingOtp" class="resend-loading">
@@ -117,48 +116,36 @@
             <strong>{{ invite.email }}</strong>
           </div>
 
-          <p v-if="invite.isRegistered" class="subtitle text-center mt-12">
+          <p v-if="invite.isRegistered" class="subtitle text-center">
             Bạn đã có tài khoản trên hệ thống. Chỉ cần chấp nhận lời mời này để tham gia dự án.
           </p>
 
-          <el-form
-            v-else
-            ref="inviteFormRef"
-            :model="form"
-            :rules="rules"
-            class="invite-form"
-            label-position="top"
-            @submit.prevent="acceptInvite"
-          >
-            <el-form-item label="Họ và tên *" prop="fullName">
-              <el-input v-model="form.fullName" size="large" placeholder="Nhập họ tên của bạn" />
-            </el-form-item>
+          <div v-else class="invite-form">
+            <div class="field">
+              <span class="field-label">Họ và tên *</span>
+              <input v-model="form.fullName" type="text" placeholder="Nhập họ tên của bạn" />
+            </div>
 
-            <el-form-item label="Mật khẩu *" prop="password">
-              <el-input
-                v-model="form.password"
-                type="password"
-                size="large"
-                placeholder="Tạo mật khẩu"
-                show-password
-              />
-              <div class="password-hint">Mật khẩu phải có ít nhất 6 ký tự, bao gồm 1 chữ hoa, 1 số và 1 ký tự đặc biệt (@$!%*?&)</div>
-            </el-form-item>
+            <div class="field">
+              <span class="field-label">Mật khẩu *</span>
+              <input v-model="form.password" type="password" placeholder="Tạo mật khẩu" />
+              <p class="password-hint">Ít nhất 6 ký tự, bao gồm chữ hoa, số và ký tự đặc biệt.</p>
+            </div>
 
             <div class="terms-note">
-              Bằng cách nhấp vào "Tiếp tục", bạn đồng ý với các <a href="#">Điều khoản Dịch vụ</a> của SprintA và xác nhận <a href="#">Chính sách Bảo mật</a>.
+              Bằng cách nhấp vào "Tiếp tục", bạn đồng ý với các <a href="#">Điều khoản Dịch vụ</a> của SprintA.
             </div>
-          </el-form>
+          </div>
 
-          <el-button
-            type="primary"
+          <button
+            type="button"
             class="primary-btn"
-            size="large"
-            :loading="isSubmitting"
+            :disabled="isSubmitting"
             @click="acceptInvite"
           >
-            Tiếp tục
-          </el-button>
+            <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin"></i>
+            <span>Tiếp tục</span>
+          </button>
         </div>
       </template>
     </div>
@@ -182,11 +169,8 @@ const error = ref('')
 const success = ref(false)
 const requiresLogin = ref(false)
 const redirectPath = ref('/dashboard')
-
-// Step 1: OTP, Step 2: Form/Accept
 const step = ref(0) 
 
-// OTP States
 const otpDigits = ref(['', '', '', '', '', ''])
 const otpRefs = ref([])
 const isVerifyingOtp = ref(false)
@@ -221,8 +205,6 @@ const onOtpInput = (index) => {
   const val = otpDigits.value[index]
   if (val && index < 5) {
     otpRefs.value[index + 1]?.focus()
-  } else if (!val && index > 0) {
-    // Prevent backward jump on input logic (handled in delete logic)
   }
 }
 
@@ -249,16 +231,10 @@ const sendOtp = async () => {
   if (isSendingOtp.value || otpCooldown.value > 0) return
   isSendingOtp.value = true
   try {
-    const loadingMessage = ElMessage({
-      message: 'Đang gửi mã xác nhận...',
-      type: 'info',
-      duration: 0
-    })
     await axiosClient.post('/auth/send-otp', {
       email: invite.value.email,
       purpose: 'invite'
     })
-    loadingMessage.close()
     ElMessage.success('Đã gửi mã xác nhận đến email của bạn.')
     otpDigits.value = ['', '', '', '', '', '']
     nextTick(() => otpRefs.value[0]?.focus())
@@ -279,7 +255,6 @@ const verifyOtp = async () => {
       email: invite.value.email,
       otpCode: otpCode
     })
-    // Successfully verified OTP, proceed to Full Name / Password form
     step.value = 2
   } catch (err) {
     ElMessage.error(err.response?.data?.message || 'Mã xác nhận không hợp lệ hoặc đã hết hạn.')
@@ -290,35 +265,11 @@ const verifyOtp = async () => {
   }
 }
 
-// Form logic for Setup Account
 const isSubmitting = ref(false)
-const inviteFormRef = ref(null)
-
 const form = reactive({
   fullName: '',
   password: ''
 })
-
-const rules = {
-  fullName: [
-    { required: true, message: 'Vui lòng nhập họ và tên', trigger: 'blur' },
-    { min: 2, message: 'Tên phải có ít nhất 2 ký tự', trigger: 'blur' }
-  ],
-  password: [
-    { required: true, message: 'Vui lòng tạo mật khẩu', trigger: 'blur' },
-    { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự', trigger: 'blur' },
-    {
-      validator: (rule, value, callback) => {
-        if (!value) return callback()
-        if (!/(?=.*[A-Z])/.test(value)) return callback(new Error('Phải có ít nhất 1 chữ hoa'))
-        if (!/(?=.*\d)/.test(value)) return callback(new Error('Phải có ít nhất 1 chữ số'))
-        if (!/(?=.*[@$!%*?&])/.test(value)) return callback(new Error('Phải có ít nhất 1 ký tự đặc biệt (@$!%*?&)'))
-        callback()
-      },
-      trigger: 'blur'
-    }
-  ]
-}
 
 const loadInvite = async () => {
   token.value = String(route.query.token || '')
@@ -336,12 +287,10 @@ const loadInvite = async () => {
     invite.value = response.data?.data || {}
     form.fullName = invite.value.fullName || ''
     
-    // Auto-trigger OTP step if NOT registered
     if (!invite.value.isRegistered) {
       await sendOtp()
       step.value = 1
     } else {
-      // If already registered, skip OTP Verification and go straight to Acceptance screen
       step.value = 2
     }
   } catch (err) {
@@ -352,9 +301,11 @@ const loadInvite = async () => {
 }
 
 const acceptInvite = async () => {
-  if (!invite.value.isRegistered && inviteFormRef.value) {
-    const valid = await inviteFormRef.value.validate().catch(() => false)
-    if (!valid) return
+  if (!invite.value.isRegistered) {
+    if (!form.fullName || !form.password) {
+      ElMessage.warning('Vui lòng nhập đầy đủ thông tin.')
+      return
+    }
   }
 
   isSubmitting.value = true
@@ -404,81 +355,42 @@ onMounted(loadInvite)
   min-height: 100vh;
   display: grid;
   place-items: center;
-  background: #f4f5f7;
+  background: var(--color-bg);
   padding: 24px;
-  font-family: Inter, system-ui, sans-serif;
   overflow: hidden;
 }
 
-/* Skeleton Dashboard Blur Logic */
 .skeleton-bg {
   position: absolute;
   inset: 0;
   z-index: 0;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: var(--color-bg);
   pointer-events: none;
   filter: blur(8px);
-  opacity: 0.6;
+  opacity: 0.4;
 }
-.sk-topbar {
-  height: 56px;
-  background: #dfe1e6;
-  border-bottom: 1px solid #c1c7d0;
-}
-.sk-body {
-  display: flex;
-  flex: 1;
-}
-.sk-sidebar {
-  width: 240px;
-  background: #fafbfc;
-  border-right: 1px solid #dfe1e6;
-}
-.sk-content {
-  flex: 1;
-  padding: 32px 40px;
-}
-.sk-header {
-  height: 40px;
-  width: 300px;
-  background: #dfe1e6;
-  border-radius: 4px;
-  margin-bottom: 24px;
-}
-.sk-board {
-  display: flex;
-  gap: 16px;
-}
-.sk-col {
-  flex: 1;
-  background: #f4f5f7;
-  border-radius: 6px;
-  padding: 12px;
-  min-height: 400px;
-}
-.sk-card {
-  height: 80px;
-  background: #ffffff;
-  border: 1px solid #dfe1e6;
-  border-radius: 4px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 2px rgba(9, 30, 66, 0.1);
-}
+.sk-topbar { height: 56px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
+.sk-body { display: flex; flex: 1; }
+.sk-sidebar { width: 240px; background: var(--color-surface); border-right: 1px solid var(--color-border); }
+.sk-content { flex: 1; padding: 32px 40px; }
+.sk-header { height: 40px; width: 300px; background: var(--color-surface-hover); border-radius: 4px; margin-bottom: 24px; }
+.sk-board { display: flex; gap: 16px; }
+.sk-col { flex: 1; background: var(--color-surface-hover); border-radius: 6px; padding: 12px; min-height: 400px; }
+.sk-card { height: 80px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 4px; margin-bottom: 12px; }
 
-/* Modal styles */
 .invite-card {
   position: relative;
   z-index: 10;
   width: min(480px, 100%);
-  background: #ffffff;
-  border-radius: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
   padding: 48px;
-  box-shadow: 0 8px 32px rgba(9, 30, 66, 0.25);
+  box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
 
 .brand-row {
@@ -487,35 +399,25 @@ onMounted(loadInvite)
   justify-content: center;
   gap: 12px;
   margin-bottom: 32px;
-  color: #172b4d;
+  color: var(--color-text-primary);
   font-size: 26px;
   font-weight: 800;
 }
 
-.brand-row img {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-}
+.brand-row img { width: 40px; height: 40px; }
 
-.step-container {
-  width: 100%;
-}
-
-.text-center {
-  text-align: center;
-}
+.text-center { text-align: center; }
 
 h1 {
   margin: 0 0 12px;
-  color: #172b4d;
+  color: var(--color-text-primary);
   font-size: 24px;
   font-weight: 700;
   line-height: 1.25;
 }
 
 .subtitle {
-  color: #44546f;
+  color: var(--color-text-secondary);
   font-size: 14px;
   line-height: 1.6;
   margin-bottom: 32px;
@@ -532,159 +434,62 @@ h1 {
   width: 52px;
   height: 60px;
   font-size: 28px;
-  font-weight: 600;
+  font-weight: 700;
   text-align: center;
-  border: 2px solid #dfe1e6;
-  border-radius: 6px;
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
   outline: none;
-  background: #ffffff;
-  color: #172b4d;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+  transition: all 0.2s;
 }
 
 .otp-box:focus {
-  border-color: #0c66e4;
-  box-shadow: 0 0 0 2px rgba(12, 102, 228, 0.2);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
 
-.resend-link {
-  margin-top: 32px;
-  text-align: center;
-}
+.resend-link { margin-top: 32px; text-align: center; }
+.resend-link a { color: var(--color-accent); font-size: 14px; text-decoration: none; font-weight: 600; }
+.resend-link a:hover { text-decoration: underline; }
+.resend-loading, .resend-cooldown { color: var(--color-text-muted); font-size: 14px; }
 
-.resend-link a {
-  color: #0c66e4;
-  font-size: 14px;
-  text-decoration: none;
-  font-weight: 500;
-}
+.verified-email { margin-bottom: 32px; font-size: 14px; }
+.verified-email .label { color: var(--color-text-muted); font-weight: 600; }
+.verified-email strong { display: block; margin-top: 6px; color: var(--color-text-primary); font-size: 16px; font-weight: 700; }
 
-.resend-link a:hover {
-  text-decoration: underline;
-}
-
-.resend-loading,
-.resend-cooldown {
-  color: #626f86;
-  font-size: 14px;
-}
-
-.verified-email {
-  margin-bottom: 32px;
-  font-size: 14px;
-}
-
-.verified-email .label {
-  color: #44546f;
-  font-weight: 600;
-}
-
-.verified-email strong {
-  display: block;
-  margin-top: 6px;
-  color: #172b4d;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.text-success {
-  color: #22a06b;
-  margin-left: 4px;
-}
-
-.mt-12 {
-  margin-top: 12px;
-}
-
-.mt-6 {
-  margin-top: 24px;
-}
+.text-success { color: #10b981; margin-left: 4px; }
+.mt-24 { margin-top: 24px; }
 
 .invite-form {
-  margin-top: 24px;
-}
-
-.password-hint {
-  font-size: 12px;
-  color: #626f86;
-  margin-top: 6px;
-}
-
-.terms-note {
-  font-size: 12px;
-  color: #626f86;
-  line-height: 1.5;
-  margin: 32px 0 24px;
-  text-align: center;
-}
-
-.terms-note a {
-  color: #0c66e4;
-  text-decoration: none;
-}
-
-.terms-note a:hover {
-  text-decoration: underline;
-}
-
-.primary-btn {
-  width: 100%;
-  min-height: 48px;
-  border-radius: 4px;
-  background: #0c66e4 !important;
-  border-color: #0c66e4 !important;
-  font-weight: 600;
-  font-size: 15px;
-}
-
-.primary-btn:disabled {
-  background: #b3d4ff !important;
-  border-color: #b3d4ff !important;
-  cursor: not-allowed;
-}
-
-.state-block {
-  text-align: center;
-}
-
-.state-block i {
-  color: #0c66e4;
-  font-size: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   margin-bottom: 24px;
 }
 
-.state-block i.success {
-  color: #22a06b;
-}
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field-label { font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
 
-.state-block i.danger {
-  color: #e2483d;
-}
+.password-hint { font-size: 11px; color: var(--color-text-muted); margin-top: 4px; }
 
-:deep(.el-form-item__label) {
-  color: #44546f;
-  font-weight: 700;
-  padding-bottom: 6px;
+.terms-note {
   font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-bottom: 24px;
+  text-align: center;
 }
 
-:deep(.el-input__wrapper) {
-  border-radius: 4px;
-  box-shadow: 0 0 0 2px #dfe1e6 inset;
-}
+.terms-note a { color: var(--color-accent); text-decoration: none; }
 
-:deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 2px #0c66e4 inset;
-}
+.state-block { text-align: center; }
+.state-block i { color: var(--color-accent); font-size: 48px; margin-bottom: 24px; }
+.state-block i.success { color: #10b981; }
+.state-block i.danger { color: #ef4444; }
 
 @media (max-width: 560px) {
-  .invite-card {
-    padding: 32px 24px;
-  }
-  .otp-box {
-    width: 44px;
-    height: 52px;
-    font-size: 24px;
-  }
+  .invite-card { padding: 32px 24px; }
+  .otp-box { width: 44px; height: 52px; font-size: 24px; }
 }
 </style>

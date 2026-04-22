@@ -1,18 +1,18 @@
 <template>
   <el-dialog
     v-model="visibleComp"
-    class="plane-create-modal"
+    class="standard-dialog no-header-dialog"
     :show-close="false"
     :before-close="handleClose"
     append-to-body
     width="760px"
     top="6vh"
   >
-    <button class="plane-close-btn" @click="handleClose">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
-
     <div class="modal-content-inner">
+      <button class="floating-close-btn" @click="handleClose">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
       <div class="plane-cover-header" :style="{ background: selectedCover.value }">
         <button class="change-cover-btn" @click="showCoverPicker = !showCoverPicker">
           Change cover
@@ -49,32 +49,32 @@
           </button>
         </div>
 
-        <el-form label-position="top" @submit.prevent>
-          <div class="plane-form-row">
-            <div class="plane-group flex-1">
-              <label>Project name</label>
-              <input v-model="form.name" type="text" class="plane-input" placeholder="Name" />
-              <p v-if="submitted && !form.name" class="error-msg">Name is required</p>
+        <div class="form-container">
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="field-label">Project name</label>
+              <input v-model="form.name" type="text" class="underlined-input" placeholder="Project Name" />
+              <p v-if="submitted && !form.name" class="error-text">Name is required</p>
             </div>
-            <div class="plane-group w-140">
-              <label>Project ID <i class="fa-regular fa-circle-question info-icon"></i></label>
-              <input v-model="form.key" type="text" class="plane-input" placeholder="ID" />
+            <div class="form-group w-140">
+              <label class="field-label">Project ID</label>
+              <input v-model="form.key" type="text" class="underlined-input" placeholder="ID" maxlength="8" />
             </div>
           </div>
 
-          <div class="plane-group">
-            <label>Description</label>
+          <div class="form-group">
+            <label class="field-label">Description</label>
             <textarea
               v-model="form.description"
-              class="plane-textarea"
-              rows="4"
-              placeholder="Description"
+              class="compact-textarea-field"
+              rows="3"
+              placeholder="What is this project for?"
             ></textarea>
           </div>
 
-          <div class="project-settings-grid">
-            <div class="plane-group">
-              <label>Visibility</label>
+          <div class="settings-grid">
+            <div class="form-group">
+              <label class="field-label">Visibility</label>
               <div class="segmented-control">
                 <button
                   type="button"
@@ -82,7 +82,7 @@
                   @click="form.networkType = 'Public'"
                 >
                   <i class="fa-solid fa-globe"></i>
-                  Public
+                  <span>Public</span>
                 </button>
                 <button
                   type="button"
@@ -90,32 +90,31 @@
                   @click="form.networkType = 'Private'"
                 >
                   <i class="fa-solid fa-lock"></i>
-                  Private
+                  <span>Private</span>
                 </button>
               </div>
             </div>
 
-            <div class="plane-group">
-              <label>Lead</label>
-              <select v-model="form.leadUserId" class="plane-select">
-                <option value="">No lead</option>
-                <option v-for="member in workspaceMembers" :key="member.userId" :value="member.userId">
-                  {{ member.fullName || member.email }}
-                </option>
-              </select>
-              <p v-if="membersLoading" class="hint-msg">Loading workspace members...</p>
-              <p v-else-if="!workspaceMembers.length" class="hint-msg">No workspace members found.</p>
+            <div class="form-group">
+              <label class="field-label">Lead</label>
+              <el-select v-model="form.leadUserId" class="full-width-select" placeholder="Select project lead">
+                <el-option value="" label="No lead" />
+                <el-option v-for="member in workspaceMembers" :key="member.userId" :label="member.fullName || member.email" :value="member.userId" />
+              </el-select>
             </div>
           </div>
-        </el-form>
+        </div>
       </div>
 
-      <div class="plane-modal-footer">
-        <button class="plane-ghost-btn" @click="handleClose">Cancel</button>
-        <button class="plane-primary-btn" :class="{ 'opacity-50': loading }" :disabled="loading" @click="handleSubmit">
-          <i v-if="loading" class="fa-solid fa-circle-notch fa-spin"></i>
-          Create project
-        </button>
+      <div class="dialog-footer-standard">
+        <div class="footer-spacer"></div>
+        <div class="footer-actions">
+          <button class="btn-secondary-sm" @click="handleClose">Cancel</button>
+          <button class="btn-primary-sm" :disabled="loading" @click="handleSubmit">
+            <i v-if="loading" class="fa-solid fa-spinner fa-spin"></i>
+            <span>Create project</span>
+          </button>
+        </div>
       </div>
     </div>
   </el-dialog>
@@ -137,7 +136,7 @@ const coverOptions = [
   { name: 'Ocean', value: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' },
   { name: 'Forest', value: 'linear-gradient(135deg, #047857 0%, #84cc16 100%)' },
   { name: 'Sunset', value: 'linear-gradient(135deg, #f97316 0%, #db2777 100%)' },
-  { name: 'Graphite', value: 'linear-gradient(135deg, #27272a 0%, #71717a 100%)' },
+  { name: 'Graphite', value: 'linear-gradient(135deg, #3f3f46 0%, #18181b 100%)' },
   { name: 'Violet', value: 'linear-gradient(135deg, #7c3aed 0%, #ec4899 100%)' }
 ]
 
@@ -162,7 +161,6 @@ const visibleComp = computed({
 const formatLocalIsoDate = (value) => {
   const date = value instanceof Date ? value : new Date(value)
   if (Number.isNaN(date.getTime())) return null
-
   const year = date.getFullYear()
   const month = `${date.getMonth() + 1}`.padStart(2, '0')
   const day = `${date.getDate()}`.padStart(2, '0')
@@ -172,7 +170,6 @@ const formatLocalIsoDate = (value) => {
 const form = ref(defaultForm())
 const submitted = ref(false)
 const loading = ref(false)
-const membersLoading = ref(false)
 const workspaceMembers = ref([])
 const showCoverPicker = ref(false)
 const showIconPicker = ref(false)
@@ -188,9 +185,7 @@ watch(() => form.value.name, (newVal) => {
 })
 
 watch(() => props.visible, (isVisible) => {
-  if (isVisible) {
-    fetchWorkspaceMembers()
-  }
+  if (isVisible) fetchWorkspaceMembers()
 })
 
 const selectCover = (cover) => {
@@ -204,46 +199,32 @@ const selectIcon = (icon) => {
 }
 
 const fetchWorkspaceMembers = async () => {
-  if (workspaceMembers.value.length || membersLoading.value) return
-
-  membersLoading.value = true
   try {
     const workspacesRes = await axiosClient.get('/workspaces')
     const workspaces = workspacesRes.data?.data || []
     const workspaceId = workspaces[0]?.id
-
-    if (!workspaceId) {
-      workspaceMembers.value = []
-      return
-    }
+    if (!workspaceId) return
 
     const membersRes = await axiosClient.get(`/workspaces/${workspaceId}/members`)
     workspaceMembers.value = (membersRes.data?.data || []).map((member) => ({
       userId: member.userId || member.UserId,
       fullName: member.fullName || member.FullName,
-      email: member.email || member.Email,
-      avatarUrl: member.avatarUrl || member.AvatarUrl
-    })).filter((member) => member.userId)
+      email: member.email || member.Email
+    })).filter((m) => m.userId)
   } catch (error) {
-    console.error('Fetch workspace members error:', error)
-    workspaceMembers.value = []
-  } finally {
-    membersLoading.value = false
+    console.error('Fetch members error:', error)
   }
 }
 
 const handleClose = () => {
   visibleComp.value = false
   submitted.value = false
-  showCoverPicker.value = false
-  showIconPicker.value = false
   form.value = defaultForm()
 }
 
 const handleSubmit = async () => {
   submitted.value = true
   if (!form.value.name) return
-
   loading.value = true
   try {
     const payload = {
@@ -251,20 +232,16 @@ const handleSubmit = async () => {
       key: form.value.key,
       description: form.value.description,
       startDate: formatLocalIsoDate(form.value.startDate),
-      endDate: null,
-      departmentId: null,
       networkType: form.value.networkType,
       cover: form.value.cover,
       icon: form.value.icon,
       leadUserId: form.value.leadUserId || null
     }
-
     const response = await axiosClient.post('/projects', payload)
     ElMessage.success(`Created project "${form.value.name}"`)
     emit('created', response.data?.data || response.data)
     handleClose()
   } catch (error) {
-    console.error('Create space error:', error)
     ElMessage.error(error.response?.data?.message || 'Could not create project')
   } finally {
     loading.value = false
@@ -272,312 +249,138 @@ const handleSubmit = async () => {
 }
 </script>
 
-<style>
-.plane-create-modal {
-  background: transparent !important;
-  box-shadow: none !important;
-  border-radius: 12px !important;
-  padding: 0 !important;
-}
-
-.plane-create-modal .el-dialog__header {
-  display: none !important;
-}
-
-.plane-create-modal .el-dialog__body {
-  padding: 0 !important;
-  background: transparent !important;
-}
-</style>
-
 <style scoped>
 .modal-content-inner {
-  background-color: #16181d;
-  border-radius: 12px;
-  border: 1px solid #27272a;
-  overflow: hidden;
   position: relative;
-  font-family: 'Inter', -apple-system, sans-serif;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  background: var(--color-surface);
+  border-radius: 12px;
 }
 
-.plane-close-btn {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
-  border: none;
-  color: #fff;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 10;
+.floating-close-btn {
+  position: absolute; top: 16px; right: 16px;
+  width: 32px; height: 32px; border-radius: 6px;
+  background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);
+  border: none; color: #fff; cursor: pointer; z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
 }
+.floating-close-btn:hover { background: rgba(0,0,0,0.5); transform: scale(1.05); }
 
 .plane-cover-header {
-  height: 190px;
-  width: 100%;
-  position: relative;
+  height: 180px; width: 100%; position: relative;
 }
 
 .change-cover-btn {
-  position: absolute;
-  bottom: 18px;
-  right: 24px;
-  background: #181a20;
-  color: #e4e4e7;
-  border: 1px solid #3f3f46;
-  border-radius: 6px;
-  padding: 8px 14px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.cover-popover,
-.icon-popover {
-  position: absolute;
-  z-index: 20;
-  background: #18181b;
-  border: 1px solid #3f3f46;
-  border-radius: 8px;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  position: absolute; bottom: 16px; right: 24px;
+  background: rgba(0,0,0,0.4); color: #fff;
+  border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+  padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
 }
 
 .cover-popover {
-  right: 24px;
-  bottom: 58px;
-  width: 300px;
-  padding: 10px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  position: absolute; bottom: 54px; right: 24px;
+  width: 300px; padding: 12px; background: var(--color-surface);
+  border: 1px solid var(--color-border); border-radius: 10px;
+  box-shadow: var(--shadow-xl); display: grid; grid-template-columns: 1fr 1fr; gap: 8px; z-index: 20;
 }
 
 .cover-swatch {
-  height: 58px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 6px;
-  color: #fff;
-  cursor: pointer;
-  display: flex;
-  align-items: flex-end;
-  padding: 8px;
-  font-size: 12px;
-  font-weight: 600;
+  height: 50px; border-radius: 6px; border: 2px solid transparent;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
+.cover-swatch.active { border-color: var(--color-accent); }
 
-.cover-swatch.active,
-.icon-choice.active {
-  outline: 2px solid #38bdf8;
-}
-
-.plane-modal-body {
-  padding: 0 32px 30px;
-  position: relative;
-}
+.plane-modal-body { padding: 0 32px 32px; position: relative; }
 
 .floating-emoji-selector {
-  width: 58px;
-  height: 58px;
-  background: #27272a;
-  border: 4px solid #16181d;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  margin-top: -29px;
-  margin-bottom: 24px;
-  cursor: pointer;
+  width: 64px; height: 64px; border-radius: 12px;
+  background: var(--color-surface); border: 4px solid var(--color-surface);
+  box-shadow: var(--shadow-md); display: flex; align-items: center; justify-content: center;
+  font-size: 32px; margin-top: -32px; margin-bottom: 24px; cursor: pointer; transition: all 0.2s;
 }
+.floating-emoji-selector:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
 
 .icon-popover {
-  top: 42px;
-  left: 32px;
-  width: 272px;
-  padding: 10px;
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
+  position: absolute; top: 40px; left: 32px;
+  width: 280px; padding: 12px; background: var(--color-surface);
+  border: 1px solid var(--color-border); border-radius: 10px;
+  box-shadow: var(--shadow-xl); display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; z-index: 20;
 }
 
 .icon-choice {
-  width: 34px;
-  height: 34px;
-  border-radius: 6px;
-  border: 1px solid transparent;
-  background: #27272a;
-  cursor: pointer;
-  font-size: 18px;
+  width: 36px; height: 36px; border-radius: 6px; border: 1px solid var(--color-border);
+  background: var(--color-bg); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center;
 }
+.icon-choice:hover { background: var(--color-surface-hover); }
+.icon-choice.active { border-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
 
-.plane-form-row,
-.project-settings-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 160px;
-  gap: 16px;
-  margin-bottom: 20px;
+.form-container { display: flex; flex-direction: column; gap: 24px; }
+.form-row { display: flex; gap: 24px; align-items: flex-end; }
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+
+.field-label { font-size: 12px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+.underlined-input {
+  background: transparent; border: none; border-bottom: 2px solid var(--color-border);
+  padding: 8px 0; font-size: 18px; font-weight: 600; color: var(--color-text-primary);
+  width: 100%; outline: none; transition: all 0.2s;
 }
+.underlined-input:focus { border-color: var(--color-accent); }
 
-.project-settings-grid {
-  grid-template-columns: 1fr 1fr;
-  margin-top: 20px;
-  margin-bottom: 0;
+.compact-textarea-field {
+  background: var(--color-bg); border: 1px solid var(--color-border);
+  border-radius: 8px; padding: 12px; font-size: 14px; color: var(--color-text-primary);
+  outline: none; transition: all 0.2s; resize: none;
 }
+.compact-textarea-field:focus { border-color: var(--color-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 15%, transparent); }
 
-.plane-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+.settings-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px; }
 
-.plane-group label {
-  font-size: 12px;
-  color: #a1a1aa;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.plane-input,
-.plane-textarea,
-.plane-select {
-  background-color: transparent;
-  border: 1px solid #27272a;
-  color: #e4e4e7;
-  font-family: inherit;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.2s, background 0.2s;
-  width: 100%;
-}
-
-.plane-input {
-  height: 38px;
-  border-width: 0 0 1px;
-  border-radius: 0;
-  padding: 8px 0;
-}
-
-.plane-textarea,
-.plane-select {
-  border-radius: 6px;
-  padding: 12px;
-}
-
-.plane-select {
-  height: 42px;
-  background: #18181b;
-}
-
-.plane-input:focus,
-.plane-textarea:focus,
-.plane-select:focus {
-  border-color: #38bdf8;
-}
-
-.segmented-control {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
+.segmented-control { display: flex; gap: 8px; background: var(--color-bg); padding: 4px; border-radius: 8px; border: 1px solid var(--color-border); }
 .segmented-control button {
-  height: 42px;
-  border-radius: 6px;
-  border: 1px solid #3f3f46;
-  background: transparent;
-  color: #d4d4d8;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-weight: 600;
+  flex: 1; height: 36px; border: none; background: transparent;
+  border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  gap: 8px; cursor: pointer; color: var(--color-text-secondary); font-size: 13px; font-weight: 600; transition: all 0.2s;
+}
+.segmented-control button.active { background: var(--color-surface); color: var(--color-accent); box-shadow: var(--shadow-sm); }
+
+.full-width-select { width: 100%; }
+
+.error-text { font-size: 11px; color: #ef4444; margin-top: 4px; }
+
+.dialog-footer-standard {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 32px 32px; border-top: 1px solid var(--color-border);
 }
 
-.segmented-control button.active {
-  background: #0f172a;
-  border-color: #38bdf8;
-  color: #fff;
-}
+.footer-actions { display: flex; gap: 12px; }
 
-.error-msg,
-.hint-msg {
-  font-size: 11px;
-  margin: 0;
+.btn-primary-sm {
+  background: var(--color-accent); color: #fff;
+  border: none; border-radius: 6px; padding: 10px 20px;
+  font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; gap: 8px;
 }
+.btn-primary-sm:hover:not(:disabled) { background: var(--color-accent-hover); transform: translateY(-1px); }
 
-.error-msg {
-  color: #ef4444;
+.btn-secondary-sm {
+  background: transparent; color: var(--color-text-secondary);
+  border: 1px solid var(--color-border); border-radius: 6px; padding: 10px 20px;
+  font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;
 }
+.btn-secondary-sm:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
 
-.hint-msg {
-  color: #71717a;
+.w-140 { width: 140px; }
+.flex-1 { flex: 1; }
+</style>
+
+<style>
+.no-header-dialog.el-dialog {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
 }
-
-.plane-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 32px;
-  border-top: 1px solid #27272a;
-}
-
-.plane-ghost-btn,
-.plane-primary-btn {
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.plane-ghost-btn {
-  background: transparent;
-  color: #a1a1aa;
-}
-
-.plane-ghost-btn:hover {
-  background: #27272a;
-  color: #e4e4e7;
-}
-
-.plane-primary-btn {
-  background: #0ea5e9;
-  color: white;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.plane-primary-btn:hover:not(:disabled) {
-  background: #0284c7;
-}
-
-.opacity-50 {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-@media (max-width: 760px) {
-  .plane-form-row,
-  .project-settings-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .cover-popover {
-    right: 12px;
-    width: calc(100% - 24px);
-  }
-}
+.no-header-dialog .el-dialog__header { display: none !important; }
+.no-header-dialog .el-dialog__body { padding: 0 !important; }
 </style>

@@ -67,7 +67,7 @@ const handleCommand = (command) => {
 .help-trigger-btn {
   border: 0;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 18px;
   cursor: pointer;
   width: 32px;
@@ -80,12 +80,12 @@ const handleCommand = (command) => {
 }
 
 .help-trigger-btn:hover {
-  color: var(--text-primary);
-  background-color: var(--hover-bg);
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-hover);
 }
 
 .dark-help-menu {
-  background: var(--bg-card);
+  background: var(--color-surface);
   border: none;
   width: 320px;
   padding: 0;
@@ -96,8 +96,8 @@ const handleCommand = (command) => {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  color: var(--text-primary);
-  border-bottom: 1px solid var(--border-color);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .help-header h3 {
@@ -111,15 +111,15 @@ const handleCommand = (command) => {
   background: transparent;
   cursor: pointer;
   font-size: 14px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .close-btn:hover {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 :deep(.el-dropdown-menu__item) {
-  color: var(--text-secondary) !important;
+  color: var(--color-text-secondary) !important;
   padding: 10px 20px !important;
   font-size: 14px !important;
   display: flex;
@@ -134,49 +134,51 @@ const handleCommand = (command) => {
 }
 
 :deep(.el-dropdown-menu__item:hover) {
-  background-color: var(--hover-bg) !important;
-  color: var(--text-primary) !important;
+  background-color: var(--color-surface-hover) !important;
+  color: var(--color-text-primary) !important;
 }
 
 :deep(.el-dropdown-menu__item--divided) {
-  border-top-color: var(--border-color) !important;
+  border-top-color: var(--color-border) !important;
 }
 
 .help-footer {
   display: flex;
   justify-content: space-evenly;
   padding: 16px 20px;
-  background-color: var(--bg-card);
-  border-top: 1px solid var(--border-color);
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
   margin-top: 8px;
 }
 
 .help-footer button {
   border: 0;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 12px;
   text-decoration: none;
   cursor: pointer;
 }
 
 .help-footer button:hover {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   text-decoration: underline;
 }
 </style>
 
 <style>
 .el-popper.help-dropdown-popper.global-help-popper {
-  background: var(--bg-card) !important;
-  border: 1px solid var(--border-color) !important;
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
   border-radius: 8px !important;
   padding: 0 !important;
   box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
 }
 
 .el-popper.help-dropdown-popper.global-help-popper .el-popper__arrow::before {
-  background: var(--bg-card) !important;
-  border-color: var(--border-color) !important;
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
 }
 </style>
+
+

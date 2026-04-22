@@ -22,7 +22,7 @@
            <el-dropdown trigger="click" @command="(cmd) => selectedTask.statusName = cmd">
              <div class="t-btn"><i :class="getStatusIcon(selectedTask?.statusName)"></i> <span>State</span> {{ selectedTask?.statusName || 'Todo' }}</div>
              <template #dropdown>
-               <el-dropdown-menu class="dark-dropdown">
+               <el-dropdown-menu class="theme-dropdown">
                  <el-dropdown-item v-for="status in projectStatuses" :key="status.id" :command="status.name"><i :class="getStatusIcon(status.name)" class="mr-2"></i> {{ status.displayName || status.name }}</el-dropdown-item>
                </el-dropdown-menu>
              </template>
@@ -32,12 +32,12 @@
            <el-dropdown  trigger="click" @command="(cmd) => selectedTask.priority = cmd">
              <div class="t-btn"><i :class="getPrioIcon(selectedTask?.priority)"></i> <span>Priority</span> {{ getPrioLabel(selectedTask?.priority) }}</div>
              <template #dropdown>
-               <el-dropdown-menu class="dark-dropdown">
+               <el-dropdown-menu class="theme-dropdown">
                  <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: #ef4444"></i> Urgent</el-dropdown-item>
                  <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: #f59e0b"></i> High</el-dropdown-item>
                  <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: #3b82f6"></i> Medium</el-dropdown-item>
-                 <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: #9ca3af"></i> Low</el-dropdown-item>
-                 <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-gray-500"></i> None</el-dropdown-item>
+                 <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: var(--color-text-muted)"></i> Low</el-dropdown-item>
+                 <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-muted"></i> None</el-dropdown-item>
                </el-dropdown-menu>
              </template>
            </el-dropdown>
@@ -51,11 +51,11 @@
                <input type="text" v-model="assigneeSearch" class="popover-search" placeholder="Type to search..." />
                 <div class="popover-list">
                   <div class="popover-item" v-for="user in filteredMembers" :key="user.userId" @click="toggleAssignee(user.userId)">
-                    <div class="avatar-xxs bg-gray-600 rounded-full w-5 h-5 flex-center text-white text-xs mr-2">{{ (user.fullName || user.email || 'U').charAt(0).toUpperCase() }}</div>
+                    <div class="avatar-xxs bg-accent-muted rounded-full w-5 h-5 flex-center text-white text-xs mr-2">{{ (user.fullName || user.email || 'U').charAt(0).toUpperCase() }}</div>
                     <span>{{ user.fullName || user.email }}</span>
                     <i v-if="getAssigneeIds().includes(user.userId)" class="fa-solid fa-check ms-auto"></i>
                   </div>
-                  <div v-if="!filteredMembers.length" class="text-xs text-center text-gray-500 py-2">No assignees found.</div>
+                  <div v-if="!filteredMembers.length" class="text-xs text-center text-muted py-2">No assignees found.</div>
                 </div>
                 <div class="assignee-progress-list" v-if="selectedAssigneeRows.length">
                   <div class="assignee-progress-title">Progress by assignee</div>
@@ -85,11 +85,11 @@
                <input type="text" v-model="labelSearch" class="popover-search" placeholder="Search" />
                <div class="popover-list">
                  <div class="popover-item" v-for="l in filteredLabels" :key="l.id" @click="toggleSelectedLabel(l.id)">
-                   <div class="popover-c-circle mr-2 w-3 h-3 rounded-full" :style="{ backgroundColor: l.color || '#3b82f6' }"></div>
+                   <div class="popover-c-circle mr-2 w-3 h-3 rounded-full" :style="{ backgroundColor: l.color || 'var(--color-accent)' }"></div>
                    <span>{{ l.name }}</span>
                    <i v-if="selectedTask?.labelIds?.includes(l.id)" class="fa-solid fa-check ms-auto"></i>
                  </div>
-                 <div class="popover-item pointer hover-bg-dark-1" v-if="filteredLabels.length === 0 && labelSearch" @click="createLabel(labelSearch)">
+                 <div class="popover-item pointer hover-bg-accent" v-if="filteredLabels.length === 0 && labelSearch" @click="createLabel(labelSearch)">
                    <span>Add "{{ labelSearch }}"</span>
                  </div>
                </div>
@@ -137,7 +137,7 @@
                    <span class="truncate flex-1">{{ c.name }}</span>
                    <i v-if="selectedTask?.sprintId === c.id" class="fa-solid fa-check ms-auto"></i>
                  </div>
-                 <div v-if="!filteredCycles.length" class="text-xs text-center text-gray-500 py-2">No cycles setup.</div>
+                 <div v-if="!filteredCycles.length" class="text-xs text-center text-muted py-2">No cycles setup.</div>
                </div>
              </div>
            </el-popover>
@@ -162,23 +162,23 @@
            </el-popover>
 
            <!-- PARENT -->
-           <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover dark" :width="350" @show="parentSearch = ''">
+           <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover" :width="350" @show="parentSearch = ''">
              <template #reference>
                <div class="t-btn"><i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i> {{ getParentId(selectedTask) ? 'Parent selected' : 'Add parent' }}</div>
              </template>
-             <div class="popover-content h-[250px] flex flex-col bg-[#1E2025]">
-               <div class="p-2 border-b border-gray-700">
+             <div class="popover-content h-[250px] flex flex-col bg-surface-elevation">
+               <div class="p-2 border-b border-theme">
                  <div class="relative flex items-center">
-                   <i class="fa-solid fa-magnifying-glass absolute left-2 text-gray-400"></i>
-                   <input type="text" v-model="parentSearch" class="w-full bg-transparent border-none text-white pl-8 focus:outline-none" placeholder="Type to search..." />
+                   <i class="fa-solid fa-magnifying-glass absolute left-2 text-muted"></i>
+                   <input type="text" v-model="parentSearch" class="w-full bg-transparent border-none text-primary pl-8 focus:outline-none" placeholder="Type to search..." />
                  </div>
                </div>
                <div class="flex-1 overflow-y-auto no-scrollbar p-2">
-                 <div class="popover-item text-xs text-gray-400 hover:text-white cursor-pointer p-2 rounded hover:bg-gray-700 flex items-center" @click="setTaskParent(selectedTask, null)">
+                 <div class="popover-item text-xs text-muted hover:text-primary cursor-pointer p-2 rounded hover:bg-surface-hover flex items-center" @click="setTaskParent(selectedTask, null)">
                    <i class="fa-solid fa-ban mr-2"></i> Remove parent
                  </div>
-                 <div class="popover-item text-xs text-gray-300 hover:text-white cursor-pointer p-2 rounded hover:bg-gray-700 flex items-center" v-for="pt in filteredParents" :key="pt.id" @click="setTaskParent(selectedTask, pt.id)">
-                   <span class="text-gray-500 mr-3 w-16 truncate font-mono">{{ pt.sequenceId || pt.id.substring(0,8) }}</span>
+                 <div class="popover-item text-xs text-secondary hover:text-primary cursor-pointer p-2 rounded hover:bg-surface-hover flex items-center" v-for="pt in filteredParents" :key="pt.id" @click="setTaskParent(selectedTask, pt.id)">
+                   <span class="text-muted mr-3 w-16 truncate font-mono">{{ pt.sequenceId || pt.id.substring(0,8) }}</span>
                    <span class="truncate flex-1">{{ pt.title }}</span>
                    <i v-if="getParentId(selectedTask) === pt.id" class="fa-solid fa-check ml-2 text-blue-500"></i>
                  </div>
@@ -208,7 +208,7 @@
                <el-dropdown trigger="click" @command="handleTaskMenuCommand">
                  <button class="icon-btn icon-action-btn" title="More actions"><i class="fa-solid fa-ellipsis"></i></button>
                  <template #dropdown>
-                   <el-dropdown-menu class="dark-dropdown">
+                   <el-dropdown-menu class="theme-dropdown">
                      <el-dropdown-item command="copy"><i class="fa-solid fa-link mr-2"></i> Copy link</el-dropdown-item>
                      <el-dropdown-item command="duplicate"><i class="fa-regular fa-clone mr-2"></i> Duplicate</el-dropdown-item>
                      <el-dropdown-item command="archive"><i class="fa-solid fa-box-archive mr-2"></i> Archive soon</el-dropdown-item>
@@ -298,14 +298,14 @@
                  <template #reference>
                    <button class="s-btn"><i class="fa-solid fa-code-fork"></i> Add relation</button>
                  </template>
-                 <div class="popover-content h-[200px] flex flex-col bg-[#1E2025]">
-                   <div class="p-2 border-b border-gray-700">
+                 <div class="popover-content">
+                   <div class="p-2 border-b border-theme">
                      <div class="relative flex items-center">
-                       <i class="fa-solid fa-magnifying-glass absolute left-2 text-gray-400"></i>
-                       <input type="text" class="w-full bg-transparent border-none text-white pl-8 focus:outline-none" placeholder="Search to relate..." />
+                       <i class="fa-solid fa-magnifying-glass absolute left-2 text-muted"></i>
+                       <input type="text" class="w-full bg-transparent border-none text-primary pl-8 focus:outline-none" placeholder="Search to relate..." />
                      </div>
                    </div>
-                   <div class="flex-1 flex-center justify-center py-4 text-gray-500 text-xs">
+                   <div class="flex-1 flex-center justify-center py-4 text-muted text-xs">
                      No related items
                    </div>
                  </div>
@@ -351,7 +351,7 @@
                       <span>{{ getStatusLabel(subtask.statusName) }}</span>
                     </button>
                     <template #dropdown>
-                      <el-dropdown-menu class="dark-dropdown">
+                      <el-dropdown-menu class="theme-dropdown">
                         <el-dropdown-item v-for="status in projectStatuses" :key="`${subtask.id}-${status.id}`" :command="status.name">
                           <i :class="getStatusIcon(status.name)" class="mr-2"></i>
                           {{ status.displayName || status.name }}
@@ -366,12 +366,12 @@
                       <span>{{ getPrioLabel(subtask.priority) }}</span>
                     </button>
                     <template #dropdown>
-                      <el-dropdown-menu class="dark-dropdown">
-                        <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: #ef4444"></i> Urgent</el-dropdown-item>
-                        <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: #f59e0b"></i> High</el-dropdown-item>
-                        <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: #3b82f6"></i> Medium</el-dropdown-item>
-                        <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: #9ca3af"></i> Low</el-dropdown-item>
-                        <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-gray-500"></i> None</el-dropdown-item>
+                      <el-dropdown-menu class="theme-dropdown">
+                        <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: var(--color-danger)"></i> Urgent</el-dropdown-item>
+                        <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: var(--color-warning)"></i> High</el-dropdown-item>
+                        <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: var(--color-accent)"></i> Medium</el-dropdown-item>
+                        <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: var(--color-text-muted)"></i> Low</el-dropdown-item>
+                        <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-muted"></i> None</el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
                   </el-dropdown>
@@ -490,12 +490,12 @@
                    <el-dropdown  trigger="click" @command="(cmd) => selectPriority(cmd)">
                      <div class="property-trigger" :class="{ 'muted-val': !selectedTask?.priority }"><i :class="getPrioIcon(selectedTask?.priority)"></i><span>Priority</span><span class="property-value">{{ getPrioLabel(selectedTask?.priority) }}</span></div>
                      <template #dropdown>
-                       <el-dropdown-menu class="dark-dropdown">
-                         <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: #ef4444"></i> Urgent</el-dropdown-item>
-                         <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: #f59e0b"></i> High</el-dropdown-item>
-                         <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: #3b82f6"></i> Medium</el-dropdown-item>
-                         <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: #9ca3af"></i> Low</el-dropdown-item>
-                         <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-gray-500"></i> None</el-dropdown-item>
+                       <el-dropdown-menu class="theme-dropdown">
+                         <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: var(--color-danger)"></i> Urgent</el-dropdown-item>
+                         <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: var(--color-warning)"></i> High</el-dropdown-item>
+                         <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: var(--color-accent)"></i> Medium</el-dropdown-item>
+                         <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: var(--color-text-muted)"></i> Low</el-dropdown-item>
+                         <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-muted"></i> None</el-dropdown-item>
                        </el-dropdown-menu>
                      </template>
                    </el-dropdown>
@@ -613,7 +613,7 @@
                <div class="p-row">
                   <div class="p-label"><i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i> Parent</div>
                   <div class="p-val">
-                    <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover dark" :width="340" @show="parentSearch = ''">
+                    <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="340" @show="parentSearch = ''">
                       <template #reference>
                         <button class="property-trigger" :class="{ 'muted-val': !currentParentId }">
                           <i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i>
@@ -814,7 +814,7 @@
                        <i class="fa-regular fa-image icon-hover" @mousedown.prevent="triggerCommentImageUpload"></i> 
                        <i class="fa-solid fa-paperclip icon-hover" @mousedown.prevent="triggerCommentFileUpload"></i>
                      </div>
-                     <button class="c-submit" :style="commentHasContent ? { background: 'oklch(0.6311 0.126281 238.01)', color: '#fff', cursor: 'pointer' } : {}" :disabled="!commentHasContent" @click="submitComment">Comment</button>
+                     <button class="c-submit" :style="commentHasContent ? { background: 'var(--color-accent)', color: '#fff', cursor: 'pointer' } : {}" :disabled="!commentHasContent" @click="submitComment">Comment</button>
                   </div>
                </div>
             </div>
@@ -978,21 +978,21 @@ const getPrioLabel = (p) => {
 };
 
 const getPrioIcon = (p) => {
-    if (p===1) return 'fa-solid fa-angles-up text-red-500';
-    if (p===2) return 'fa-solid fa-chevron-up text-yellow-500';
-    if (p===3) return 'fa-solid fa-minus text-blue-500';
-    if (p===4) return 'fa-solid fa-arrow-down text-gray-400';
-    return 'fa-solid fa-ban text-gray-500';
+    if (p===1) return 'fa-solid fa-angles-up';
+    if (p===2) return 'fa-solid fa-chevron-up';
+    if (p===3) return 'fa-solid fa-minus';
+    if (p===4) return 'fa-solid fa-arrow-down';
+    return 'fa-solid fa-ban';
 };
 
 const getStatusIcon = (s) => {
     const st = (s||'').toUpperCase();
-    if(st.includes('CANCEL')) return 'fa-regular fa-circle-xmark text-red-500';
-    if(st.includes('DONE')) return 'fa-regular fa-circle-check text-green-500';
-    if(st.includes('PROGRESS')) return 'fa-solid fa-circle-half-stroke text-yellow-500';
-    if(st.includes('REVIEW')) return 'fa-regular fa-circle-play text-blue-500';
-    if(st.includes('TODO')) return 'fa-regular fa-circle text-gray-400';
-    return 'fa-solid fa-circle-dashed text-gray-500';
+    if(st.includes('CANCEL')) return 'fa-regular fa-circle-xmark';
+    if(st.includes('DONE')) return 'fa-regular fa-circle-check';
+    if(st.includes('PROGRESS')) return 'fa-solid fa-circle-half-stroke';
+    if(st.includes('REVIEW')) return 'fa-regular fa-circle-play';
+    if(st.includes('TODO')) return 'fa-regular fa-circle';
+    return 'fa-solid fa-circle-dashed';
 };
 
 const getStatusLabel = (statusName) => statusName || 'State';
@@ -1514,19 +1514,6 @@ const toggleSubscription = async () => {
         ElMessage.warning('Cần tạo work item trước khi subscribe.');
         return;
     }
-    if (props.selectedTask?.plannedStartDate && props.selectedTask.plannedStartDate < getTodayDateString()) {
-        ElMessage.warning('Cannot select a past start date.');
-        return;
-    }
-    if (props.selectedTask?.dueDate && props.selectedTask.dueDate < getTodayDateString()) {
-        ElMessage.warning('Cannot select a past due date.');
-        return;
-    }
-    if (props.selectedTask?.plannedStartDate && props.selectedTask?.dueDate && props.selectedTask.dueDate < props.selectedTask.plannedStartDate) {
-        ElMessage.warning('Due date cannot be before start date.');
-        return;
-    }
-
     try {
         const response = await axiosClient.post(`/projects/${props.projectId}/WorkTasks/${props.selectedTask.id}/subscription`);
         const subscribed = Boolean(response.data?.data?.isSubscribed);
@@ -1537,9 +1524,6 @@ const toggleSubscription = async () => {
     } catch (error) {
         ElMessage.error(error.response?.data?.message || 'Không thể cập nhật trạng thái theo dõi');
     }
-
-    return;
-    ElMessage.success(isSubscribed.value ? "Đã theo dõi công việc" : "Đã hủy theo dõi công việc");
 };
 
 const handleTaskMenuCommand = (command) => {
@@ -2412,1021 +2396,264 @@ watch(() => props.selectedTask, (newTask) => {
 </script>
 
 <style scoped>
-/* GENERAL PANEL STYLING */
 .task-modal-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  z-index: 1500;
+  inset: 0;
+  z-index: 2000;
+  background: color-mix(in srgb, black 50%, transparent);
   display: flex;
-  justify-content: center;
   align-items: center;
-  font-family: 'Inter', sans-serif;
-  color: #E5E7EB;
+  justify-content: center;
+  backdrop-filter: blur(2px);
 }
 
-/* UTILITIES */
-.flex-wrapper { display: flex; align-items: center; }
-.flex-center { display: flex; align-items: center; }
-.flex-between { display: flex; justify-content: space-between; align-items: center; }
-.gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; } .gap-5 { gap: 20px; } .gap-8 { gap: 32px; }
-.text-muted { color: #A1A1AA; }
-.text-primary { color: #38BDF8; }
-.bg-dark { background: #16181D; }
-.bg-dark-2 { background: #111111; }
-.border-gray { border-color: #27272A; }
-.icon-btn { cursor: pointer; transition: color 0.2s; } .icon-btn:hover { color: #E5E7EB; }
-.icon-hover { cursor: pointer; padding: 4px; border-radius: 4px; } .icon-hover:hover { background: #27272A; }
-.icon-hover.is-active {
-  background: #1D4ED8;
-  color: #FFFFFF;
+[data-theme='dark'] .task-modal-overlay {
+  background: rgba(0, 0, 0, 0.6);
 }
 
-/* CENTRERED CREATION MODAL */
+[data-theme='light'] .task-modal-overlay {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* CREATE MODAL */
 .create-centered-modal {
-  width: 780px;
-  background: #101010;
-  border: 1px solid #27272A;
-  border-radius: 8px;
+  width: min(600px, 95vw);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 2px; /* Sharp UI */
   padding: 24px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 24px 48px rgba(0,0,0,0.8);
-  font-family: inherit;
+  box-shadow: var(--shadow-xl);
 }
 
 .cm-title {
   font-size: 18px;
-  font-weight: 600;
-  color: #E4E4E7;
-  margin: 0 0 16px 0;
-}
-
-.cm-badge-row {
+  font-weight: 700;
   margin-bottom: 20px;
-}
-
-.cm-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
-  border: 1px solid #27272A;
-  border-radius: 4px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #E4E4E7;
-  background-color: transparent;
+  color: var(--color-text-primary);
 }
 
 .cm-form-group {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.cm-inputbox {
-  background: #18191B;
-  border: 1px solid #27272A;
-  border-radius: 6px;
-  padding: 12px 16px;
-  font-size: 15px;
-  color: #E4E4E7;
-  outline: none;
-  transition: border-color 0.2s;
-  width: 100%;
-}
-.cm-inputbox::placeholder { color: #52525B; font-weight: 500; }
-.cm-inputbox:focus { border-color: #38BDF8; }
-
-.cm-textareabox {
-  background: #18191B;
-  border: 1px solid #27272A;
-  border-radius: 6px;
-  padding: 16px;
-  font-size: 15px;
-  color: #E4E4E7;
-  outline: none;
-  resize: none;
-  height: 180px;
-  width: 100%;
-  transition: border-color 0.2s;
-}
-.cm-textareabox::placeholder { color: #52525B; font-weight: 500; }
-.cm-textareabox:focus { border-color: #38BDF8; }
-
-.cm-toolbar-row {
-  border-top: 1px solid #27272A;
-  padding-top: 16px;
-  display: flex;
-  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 24px;
 }
 
-.cm-toolbar-row .t-btn {
+.cm-inputbox, .cm-textareabox {
+  width: 100%;
+  background: var(--color-input-bg);
+  border: 1px solid var(--color-input-border);
+  border-radius: 2px;
+  padding: 12px 14px;
+  color: var(--color-text-primary);
+  outline: none;
+  font-size: 14px;
+}
+
+.cm-inputbox:focus, .cm-textareabox:focus {
+  border-color: var(--color-accent);
+}
+
+.cm-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.t-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: transparent;
-  border: 1px solid #27272A;
-  color: #E4E4E7;
-  border-radius: 4px;
   padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 500;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s;
 }
-.cm-toolbar-row .t-btn:hover { background: #27272A; border-color: #3F3F46; }
+
+.t-btn:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
+}
 
 .cm-footer-row {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 16px;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
 }
 
-.cm-t-more {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-right: 8px;
-}
-.cm-t-more span {
-  font-size: 13px;
-  color: #A1A1AA;
+.btn-save {
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 2px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.btn-discard { 
-  background: transparent; 
-  border: 1px solid #27272A; 
-  padding: 8px 16px; 
-  border-radius: 6px; 
-  font-size: 14px;
-  font-weight: 500;
-  color: #E4E4E7; 
-  cursor: pointer; 
-  transition: background 0.2s;
+.btn-discard {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  padding: 8px 20px;
+  border-radius: 2px;
+  cursor: pointer;
 }
-.btn-discard:hover { background: #1E1F21; }
 
-.btn-save { 
-  background: #0EA5E9; 
-  border: none; 
-  padding: 8px 24px; 
-  border-radius: 6px; 
-  color: white; 
-  font-size: 14px;
-  font-weight: 500; 
-  cursor: pointer; 
-  transition: background 0.2s; 
-}
-.btn-save:hover { background: #0284C7; }
-
-/* SLIDE IN SIDE PANEL (TASK DETAIL) */
+/* SIDE PANEL */
 .task-side-panel {
   position: absolute;
-  top: 0; right: 0; bottom: 0;
-  width: 900px;
-  max-width: 95vw;
-  background: #151515;
-  border-left: 1px solid #27272A;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(800px, 90vw);
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  box-shadow: -10px 0 30px rgba(0,0,0,0.5);
-  animation: slideRight 0.3s ease-out;
-  font-family: inherit;
+  box-shadow: var(--shadow-xl);
 }
-@keyframes slideRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
 
 .sp-header {
-  height: 56px;
-  border-bottom: 1px solid #27272A;
+  height: 54px;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  padding: 0 24px;
-  flex-shrink: 0;
-}
-.sph-left, .sph-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  color: #A1A1AA;
-}
-.unsub-btn {
-  background: transparent;
-  border: 1px solid #3F3F46;
-  border-radius: 4px;
-  padding: 6px 12px;
-  color: #E4E4E7;
-  font-size: 13px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-.unsub-btn:hover { background: #27272A; }
-.icon-action-btn {
-  border: none;
-  background: transparent;
-  color: #A1A1AA;
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 4px;
-}
-.icon-action-btn:hover {
-  background: #27272A;
-  color: #E4E4E7;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .sp-body {
   flex: 1;
   overflow-y: auto;
-  padding: 32px 32px 80px 32px;
+  padding: 32px 40px;
 }
-.sp-body::-webkit-scrollbar { width: 6px; }
-.sp-body::-webkit-scrollbar-thumb { background: #3F3F46; border-radius: 4px; }
 
 .sp-breadcrumb {
-  font-size: 14px;
-  font-weight: 500;
-  color: #A1A1AA;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-muted);
   margin-bottom: 12px;
 }
 
 .sp-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: #E4E4E7;
-  margin: 0 0 12px 0;
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: 24px;
   outline: none;
-}
-.sp-title:focus { border-bottom: 1px dashed #38BDF8; }
-
-.sp-desc {
-  font-size: 16px;
-  color: #A1A1AA;
-  margin: 0 0 40px 0;
-  outline: none;
-}
-
-.description-editor-shell {
-  margin-bottom: 28px;
-  border: 1px solid #27272A;
-  border-radius: 10px;
-  background: #111111;
-}
-
-.description-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 10px 12px;
-  border-bottom: 1px solid #27272A;
-  flex-wrap: wrap;
-}
-
-.floating-toolbar {
-  position: fixed;
-  z-index: 2600;
-  background: #111317;
-  border: 1px solid #27272A;
-  border-radius: 8px;
-  box-shadow: 0 12px 28px rgba(0,0,0,.35);
-  padding: 8px;
-}
-.format-select, .color-trigger {
-  background: #16181D;
-  border: 1px solid #3F3F46;
-  color: #E4E4E7;
-  border-radius: 6px;
-  padding: 5px 8px;
-}
-.color-menu { position: relative; }
-.color-palette {
-  display: none;
-  position: absolute;
-  top: 34px;
-  left: 0;
-  width: 184px;
-  grid-template-columns: repeat(8, 18px);
-  gap: 6px;
-  padding: 10px;
-  background: #111317;
-  border: 1px solid #27272A;
-  border-radius: 8px;
-}
-.color-menu:hover .color-palette { display: grid; }
-.color-palette button {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  border: 1px solid #3F3F46;
-  cursor: pointer;
+  color: var(--color-text-primary);
 }
 
 .rich-editor {
-  min-height: 120px;
-}
-
-.rich-editor:empty::before {
-  content: attr(data-placeholder);
-  color: #52525B;
-}
-
-.comment-editor {
-  min-height: 90px;
-}
-
-.embedded-image {
-  max-width: 100%;
-  border-radius: 8px;
-  margin: 8px 0;
-}
-
-.sp-sub-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
-  color: #A1A1AA;
-}
-.sp-edit-info {
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.sp-toolbar {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 40px;
-}
-.sp-toolbar .s-btn {
-  background: transparent;
-  border: 1px solid #27272A;
-  border-radius: 6px;
-  padding: 8px 14px;
-  color: #E4E4E7;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: background 0.2s;
-}
-.sp-toolbar .s-btn:hover { background: #1E1F21; border-color: #3F3F46; }
-
-.quick-subtask-box {
-  border: 1px solid #27272A;
-  border-radius: 8px;
-  background: #111111;
-  padding: 12px;
-  margin: -20px 0 28px;
-}
-
-.quick-subtask-input {
-  width: 100%;
-  background: transparent;
-  border: 1px solid #27272A;
-  border-radius: 6px;
-  color: #E4E4E7;
-  padding: 10px 12px;
+  min-height: 60px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
   outline: none;
 }
 
-.quick-subtask-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.subtask-toggle-row {
-  margin: -10px 0 14px;
-}
-
-.subtask-toggle-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: transparent;
-  border: 1px solid #27272A;
-  color: #D4D4D8;
-  border-radius: 999px;
-  padding: 6px 12px;
-  cursor: pointer;
-}
-
-.quick-subtask-cancel,
-.quick-subtask-save {
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.quick-subtask-cancel {
-  border: 1px solid #3F3F46;
-  background: transparent;
-  color: #D4D4D8;
-}
-
-.quick-subtask-save {
-  border: none;
-  background: #0EA5E9;
-  color: #fff;
-}
-
-.subtask-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: -10px 0 28px;
-}
-
-.subtask-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid #27272A;
-  border-radius: 8px;
-  background: #111111;
-  color: #E4E4E7;
-  text-align: left;
-}
-
-.subtask-item:hover {
-  border-color: #3F3F46;
-  background: #17181C;
-}
-
-.subtask-open {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  text-align: left;
-}
-
-.subtask-seq {
-  color: #71717A;
-  font-size: 12px;
-  min-width: 70px;
-}
-
-.subtask-title {
-  font-size: 13px;
-  color: #D4D4D8;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.subtask-controls {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.subtask-chip,
-.subtask-progress {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid #27272A;
-  border-radius: 999px;
-  background: #0D0F11;
-  color: #D4D4D8;
-  padding: 5px 10px;
-  font-size: 12px;
-}
-
-.subtask-chip {
-  cursor: pointer;
-}
-
-.subtask-chip:hover {
-  border-color: #3F3F46;
-  background: #17181C;
-}
-
-.subtask-progress {
-  color: #A1A1AA;
-}
-
-.subtask-progress input {
-  width: 48px;
-  border: none;
-  background: transparent;
-  color: #E4E4E7;
-  font-size: 12px;
-  text-align: right;
-}
-
-.subtask-progress input:disabled {
-  color: #71717A;
-  cursor: not-allowed;
-}
-
-.parent-context-banner {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  margin: 8px 0 12px;
-  padding: 6px 10px;
-  border: 1px solid #1F2937;
-  border-radius: 999px;
-  background: #0F172A;
-}
-
-.parent-context-label {
-  color: #94A3B8;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.parent-context-link {
-  border: none;
-  background: transparent;
-  color: #38BDF8;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.task-progress-editor {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.task-progress-input {
-  width: 72px;
-  border: 1px solid #27272A;
-  border-radius: 6px;
-  background: #111111;
-  color: #E4E4E7;
-  padding: 6px 8px;
-  font-size: 13px;
-}
-
-.task-progress-input:disabled {
-  color: #71717A;
-  cursor: not-allowed;
-}
-
-.task-progress-suffix {
-  color: #A1A1AA;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.task-progress-hint {
-  color: #71717A;
-  font-size: 12px;
-}
-
-.sp-section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #E4E4E7;
-  margin: 0 0 24px 0;
+.rich-editor[data-placeholder]:empty:before {
+  content: attr(data-placeholder);
+  color: var(--color-text-muted);
 }
 
 .props-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
 }
+
 .p-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 140px 1fr;
   align-items: center;
-  font-size: 14px;
 }
+
 .p-label {
-  width: 140px;
-  color: #A1A1AA;
+  font-size: 13px;
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-.p-val {
-  color: #E4E4E7;
-  flex: 1;
+  gap: 8px;
 }
 
 .property-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 6px 12px;
+  background: var(--color-surface);
   border: 1px solid transparent;
-  background: transparent;
-  color: #D4D4D8;
-  border-radius: 6px;
-  padding: 6px 10px;
+  border-radius: 2px;
+  color: var(--color-text-primary);
+  font-size: 13px;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .property-trigger:hover {
-  border-color: #27272A;
-  background: #1A1B1F;
+  background: var(--color-surface-hover);
+  border-color: var(--color-border);
 }
 
 .property-value {
-  color: #F4F4F5;
-  font-weight: 500;
-}
-.muted-val {
-  color: #71717A;
-}
-
-.btn-add-label {
-  background: #27272A;
-  border: none;
-  border-radius: 4px;
-  padding: 4px 10px;
-  color: #A1A1AA;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.icon-filter-btn {
-  background: #27272A;
-  border: none;
-  color: #A1A1AA;
-  padding: 6px 10px;
-  border-radius: 4px;
-  cursor: pointer;
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
 .activity-feed {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  margin-bottom: 24px;
-  position: relative;
-  padding-left: 14px;
-  border-left: 2px solid #27272A;
-  margin-left: 10px;
-}
-.feed-item {
-  position: relative;
-  display: flex;
   gap: 16px;
-}
-.feed-icon {
-  background: #27272A;
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: #A1A1AA;
-  position: absolute;
-  left: -27px;
-  top: 0;
-}
-.feed-avatar {
-  background: #27272A;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid #151515;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: #A1A1AA;
-  position: absolute;
-  left: -29px;
-  top: -2px;
-}
-.feed-text {
-  font-size: 14px;
-  color: #E4E4E7;
+  margin-top: 16px;
 }
 
-.comment-box {
-  background: transparent;
-  margin-top: 24px;
-}
-.editor-wrap {
-  border: 1px solid #27272A;
-  border-radius: 6px;
-  overflow: hidden;
-  background: #111111;
-}
-.c-input {
-  width: 100%;
-  background: transparent;
-  border: none;
-  padding: 16px;
-  color: #E4E4E7;
-  outline: none;
-  resize: none;
-  font-family: inherit;
-  font-size: 14px;
-  height: 100px;
-}
-.c-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  background: transparent;
-  border-top: 1px solid #27272A;
-}
-.ct-left {
+.feed-item {
   display: flex;
   gap: 12px;
-  color: #71717A;
   font-size: 13px;
 }
-.icon-hover:hover { color: #A1A1AA; cursor: pointer; }
-.c-submit {
-  background: #27272A;
-  color: #A1A1AA;
-  border: none;
-  padding: 6px 16px;
-  border-radius: 4px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: not-allowed;
-}
 
-.comment-attachments {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.comment-attachment-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  background: #1E2025;
-  border: 1px solid #27272A;
-  color: #D4D4D8;
-  font-size: 12px;
-  cursor: pointer;
-  max-width: 260px;
-}
-.comment-attachment-chip span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.comment-image-thumb {
-  width: 28px;
-  height: 28px;
-  object-fit: cover;
-  border-radius: 4px;
-  border: 1px solid #3F3F46;
-}
-.image-lightbox {
-  position: fixed;
-  inset: 0;
-  z-index: 3000;
-  background: rgba(0, 0, 0, .76);
+.feed-icon {
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px;
-}
-.image-lightbox-panel {
-  position: relative;
-  max-width: min(960px, 96vw);
-  max-height: 92vh;
-  background: #0D0F11;
-  border: 1px solid #27272A;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.image-lightbox-panel img {
-  display: block;
-  max-width: 100%;
-  max-height: calc(92vh - 54px);
-  object-fit: contain;
-  background: #050607;
-}
-.lightbox-close {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #3F3F46;
-  background: #16181D;
-  color: #fff;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.lightbox-footer {
-  height: 54px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 0 14px;
-  color: #D4D4D8;
-}
-.lightbox-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.zoom-control {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.zoom-control input {
-  width: 120px;
-}
-.lightbox-delete {
-  border: 1px solid #7F1D1D;
-  background: #450A0A;
-  color: #FCA5A5;
-  border-radius: 6px;
-  padding: 7px 10px;
-  cursor: pointer;
-}
-.download-btn {
-  color: #fff;
-  background: #2563EB;
-  border-radius: 6px;
-  padding: 7px 10px;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  color: var(--color-text-muted);
 }
 
-.comment-rendered :deep(p) {
-  margin: 0 0 8px;
+.muted-val {
+  color: var(--color-text-muted);
 }
 
-.comment-inline-code {
-  background: #27272A;
-  color: #F472B6;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 13px;
+.editor-wrap {
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background: var(--color-input-bg);
 }
 
-.comment-code-block {
-  background: #0F1115;
-  border: 1px solid #27272A;
-  border-radius: 8px;
-  padding: 12px;
-  overflow-x: auto;
-  font-family: Consolas, monospace;
-  margin: 8px 0;
+.theme-dropdown {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
 }
 
-.comment-list {
-  margin: 8px 0 8px 20px;
-  list-style: disc;
+.theme-dropdown :deep(.el-dropdown-menu__item) {
+  color: var(--color-text-primary) !important;
 }
 
-.comment-list.ordered {
-  list-style: decimal;
+.theme-dropdown :deep(.el-dropdown-menu__item:hover) {
+  background: var(--color-surface-hover) !important;
 }
 
-.activity-empty-state {
-  color: #71717A;
-  padding: 12px 0 24px;
-}
-
-.dark-dropdown { background: #1E2025 !important; border: 1px solid #333 !important; }
-.dark-dropdown .el-dropdown-menu__item { color: #E4E4E7 !important; }
-.dark-dropdown .el-dropdown-menu__item:hover { background: #27272A !important; }
-
-/* Plane-like custom popover styles */
 :global(.plane-popover) {
-  background: #18191B !important;
-  border: 1px solid #27272A !important;
-  padding: 0 !important;
-  border-radius: 8px !important;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
-}
-
-:global(.plane-popover .popover-content) {
-  display: flex;
-  flex-direction: column;
-}
-
-:global(.plane-popover .popover-search) {
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid #27272A;
-  color: #E4E4E7;
-  padding: 12px 14px;
-  font-size: 13px;
-  outline: none;
-  width: 100%;
-}
-:global(.plane-popover .popover-search::placeholder) {
-  color: #71717A;
-}
-
-:global(.plane-popover .popover-list) {
-  max-height: 250px;
-  overflow-y: auto;
-  padding: 6px;
-}
-:global(.plane-popover .popover-list::-webkit-scrollbar) {
-  width: 6px;
-}
-:global(.plane-popover .popover-list::-webkit-scrollbar-thumb) {
-  background: #27272A;
-  border-radius: 4px;
-}
-
-:global(.plane-popover .popover-item) {
-  display: flex;
-  align-items: center;
-  padding: 8px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  color: #D4D4D8;
-  font-size: 13px;
-  transition: background 0.15s;
-}
-:global(.plane-popover .popover-item:hover) {
-  background: #27272A;
-  color: #FFFFFF;
-}
-
-.assignee-progress-list {
-  border-top: 1px solid #27272A;
-  padding: 8px 10px 10px;
-}
-
-.assignee-progress-title {
-  color: #71717A;
-  font-size: 11px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-}
-
-.assignee-progress-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.assignee-progress-name {
-  color: #D4D4D8;
-  flex: 1;
-  font-size: 12px;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.assignee-progress-input {
-  background: #0D0F11;
-  border: 1px solid #27272A;
-  border-radius: 4px;
-  color: #E4E4E7;
-  font-size: 12px;
-  padding: 4px 6px;
-  width: 58px;
-}
-
-.assignee-progress-suffix {
-  color: #71717A;
-  font-size: 12px;
 }
 
 .t-btn-date:deep(.el-input__wrapper) {

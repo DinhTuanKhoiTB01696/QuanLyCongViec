@@ -389,9 +389,9 @@ const handleSidebarSaved = (prefs) => {
 .repo-panel {
   margin: 0 40px 12px;
   padding: 16px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: var(--bg-card);
+  background: var(--color-surface);
 }
 
 .repo-head,
@@ -417,13 +417,13 @@ const handleSidebarSaved = (prefs) => {
 
 .panel-title {
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .panel-copy,
 .repo-status {
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .repo-grid {
@@ -434,10 +434,10 @@ const handleSidebarSaved = (prefs) => {
 .repo-input {
   flex: 1;
   min-width: 0;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
   padding: 10px 12px;
 }
 
@@ -446,10 +446,10 @@ const handleSidebarSaved = (prefs) => {
 }
 
 .ghost-btn {
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   background: transparent;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   padding: 8px 12px;
   cursor: pointer;
 }
@@ -484,8 +484,8 @@ const handleSidebarSaved = (prefs) => {
 }
 
 .bot-icon-circle {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   color: #579dff;
 }
 
@@ -499,9 +499,9 @@ const handleSidebarSaved = (prefs) => {
   min-width: 160px;
   padding: 14px 16px;
   border-radius: 8px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
   line-height: 1.6;
 }
 
@@ -519,12 +519,12 @@ const handleSidebarSaved = (prefs) => {
 
 .thinking-step {
   gap: 8px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 12px;
 }
 
 .thinking-step.active {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .ai-chat-input-wrapper {
@@ -534,9 +534,9 @@ const handleSidebarSaved = (prefs) => {
 .input-box {
   align-items: center;
   gap: 10px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: var(--bg-card);
+  background: var(--color-surface);
   padding: 0 14px;
 }
 
@@ -544,13 +544,13 @@ const handleSidebarSaved = (prefs) => {
   flex: 1;
   border: 0;
   background: transparent;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   padding: 16px 0;
   outline: none;
 }
 
 .attach-btn {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .send-btn {
@@ -568,19 +568,19 @@ const handleSidebarSaved = (prefs) => {
 
 .ai-disclaimer {
   margin-top: 10px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 12px;
 }
 
 .ai-details-panel {
   width: 340px;
   padding: 32px 24px;
-  border-left: 1px solid var(--border-color);
-  background: var(--bg-secondary);
+  border-left: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .section-label {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 12px;
   margin-bottom: 10px;
 }
@@ -588,7 +588,7 @@ const handleSidebarSaved = (prefs) => {
 .section-title {
   font-size: 12px;
   font-weight: 700;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   margin-bottom: 12px;
 }
 
@@ -599,10 +599,10 @@ const handleSidebarSaved = (prefs) => {
 
 .q-link {
   width: 100%;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: var(--bg-card);
-  color: var(--text-primary);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
   padding: 10px 12px;
   text-align: left;
   cursor: pointer;
@@ -621,9 +621,9 @@ const handleSidebarSaved = (prefs) => {
 }
 
 .upgrade-card {
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: var(--bg-card);
+  background: var(--color-surface);
   padding: 18px;
 }
 
@@ -635,7 +635,7 @@ const handleSidebarSaved = (prefs) => {
 }
 
 .plan-desc {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 1.6;
   margin-bottom: 12px;
@@ -661,7 +661,7 @@ const handleSidebarSaved = (prefs) => {
   .ai-details-panel {
     width: 100%;
     border-left: 0;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid var(--color-border);
   }
 
   .repo-grid {
@@ -669,3 +669,5 @@ const handleSidebarSaved = (prefs) => {
   }
 }
 </style>
+
+

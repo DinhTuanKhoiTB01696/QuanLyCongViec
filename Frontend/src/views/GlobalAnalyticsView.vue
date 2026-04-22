@@ -77,8 +77,8 @@ const getPriorityLabel = (val) => {
     return map[val] || 'None'
 }
 const getPriorityColor = (val) => {
-    const map = { 0: '#A1A1AA', 1: '#10B981', 2: '#3B82F6', 3: '#F97316', 4: '#EF4444' }
-    return map[val] || '#A1A1AA'
+    const map = { 0: 'var(--color-text-muted)', 1: '#10B981', 2: '#3B82F6', 3: '#F97316', 4: '#EF4444' }
+    return map[val] || 'var(--color-text-muted)'
 }
 
 const radarChartData = {
@@ -101,8 +101,8 @@ const radarChartOptions = {
     maintainAspectRatio: false,
     scales: {
         r: {
-            grid: { color: '#27272A' },
-            angleLines: { color: '#27272A' },
+            grid: { color: 'var(--color-border)' },
+            angleLines: { color: 'var(--color-border)' },
             ticks: { display: false }
         }
     },
@@ -147,7 +147,7 @@ const getBarChartData = () => {
     if(labels.length === 0) {
         return {
             labels: ['None', 'Low', 'Normal', 'High', 'Urgent'],
-            datasets: [{ label: 'Work Items by Priority', data: [0, 0, 0, 0, 0], backgroundColor: ['#A1A1AA', '#10B981', '#3B82F6', '#F97316', '#EF4444'] }]
+            datasets: [{ label: 'Work Items by Priority', data: [0, 0, 0, 0, 0], backgroundColor: ['var(--color-text-muted)', '#10B981', '#3B82F6', '#F97316', '#EF4444'] }]
         }
     }
 
@@ -167,10 +167,10 @@ const getBarChartData = () => {
 const chartConfig = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { labels: { color: '#E4E4E7' } } },
+    plugins: { legend: { labels: { color: 'var(--color-text-primary)' } } },
     scales: {
-        x: { grid: { color: '#27272A' }, ticks: { color: '#A1A1AA' } },
-        y: { grid: { color: '#27272A' }, ticks: { color: '#A1A1AA' }, beginAtZero: true }
+        x: { grid: { color: 'var(--color-border)' }, ticks: { color: 'var(--color-text-muted)' } },
+        y: { grid: { color: 'var(--color-border)' }, ticks: { color: 'var(--color-text-muted)' }, beginAtZero: true }
     }
 }
 
@@ -240,9 +240,9 @@ const chartConfig = {
             
             <!-- Summary list -->
             <div class="insight-box">
-               <div class="insight-title" style="color: #71717A; font-weight: 500;">Summary of Projects</div>
+               <div class="insight-title" style="color: var(--color-text-muted); font-weight: 500;">Summary of Projects</div>
                <div class="insight-title mt-2">All Projects</div>
-               <div class="insight-title" style="color: #71717A; font-weight: 500; font-size: 13px; margin: 12px 0 24px;">Status Breakdown</div>
+               <div class="insight-title" style="color: var(--color-text-muted); font-weight: 500; font-size: 13px; margin: 12px 0 24px;">Status Breakdown</div>
                
                <div class="summary-list">
                   <div class="sum-row" v-for="d in statusStats" :key="d.Status">
@@ -328,42 +328,42 @@ const chartConfig = {
 </template>
 
 <style scoped>
-.analytics-wrapper { display: flex; flex-direction: column; height: 100vh; background: #0D0F11; color: #E4E4E7; }
-.an-header { padding: 16px 24px 0; border-bottom: 1px solid #1E2025; }
+.analytics-wrapper { display: flex; flex-direction: column; height: 100vh; background: var(--color-bg); color: var(--color-text-primary); }
+.an-header { padding: 16px 24px 0; border-bottom: 1px solid var(--color-border); }
 .an-top-row { display: flex; align-items: center; margin-bottom: 24px; }
-.breadcrumb { color: #A1A1AA; font-size: 14px; display: flex; align-items: center; gap: 8px; font-weight: 500;}
+.breadcrumb { color: var(--color-text-muted); font-size: 14px; display: flex; align-items: center; gap: 8px; font-weight: 500;}
 .an-bottom-row { display: flex; align-items: center; margin-bottom: -1px; }
 
 .an-tabs { display: flex; gap: 24px; }
-.tab-btn { background: transparent; border: none; font-size: 13px; font-weight: 500; color: #71717A; cursor: pointer; padding: 8px 0; border-bottom: 2px solid transparent; }
-.tab-btn:hover { color: #E4E4E7; }
-.tab-btn.active { color: #E4E4E7; border-bottom: 2px solid #E4E4E7; }
+.tab-btn { background: transparent; border: none; font-size: 13px; font-weight: 500; color: var(--color-text-muted); cursor: pointer; padding: 8px 0; border-bottom: 2px solid transparent; }
+.tab-btn:hover { color: var(--color-text-primary); }
+.tab-btn.active { color: var(--color-text-primary); border-bottom: 2px solid var(--color-text-primary); }
 
 .ms-auto { margin-left: auto; }
 .ms-2 { margin-left: 8px; font-size: 10px; }
-.plane-toolbar-btn { background: #16181D; border: 1px solid #27272A; color: #D4D4D8; font-size: 13px; font-weight: 500; cursor: pointer; padding: 6px 12px; border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
-.plane-toolbar-btn:hover { background: #1E2025; }
+.plane-toolbar-btn { background: var(--color-surface); border: 1px solid var(--color-border); color: #D4D4D8; font-size: 13px; font-weight: 500; cursor: pointer; padding: 6px 12px; border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.plane-toolbar-btn:hover { background: var(--color-border); }
 
 .an-scrollable { padding: 32px; overflow-y: auto; flex: 1; }
 .page-title { margin: 0 0 32px 0; font-size: 20px; font-weight: 600; }
 
 .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; margin-bottom: 40px; }
 .stat-box { display: flex; flex-direction: column; gap: 8px; }
-.stat-lbl { font-size: 12px; color: #71717A; font-weight: 500; }
-.stat-val { font-size: 20px; font-weight: 600; color: #E4E4E7; }
+.stat-lbl { font-size: 12px; color: var(--color-text-muted); font-weight: 500; }
+.stat-val { font-size: 20px; font-weight: 600; color: var(--color-text-primary); }
 
 .insights-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 40px; }
-.insight-title { font-size: 15px; font-weight: 600; color: #E4E4E7; }
+.insight-title { font-size: 15px; font-weight: 600; color: var(--color-text-primary); }
 .radar-container { display: flex; align-items: center; justify-content: center; padding: 0; }
 .mt-4 { margin-top: 24px; }
 .mt-2 { margin-top: 8px; }
 
 .summary-list { display: flex; flex-direction: column; gap: 20px; }
-.sum-row { display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px solid #1E2025; padding-bottom: 8px; }
-.sum-lbl { color: #E4E4E7; }
-.sum-val { color: #A1A1AA; font-weight: 500; }
+.sum-row { display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px solid var(--color-border); padding-bottom: 8px; }
+.sum-lbl { color: var(--color-text-primary); }
+.sum-val { color: var(--color-text-muted); font-weight: 500; }
 
-.active-proj { display: flex; justify-content: space-between; align-items: center; background: #16181D; padding: 12px; border-radius: 6px; border: 1px solid #27272A; }
+.active-proj { display: flex; justify-content: space-between; align-items: center; background: var(--color-surface); padding: 12px; border-radius: 6px; border: 1px solid var(--color-border); }
 .proj-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; }
 .pill-red { background: rgba(153, 27, 27, 0.2); color: #F87171; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
 .pill-green { background: rgba(16, 185, 129, 0.2); color: #10B981; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
@@ -371,14 +371,17 @@ const chartConfig = {
 /* Expanded Analytics (copied and adapted from SpaceSummary.vue) */
 .full-analytics-body { width: 100%; max-width: 1000px;}
 .ap-stats-grid { display: flex; gap: 24px; flex-wrap: wrap; }
-.ap-stats-grid .stat-box { flex: 1; min-width: 150px; background: #16181D; padding: 16px; border-radius: 8px; border: 1px solid #27272A; }
-.ap-stats-grid .lbl { font-size: 12px; color: #71717A; display: block; margin-bottom: 8px;}
-.ap-stats-grid .val { font-size: 24px; font-weight: 600; color: #E4E4E7; }
-.ap-chart-card { margin-top: 32px; background: #16181D; padding: 20px; border-radius: 8px; border: 1px solid #27272A; }
-.ap-chart-card h4 { margin: 0; font-size: 14px; font-weight: 600; color: #E4E4E7; }
+.ap-stats-grid .stat-box { flex: 1; min-width: 150px; background: var(--color-surface); padding: 16px; border-radius: 8px; border: 1px solid var(--color-border); }
+.ap-stats-grid .lbl { font-size: 12px; color: var(--color-text-muted); display: block; margin-bottom: 8px;}
+.ap-stats-grid .val { font-size: 24px; font-weight: 600; color: var(--color-text-primary); }
+.ap-chart-card { margin-top: 32px; background: var(--color-surface); padding: 20px; border-radius: 8px; border: 1px solid var(--color-border); }
+.ap-chart-card h4 { margin: 0; font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
 
 .insight-filters { display: flex; gap: 8px; }
-.filter-btn { background: transparent; border: 1px solid #27272A; border-radius: 4px; padding: 4px 8px; font-size: 12px; color: #D4D4D8; cursor: pointer; }
-.filter-btn i { color: #A1A1AA; font-size: 10px; margin-left: 4px; }
+.filter-btn { background: transparent; border: 1px solid var(--color-border); border-radius: 4px; padding: 4px 8px; font-size: 12px; color: #D4D4D8; cursor: pointer; }
+.filter-btn i { color: var(--color-text-muted); font-size: 10px; margin-left: 4px; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
 </style>
+
+
+

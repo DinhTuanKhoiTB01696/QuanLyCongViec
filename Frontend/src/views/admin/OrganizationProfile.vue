@@ -175,28 +175,28 @@ onMounted(fetchConfig)
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
 .page-title {
   margin: 0;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 24px;
   font-weight: 600;
 }
 
 .page-subtitle {
   margin-top: 4px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 
 .admin-form-card {
   padding: 32px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-xl, 12px);
-  background: var(--bg-card);
+  background: var(--color-surface);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
@@ -207,7 +207,7 @@ onMounted(fetchConfig)
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 14px;
   font-weight: 500;
 }
@@ -218,20 +218,20 @@ onMounted(fetchConfig)
   justify-content: space-between;
   gap: 20px;
   padding: 16px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.2);
 }
 
 .switch-group h4 {
   margin: 0;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .switch-group span {
   display: block;
   margin-top: 6px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -242,13 +242,13 @@ onMounted(fetchConfig)
 
 .section-intro h3 {
   margin: 0 0 8px;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 15px;
 }
 
 .section-intro p {
   margin: 0;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 13px;
 }
 
@@ -279,9 +279,9 @@ onMounted(fetchConfig)
 
 :deep(.neumorphic-input .el-input__wrapper),
 :deep(.neumorphic-input .el-textarea__inner) {
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background-color: var(--bg-hover) !important;
+  background-color: var(--color-surface-hover) !important;
   box-shadow: none !important;
 }
 
@@ -291,11 +291,13 @@ onMounted(fetchConfig)
 
 :deep(.neumorphic-input .el-textarea__inner) {
   padding: 12px 16px;
-  color: var(--text-primary) !important;
+  color: var(--color-text-primary) !important;
   font-family: inherit;
 }
 
 :deep(.neumorphic-input .el-input__inner) {
-  color: var(--text-primary) !important;
+  color: var(--color-text-primary) !important;
 }
 </style>
+
+

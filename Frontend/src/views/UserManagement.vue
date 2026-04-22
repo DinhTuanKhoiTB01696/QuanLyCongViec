@@ -410,15 +410,15 @@ const handleSidebarSaved = (prefs) => {
 
 <style scoped>
 .page-header-flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
-.page-title { font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0; }
+.page-title { font-size: 26px; font-weight: 700; color: var(--color-text-primary); margin: 0; }
 
 .toolbar { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
 .search-box { width: 300px; }
 .filter-group { display: flex; gap: 12px; }
 
 .bulk-actions-bar {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   padding: 8px 16px;
   border-radius: 6px;
   margin-bottom: 12px;
@@ -428,11 +428,11 @@ const handleSidebarSaved = (prefs) => {
 }
 .selected-count { font-size: 13px; font-weight: 600; color: #3b82f6; }
 
-.table-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+.table-container { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; }
 
 .user-cell { display: flex; align-items: center; gap: 12px; }
 .user-avatar-circle { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 13px; }
-.user-name { font-weight: 600; font-size: 14px; color: var(--text-primary); }
+.user-name { font-weight: 600; font-size: 14px; color: var(--color-text-primary); }
 .user-email { font-size: 12px; }
 
 .status-cell { display: flex; align-items: center; gap: 8px; font-size: 13px; }
@@ -446,28 +446,28 @@ const handleSidebarSaved = (prefs) => {
 /* Groups Tab Styling */
 .groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
 .group-card { 
-  background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; cursor: pointer; transition: transform 0.2s;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; padding: 20px; cursor: pointer; transition: transform 0.2s;
 }
 .group-card:hover { border-color: #3b82f6; transform: translateY(-2px); }
 .group-card.create-card { 
-  border: 2px dashed var(--border-color); background: transparent; display: flex; align-items: center; justify-content: center; min-height: 180px; color: var(--text-secondary);
+  border: 2px dashed var(--color-border); background: transparent; display: flex; align-items: center; justify-content: center; min-height: 180px; color: var(--color-text-secondary);
 }
 .create-content { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.group-name { font-size: 16px; font-weight: 700; margin: 0; color: var(--text-primary); }
-.group-meta { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+.group-name { font-size: 16px; font-weight: 700; margin: 0; color: var(--color-text-primary); }
+.group-meta { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--color-text-muted); margin-bottom: 20px; }
 .avatar-stack { display: flex; margin-left: 8px; }
 .small-avatar { 
-    width: 24px; height: 24px; background: var(--hover-bg); border: 2px solid var(--bg-card); border-radius: 50%; margin-left: -8px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700;
+    width: 24px; height: 24px; background: var(--color-surface-hover); border: 2px solid var(--color-surface); border-radius: 50%; margin-left: -8px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700;
 }
-.small-avatar.more { background: var(--bg-layout); }
+.small-avatar.more { background: var(--color-bg); }
 
 /* Settings Styling */
 .settings-grid { max-width: 800px; }
-.setting-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border-color); }
+.setting-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--color-border); }
 .setting-label { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
-.setting-desc { font-size: 12px; color: var(--text-muted); }
-.oauth-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; background: var(--bg-secondary); margin-top: 12px; }
+.setting-desc { font-size: 12px; color: var(--color-text-muted); }
+.oauth-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; background: var(--color-surface); margin-top: 12px; }
 .oauth-item i { font-size: 20px; }
 
 /* Drawer */
@@ -479,33 +479,33 @@ const handleSidebarSaved = (prefs) => {
 
 /* Custom Element Plus theme styles local to this component */
 :deep(.el-table) {
-  --el-table-bg-color: var(--bg-card);
-  --el-table-tr-bg-color: var(--bg-card);
-  --el-table-header-bg-color: var(--bg-layout);
-  --el-table-header-text-color: var(--text-secondary);
-  --el-table-text-color: var(--text-primary);
-  --el-table-border-color: var(--border-color);
-  --el-table-row-hover-bg-color: var(--hover-bg);
+  --el-table-bg-color: var(--color-surface);
+  --el-table-tr-bg-color: var(--color-surface);
+  --el-table-header-bg-color: var(--color-bg);
+  --el-table-header-text-color: var(--color-text-secondary);
+  --el-table-text-color: var(--color-text-primary);
+  --el-table-border-color: var(--color-border);
+  --el-table-row-hover-bg-color: var(--color-surface-hover);
 }
 
 :deep(.el-input__wrapper), :deep(.el-select__wrapper) {
-  background-color: var(--bg-secondary) !important;
-  box-shadow: 0 0 0 1px var(--border-color) inset !important;
+  background-color: var(--color-surface) !important;
+  box-shadow: 0 0 0 1px var(--color-border) inset !important;
 }
 
 :deep(.el-input__inner) {
-  color: var(--text-primary) !important;
+  color: var(--color-text-primary) !important;
 }
 
-.page-title { font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0; }
+.page-title { font-size: 26px; font-weight: 700; color: var(--color-text-primary); margin: 0; }
 
 .toolbar { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
 .search-box { width: 300px; }
 .filter-group { display: flex; gap: 12px; }
 
 .bulk-actions-bar {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   padding: 8px 16px;
   border-radius: 6px;
   margin-bottom: 12px;
@@ -515,11 +515,11 @@ const handleSidebarSaved = (prefs) => {
 }
 .selected-count { font-size: 13px; font-weight: 600; color: #3b82f6; }
 
-.table-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+.table-container { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; }
 
 .user-cell { display: flex; align-items: center; gap: 12px; }
 .user-avatar-circle { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 13px; }
-.user-name { font-weight: 600; font-size: 14px; color: var(--text-primary); }
+.user-name { font-weight: 600; font-size: 14px; color: var(--color-text-primary); }
 .user-email { font-size: 12px; }
 
 .status-cell { display: flex; align-items: center; gap: 8px; font-size: 13px; }
@@ -533,28 +533,28 @@ const handleSidebarSaved = (prefs) => {
 /* Groups Tab Styling */
 .groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
 .group-card { 
-  background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; cursor: pointer; transition: transform 0.2s;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; padding: 20px; cursor: pointer; transition: transform 0.2s;
 }
 .group-card:hover { border-color: #3b82f6; transform: translateY(-2px); }
 .group-card.create-card { 
-  border: 2px dashed var(--border-color); background: transparent; display: flex; align-items: center; justify-content: center; min-height: 180px; color: var(--text-secondary);
+  border: 2px dashed var(--color-border); background: transparent; display: flex; align-items: center; justify-content: center; min-height: 180px; color: var(--color-text-secondary);
 }
 .create-content { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.group-name { font-size: 16px; font-weight: 700; margin: 0; color: var(--text-primary); }
-.group-meta { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+.group-name { font-size: 16px; font-weight: 700; margin: 0; color: var(--color-text-primary); }
+.group-meta { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--color-text-muted); margin-bottom: 20px; }
 .avatar-stack { display: flex; margin-left: 8px; }
 .small-avatar { 
-    width: 24px; height: 24px; background: var(--hover-bg); border: 2px solid var(--bg-card); border-radius: 50%; margin-left: -8px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700;
+    width: 24px; height: 24px; background: var(--color-surface-hover); border: 2px solid var(--color-surface); border-radius: 50%; margin-left: -8px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700;
 }
-.small-avatar.more { background: var(--bg-layout); }
+.small-avatar.more { background: var(--color-bg); }
 
 /* Settings Styling */
 .settings-grid { max-width: 800px; }
-.setting-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border-color); }
+.setting-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--color-border); }
 .setting-label { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
-.setting-desc { font-size: 12px; color: var(--text-muted); }
-.oauth-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; background: var(--bg-secondary); margin-top: 12px; }
+.setting-desc { font-size: 12px; color: var(--color-text-muted); }
+.oauth-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; background: var(--color-surface); margin-top: 12px; }
 .oauth-item i { font-size: 20px; }
 
 /* Drawer */
@@ -566,25 +566,27 @@ const handleSidebarSaved = (prefs) => {
 
 /* Custom Element Plus theme styles local to this component */
 :deep(.el-table) {
-  --el-table-bg-color: var(--bg-card);
-  --el-table-tr-bg-color: var(--bg-card);
-  --el-table-header-bg-color: var(--bg-layout);
-  --el-table-header-text-color: var(--text-secondary);
-  --el-table-text-color: var(--text-primary);
-  --el-table-border-color: var(--border-color);
-  --el-table-row-hover-bg-color: var(--hover-bg);
+  --el-table-bg-color: var(--color-surface);
+  --el-table-tr-bg-color: var(--color-surface);
+  --el-table-header-bg-color: var(--color-bg);
+  --el-table-header-text-color: var(--color-text-secondary);
+  --el-table-text-color: var(--color-text-primary);
+  --el-table-border-color: var(--color-border);
+  --el-table-row-hover-bg-color: var(--color-surface-hover);
 }
 
 :deep(.el-input__wrapper), :deep(.el-select__wrapper) {
-  background-color: var(--bg-secondary) !important;
-  box-shadow: 0 0 0 1px var(--border-color) inset !important;
+  background-color: var(--color-surface) !important;
+  box-shadow: 0 0 0 1px var(--color-border) inset !important;
 }
 
 :deep(.el-input__inner) {
-  color: var(--text-primary) !important;
+  color: var(--color-text-primary) !important;
 }
 
 :deep(.el-table td.el-table__cell), :deep(.el-table th.el-table__cell) {
-  border-bottom: 1px solid var(--border-color) !important;
+  border-bottom: 1px solid var(--color-border) !important;
 }
 </style>
+
+

@@ -151,17 +151,17 @@ const features = [
   overflow-y: auto;
   background:
     radial-gradient(circle at top left, rgba(59, 130, 246, 0.08), transparent 32%),
-    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  color: #111827;
+    linear-gradient(180deg, var(--color-bg) 0%, var(--color-surface-hover) 100%);
+  color: var(--color-text-primary);
 }
 
 .navbar {
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb, var(--color-surface), transparent 10%);
   backdrop-filter: blur(14px);
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .container {
@@ -204,6 +204,7 @@ const features = [
   margin-left: -8px;
   font-size: 24px;
   font-weight: 900;
+  color: var(--color-text-primary);
 }
 
 .nav-actions,
@@ -225,14 +226,14 @@ const features = [
 }
 
 .nav-link {
-  color: #1f2937;
+  color: var(--color-text-secondary);
   padding: 10px 14px;
 }
 
 .nav-primary,
 .hero-primary {
   background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%);
-  color: #fff;
+  color: var(--color-text-primary);
 }
 
 .nav-primary {
@@ -274,8 +275,8 @@ const features = [
   width: fit-content;
   padding: 8px 14px;
   border-radius: 999px;
-  background: #e0f2fe;
-  color: #075985;
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  color: var(--color-accent);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -297,7 +298,7 @@ const features = [
 .section-sub,
 .footer-about,
 .feature-card p {
-  color: #64748b;
+  color: var(--color-text-muted);
   line-height: 1.7;
 }
 
@@ -308,9 +309,9 @@ const features = [
 }
 
 .hero-secondary {
-  border: 1px solid #cbd5e1;
-  background: rgba(255, 255, 255, 0.92);
-  color: #0f172a;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
 }
 
 .dashboard-preview,
@@ -336,9 +337,9 @@ const features = [
 .feature-card {
   padding: 24px;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
 }
 
 .icon-wrap {
@@ -368,7 +369,7 @@ const features = [
 .socials {
   display: flex;
   gap: 14px;
-  color: #475569;
+  color: var(--color-text-muted);
 }
 
 @media (max-width: 960px) {
@@ -410,3 +411,5 @@ const features = [
   }
 }
 </style>
+
+

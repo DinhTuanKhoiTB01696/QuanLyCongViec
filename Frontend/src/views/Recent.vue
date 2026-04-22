@@ -90,13 +90,13 @@ onMounted(() => {
 
 .page-title {
   font-size: 28px;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-weight: 700;
   margin-bottom: 8px;
 }
 
 .subtitle {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 14px;
   margin-bottom: 40px;
 }
@@ -107,7 +107,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 100px 0;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   gap: 16px;
 }
 
@@ -123,18 +123,18 @@ onMounted(() => {
 
 .empty-illustration {
   font-size: 64px;
-  color: var(--border-color);
+  color: var(--color-border);
   margin-bottom: 24px;
 }
 
 .empty-state h3 {
   font-size: 20px;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   margin-bottom: 8px;
 }
 
 .empty-state p {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   margin-bottom: 24px;
 }
 
@@ -145,8 +145,8 @@ onMounted(() => {
 }
 
 .recent-task-card {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 20px;
   cursor: pointer;
@@ -175,13 +175,13 @@ onMounted(() => {
 
 .task-time {
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 .task-title {
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   margin-bottom: 20px;
   line-height: 1.4;
 }
@@ -197,7 +197,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .assignee-avatar {
@@ -213,3 +213,5 @@ onMounted(() => {
   font-weight: 700;
 }
 </style>
+
+

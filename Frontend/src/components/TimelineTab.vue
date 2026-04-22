@@ -634,8 +634,8 @@ function getWeekNumber(value) {
   flex-direction: column;
   height: 100%;
   min-height: calc(100vh - 80px);
-  background: #0d0f11;
-  color: #e4e4e7;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
   overflow: hidden;
 }
 
@@ -651,7 +651,7 @@ function getWeekNumber(value) {
   justify-content: space-between;
   gap: 16px;
   padding: 14px 24px;
-  border-bottom: 1px solid #1e2025;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .create-mode-banner {
@@ -659,7 +659,7 @@ function getWeekNumber(value) {
   align-items: center;
   gap: 10px;
   padding: 10px 24px;
-  border-bottom: 1px solid #1e2025;
+  border-bottom: 1px solid var(--color-border);
   background: linear-gradient(90deg, rgba(14, 165, 233, 0.16), rgba(59, 130, 246, 0.06));
   color: #bae6fd;
   font-size: 13px;
@@ -677,13 +677,13 @@ function getWeekNumber(value) {
 
 .tl-task-count {
   font-size: 13px;
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
 }
 
 .tl-view-modes {
   gap: 4px;
   background: #15181c;
-  border: 1px solid #27272a;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 2px;
 }
@@ -693,7 +693,7 @@ function getWeekNumber(value) {
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
 
@@ -704,7 +704,7 @@ function getWeekNumber(value) {
 
 .tl-btn {
   padding: 6px 12px;
-  border: 1px solid #27272a;
+  border: 1px solid var(--color-border);
   background: #111317;
   font-size: 12px;
 }
@@ -725,7 +725,7 @@ function getWeekNumber(value) {
   right: 0;
   z-index: 12;
   min-width: 220px;
-  border: 1px solid #27272a;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   background: #111317;
   padding: 10px;
@@ -751,11 +751,11 @@ function getWeekNumber(value) {
 .tl-left-panel {
   width: 440px;
   min-width: 440px;
-  border-right: 2px solid #1e2025;
+  border-right: 2px solid var(--color-border);
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: #0d0f11;
+  background: var(--color-bg);
   position: sticky;
   left: 0;
   z-index: 5;
@@ -764,7 +764,7 @@ function getWeekNumber(value) {
 .tl-left-header {
   display: flex;
   height: 88px;
-  border-bottom: 1px solid #1e2025;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .tl-col-workitems,
@@ -778,7 +778,7 @@ function getWeekNumber(value) {
   flex: 1;
   gap: 8px;
   padding: 0 12px;
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -786,8 +786,8 @@ function getWeekNumber(value) {
 .tl-col-duration {
   width: 96px;
   justify-content: center;
-  border-left: 1px solid #27272a;
-  color: #71717a;
+  border-left: 1px solid var(--color-border);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   font-weight: 600;
 }
@@ -802,7 +802,7 @@ function getWeekNumber(value) {
   height: 52px;
   display: flex;
   border: 0;
-  border-bottom: 1px solid #1e2025;
+  border-bottom: 1px solid var(--color-border);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -810,7 +810,7 @@ function getWeekNumber(value) {
 }
 
 .tl-task-row:hover {
-  background: #16181d;
+  background: var(--color-surface);
 }
 
 .tl-task-row .tl-col-workitems,
@@ -820,7 +820,7 @@ function getWeekNumber(value) {
 }
 
 .task-key {
-  color: #71717a;
+  color: var(--color-text-muted);
   font-size: 12px;
   min-width: 86px;
 }
@@ -845,7 +845,7 @@ function getWeekNumber(value) {
   align-items: center;
   gap: 6px;
   padding: 0 12px;
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
   font-size: 13px;
 }
 
@@ -867,7 +867,7 @@ function getWeekNumber(value) {
   z-index: 6;
   margin: 0 0 8px;
   padding: 10px 14px;
-  border-bottom: 1px solid #1e2025;
+  border-bottom: 1px solid var(--color-border);
   background: linear-gradient(90deg, rgba(56, 189, 248, 0.12), rgba(37, 99, 235, 0.08));
   color: #c4e7ff;
   font-size: 12px;
@@ -887,25 +887,25 @@ function getWeekNumber(value) {
 .tl-group-row {
   top: 0;
   height: 34px;
-  border-bottom: 1px solid #1e2025;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .tl-day-row {
   top: 34px;
   height: 48px;
-  border-bottom: 1px solid #1e2025;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .tl-group-cell,
 .tl-day-cell {
-  border-right: 1px solid #1e2025;
+  border-right: 1px solid var(--color-border);
 }
 
 .tl-group-cell {
   display: flex;
   align-items: center;
   padding: 0 10px;
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
   font-size: 11px;
   font-weight: 600;
 }
@@ -941,7 +941,7 @@ function getWeekNumber(value) {
 .day-dow,
 .bucket-progress {
   font-size: 10px;
-  color: #71717a;
+  color: var(--color-text-muted);
 }
 
 .bucket-progress {
@@ -964,7 +964,7 @@ function getWeekNumber(value) {
   top: 0;
   bottom: 0;
   border: 0;
-  border-right: 1px solid #1e2025;
+  border-right: 1px solid var(--color-border);
   background: transparent;
   cursor: default;
 }
@@ -991,7 +991,7 @@ function getWeekNumber(value) {
 .tl-bar-row {
   position: relative;
   height: 52px;
-  border-bottom: 1px solid #1e2025;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .tl-task-bar {
@@ -1035,7 +1035,7 @@ function getWeekNumber(value) {
   width: 100%;
   border: 0;
   background: transparent;
-  color: #71717a;
+  color: var(--color-text-muted);
   cursor: pointer;
 }
 
@@ -1050,3 +1050,7 @@ function getWeekNumber(value) {
   font-size: 12px;
 }
 </style>
+
+
+
+

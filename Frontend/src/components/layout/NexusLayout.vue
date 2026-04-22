@@ -130,8 +130,8 @@ const handleProjectCreated = (newProject) => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-layout);
-  color: var(--text-primary);
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
   overflow: hidden;
   font-family: 'Inter', system-ui, sans-serif;
 }
@@ -156,7 +156,7 @@ const handleProjectCreated = (newProject) => {
 
 .content-area {
   flex: 1;
-  background: #0D0F11;
+  background: var(--color-bg);
   padding: 0;
   overflow-y: auto;
   transition: all 0.3s;
@@ -190,7 +190,7 @@ const handleProjectCreated = (newProject) => {
   top: 0;
   bottom: 0;
   width: 360px;
-  background: var(--bg-card);
+  background: var(--color-surface);
   box-shadow: -4px 0 24px rgba(0,0,0,0.1);
   z-index: 2000;
   display: flex;
@@ -205,19 +205,21 @@ const handleProjectCreated = (newProject) => {
 
 .dark .ai-sidebar { box-shadow: -4px 0 24px rgba(0,0,0,0.5); }
 
-.ai-header { padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.ai-header { padding: 20px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; }
 .ai-header h4 { margin: 0; display: flex; align-items: center; gap: 8px; color: #3b82f6; font-size: 18px; }
-.close-ai { background: transparent; border: none; font-size: 18px; color: var(--text-muted); cursor: pointer; }
+.close-ai { background: transparent; border: none; font-size: 18px; color: var(--color-text-muted); cursor: pointer; }
 
 .ai-content { flex: 1; padding: 20px; overflow-y: auto; }
 .quick-actions { display: flex; gap: 8px; margin-bottom: 24px; }
-.message-bubble { background: var(--bg-layout); padding: 12px 16px; border-radius: 16px; border-top-left-radius: 4px; font-size: 14px; line-height: 1.5; }
+.message-bubble { background: var(--color-bg); padding: 12px 16px; border-radius: 16px; border-top-left-radius: 4px; font-size: 14px; line-height: 1.5; }
 
-.ai-input-area { padding: 20px; border-top: 1px solid var(--border-color); }
-.ai-input-wrapper { display: flex; background: var(--bg-layout); border-radius: 20px; padding: 8px 16px; align-items: center; }
-.ai-input-wrapper input { flex: 1; background: transparent; border: none; outline: none; color: var(--text-primary); }
+.ai-input-area { padding: 20px; border-top: 1px solid var(--color-border); }
+.ai-input-wrapper { display: flex; background: var(--color-bg); border-radius: 20px; padding: 8px 16px; align-items: center; }
+.ai-input-wrapper input { flex: 1; background: transparent; border: none; outline: none; color: var(--color-text-primary); }
 .send-btn { background: #3b82f6; color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
 .slide-right-enter-active, .slide-right-leave-active { transition: transform 0.3s ease; }
 .slide-right-enter-from, .slide-right-leave-to { transform: translateX(100%); }
 </style>
+
+

@@ -2,7 +2,7 @@
   <aside class="admin-sidebar shadow-sm">
     <div class="sidebar-header">
       <img :src="logoImg" alt="SprintA Logo" class="nav-logo" />
-      <h2>SprintA<span style="font-size: 14px; font-weight: 500; color: #64748b; margin-left: 6px">Admin</span></h2>
+      <h2>SprintA<span class="admin-badge">Admin</span></h2>
     </div>
 
     <div class="back-link">
@@ -148,34 +148,44 @@ const activeMenu = computed(() => {
 <style scoped>
 .admin-sidebar {
   width: 250px;
-  background-color: #0d0f11;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background-color: var(--sidebar-bg);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #1e2025;
+  border-right: 1px solid var(--color-border);
   z-index: 10;
 }
 
 .sidebar-header {
-  padding: 24px;
+  padding: 32px 24px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .nav-logo {
-  height: 28px;
+  height: 32px;
   width: auto;
 }
 
 .sidebar-header h2 {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   margin: 0;
   display: flex;
-  align-items: baseline;
+  align-items: center;
+}
+
+.admin-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .back-link {
@@ -183,14 +193,18 @@ const activeMenu = computed(() => {
 }
 
 .back-link a {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   text-decoration: none;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.2s;
 }
 
 .back-link a:hover {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .admin-menu {
@@ -201,50 +215,46 @@ const activeMenu = computed(() => {
 .menu-icon {
   width: 24px;
   text-align: center;
-  margin-right: 8px;
-  font-size: 16px;
-  color: var(--text-secondary);
+  margin-right: 12px;
+  font-size: 18px;
+  color: var(--color-text-secondary);
 }
 
 :deep(.el-menu) {
   background-color: transparent !important;
 }
 
-:deep(.el-menu-item) {
-  height: 44px;
-  line-height: 44px;
+:deep(.el-menu-item), :deep(.el-sub-menu__title) {
+  height: 48px;
+  line-height: 48px;
   margin: 4px 12px;
-  border-radius: 6px;
-  color: var(--text-primary) !important;
+  border-radius: 8px;
+  color: var(--color-text-secondary) !important;
   background-color: transparent !important;
-}
-
-:deep(.el-sub-menu__title) {
-  height: 44px;
-  line-height: 44px;
-  margin: 4px 12px;
-  border-radius: 6px;
-  color: var(--text-primary) !important;
-  background-color: transparent !important;
-}
-
-:deep(.el-menu-item.is-active) {
-  background-color: color-mix(in srgb, var(--bg-layout) 15%, var(--text-primary) 85%) !important;
-  color: var(--bg-layout) !important;
-  font-weight: 700;
-}
-
-:deep(.el-menu-item.is-active .menu-icon) {
-  color: var(--bg-layout) !important;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s !important;
 }
 
 :deep(.el-menu-item:hover), :deep(.el-sub-menu__title:hover) {
-  background-color: var(--bg-hover) !important;
+  background-color: var(--color-surface-hover) !important;
+  color: var(--color-text-primary) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  background-color: color-mix(in srgb, var(--color-accent) 10%, transparent) !important;
+  color: var(--color-accent) !important;
+  font-weight: 600;
+}
+
+:deep(.el-menu-item.is-active .menu-icon) {
+  color: var(--color-accent) !important;
 }
 
 .sidebar-footer {
-  padding: 16px 24px 24px;
+  padding: 24px;
   margin-top: auto;
+  border-top: 1px solid var(--color-border);
 }
 
 .lang-selector {
@@ -257,24 +267,22 @@ const activeMenu = computed(() => {
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease;
 }
 
 .lang-current:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.15);
-  color: var(--text-primary);
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
 }
 
 .lang-flag {
   font-size: 18px;
-  line-height: 1;
 }
 
 .lang-name {
@@ -282,8 +290,8 @@ const activeMenu = computed(() => {
 }
 
 .lang-arrow {
-  font-size: 11px;
-  color: #64748b;
+  font-size: 10px;
+  color: var(--color-text-muted);
   transition: transform 0.2s ease;
 }
 
@@ -296,11 +304,11 @@ const activeMenu = computed(() => {
   bottom: calc(100% + 8px);
   left: 0;
   right: 0;
-  background: #1a1d23;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 6px;
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: var(--shadow-md);
   z-index: 999;
 }
 
@@ -311,30 +319,30 @@ const activeMenu = computed(() => {
   width: 100%;
   padding: 10px 12px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   background: transparent;
-  color: #a1a1aa;
-  font-size: 14px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.15s ease;
   text-align: left;
 }
 
 .lang-option:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #e4e4e7;
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
 }
 
 .lang-option.active {
-  background: rgba(59, 130, 246, 0.12);
-  color: #60a5fa;
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  color: var(--color-accent);
   font-weight: 600;
 }
 
 .lang-check {
   margin-left: auto;
-  font-size: 12px;
-  color: #3b82f6;
+  font-size: 11px;
+  color: var(--color-accent);
 }
 
 /* Dropdown animation */
@@ -350,3 +358,6 @@ const activeMenu = computed(() => {
   transform: translateY(6px);
 }
 </style>
+
+
+

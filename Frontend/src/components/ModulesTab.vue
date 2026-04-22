@@ -37,10 +37,10 @@ const modulePagination = ref({
 })
 
 const statusOptions = [
-  { key: 'backlog', label: 'Backlog', icon: 'fa-solid fa-expand', color: '#71717A', bg: 'rgba(113,113,122,0.15)' },
+  { key: 'backlog', label: 'Backlog', icon: 'fa-solid fa-expand', color: 'var(--color-text-muted)', bg: 'rgba(113,113,122,0.15)' },
   { key: 'planned', label: 'Planned', icon: 'fa-regular fa-circle', color: '#60A5FA', bg: 'rgba(96,165,250,0.15)' },
   { key: 'in progress', label: 'In Progress', icon: 'fa-solid fa-circle-notch', color: '#FBBF24', bg: 'rgba(251,191,36,0.15)' },
-  { key: 'paused', label: 'Paused', icon: 'fa-solid fa-pause', color: '#A1A1AA', bg: 'rgba(161,161,170,0.15)' },
+  { key: 'paused', label: 'Paused', icon: 'fa-solid fa-pause', color: 'var(--color-text-muted)', bg: 'rgba(161,161,170,0.15)' },
   { key: 'completed', label: 'Completed', icon: 'fa-regular fa-circle-check', color: '#4ADE80', bg: 'rgba(74,222,128,0.15)' },
   { key: 'cancelled', label: 'Cancelled', icon: 'fa-regular fa-circle-xmark', color: '#F87171', bg: 'rgba(248,113,113,0.15)' }
 ]
@@ -642,8 +642,8 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
   display: flex;
   flex-direction: column;
   min-height: calc(100vh - 120px);
-  background: #0d0f11;
-  color: #e4e4e7;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
 }
 
 .modules-view-header,
@@ -653,13 +653,13 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
   justify-content: space-between;
   gap: 12px;
   padding: 16px 24px;
-  border-bottom: 1px solid #1e2025;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modules-toolbar-meta {
   padding-top: 10px;
   padding-bottom: 10px;
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
   font-size: 12px;
 }
 
@@ -682,9 +682,9 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
 .search-box {
   min-width: 220px;
   padding: 0 10px;
-  border: 1px solid #27272a;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: #111315;
+  background: var(--color-surface);
 }
 
 .search-box input {
@@ -692,7 +692,7 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
   width: 100%;
   background: transparent;
   border: none;
-  color: #e4e4e7;
+  color: var(--color-text-primary);
   outline: none;
 }
 
@@ -717,9 +717,9 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
 .cm-input,
 .cm-textarea,
 .task-picker {
-  border: 1px solid #27272a;
-  background: #111315;
-  color: #e4e4e7;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
 }
 
 .filter-action,
@@ -746,7 +746,7 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
 .view-toggles {
   padding: 2px;
   border-radius: 6px;
-  background: #16181d;
+  background: var(--color-surface);
 }
 
 .view-btn {
@@ -755,15 +755,15 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
 }
 
 .view-btn.active {
-  background: #27272a;
-  color: #fff;
+  background: var(--color-border);
+  color: var(--color-text-primary);
 }
 
 .primary-action,
 .cm-btn-create {
   background: #0ea5e9;
   border: none;
-  color: #fff;
+  color: var(--color-text-primary);
 }
 
 .modules-body {
@@ -785,9 +785,9 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
   justify-content: space-between;
   gap: 16px;
   padding: 14px 16px;
-  border: 1px solid #1e2025;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #111315;
+  background: var(--color-surface);
 }
 
 .mr-left,
@@ -807,12 +807,12 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  border: 3px solid #27272a;
+  border: 3px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
 }
 
@@ -827,7 +827,7 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
 .grid-meta,
 .status-group-header,
 .task-option small {
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
   font-size: 12px;
 }
 
@@ -848,13 +848,13 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #71717a;
+  color: var(--color-text-muted);
 }
 
 .m-avatar.has-lead {
   border: none;
   background: #3b82f6;
-  color: #fff;
+  color: var(--color-text-primary);
 }
 
 .module-grid {
@@ -865,9 +865,9 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
 
 .grid-card,
 .status-group {
-  border: 1px solid #1e2025;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #111315;
+  background: var(--color-surface);
   padding: 16px;
 }
 
@@ -883,7 +883,7 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
   height: 8px;
   border-radius: 999px;
   overflow: hidden;
-  background: #1e2025;
+  background: var(--color-border);
 }
 
 .grid-progress-bar span {
@@ -935,7 +935,7 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
   max-height: calc(100vh - 32px);
   overflow: auto;
   background: #141518;
-  border: 1px solid #27272a;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
 }
 
@@ -989,14 +989,14 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
 }
 
 .task-option:hover {
-  background: #16181d;
+  background: var(--color-surface);
 }
 
 .cm-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  border-top: 1px solid #1e2025;
+  border-top: 1px solid var(--color-border);
 }
 
 .mini-link {
@@ -1026,3 +1026,7 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
   }
 }
 </style>
+
+
+
+

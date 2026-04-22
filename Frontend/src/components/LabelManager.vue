@@ -146,7 +146,7 @@ watch(
 .label-header h3 {
   font-size: 16px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .label-list {
@@ -161,8 +161,8 @@ watch(
   align-items: center;
   padding: 10px 14px;
   border-radius: 8px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
 }
 
 .label-info {
@@ -181,13 +181,13 @@ watch(
 .label-name {
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .label-count {
   font-size: 11px;
-  color: var(--text-muted);
-  background: var(--hover-bg);
+  color: var(--color-text-muted);
+  background: var(--color-surface-hover);
   padding: 1px 6px;
   border-radius: 8px;
 }
@@ -195,7 +195,7 @@ watch(
 .label-empty {
   text-align: center;
   padding: 30px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
@@ -214,6 +214,8 @@ watch(
 }
 
 .color-swatch.selected {
-  border-color: var(--text-primary);
+  border-color: var(--color-text-primary);
 }
 </style>
+
+

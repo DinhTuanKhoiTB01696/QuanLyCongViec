@@ -145,7 +145,7 @@ const saveSettings = async () => {
 
 .breadcrumb {
   font-size: 13px;
-  color: #8b949e;
+  color: var(--color-text-muted);
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -155,18 +155,18 @@ const saveSettings = async () => {
 .page-title {
   font-size: 24px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   margin-bottom: 4px;
 }
 
 .page-subtitle {
   font-size: 14px;
-  color: #8b949e;
+  color: var(--color-text-muted);
 }
 
 .settings-card {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 24px;
 }
@@ -178,7 +178,7 @@ const saveSettings = async () => {
 .card-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   margin-bottom: 20px;
 }
 
@@ -196,18 +196,18 @@ const saveSettings = async () => {
 
 .setting-label {
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 14px;
 }
 
 .setting-desc {
   font-size: 13px;
-  color: #8b949e;
+  color: var(--color-text-muted);
 }
 
 .divider {
   height: 1px;
-  background-color: var(--border-color);
+  background-color: var(--color-border);
   margin: 20px 0;
 }
 
@@ -228,3 +228,6 @@ const saveSettings = async () => {
   gap: 12px;
 }
 </style>
+
+
+

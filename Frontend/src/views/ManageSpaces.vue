@@ -223,7 +223,7 @@ const filterLabel = computed(() => ({
   width: 100%;
   max-width: 1480px;
   margin: 0 auto;
-  color: #E4E4E7;
+  color: var(--color-text-primary);
   font-family: 'Inter', -apple-system, sans-serif;
   height: calc(100vh - 66px);
   display: flex;
@@ -247,14 +247,14 @@ const filterLabel = computed(() => ({
   gap: 12px;
 }
 .sh-left i {
-  color: #A1A1AA;
+  color: var(--color-text-muted);
   font-size: 18px;
 }
 .sh-left h1 {
   font-size: 16px;
   font-weight: 500;
   margin: 0;
-  color: #E4E4E7;
+  color: var(--color-text-primary);
 }
 
 .sh-right {
@@ -273,13 +273,13 @@ const filterLabel = computed(() => ({
 .search-box i {
   position: absolute;
   left: 12px;
-  color: #71717A;
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 .search-box input {
   background: transparent;
   border: none;
-  color: #E4E4E7;
+  color: var(--color-text-primary);
   padding: 6px 12px 6px 32px;
   font-size: 13px;
   outline: none;
@@ -292,7 +292,7 @@ const filterLabel = computed(() => ({
 .plane-btn-secondary.outline-btn {
   background: transparent;
   border: 1px solid transparent;
-  color: #A1A1AA;
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -303,8 +303,8 @@ const filterLabel = computed(() => ({
   cursor: pointer;
   transition: all 0.2s;
 }
-.plane-btn-secondary.outline-btn:hover { background: #18181B; color: #E4E4E7; }
-.plane-btn-secondary.outline-btn.active { background: #18181B; color: #fff; border-color: #27272A; }
+.plane-btn-secondary.outline-btn:hover { background: #18181B; color: var(--color-text-primary); }
+.plane-btn-secondary.outline-btn.active { background: #18181B; color: var(--color-text-primary); border-color: var(--color-border); }
 
 .project-filter-wrapper { position: relative; }
 .project-filter-menu {
@@ -319,7 +319,7 @@ const filterLabel = computed(() => ({
   padding: 12px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
-.filter-title { color: #A1A1AA; font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+.filter-title { color: var(--color-text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; }
 .filter-option {
   display: flex;
   align-items: center;
@@ -332,14 +332,14 @@ const filterLabel = computed(() => ({
 .clear-filter-btn {
   width: 100%;
   margin-top: 8px;
-  border: 1px solid #27272A;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: #111315;
+  background: var(--color-surface);
   color: #D4D4D8;
   padding: 7px;
   cursor: pointer;
 }
-.clear-filter-btn:hover { background: #27272A; }
+.clear-filter-btn:hover { background: var(--color-border); }
 
 .plane-btn-primary {
   background: #0EA5E9;
@@ -380,8 +380,8 @@ const filterLabel = computed(() => ({
 
 /* Card */
 .project-card {
-  background: #16181D;
-  border: 1px solid #1E2025;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
@@ -414,7 +414,7 @@ const filterLabel = computed(() => ({
   border-radius: 6px;
   background: rgba(0,0,0,0.3);
   border: 1px solid rgba(255,255,255,0.1);
-  color: #A1A1AA;
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -423,7 +423,7 @@ const filterLabel = computed(() => ({
   transition: all 0.2s;
   backdrop-filter: blur(4px);
 }
-.card-icon-btn:hover { background: rgba(0,0,0,0.5); color: #FFF; }
+.card-icon-btn:hover { background: rgba(0,0,0,0.5); color: var(--color-text-primary); }
 .card-icon-btn.starred { color: #EAB308; }
 .card-icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
@@ -439,8 +439,8 @@ const filterLabel = computed(() => ({
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: #27272A;
-  border: 4px solid #16181D;
+  background: var(--color-border);
+  border: 4px solid var(--color-surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -459,18 +459,18 @@ const filterLabel = computed(() => ({
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #E4E4E7;
+  color: var(--color-text-primary);
 }
 .proj-key {
   font-size: 11px;
-  color: #71717A;
+  color: var(--color-text-muted);
   font-weight: 600;
   margin-top: 2px;
 }
 
 .proj-desc {
   font-size: 13px;
-  color: #A1A1AA;
+  color: var(--color-text-muted);
   line-height: 1.5;
   margin: 0 0 20px 0;
   display: -webkit-box;
@@ -496,7 +496,7 @@ const filterLabel = computed(() => ({
   min-height: 24px;
   padding: 0 8px;
   border-radius: 6px;
-  background: #27272a;
+  background: var(--color-border);
   color: #d4d4d8;
   font-size: 11px;
   font-weight: 600;
@@ -520,7 +520,7 @@ const filterLabel = computed(() => ({
   justify-content: center;
   font-size: 11px;
   font-weight: 600;
-  border: 2px solid #16181D;
+  border: 2px solid var(--color-surface);
 }
 
 .card-footer .card-icon-btn {
@@ -529,9 +529,9 @@ const filterLabel = computed(() => ({
   font-size: 14px;
   margin-left: auto;
 }
-.card-footer .card-icon-btn:hover { background: #27272A; }
+.card-footer .card-icon-btn:hover { background: var(--color-border); }
 
-.loading-state, .empty-state { text-align: center; margin-top: 60px; color: #A1A1AA; }
+.loading-state, .empty-state { text-align: center; margin-top: 60px; color: var(--color-text-muted); }
 .empty-icon { font-size: 48px; color: #3F3F46; margin-bottom: 16px; }
 .empty-state p { margin-bottom: 24px; }
 
@@ -556,3 +556,7 @@ const filterLabel = computed(() => ({
   }
 }
 </style>
+
+
+
+

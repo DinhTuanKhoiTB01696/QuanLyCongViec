@@ -125,7 +125,7 @@ function formatDate(d) {
 .module-header h3 {
   font-size: 16px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .module-grid {
@@ -135,8 +135,8 @@ function formatDate(d) {
 }
 
 .module-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 16px;
   transition: all 0.2s;
@@ -166,12 +166,12 @@ function formatDate(d) {
 .module-name {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .module-desc {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   margin-bottom: 10px;
   line-height: 1.4;
   display: -webkit-box;
@@ -182,7 +182,7 @@ function formatDate(d) {
 
 .module-dates {
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   margin-bottom: 10px;
 }
 
@@ -195,7 +195,7 @@ function formatDate(d) {
 .module-stat {
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .module-stat-status {
@@ -203,21 +203,23 @@ function formatDate(d) {
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 10px;
-  background: var(--hover-bg);
-  color: var(--text-secondary);
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
 }
 
 .module-empty {
   grid-column: 1 / -1;
   text-align: center;
   padding: 40px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 .module-empty-hint {
   font-size: 12px;
   margin-top: 4px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   opacity: 0.7;
 }
 </style>
+
+

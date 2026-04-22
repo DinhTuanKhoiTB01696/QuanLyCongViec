@@ -195,8 +195,8 @@ onUnmounted(() => {
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-card);
-  color: var(--text-primary);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
 }
 
 .notif-header,
@@ -223,7 +223,7 @@ onUnmounted(() => {
 }
 
 .unread-toggle-label {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -251,7 +251,7 @@ onUnmounted(() => {
 }
 
 .notif-item:hover {
-  background: var(--hover-bg);
+  background: var(--color-surface-hover);
 }
 
 .notif-item.unread {
@@ -266,7 +266,7 @@ onUnmounted(() => {
   justify-content: center;
   border-radius: 50%;
   background: #2563eb;
-  color: #fff;
+  color: var(--color-text-primary);
   font-size: 12px;
   font-weight: 700;
 }
@@ -279,18 +279,18 @@ onUnmounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   margin-bottom: 4px;
 }
 
 .user-name {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-weight: 700;
 }
 
 .notif-context,
 .time-ago {
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-size: 12px;
   gap: 6px;
 }
@@ -311,12 +311,12 @@ onUnmounted(() => {
   justify-content: center;
   gap: 12px;
   text-align: center;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .empty-icon {
   font-size: 30px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 .nav-icon {
@@ -326,12 +326,12 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
 
 .nav-icon:hover {
-  background: var(--hover-bg);
+  background: var(--color-surface-hover);
 }
 
 .notification-badge :deep(.el-badge__content) {
@@ -346,9 +346,12 @@ onUnmounted(() => {
 <style>
 .el-popper.notifications-dropdown-popper {
   padding: 0 !important;
-  border: 1px solid var(--border-color) !important;
+  border: 1px solid var(--color-border) !important;
   border-radius: 8px !important;
-  background: var(--bg-card) !important;
+  background: var(--color-surface) !important;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22) !important;
 }
 </style>
+
+
+

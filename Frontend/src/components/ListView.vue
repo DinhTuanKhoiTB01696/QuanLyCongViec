@@ -262,7 +262,7 @@ const taskProgress = (task) => {
 const progressStyle = (task) => {
   const percent = taskProgress(task)
   return {
-    background: `conic-gradient(#22c55e ${percent}%, #27272a ${percent}% 100%)`
+    background: `conic-gradient(#22c55e ${percent}%, var(--color-border) ${percent}% 100%)`
   }
 }
 
@@ -275,7 +275,7 @@ const updateTaskProperty = (task, field, value) => {
 .plane-list-view {
   display: flex;
   flex-direction: column;
-  color: #e4e4e7;
+  color: var(--color-text-primary);
 }
 
 .list-group {
@@ -295,7 +295,7 @@ const updateTaskProperty = (task, field, value) => {
 .group-header {
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid #1e2025;
+  border-bottom: 1px solid var(--color-border);
   cursor: pointer;
 }
 
@@ -316,7 +316,7 @@ const updateTaskProperty = (task, field, value) => {
 .task-id,
 .add-row-placeholder,
 .ic-hint {
-  color: #71717a;
+  color: var(--color-text-muted);
 }
 
 .add-icon {
@@ -333,16 +333,16 @@ const updateTaskProperty = (task, field, value) => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 0 10px 24px;
-  border-bottom: 1px solid #1e2025;
+  border-bottom: 1px solid var(--color-border);
   cursor: pointer;
 }
 
 .task-row:hover {
-  background: #16181d;
+  background: var(--color-surface);
 }
 
 .task-title {
-  color: #d4d4d8;
+  color: var(--color-text-primary);
 }
 
 .tr-right {
@@ -364,7 +364,7 @@ const updateTaskProperty = (task, field, value) => {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #0d0f11;
+  background: var(--color-bg);
 }
 
 .ring-value {
@@ -386,10 +386,10 @@ const updateTaskProperty = (task, field, value) => {
 
 .pill {
   padding: 4px 8px;
-  border: 1px solid #27272a;
-  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
   font-size: 12px;
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
 }
 
 .pill-user-text {
@@ -420,16 +420,16 @@ const updateTaskProperty = (task, field, value) => {
   padding: 12px;
   border: 1px solid #38bdf8;
   border-radius: 8px;
-  background: #16181d;
+  background: var(--color-surface);
 }
 
 .ic-input,
 .plane-search-input {
   width: 100%;
-  background: #111317;
-  border: 1px solid #27272a;
-  border-radius: 6px;
-  color: #e4e4e7;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  color: var(--color-text-primary);
   padding: 8px 10px;
 }
 
@@ -440,10 +440,10 @@ const updateTaskProperty = (task, field, value) => {
 }
 
 .dm-tool-btn {
-  border: 1px solid #27272a;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   background: transparent;
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
   padding: 4px 8px;
   cursor: pointer;
 }
@@ -452,3 +452,7 @@ const updateTaskProperty = (task, field, value) => {
   margin-top: 8px;
 }
 </style>
+
+
+
+

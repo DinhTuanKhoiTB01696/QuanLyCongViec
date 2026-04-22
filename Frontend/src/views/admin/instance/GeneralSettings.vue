@@ -6,72 +6,75 @@
           <i class="fa-solid fa-server"></i>
           <span>Admin / Instance / General</span>
         </div>
-        <h1 class="page-title">Instance general settings</h1>
-        <p class="page-subtitle">
-          Central place for system-wide identity, admin contact rules, and rollout defaults. This page is scaffolded
-          locally so we can keep the admin shell aligned with the Plane-style direction while backend APIs are filled in.
+        <h1 class="text-hero">Instance general settings</h1>
+        <p class="text-desc">
+          Central place for system-wide identity, admin contact rules, and rollout defaults. 
+          Manage your branding and global access policies from one professional dashboard.
         </p>
       </div>
 
       <div class="settings-grid">
+        <!-- Identity Section -->
         <section class="settings-card">
           <div class="section-head">
             <div>
-              <h2>Identity</h2>
-              <p>Branding values used across instance-level pages and emails.</p>
+              <h2 class="text-section">Identity</h2>
+              <p class="text-small">Branding values used across instance-level pages and emails.</p>
             </div>
-            <button type="button" class="primary-btn" @click="saveSettings">Save</button>
+            <button type="button" class="primary-btn" @click="saveSettings">Save Changes</button>
           </div>
 
           <div class="field-grid">
-            <label class="field">
-              <span>Instance name</span>
+            <div class="field">
+              <span class="field-label">Instance name</span>
               <input v-model="settings.instanceName" type="text" placeholder="SprintA" />
-            </label>
-            <label class="field">
-              <span>Primary domain</span>
+            </div>
+            <div class="field">
+              <span class="field-label">Primary domain</span>
               <input v-model="settings.primaryDomain" type="text" placeholder="app.example.com" />
-            </label>
-            <label class="field">
-              <span>Support URL</span>
+            </div>
+            <div class="field">
+              <span class="field-label">Support URL</span>
               <input v-model="settings.supportUrl" type="text" placeholder="https://status.example.com" />
-            </label>
-            <label class="field">
-              <span>Default timezone</span>
+            </div>
+            <div class="field">
+              <span class="field-label">Default timezone</span>
               <input v-model="settings.defaultTimezone" type="text" placeholder="Asia/Saigon" />
-            </label>
+            </div>
           </div>
         </section>
 
+        <!-- Admin Contacts -->
         <section class="settings-card">
           <div class="section-head">
             <div>
-              <h2>Admin contacts</h2>
-              <p>Fallback contacts shown in system banners, invitations, and escalation flows.</p>
+              <h2 class="text-section">Admin contacts</h2>
+              <p class="text-small">Fallback contacts shown in system banners, invitations, and escalation flows.</p>
             </div>
           </div>
 
           <div class="field-grid">
-            <label class="field">
-              <span>Operations email</span>
+            <div class="field">
+              <span class="field-label">Operations email</span>
               <input v-model="settings.operationsEmail" type="email" placeholder="ops@example.com" />
-            </label>
-            <label class="field">
-              <span>Security email</span>
+            </div>
+            <div class="field">
+              <span class="field-label">Security email</span>
               <input v-model="settings.securityEmail" type="email" placeholder="security@example.com" />
-            </label>
-            <label class="field full">
-              <span>Incident banner</span>
+            </div>
+            <div class="field full">
+              <span class="field-label">Incident banner</span>
               <textarea v-model="settings.incidentBanner" rows="4" placeholder="Scheduled maintenance notifications or global alerts"></textarea>
-            </label>
+            </div>
           </div>
         </section>
 
+        <!-- Rollout Defaults -->
         <section class="settings-card">
           <div class="section-head">
             <div>
-              <h2>Rollout defaults</h2>
-              <p>Safe defaults for onboarding and self-service access.</p>
+              <h2 class="text-section">Rollout defaults</h2>
+              <p class="text-small">Safe defaults for onboarding and self-service access.</p>
             </div>
           </div>
 
@@ -137,127 +140,28 @@ onMounted(loadSettings)
 </script>
 
 <style scoped>
-.admin-page {
-  padding: 32px;
-  color: #e5e7eb;
-}
-
-.page-header {
-  margin-bottom: 24px;
-}
-
 .breadcrumb {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #94a3b8;
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   margin-bottom: 8px;
-}
-
-.page-title {
-  margin: 0;
-  font-size: 28px;
-}
-
-.page-subtitle {
-  margin: 8px 0 0;
-  max-width: 820px;
-  color: #94a3b8;
-  line-height: 1.6;
-}
-
-.settings-grid {
-  display: grid;
-  gap: 16px;
-}
-
-.settings-card {
-  border: 1px solid #1f2937;
-  border-radius: 16px;
-  background: #0f172a;
-  padding: 20px;
-}
-
-.section-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: flex-start;
-  margin-bottom: 18px;
-}
-
-.section-head h2 {
-  margin: 0 0 6px;
-  font-size: 18px;
-}
-
-.section-head p {
-  margin: 0;
-  color: #94a3b8;
-  line-height: 1.5;
-}
-
-.field-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
 .field.full {
   grid-column: 1 / -1;
 }
 
-.field span {
-  color: #cbd5e1;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.field input,
-.field textarea {
-  border: 1px solid #334155;
-  border-radius: 10px;
-  background: #020617;
-  color: #e5e7eb;
-  padding: 12px 14px;
-  font: inherit;
-}
-
-.toggle-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.toggle-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #e2e8f0;
-}
-
-.primary-btn {
-  border: none;
-  border-radius: 999px;
-  background: #38bdf8;
-  color: #082f49;
-  padding: 10px 16px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
 @media (max-width: 900px) {
-  .admin-page {
-    padding: 20px;
-  }
-
   .field-grid {
     grid-template-columns: 1fr;
   }

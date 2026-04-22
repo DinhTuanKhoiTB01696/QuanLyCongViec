@@ -370,10 +370,10 @@ watch(() => props.projectId, fetchOptions)
 <style scoped>
 .spreadsheet-container {
   flex: 1;
-  background: #0d0f11;
-  color: #e4e4e7;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
   overflow: auto;
-  border-top: 1px solid #1e2025;
+  border-top: 1px solid var(--color-border);
 }
 
 .table-toolbar,
@@ -390,8 +390,8 @@ watch(() => props.projectId, fetchOptions)
   justify-content: space-between;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid #1e2025;
-  background: #0d0f11;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
   position: sticky;
   left: 0;
   z-index: 40;
@@ -407,10 +407,10 @@ watch(() => props.projectId, fetchOptions)
 .toolbar-select,
 .date-input,
 .plane-search-input {
-  border: 1px solid #27272a;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   background: #111317;
-  color: #e4e4e7;
+  color: var(--color-text-primary);
 }
 
 .toolbar-search {
@@ -428,7 +428,7 @@ watch(() => props.projectId, fetchOptions)
 
 .toolbar-btn,
 .page-btn {
-  border: 1px solid #27272a;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   background: #111317;
   color: #d4d4d8;
@@ -453,7 +453,7 @@ watch(() => props.projectId, fetchOptions)
   min-width: 200px;
   padding: 10px;
   border-radius: 8px;
-  border: 1px solid #27272a;
+  border: 1px solid var(--color-border);
   background: #111317;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
@@ -476,9 +476,9 @@ watch(() => props.projectId, fetchOptions)
 
 .plane-table th,
 .plane-table td {
-  border-bottom: 1px solid #1e2025;
-  border-right: 1px solid #1e2025;
-  background: #0d0f11;
+  border-bottom: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+  background: var(--color-bg);
 }
 
 .plane-table th {
@@ -486,7 +486,7 @@ watch(() => props.projectId, fetchOptions)
   top: 57px;
   z-index: 15;
   padding: 12px 16px;
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -497,7 +497,7 @@ watch(() => props.projectId, fetchOptions)
 }
 
 .plane-table tr:hover td {
-  background: #16181d;
+  background: var(--color-surface);
 }
 
 .sticky-work-item {
@@ -522,14 +522,14 @@ th.sticky-work-item {
 }
 
 .wi-id {
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
   font-size: 12px;
   min-width: 70px;
   flex-shrink: 0;
 }
 
 .wi-title {
-  color: #e4e4e7;
+  color: var(--color-text-primary);
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -546,14 +546,14 @@ th.sticky-work-item {
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
-  color: #e4e4e7;
+  color: var(--color-text-primary);
   cursor: pointer;
   text-align: left;
 }
 
 .cell-btn:hover {
-  background: #1e2025;
-  border-color: #27272a;
+  background: var(--color-border);
+  border-color: var(--color-border);
 }
 
 .date-input {
@@ -577,7 +577,7 @@ th.sticky-work-item {
 }
 
 .member-option:hover {
-  background: #27272a;
+  background: var(--color-border);
 }
 
 .text-green { color: #10b981; }
@@ -586,21 +586,25 @@ th.sticky-work-item {
 .text-blue { color: #3b82f6; }
 .text-muted,
 .muted-text,
-.date-text { color: #a1a1aa; }
+.date-text { color: var(--color-text-secondary); }
 
 .empty-cell {
   padding: 40px;
   text-align: center;
-  color: #71717a;
+  color: var(--color-text-muted);
 }
 
 .add-btn {
   border: 0;
   background: transparent;
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 </style>
+
+
+
+

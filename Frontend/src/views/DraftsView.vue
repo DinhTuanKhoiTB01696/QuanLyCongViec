@@ -33,7 +33,7 @@
                     <button class="dm-tool-btn"><i :class="getStatusIcon(draft.statusName)" :style="{ color: getStatusColor(draft.statusName) }"></i></button>
                     <template #dropdown>
                       <el-dropdown-menu class="plane-dropdown">
-                        <el-dropdown-item command="BACKLOG"><i class="fa-regular fa-circle-dot" style="color:#71717A"></i> Backlog</el-dropdown-item>
+                        <el-dropdown-item command="BACKLOG"><i class="fa-regular fa-circle-dot" style="color:var(--color-text-muted)"></i> Backlog</el-dropdown-item>
                         <el-dropdown-item command="TO DO"><i class="fa-regular fa-circle" style="color:#D4D4D8"></i> To Do</el-dropdown-item>
                         <el-dropdown-item command="IN PROGRESS"><i class="fa-solid fa-circle-half-stroke" style="color:#3B82F6"></i> In Progress</el-dropdown-item>
                         <el-dropdown-item command="DONE"><i class="fa-solid fa-circle-check" style="color:#10B981"></i> Done</el-dropdown-item>
@@ -168,9 +168,9 @@
                     <button class="dm-tool-btn"><i class="fa-solid fa-ellipsis text-muted"></i></button>
                     <template #dropdown>
                       <el-dropdown-menu class="plane-dropdown">
-                        <el-dropdown-item command="edit"><i class="fa-solid fa-pen" style="color:#A1A1AA"></i> Edit</el-dropdown-item>
-                        <el-dropdown-item command="copy"><i class="fa-regular fa-copy" style="color:#A1A1AA"></i> Make a copy</el-dropdown-item>
-                        <el-dropdown-item command="move"><i class="fa-solid fa-arrow-right-from-bracket" style="color:#A1A1AA"></i> Move to project</el-dropdown-item>
+                        <el-dropdown-item command="edit"><i class="fa-solid fa-pen" style="color:var(--color-text-muted)"></i> Edit</el-dropdown-item>
+                        <el-dropdown-item command="copy"><i class="fa-regular fa-copy" style="color:var(--color-text-muted)"></i> Make a copy</el-dropdown-item>
+                        <el-dropdown-item command="move"><i class="fa-solid fa-arrow-right-from-bracket" style="color:var(--color-text-muted)"></i> Move to project</el-dropdown-item>
                         <el-dropdown-item command="delete" divided><i class="fa-solid fa-trash" style="color:#EF4444"></i> Delete</el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
@@ -180,7 +180,7 @@
          </div>
            </div>
          </div>
-         <div v-if="drafts.length === 0" style="padding: 24px; color: #71717A;">
+         <div v-if="drafts.length === 0" style="padding: 24px; color: var(--color-text-muted);">
             No drafts found.
          </div>
          <div v-else class="drafts-pagination">
@@ -226,7 +226,7 @@
                 <button class="dm-tool-btn"><i :class="getStatusIcon(form.statusName)" :style="{ color: getStatusColor(form.statusName) }"></i> {{ getStatusLabel(form.statusName) }}</button>
                 <template #dropdown>
                   <el-dropdown-menu class="plane-dropdown">
-                    <el-dropdown-item command="BACKLOG"><i class="fa-regular fa-circle-dot" style="color:#71717A"></i> Backlog</el-dropdown-item>
+                    <el-dropdown-item command="BACKLOG"><i class="fa-regular fa-circle-dot" style="color:var(--color-text-muted)"></i> Backlog</el-dropdown-item>
                     <el-dropdown-item command="TO DO"><i class="fa-regular fa-circle" style="color:#D4D4D8"></i> To Do</el-dropdown-item>
                     <el-dropdown-item command="IN PROGRESS"><i class="fa-solid fa-circle-half-stroke" style="color:#3B82F6"></i> In Progress</el-dropdown-item>
                     <el-dropdown-item command="DONE"><i class="fa-solid fa-circle-check" style="color:#10B981"></i> Done</el-dropdown-item>
@@ -524,7 +524,7 @@ const getStatusColor = (status) => {
   if (s === 'DONE') return '#10B981'
   if (s === 'IN PROGRESS') return '#3B82F6'
   if (s === 'TO DO') return '#D4D4D8'
-  return '#71717A' // BACKLOG
+  return 'var(--color-text-muted)' // BACKLOG
 }
 
 const getStatusLabel = (status) => {
@@ -860,8 +860,8 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #0D0F11;
-  color: #E4E4E7;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
 }
 
 .dr-header {
@@ -869,7 +869,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  border-bottom: 1px solid #1E2025;
+  border-bottom: 1px solid var(--color-border);
 }
 .dr-left {
   display: flex;
@@ -878,10 +878,10 @@ onBeforeUnmount(() => {
   font-size: 14px;
   font-weight: 500;
 }
-.text-muted { color: #A1A1AA; }
-.dr-title { color: #E4E4E7; }
+.text-muted { color: var(--color-text-muted); }
+.dr-title { color: var(--color-text-primary); }
 .dr-badge {
-  background: #1E2025;
+  background: var(--color-surface);
   color: #0EA5E9;
   font-size: 11px;
   padding: 2px 6px;
@@ -906,10 +906,10 @@ onBeforeUnmount(() => {
 .dr-body { padding: 0 24px; overflow-y: auto; flex: 1; }
 .drafts-virtual-spacer { position: relative; width: 100%; }
 .drafts-virtual-inner { position: absolute; top: 0; left: 0; right: 0; }
-.list-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border: 1px solid transparent; border-bottom: 1px solid #1E2025; transition: background 0.2s, border 0.2s; cursor: pointer; }
-.list-row:hover { background: #16181D; border-radius: 4px; border-color: #27272A; }
+.list-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border: 1px solid transparent; border-bottom: 1px solid var(--color-border); transition: background 0.2s, border 0.2s; cursor: pointer; }
+.list-row:hover { background: var(--color-surface-hover); border-radius: 4px; border-color: var(--color-border); }
 .lr-left { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-.lr-title { font-size: 14px; font-weight: 500; color: #E4E4E7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
+.lr-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
 .lr-right { display: flex; align-items: center; gap: 6px; }
 .text-xs { font-size: 12px; }
 .fw-500 { font-weight: 500; }
@@ -917,9 +917,9 @@ onBeforeUnmount(() => {
 /* Popover Content (Search + List) */
 .plane-search-input {
   width: 100%;
-  background: #111315;
-  border: 1px solid #27272A;
-  color: #E4E4E7;
+  background: var(--color-input-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
   padding: 6px 12px;
   border-radius: 4px;
   font-size: 13px;
@@ -930,9 +930,9 @@ onBeforeUnmount(() => {
 .plane-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
 .plane-list-item { 
   display: flex; gap: 8px; align-items: center;
-  padding: 6px 8px; border-radius: 4px; cursor: pointer; color: #E4E4E7; font-size: 13px; 
+  padding: 6px 8px; border-radius: 4px; cursor: pointer; color: var(--color-text-primary); font-size: 13px; 
 }
-.plane-list-item:hover { background: #1E2025; }
+.plane-list-item:hover { background: var(--color-surface-hover); }
 
 /* Legacy date picker override */
 .date-picker-wrap {
@@ -951,39 +951,39 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 .draft-modal {
-  background: #111315;
-  border: 1px solid #1E2025;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   width: 700px;
   border-radius: 8px;
   padding: 24px;
   box-shadow: 0 20px 40px rgba(0,0,0,0.5);
 }
 
-.modal-title { margin: 0; font-size: 16px; font-weight: 600; color: #E4E4E7; }
+.modal-title { margin: 0; font-size: 16px; font-weight: 600; color: var(--color-text-primary); }
 .mt-4 { margin-top: 24px; }
 .mt-2 { margin-top: 12px; }
 
-.proj-badge { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; background: #16181D; padding: 4px 8px; border-radius: 4px; border: 1px solid #27272A; }
+.proj-badge { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; background: var(--color-surface); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--color-border); }
 
 .dm-title-input {
   width: 100%;
-  background: #16181D;
-  border: 1px solid #27272A;
-  color: #E4E4E7;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
   padding: 12px 16px;
   border-radius: 6px;
   font-size: 14px;
   outline: none;
   box-sizing: border-box;
 }
-.dm-title-input::placeholder { color: #71717A; }
+.dm-title-input::placeholder { color: var(--color-text-muted); }
 .dm-title-input:focus { border-color: #38BDF8; }
 
 .dm-desc-input {
   width: 100%;
-  background: #16181D;
-  border: 1px solid #27272A;
-  color: #E4E4E7;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
   padding: 12px 16px;
   border-radius: 6px;
   font-size: 14px;
@@ -993,7 +993,7 @@ onBeforeUnmount(() => {
   font-family: inherit;
   box-sizing: border-box;
 }
-.dm-desc-input::placeholder { color: #71717A; }
+.dm-desc-input::placeholder { color: var(--color-text-muted); }
 .dm-desc-input:focus { border-color: #38BDF8; }
 
 .dm-toolbar {
@@ -1004,8 +1004,8 @@ onBeforeUnmount(() => {
 }
 .dm-tool-btn {
   background: transparent;
-  border: 1px solid #27272A;
-  color: #A1A1AA;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
   font-size: 12px;
   display: inline-flex;
   align-items: center;
@@ -1017,24 +1017,24 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   transition: background 0.15s, color 0.15s;
 }
-.dm-tool-btn:hover { background: #1E2025; color: #E4E4E7; }
-.text-primary { color: #E4E4E7 !important; border-color: #3f3f46 !important; background-color: #1E2025; }
-.text-primary i { color: #E4E4E7 !important; }
+.dm-tool-btn:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+.text-primary { color: var(--color-text-primary) !important; border-color: var(--color-border) !important; background-color: var(--color-surface-hover); }
+.text-primary i { color: var(--color-text-primary) !important; }
 
 .dm-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid #1E2025;
+  border-top: 1px solid var(--color-border);
   padding-top: 16px;
 }
-.toggle-wrap { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #A1A1AA; cursor: pointer; }
-.toggle-bg { width: 32px; height: 18px; background: #27272A; border-radius: 9px; position: relative; }
-.toggle-knob { width: 14px; height: 14px; background: #71717A; border-radius: 50%; position: absolute; top: 2px; left: 2px; }
+.toggle-wrap { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-muted); cursor: pointer; }
+.toggle-bg { width: 32px; height: 18px; background: var(--color-border); border-radius: 9px; position: relative; }
+.toggle-knob { width: 14px; height: 14px; background: var(--color-text-muted); border-radius: 50%; position: absolute; top: 2px; left: 2px; }
 
 .dm-footer-right { display: flex; gap: 12px; }
-.discard-btn { background: transparent; border: none; color: #A1A1AA; font-size: 13px; font-weight: 500; cursor: pointer; }
-.discard-btn:hover { color: #E4E4E7; }
+.discard-btn { background: transparent; border: none; color: var(--color-text-muted); font-size: 13px; font-weight: 500; cursor: pointer; }
+.discard-btn:hover { color: var(--color-text-primary); }
 .save-btn { background: #0EA5E9; color: white; border: none; border-radius: 6px; padding: 6px 16px; font-size: 13px; font-weight: 500; cursor: pointer; }
 .save-btn:hover { background: #0284C7; }
 
@@ -1054,13 +1054,13 @@ onBeforeUnmount(() => {
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  color: #E4E4E7;
+  color: var(--color-text-primary);
   transition: background 0.15s;
   border: 1px solid transparent;
 }
 .project-item:hover {
-  background: #16181D;
-  border-color: #27272A;
+  background: var(--color-surface);
+  border-color: var(--color-border);
 }
 
 .drafts-pagination {
@@ -1069,12 +1069,12 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 12px;
   padding: 16px 0 24px;
-  border-top: 1px solid #1E2025;
+  border-top: 1px solid var(--color-border);
   margin-top: 8px;
 }
 
 .pagination-summary {
-  color: #A1A1AA;
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
@@ -1085,8 +1085,8 @@ onBeforeUnmount(() => {
 
 .pagination-btn {
   background: transparent;
-  border: 1px solid #27272A;
-  color: #E4E4E7;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 12px;
@@ -1099,6 +1099,9 @@ onBeforeUnmount(() => {
 }
 
 .pagination-btn:not(:disabled):hover {
-  background: #16181D;
+  background: var(--color-surface);
 }
 </style>
+
+
+

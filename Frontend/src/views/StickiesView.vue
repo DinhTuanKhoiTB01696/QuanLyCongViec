@@ -4,7 +4,7 @@
       <header class="st-header">
         <div class="st-left">
           <i class="fa-solid fa-note-sticky text-muted"></i>
-          <span class="st-title flex items-center gap-2">Stickies <span class="bg-[#27272A] text-gray-400 text-[10px] px-1.5 py-0.5 rounded" v-if="stickies.length > 0">{{ stickies.length }}</span></span>
+          <span class="st-title flex items-center gap-2">Stickies <span class="bg-[var(--color-surface)] text-[var(--color-text-muted)] text-[10px] px-1.5 py-0.5 rounded" v-if="stickies.length > 0">{{ stickies.length }}</span></span>
         </div>
         <div class="st-right">
           <button class="plane-toolbar-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
@@ -16,14 +16,14 @@
         <!-- Empty State -->
         <div v-if="stickies.length === 0" class="empty-state flex flex-col items-center justify-center pt-24 h-full">
            <div class="empty-text-container text-left w-full max-w-3xl">
-             <h2 class="text-[18px] font-medium text-[#E4E4E7] mb-2">Stickies are quick notes and to-dos you take down on the fly.</h2>
-             <p class="text-[13px] text-[#A1A1AA] mb-10">Capture your thoughts and ideas effortlessly by creating stickies that you can access anytime and from anywhere.</p>
+             <h2 class="text-[18px] font-medium text-[var(--color-text-primary)] mb-2">Stickies are quick notes and to-dos you take down on the fly.</h2>
+             <p class="text-[13px] text-[var(--color-text-muted)] mb-10">Capture your thoughts and ideas effortlessly by creating stickies that you can access anytime and from anywhere.</p>
              
              <!-- Mocked background area mirroring Plane design -->
-             <div class="empty-bg relative w-full h-[400px] bg-[#141518] border border-[#1E2025] rounded-xl flex flex-col items-center justify-end overflow-hidden">
+             <div class="empty-bg relative w-full h-[400px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl flex flex-col items-center justify-end overflow-hidden">
                 <div class="absolute inset-0 flex items-center justify-center opacity-30">
-                  <i class="fa-solid fa-note-sticky text-[150px] text-[#27272A] rotate-12"></i>
-                  <i class="fa-solid fa-note-sticky text-[120px] text-[#1E2025] -ml-20 -mt-20 -rotate-12"></i>
+                  <i class="fa-solid fa-note-sticky text-[150px] text-[var(--color-border)] rotate-12"></i>
+                  <i class="fa-solid fa-note-sticky text-[120px] text-[var(--color-border)] -ml-20 -mt-20 -rotate-12"></i>
                 </div>
                 <button class="plane-primary-btn flex items-center gap-1.5 relative z-10 mb-8" @click="addSticky">
                   <i class="fa-solid fa-plus text-xs"></i> Add sticky
@@ -39,7 +39,7 @@
           v-for="sticky in stickies" 
           :key="sticky.id" 
           :class="{ 'is-new': sticky.isNew }"
-          :style="{ backgroundColor: sticky.color }"
+          :data-sticky-color="sticky.color || 'zinc'"
         >
              <textarea 
                 class="sticky-input" 
@@ -66,12 +66,12 @@
                         <div class="color-grid">
                            <div 
                              v-for="c in backgroundColors" 
-                             :key="c" 
+                             :key="c.id" 
                              class="color-swatch"
-                             :style="{ backgroundColor: c }"
-                             @click="sticky.color = c; debouncedSave()"
+                             :data-sticky-color="c.id"
+                             @click="sticky.color = c.id; debouncedSave()"
                            >
-                             <i v-if="sticky.color === c" class="fa-solid fa-check text-[10px] text-white"></i>
+                             <i v-if="sticky.color === c.id" class="fa-solid fa-check text-[10px]"></i>
                            </div>
                         </div>
                      </div>
@@ -100,18 +100,18 @@ import NexusLayout from '@/components/layout/NexusLayout.vue'
 
 // Sticky color palette - dark theme friendly
 const backgroundColors = [
-  '#3F3F46', // Zinc Gray
-  '#4C2B2D', // Deep Red
-  '#4A314D', // Deep Purple
-  '#5C4532', // Deep Bronze
-  '#1B4D3E', // Forest Green
-  '#1D4C5C', // Ocean Teal
-  '#1E3A8A', // Dark Navy
-  '#3B2E58', // Violet
-  '#44403C', // Warm Stone
-  '#365314', // Olive Green
-  '#7C2D12', // Rust
-  '#1E3A5F'  // Steel Blue
+  { id: 'zinc', label: 'Gray' },
+  { id: 'red', label: 'Red' },
+  { id: 'purple', label: 'Purple' },
+  { id: 'amber', label: 'Amber' },
+  { id: 'green', label: 'Green' },
+  { id: 'teal', label: 'Teal' },
+  { id: 'blue', label: 'Blue' },
+  { id: 'indigo', label: 'Indigo' },
+  { id: 'stone', label: 'Stone' },
+  { id: 'lime', label: 'Lime' },
+  { id: 'rose', label: 'Rose' },
+  { id: 'cyan', label: 'Cyan' }
 ]
 
 const stickies = ref([])
@@ -147,9 +147,9 @@ const getRandomColor = () => {
   const lastColor = stickies.value.length > 0
     ? stickies.value[stickies.value.length - 1].color
     : null
-  const available = backgroundColors.filter(c => c !== lastColor)
+  const available = backgroundColors.filter(c => c.id !== lastColor)
   const pool = available.length > 0 ? available : backgroundColors
-  return pool[Math.floor(Math.random() * pool.length)]
+  return pool[Math.floor(Math.random() * pool.length)].id
 }
 
 const addSticky = async () => {
@@ -197,8 +197,8 @@ const cycleAlignment = (sticky) => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #0D0F11;
-  color: #E4E4E7;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
 }
 
 .st-header {
@@ -206,7 +206,7 @@ const cycleAlignment = (sticky) => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  border-bottom: 1px solid #1E2025;
+  border-bottom: 1px solid var(--color-border);
 }
 .st-left {
   display: flex;
@@ -215,8 +215,8 @@ const cycleAlignment = (sticky) => {
   font-size: 14px;
   font-weight: 500;
 }
-.text-muted { color: #A1A1AA; }
-.st-title { color: #E4E4E7; }
+.text-muted { color: var(--color-text-muted); }
+.st-title { color: var(--color-text-primary); }
 
 .st-right {
   display: flex;
@@ -225,13 +225,13 @@ const cycleAlignment = (sticky) => {
 .plane-toolbar-btn {
   background: transparent;
   border: none;
-  color: #D4D4D8;
+  color: var(--color-text-secondary);
   cursor: pointer;
   padding: 6px;
   border-radius: 4px;
   transition: background 0.2s;
 }
-.plane-toolbar-btn:hover { background: #1E2025; }
+.plane-toolbar-btn:hover { background: var(--color-surface-hover); }
 .plane-primary-btn {
   background: #0EA5E9;
   color: white;
@@ -259,17 +259,50 @@ const cycleAlignment = (sticky) => {
   align-items: start; /* prevents stretching */
 }
 
+/* Color Variable Definitions (Universal) */
+[data-sticky-color="zinc"] { --s-bg: #f4f4f5; --s-text: #18181b; --s-border: #e4e4e7; }
+[data-sticky-color="red"] { --s-bg: #fee2e2; --s-text: #991b1b; --s-border: #fecaca; }
+[data-sticky-color="purple"] { --s-bg: #f3e8ff; --s-text: #6b21a8; --s-border: #e9d5ff; }
+[data-sticky-color="amber"] { --s-bg: #fef3c7; --s-text: #92400e; --s-border: #fde68a; }
+[data-sticky-color="green"] { --s-bg: #dcfce7; --s-text: #166534; --s-border: #bbf7d0; }
+[data-sticky-color="teal"] { --s-bg: #ccfbf1; --s-text: #115e59; --s-border: #99f6e4; }
+[data-sticky-color="blue"] { --s-bg: #dbeafe; --s-text: #1e40af; --s-border: #bfdbfe; }
+[data-sticky-color="indigo"] { --s-bg: #e0e7ff; --s-text: #3730a3; --s-border: #c7d2fe; }
+[data-sticky-color="stone"] { --s-bg: #f5f5f4; --s-text: #1c1917; --s-border: #e7e5e4; }
+[data-sticky-color="lime"] { --s-bg: #ecfccb; --s-text: #3f6212; --s-border: #d9f99d; }
+[data-sticky-color="rose"] { --s-bg: #ffe4e6; --s-text: #9f1239; --s-border: #fecdd3; }
+[data-sticky-color="cyan"] { --s-bg: #ecfeff; --s-text: #083344; --s-border: #cffafe; }
+
+/* Dark Theme Overrides */
+[data-theme="dark"] [data-sticky-color="zinc"] { --s-bg: #27272a; --s-text: #f4f4f5; --s-border: #3f3f46; }
+[data-theme="dark"] [data-sticky-color="red"] { --s-bg: #4c2b2d; --s-text: #fca5a5; --s-border: #7f1d1d; }
+[data-theme="dark"] [data-sticky-color="purple"] { --s-bg: #4a314d; --s-text: #e9d5ff; --s-border: #701a75; }
+[data-theme="dark"] [data-sticky-color="amber"] { --s-bg: #5c4532; --s-text: #fde68a; --s-border: #92400e; }
+[data-theme="dark"] [data-sticky-color="green"] { --s-bg: #1b4d3e; --s-text: #bbf7d0; --s-border: #064e3b; }
+[data-theme="dark"] [data-sticky-color="teal"] { --s-bg: #1d4c5c; --s-text: #99f6e4; --s-border: #134e4a; }
+[data-theme="dark"] [data-sticky-color="blue"] { --s-bg: #1e3a8a; --s-text: #bfdbfe; --s-border: #1e40af; }
+[data-theme="dark"] [data-sticky-color="indigo"] { --s-bg: #3b2e58; --s-text: #c7d2fe; --s-border: #312e81; }
+[data-theme="dark"] [data-sticky-color="stone"] { --s-bg: #292524; --s-text: #f5f5f4; --s-border: #44403c; }
+[data-theme="dark"] [data-sticky-color="lime"] { --s-bg: #365314; --s-text: #d9f99d; --s-border: #1a2e05; }
+[data-theme="dark"] [data-sticky-color="rose"] { --s-bg: #7c2d12; --s-text: #fecdd3; --s-border: #4c0519; }
+[data-theme="dark"] [data-sticky-color="cyan"] { --s-bg: #164e63; --s-text: #cffafe; --s-border: #083344; }
+
 .sticky-card {
-  border-radius: 6px;
+  background-color: var(--s-bg);
+  color: var(--s-text);
+  border-radius: 2px;
   height: 280px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s;
   animation: slideInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid var(--s-border);
 }
+
 .sticky-card:hover { 
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
 }
 
 /* Highlight pulse for newly created sticky */
@@ -293,14 +326,14 @@ const cycleAlignment = (sticky) => {
   background: transparent;
   border: none;
   outline: none;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--s-text);
   padding: 16px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 15px;
   resize: none;
-  line-height: 1.5;
+  line-height: 1.6;
 }
-.sticky-input::placeholder { color: rgba(255, 255, 255, 0.4); font-style: normal; font-weight: normal;}
+.sticky-input::placeholder { color: var(--s-text); opacity: 0.4; font-style: normal; font-weight: normal;}
 
 .sticky-footer {
   display: flex;
@@ -316,7 +349,8 @@ const cycleAlignment = (sticky) => {
 .sf-btn {
   background: transparent;
   border: none;
-  color: rgba(255,255,255,0.5);
+  color: var(--s-text);
+  opacity: 0.6;
   cursor: pointer;
   padding: 6px;
   font-size: 14px;
@@ -328,9 +362,13 @@ const cycleAlignment = (sticky) => {
   height: 28px;
   transition: 0.2s;
 }
-.sf-btn:hover { color: white; background: rgba(255,255,255,0.1); }
-.sf-btn.active { color: white; background: rgba(255,255,255,0.2); }
-.trash:hover { color: #F87171; background: rgba(248, 113, 113, 0.1); }
+.sf-btn:hover { opacity: 1; background: rgba(0,0,0,0.05); }
+[data-theme="dark"] .sf-btn:hover { background: rgba(255,255,255,0.1); }
+
+.sf-btn.active { opacity: 1; background: rgba(0,0,0,0.1); }
+[data-theme="dark"] .sf-btn.active { background: rgba(255,255,255,0.15); }
+
+.trash:hover { color: #F87171 !important; background: rgba(248, 113, 113, 0.1) !important; opacity: 1; }
 
 /* Color Swatches Popover Override */
 .swatch-container {
@@ -344,21 +382,27 @@ const cycleAlignment = (sticky) => {
 .color-swatch {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: 2px;
   cursor: pointer;
-  transition: transform 0.1s;
+  transition: transform 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: var(--s-bg);
+  border: 1px solid var(--s-border);
+  color: var(--s-text);
 }
 .color-swatch:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 0 2px rgba(255,255,255,0.2)
+  transform: scale(1.15);
+  box-shadow: var(--shadow-md);
 }
 
 :deep(.custom-swatch-popover) {
-  background-color: #16181D !important;
+  background-color: var(--color-surface) !important;
   border: 1px solid #2D2F36 !important;
   border-radius: 8px !important;
 }
 </style>
+
+
+

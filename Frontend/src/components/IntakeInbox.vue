@@ -149,7 +149,7 @@ function formatDate(d) {
 .intake-header h3 {
   font-size: 16px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .intake-list {
@@ -164,13 +164,13 @@ function formatDate(d) {
   align-items: center;
   padding: 14px 16px;
   border-radius: 10px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   transition: all 0.15s;
 }
 
 .intake-item:hover {
-  background: var(--hover-bg);
+  background: var(--color-surface-hover);
   border-color: var(--el-color-primary);
 }
 
@@ -193,12 +193,12 @@ function formatDate(d) {
 .intake-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .intake-meta {
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 .intake-right {
@@ -220,7 +220,7 @@ function formatDate(d) {
 .intake-empty {
   text-align: center;
   padding: 40px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 .empty-icon {
@@ -229,3 +229,5 @@ function formatDate(d) {
   margin-bottom: 8px;
 }
 </style>
+
+

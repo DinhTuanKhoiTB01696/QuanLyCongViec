@@ -32,14 +32,14 @@ const reload = () => {
   justify-content: center;
   height: 100vh;
   width: 100%;
-  background-color: var(--bg-layout, #0d0f11);
+  background-color: var(--bg-layout, var(--color-bg));
   color: var(--text-primary, #e4e4e7);
 }
 .error-content {
-  background: var(--bg-card, #16181d);
+  background: var(--bg-card, var(--color-surface));
   padding: 30px;
   border-radius: 8px;
-  border: 1px solid var(--border-color, #1e2025);
+  border: 1px solid var(--border-color, var(--color-border));
   max-width: 500px;
   text-align: center;
 }
@@ -65,3 +65,6 @@ const reload = () => {
   background: #2563eb;
 }
 </style>
+
+
+

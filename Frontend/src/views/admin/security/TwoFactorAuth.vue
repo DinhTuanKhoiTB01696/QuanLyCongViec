@@ -124,7 +124,7 @@ onMounted(() => {
 
 .breadcrumb {
   font-size: 13px;
-  color: #8b949e;
+  color: var(--color-text-muted);
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -134,20 +134,20 @@ onMounted(() => {
 .page-title {
   font-size: 24px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   margin-bottom: 4px;
 }
 
 .page-subtitle {
   font-size: 14px;
-  color: #8b949e;
+  color: var(--color-text-muted);
 }
 
 .settings-card {
-  background-color: var(--bg-card);
+  background-color: var(--color-surface);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
@@ -188,13 +188,13 @@ onMounted(() => {
 .status-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   margin-bottom: 4px;
 }
 
 .status-desc {
   font-size: 14px;
-  color: #8b949e;
+  color: var(--color-text-muted);
   line-height: 1.5;
 }
 
@@ -205,13 +205,13 @@ onMounted(() => {
 .card-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   margin-bottom: 8px;
 }
 
 .section-desc {
   font-size: 13px;
-  color: #8b949e;
+  color: var(--color-text-muted);
   margin-bottom: 24px;
 }
 
@@ -225,14 +225,14 @@ onMounted(() => {
 .method-icon {
   width: 48px;
   height: 48px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   flex-shrink: 0;
 }
 
@@ -243,19 +243,19 @@ onMounted(() => {
 .method-title {
   font-size: 15px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   margin-bottom: 4px;
 }
 
 .method-desc {
   font-size: 13px;
-  color: #8b949e;
+  color: var(--color-text-muted);
   line-height: 1.4;
 }
 
 .divider {
   height: 1px;
-  background-color: var(--border-color);
+  background-color: var(--color-border);
   margin: 8px 0;
 }
 
@@ -264,3 +264,6 @@ onMounted(() => {
   pointer-events: none;
 }
 </style>
+
+
+

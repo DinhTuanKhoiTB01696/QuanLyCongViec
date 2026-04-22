@@ -286,8 +286,8 @@ function formatDateOnly(value) {
   display: flex;
   flex-direction: column;
   min-height: calc(100vh - 180px);
-  background: #0d0f11;
-  color: #e4e4e7;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
 }
 
 .cal-header,
@@ -300,7 +300,7 @@ function formatDateOnly(value) {
 .cal-header {
   justify-content: space-between;
   padding: 16px 24px;
-  border-bottom: 1px solid #1e2025;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .cal-nav,
@@ -310,10 +310,10 @@ function formatDateOnly(value) {
 
 .nav-btn,
 .cal-btn {
-  border: 1px solid #27272a;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   background: #111317;
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
 
@@ -343,7 +343,7 @@ function formatDateOnly(value) {
   z-index: 20;
   min-width: 220px;
   background: #111317;
-  border: 1px solid #27272a;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 10px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
@@ -362,14 +362,14 @@ function formatDateOnly(value) {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   flex: 1;
-  border-left: 1px solid #1e2025;
+  border-left: 1px solid var(--color-border);
 }
 
 .cal-day-header {
   padding: 10px 12px;
-  border-bottom: 1px solid #1e2025;
-  border-right: 1px solid #1e2025;
-  color: #71717a;
+  border-bottom: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+  color: var(--color-text-muted);
   font-size: 12px;
   text-transform: uppercase;
   text-align: right;
@@ -379,8 +379,8 @@ function formatDateOnly(value) {
   position: relative;
   min-height: 120px;
   padding: 6px 8px 32px;
-  border-bottom: 1px solid #1e2025;
-  border-right: 1px solid #1e2025;
+  border-bottom: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
 }
 
 .cal-day-cell:hover {
@@ -394,7 +394,7 @@ function formatDateOnly(value) {
 .day-number {
   margin-bottom: 6px;
   text-align: right;
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
   font-size: 13px;
 }
 
@@ -453,7 +453,7 @@ function formatDateOnly(value) {
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #71717a;
+  color: var(--color-text-muted);
   padding: 4px 6px;
   text-align: left;
   cursor: pointer;
@@ -506,3 +506,7 @@ function formatDateOnly(value) {
   text-overflow: ellipsis;
 }
 </style>
+
+
+
+

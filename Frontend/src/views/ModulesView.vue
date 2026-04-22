@@ -29,9 +29,12 @@ onMounted(async () => {
 
 <template>
   <NexusLayout>
-    <div style="background-color: #0D0F11; height: 100vh; overflow-y: auto;">
+    <div style="background-color: var(--color-bg); height: 100vh; overflow-y: auto;">
       <ModulesTab v-if="isReady && projectId && projectId !== 'default'" :projectId="projectId" />
       <div v-else-if="isReady" class="text-muted text-center pt-10">No project available to load Modules.</div>
     </div>
   </NexusLayout>
 </template>
+
+
+

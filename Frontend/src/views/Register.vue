@@ -1,5 +1,5 @@
 <template>
-  <div class="auth-page" data-theme="light">
+  <div class="auth-page">
     <header class="auth-navbar">
       <div class="container nav-content">
         <router-link to="/" class="logo">
@@ -8,7 +8,7 @@
         </router-link>
         <div class="nav-actions" style="display: flex; align-items: center; gap: 16px;">
           <el-button link @click="$router.push('/login')">Đăng nhập</el-button>
-          <el-button type="primary" round @click="$router.push('/register')">Đăng ký</el-button>
+          <el-button type="primary" @click="$router.push('/register')">Đăng ký</el-button>
         </div>
       </div>
     </header>
@@ -228,7 +228,7 @@ const handleRegister = async () => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #f8fafc;
+  background-color: var(--color-bg);
 }
 
 .auth-navbar {
@@ -258,7 +258,7 @@ const handleRegister = async () => {
   gap: 8px;
   font-weight: 800;
   font-size: 24px;
-  color: #1a1a1a;
+  color: var(--color-text-primary);
   text-decoration: none;
 }
 
@@ -283,24 +283,25 @@ const handleRegister = async () => {
 }
 
 .auth-card {
-  background: white;
+  background: var(--color-surface);
   width: 100%;
   max-width: 440px;
   padding: 48px 40px 40px;
-  border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.02);
+  border-radius: 2px;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
 }
 
 .auth-title {
   font-size: 24px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-primary);
   text-align: center;
   margin-bottom: 8px;
 }
 
 .auth-subtitle {
-  color: #64748b;
+  color: var(--color-text-secondary);
   text-align: center;
   font-size: 13px;
   margin-bottom: 32px;
@@ -313,7 +314,7 @@ const handleRegister = async () => {
 
 :deep(.el-form-item__label) {
   font-weight: 600;
-  color: #334155;
+  color: var(--color-text-secondary);
   padding-bottom: 4px;
   font-size: 13px;
 }
@@ -321,14 +322,15 @@ const handleRegister = async () => {
 .auth-btn {
   width: 100%;
   font-weight: 600;
-  border-radius: 12px;
+  border-radius: 2px;
   height: 48px;
   font-size: 15px;
-  background: linear-gradient(135deg, #0ea5e9, var(--el-color-primary));
+  background: var(--color-accent);
   border: none;
   margin-top: 8px;
   margin-bottom: 24px;
   transition: transform 0.2s, box-shadow 0.2s;
+  color: #ffffff;
 }
 
 .auth-btn:hover {
@@ -339,11 +341,11 @@ const handleRegister = async () => {
 .otp-instruction {
   text-align: center;
   font-size: 14px;
-  color: #64748b;
+  color: var(--color-text-secondary);
   margin-bottom: 24px;
-  background: #f1f5f9;
+  background: var(--color-surface-hover);
   padding: 12px;
-  border-radius: 8px;
+  border-radius: 2px;
   line-height: 1.6;
 }
 
@@ -375,7 +377,7 @@ const handleRegister = async () => {
 .auth-footer-text {
   text-align: center;
   font-size: 14px;
-  color: #64748b;
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -388,16 +390,17 @@ const handleRegister = async () => {
 .auth-small-links {
   margin-top: 24px;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .auth-small-links a {
-  color: #94a3b8;
+  color: var(--color-text-muted);
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .auth-small-links a:hover {
-  color: #64748b;
+  color: var(--color-text-primary);
 }
 </style>
+
