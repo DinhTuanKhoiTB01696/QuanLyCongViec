@@ -101,11 +101,21 @@ const visibleComp = computed({
 const submitting = ref(false)
 const coverOptions = Array.from({ length: 8 }, (_, index) => `https://picsum.photos/seed/sprinta-cover-${index + 1}/640/360`)
 
+const formatDateOnly = (value) => {
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const createInitialForm = () => ({
   name: '',
   key: '',
   description: '',
-  startDate: new Date().toISOString().slice(0, 10),
+  startDate: formatDateOnly(new Date()),
   networkType: 'Public',
   cover: coverOptions[0],
   icon: '🚀'

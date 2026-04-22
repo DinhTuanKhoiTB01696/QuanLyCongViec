@@ -6,8 +6,8 @@
       <header class="plane-space-header">
         <div class="sh-left">
           <div class="breadcrumb">
-            <span class="proj-icon">C</span>
-            <span class="proj-name">{{ project?.name || 'Cun' }}</span>
+            <span class="proj-icon">{{ projectBadge }}</span>
+            <span class="proj-name">{{ project?.name || 'Project' }}</span>
             <i class="fa-solid fa-chevron-right separator"></i>
             <span class="active-page">
               <i class="fa-solid fa-layer-group"></i> Work Items
@@ -50,11 +50,10 @@
                       <i class="fa-solid fa-chevron-up"></i>
                    </div>
                    <div class="dd-list">
-                      <label class="dd-item"><input type="radio" name="order" checked /> Manual</label>
-                      <label class="dd-item"><input type="radio" name="order" /> Last created</label>
-                      <label class="dd-item"><input type="radio" name="order" /> Last updated</label>
-                      <label class="dd-item"><input type="radio" name="order" /> Start date</label>
-                      <label class="dd-item"><input type="radio" name="order" /> Priority</label>
+                      <label class="dd-item"><input type="radio" name="order" value="manual" v-model="displayOrder" /> Manual</label>
+                      <label class="dd-item"><input type="radio" name="order" value="created" v-model="displayOrder" /> Last created</label>
+                      <label class="dd-item"><input type="radio" name="order" value="updated" v-model="displayOrder" /> Last updated</label>
+                      <label class="dd-item"><input type="radio" name="order" value="priority" v-model="displayOrder" /> Priority</label>
                    </div>
                 </div>
                 <div class="dd-section border-top">
@@ -99,7 +98,8 @@
              </div>
 
              <div class="group-content" v-show="!collapsedListGroups[group.id]">
-               <div class="task-row" v-for="task in group.items" :key="task.id" @click="openTaskDetail(task)">
+               <template v-for="task in group.items" :key="task.id">
+               <div class="task-row" @click="openTaskDetail(task)">
                  <div class="tr-left">
                    <span class="task-id">{{ task.sequenceId || task.id.substring(0,8).toUpperCase() }}</span>
                    <span class="task-title" :style="group.statusName === 'DONE' ? { textDecoration: 'line-through', color: '#71717A' } : {}">
@@ -167,6 +167,81 @@
                  </div>
                </div>
 
+               <div
+                 v-for="subtask in (visibleSubtasksByParent[task.id] || [])"
+                 :key="`${task.id}-${subtask.id}`"
+                 class="task-row subtask-row"
+                 @click="openTaskDetail(subtask)"
+               >
+                 <div class="tr-left">
+                   <span class="subtask-indent"><i class="fa-solid fa-turn-down"></i></span>
+                   <span class="task-id">{{ subtask.sequenceId || subtask.id.substring(0,8).toUpperCase() }}</span>
+                   <span class="task-title">
+                     {{ subtask.title }}
+                   </span>
+                 </div>
+                 <div class="tr-right" @click.stop>
+                   <div class="pill-group">
+                     <el-dropdown trigger="click" @command="(val) => updateTask(subtask, 'statusName', val, subtask.statusName)">
+                       <div class="pill pill-status cursor-pointer hover:bg-[#1E2025]">
+                         <i :class="getBoardStatusIcon(subtask.statusName)" :style="{ color: getStatusColor(subtask.statusName) }"></i>
+                         {{ normalizeStatusLabel(subtask.statusName) }}
+                       </div>
+                       <template #dropdown>
+                         <el-dropdown-menu class="plane-dropdown">
+                           <el-dropdown-item v-for="status in taskStatusOptions" :key="`${subtask.id}-${status.name}`" :command="status.name">
+                             <i :class="status.icon" :style="{ color: status.color }"></i>
+                             {{ status.label }}
+                           </el-dropdown-item>
+                         </el-dropdown-menu>
+                       </template>
+                     </el-dropdown>
+
+                     <el-dropdown trigger="click" @command="(val) => updateTask(subtask, 'priority', val, subtask.priority)">
+                       <div class="pill pill-priority cursor-pointer hover:bg-[#1E2025]">
+                         <i :class="getPriorityIcon(subtask.priority)"></i>
+                       </div>
+                       <template #dropdown>
+                         <el-dropdown-menu class="plane-dropdown">
+                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> Urgent</el-dropdown-item>
+                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> High</el-dropdown-item>
+                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> Normal</el-dropdown-item>
+                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> Low</el-dropdown-item>
+                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> None</el-dropdown-item>
+                         </el-dropdown-menu>
+                       </template>
+                     </el-dropdown>
+
+                     <el-popover placement="bottom" trigger="click" width="260" popper-class="plane-popover">
+                       <template #reference>
+                         <div class="pill pill-user cursor-pointer hover:bg-[#1E2025]">
+                           <div class="avatar-xxs">
+                             <i class="fa-regular fa-user" v-if="!getTaskAssigneeSummary(subtask).label"></i>
+                             <span v-else>{{ getTaskAssigneeSummary(subtask).avatar }}</span>
+                           </div>
+                           <span v-if="getTaskAssigneeSummary(subtask).label" class="pill-user-text">{{ getTaskAssigneeSummary(subtask).label }}</span>
+                         </div>
+                       </template>
+                       <div class="popover-content">
+                         <input type="text" class="plane-search-input" v-model="assigneeSearch" placeholder="Search members" />
+                         <div class="plane-list mt-2">
+                           <label
+                             class="plane-list-item"
+                             v-for="member in filteredProjectMembers"
+                             :key="`${subtask.id}-${member.userId || member.id}`"
+                             @click.stop="toggleTaskAssignee(subtask, member.userId || member.id)"
+                           >
+                             <input type="checkbox" :checked="getTaskAssigneeIds(subtask).includes(member.userId || member.id)" />
+                             {{ member.fullName || member.name || member.email }}
+                           </label>
+                         </div>
+                       </div>
+                     </el-popover>
+                   </div>
+                 </div>
+               </div>
+               </template>
+
                <div class="add-row-placeholder" @click="openCreateTask(group.statusName)">
                  <i class="fa-solid fa-plus"></i> New work item
                </div>
@@ -188,7 +263,7 @@
           />
       </div>
       <div v-if="currentTab === 'timeline'" class="timeline-wrapper">
-         <TimelineTab :projectId="projectId" :tasks="filteredTasksList" @open-task="openTaskDetail" />
+         <TimelineTab :projectId="getProjectId()" :tasks="filteredTasksList" @open-task="openTaskDetail" @create-task="openCreateTaskFromCalendar" />
       </div>
 
       <!-- Kanban Board Layout -->
@@ -306,13 +381,13 @@
     />
 
     <!-- Analytics Sidebar Overlay -->
-    <div class="analytics-overlay" v-show="showAnalyticsSidebar" @click.self="showAnalyticsSidebar = false">
-      <div class="analytics-panel" :class="{ 'slide-in': showAnalyticsSidebar }">
+    <div class="analytics-overlay" v-show="showAnalyticsSidebar" @click.self="closeAnalyticsSidebar">
+      <div class="analytics-panel" :class="{ 'slide-in': showAnalyticsSidebar, 'is-expanded': isAnalyticsExpanded }">
          <div class="ap-header">
-            <h3>Analytics for {{ project?.name || 'Cun' }}</h3>
+            <h3>Analytics for {{ project?.name || 'Project' }}</h3>
             <div class="ap-actions">
-               <button class="icon-btn" @click="showAnalyticsSidebar = false"><i class="fa-solid fa-expand"></i></button>
-               <button class="icon-btn" @click="showAnalyticsSidebar = false"><i class="fa-solid fa-xmark"></i></button>
+               <button class="icon-btn" @click="toggleAnalyticsExpand"><i :class="isAnalyticsExpanded ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
+               <button class="icon-btn" @click="closeAnalyticsSidebar"><i class="fa-solid fa-xmark"></i></button>
             </div>
          </div>
          
@@ -351,39 +426,46 @@
             <div class="ap-chart-card mt-4">
                <div class="flex-between">
                   <h4>Customized Insights</h4>
-                  <div class="insight-filters">
-                     <button class="filter-btn" @click="showFilterPanel = true"><i class="fa-solid fa-briefcase"></i> Work item <i class="fa-solid fa-chevron-down"></i></button>
-                     <button class="filter-btn" @click="groupBy = groupBy === 'status' ? 'priority' : 'status'"><i class="fa-solid fa-list"></i> {{ groupBy === 'status' ? 'Priority' : 'Status' }} <i class="fa-solid fa-chevron-down"></i></button>
-                     <button class="filter-btn" @click="showFilterPanel = true"><i class="fa-solid fa-plus-minus"></i> Add Property <i class="fa-solid fa-chevron-down"></i></button>
-                  </div>
+                  <el-dropdown trigger="click" @command="setAnalyticsInsightMode">
+                    <button class="filter-btn" type="button">
+                      <i class="fa-solid fa-sliders"></i> {{ analyticsInsightLabel }} <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    <template #dropdown>
+                      <el-dropdown-menu class="plane-dropdown">
+                        <el-dropdown-item command="priority">Priority distribution</el-dropdown-item>
+                        <el-dropdown-item command="status">Status distribution</el-dropdown-item>
+                        <el-dropdown-item command="assignee">Assignee distribution</el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
                </div>
                
-               <v-chart class="chart-container mt-4" :option="priorityChartOptions" autoresize />
+               <v-chart class="chart-container mt-4" :option="insightChartOptions" autoresize />
             </div>
             
             <!-- Tables -->
             <div class="ap-table-wrap mt-4">
                <div class="table-head">
-                  <span class="text-muted">4 Priority</span>
+                  <span class="text-muted">{{ analyticsBreakdownRows.length }} {{ analyticsTableHeading }}</span>
                   <div class="flex-center gap-1">
                      <i class="fa-solid fa-magnifying-glass text-muted"></i>
-                     <button class="export-btn" @click="exportAnalyticsCsv('priority')"><i class="fa-solid fa-download"></i> Export as csv</button>
+                     <button class="export-btn" @click="exportAnalyticsCsv()"><i class="fa-solid fa-download"></i> Export as csv</button>
                   </div>
                </div>
                <table class="ap-table">
-                  <thead><tr><th>Priority</th><th style="text-align: right;">Count</th></tr></thead>
+                  <thead><tr><th>{{ analyticsTableHeading }}</th><th style="text-align: right;">Count</th></tr></thead>
                   <tbody>
-                     <tr><td>High</td><td style="text-align: right;">3</td></tr>
-                     <tr><td>Low</td><td style="text-align: right;">1</td></tr>
-                     <tr><td>None</td><td style="text-align: right;">3</td></tr>
-                     <tr><td>Urgent</td><td style="text-align: right;">1</td></tr>
+                     <tr v-for="row in analyticsBreakdownRows" :key="row.label">
+                       <td>{{ row.label }}</td>
+                       <td style="text-align: right;">{{ row.count }}</td>
+                     </tr>
                   </tbody>
                </table>
             </div>
 
             <div class="ap-table-wrap mt-4">
                <div class="table-head">
-                  <span class="text-muted">1 Assignee</span>
+                  <span class="text-muted">{{ assigneeAnalyticsRows.length }} Assignee{{ assigneeAnalyticsRows.length === 1 ? '' : 's' }}</span>
                   <div class="flex-center gap-1">
                      <i class="fa-solid fa-magnifying-glass text-muted"></i>
                      <button class="export-btn" @click="exportAnalyticsCsv('assignee')"><i class="fa-solid fa-download"></i> Export as csv</button>
@@ -401,13 +483,13 @@
                      </tr>
                   </thead>
                   <tbody>
-                     <tr>
-                        <td><i class="fa-regular fa-user"></i> Unassigned</td>
-                        <td style="text-align: right;">4</td>
-                        <td style="text-align: right;">2</td>
-                        <td style="text-align: right;">1</td>
-                        <td style="text-align: right;">1</td>
-                        <td style="text-align: right;">0</td>
+                     <tr v-for="row in assigneeAnalyticsRows" :key="row.id">
+                        <td><i class="fa-regular fa-user"></i> {{ row.label }}</td>
+                        <td style="text-align: right;">{{ row.backlog }}</td>
+                        <td style="text-align: right;">{{ row.started }}</td>
+                        <td style="text-align: right;">{{ row.unstarted }}</td>
+                        <td style="text-align: right;">{{ row.completed }}</td>
+                        <td style="text-align: right;">{{ row.cancelled }}</td>
                      </tr>
                   </tbody>
                </table>
@@ -451,14 +533,15 @@ use([
 
 const showDisplayDropdown = ref(false)
 const showAnalyticsSidebar = ref(false)
+const isAnalyticsExpanded = ref(false)
 const showFilterPanel = ref(false)
-const showSubtasks = ref(false)
+const showSubtasks = ref(true)
 const collapsedListGroups = ref({})
 const assigneeSearch = ref('')
 
 const route = useRoute()
 const router = useRouter()
-const projectId = route.params.id
+const currentProjectId = computed(() => route.params.id || localStorage.getItem('currentProjectId') || localStorage.getItem('lastProjectId') || null)
 const store = useWorkTaskStore();
 
 const project = ref({})
@@ -472,9 +555,13 @@ const currentTab = ref('board')
 const searchQuery = ref('')
 const activeFilters = ref({ assignee: null })
 const activeTaskFilters = ref([])
+const displayOrder = ref('manual')
 const groupBy = ref('status')
+const analyticsInsightMode = ref('priority')
 const activeSprintFilterId = computed(() => route.query.sprintId || route.params.cycleId || null)
 const activeModuleFilterId = computed(() => route.query.moduleId || null)
+const projectBadge = computed(() => project.value?.icon || project.value?.identifier?.charAt(0)?.toUpperCase() || project.value?.name?.charAt(0)?.toUpperCase() || 'P')
+const shouldHideSubtasksInScopedView = computed(() => Boolean(activeSprintFilterId.value || activeModuleFilterId.value))
 
 const isSubtask = (task) => Boolean(task?.parentTaskId || task?.parentId)
 
@@ -493,11 +580,29 @@ const getTaskAssigneeSummary = (task) => {
     const label = member?.fullName || member?.name || member?.email || task.assigneeName || 'Assignee'
     return { label, avatar: label.substring(0, 1).toUpperCase() }
   }
+
   return { label: `${ids.length} assignees`, avatar: `${ids.length}` }
 }
 
 const topLevelTasks = computed(() => rawTasks.value.filter(task => !isSubtask(task)))
-const visibleTasks = computed(() => showSubtasks.value ? rawTasks.value : topLevelTasks.value)
+const visibleTasks = computed(() => (showSubtasks.value && !shouldHideSubtasksInScopedView.value) ? rawTasks.value : topLevelTasks.value)
+const visibleTopLevelTasks = computed(() => filteredTasksList.value.filter(task => !isSubtask(task)))
+const visibleSubtasksByParent = computed(() => {
+  if (!showSubtasks.value || shouldHideSubtasksInScopedView.value) return {}
+
+  const grouped = {}
+  filteredTasksList.value
+    .filter(task => isSubtask(task))
+    .forEach(task => {
+      const parentId = task.parentTaskId || task.parentId
+      if (!parentId) return
+      if (!grouped[parentId]) grouped[parentId] = []
+      grouped[parentId].push(task)
+    })
+
+  Object.values(grouped).forEach(items => items.sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0)))
+  return grouped
+})
 const taskStatusOptions = [
   { name: 'BACKLOG', label: 'Backlog', color: '#71717A', icon: 'fa-regular fa-circle-dashed' },
   { name: 'TO DO', label: 'To Do', color: '#D4D4D8', icon: 'fa-regular fa-circle' },
@@ -512,6 +617,14 @@ const normalizeStatus = (value) => `${value || 'BACKLOG'}`.toUpperCase().replace
 const normalizeStatusLabel = (value) => {
   const status = normalizeStatus(value)
   return taskStatusOptions.find(item => item.name === status)?.label || status
+}
+const analyticsStatusBucket = (statusName) => {
+  const normalized = normalizeStatus(statusName)
+  if (normalized === 'BACKLOG') return 'backlog'
+  if (normalized === 'IN PROGRESS') return 'started'
+  if (normalized === 'DONE') return 'completed'
+  if (normalized === 'CANCELLED') return 'cancelled'
+  return 'unstarted'
 }
 const getBoardStatusIcon = (value) => taskStatusOptions.find(item => item.name === normalizeStatus(value))?.icon || 'fa-regular fa-circle-dashed'
 const getStatusColor = (value) => taskStatusOptions.find(item => item.name === normalizeStatus(value))?.color || '#71717A'
@@ -540,8 +653,60 @@ const currentUserId = () => {
 const getTaskDate = (task, field) => {
   const value = task[field] || (field === 'startDate' ? task.plannedStartDate : null) || (field === 'dueDate' ? task.dueDate : null)
   if (!value) return null
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? null : date
+}
+const taskHasModuleMatch = (task, moduleId) => {
+  if (!task || !moduleId) return false
+  if (task.moduleId === moduleId) return true
+  if (Array.isArray(task.moduleIds) && task.moduleIds.includes(moduleId)) return true
+  if (Array.isArray(task.modules) && task.modules.some(item => (item.id || item.moduleId) === moduleId)) return true
+  return false
+}
+const taskMatchesSprintScope = (task, sprintId) => {
+  if (!sprintId) return true
+  if (task.sprintId === sprintId) return true
+  if (isSubtask(task)) return false
+  return rawTasks.value.some(candidate => isSubtask(candidate) && (candidate.parentTaskId === task.id || candidate.parentId === task.id) && candidate.sprintId === sprintId)
+}
+const taskMatchesModuleScope = (task, moduleId) => {
+  if (!moduleId) return true
+  if (taskHasModuleMatch(task, moduleId)) return true
+  if (isSubtask(task)) return false
+  return rawTasks.value.some(candidate => isSubtask(candidate) && (candidate.parentTaskId === task.id || candidate.parentId === task.id) && taskHasModuleMatch(candidate, moduleId))
+}
+const prioritySortWeight = (priority) => {
+  if (priority === 1) return 0
+  if (priority === 2) return 1
+  if (priority === 3) return 2
+  if (priority === 4) return 3
+  return 4
+}
+const toTimestamp = (value) => {
+  if (!value) return 0
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime()
+}
+const sortTasksByDisplayOrder = (tasks) => {
+  const items = [...tasks]
+
+  if (displayOrder.value === 'created') {
+    return items.sort((a, b) => toTimestamp(b.createdAt) - toTimestamp(a.createdAt) || (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0))
+  }
+
+  if (displayOrder.value === 'updated') {
+    return items.sort((a, b) => toTimestamp(b.updatedAt || b.createdAt) - toTimestamp(a.updatedAt || a.createdAt) || (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0))
+  }
+
+  if (displayOrder.value === 'priority') {
+    return items.sort((a, b) => prioritySortWeight(a.priority) - prioritySortWeight(b.priority) || (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0))
+  }
+
+  return items.sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0))
 }
 const startOfToday = () => {
   const date = new Date()
@@ -634,7 +799,7 @@ const taskMatchesFilter = (task, filter) => {
 
 let dynamicProjectId = null;
 const getProjectId = () => {
-    let p = dynamicProjectId || projectId || localStorage.getItem('lastProjectId');
+    let p = dynamicProjectId || currentProjectId.value || localStorage.getItem('lastProjectId');
     return p === 'default' ? null : p;
 }
 
@@ -656,21 +821,16 @@ const filteredTasksList = computed(() => {
      filteredTasks = filteredTasks.filter(t => getTaskAssigneeIds(t).includes(activeFilters.value.assignee.userId));
   }
   if (activeSprintFilterId.value) {
-     filteredTasks = filteredTasks.filter(t => t.sprintId === activeSprintFilterId.value);
+     filteredTasks = filteredTasks.filter(t => taskMatchesSprintScope(t, activeSprintFilterId.value));
   }
   if (activeModuleFilterId.value) {
-     filteredTasks = filteredTasks.filter(t => {
-       if (t.moduleId === activeModuleFilterId.value) return true
-       if (Array.isArray(t.moduleIds) && t.moduleIds.includes(activeModuleFilterId.value)) return true
-       if (Array.isArray(t.modules) && t.modules.some(m => (m.id || m.moduleId) === activeModuleFilterId.value)) return true
-       return false
-     });
+     filteredTasks = filteredTasks.filter(t => taskMatchesModuleScope(t, activeModuleFilterId.value));
   }
   if (activeTaskFilters.value.length) {
      filteredTasks = filteredTasks.filter(task => activeTaskFilters.value.every(filter => taskMatchesFilter(task, filter)));
   }
 
-  return filteredTasks.sort((a,b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0));
+  return sortTasksByDisplayOrder(filteredTasks);
 });
 
 const createdResolvedOptions = computed(() => {
@@ -688,34 +848,121 @@ const createdResolvedOptions = computed(() => {
    }
 });
 
-const priorityChartOptions = computed(() => {
-   const urgent = rawTasks.value.filter(t => t.priority === 1).length;
-   const high = rawTasks.value.filter(t => t.priority === 2).length;
-   const normal = rawTasks.value.filter(t => t.priority === 3).length;
-   const low = rawTasks.value.filter(t => t.priority === 4).length;
-   const none = rawTasks.value.filter(t => !t.priority).length;
-   
-   return {
-      tooltip: { trigger: 'axis' },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-      xAxis: { type: 'category', data: ['Urgent', 'High', 'Normal', 'Low', 'None'], axisLine: { lineStyle: { color: '#3F3F46' } }, axisLabel: { color: '#A1A1AA' } },
-      yAxis: { type: 'value', splitLine: { lineStyle: { color: '#27272A' } }, axisLabel: { color: '#A1A1AA' } },
-      series: [
-         {
-            type: 'bar',
-            barWidth: '30%',
-            data: [
-               { value: urgent, itemStyle: { color: '#EF4444', borderRadius: [4, 4, 0, 0] } },
-               { value: high, itemStyle: { color: '#F97316', borderRadius: [4, 4, 0, 0] } },
-               { value: normal, itemStyle: { color: '#3B82F6', borderRadius: [4, 4, 0, 0] } },
-               { value: low, itemStyle: { color: '#10B981', borderRadius: [4, 4, 0, 0] } },
-               { value: none, itemStyle: { color: '#71717A', borderRadius: [4, 4, 0, 0] } }
-            ]
-         }
-      ],
-      backgroundColor: 'transparent'
-   }
-});
+const analyticsBreakdownRows = computed(() => {
+  if (analyticsInsightMode.value === 'assignee') {
+    const counts = new Map()
+
+    rawTasks.value.forEach(task => {
+      const ids = getTaskAssigneeIds(task)
+      if (!ids.length) {
+        counts.set('unassigned', (counts.get('unassigned') || 0) + 1)
+        return
+      }
+
+      ids.forEach(id => counts.set(id, (counts.get(id) || 0) + 1))
+    })
+
+    return Array.from(counts.entries())
+      .map(([id, count]) => {
+        const member = projectMembers.value.find(item => (item.userId || item.id) === id)
+        return {
+          label: id === 'unassigned' ? 'Unassigned' : (member?.fullName || member?.name || member?.email || 'Assignee'),
+          count,
+          color: id === 'unassigned' ? '#71717A' : '#38BDF8'
+        }
+      })
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+  }
+
+  if (analyticsInsightMode.value === 'status') {
+    return taskStatusOptions.map(option => ({
+      label: option.label,
+      count: rawTasks.value.filter(task => normalizeStatus(task.statusName) === option.name).length,
+      color: option.color
+    }))
+  }
+
+  return [
+    { label: 'Urgent', count: rawTasks.value.filter(task => task.priority === 1).length, color: '#EF4444' },
+    { label: 'High', count: rawTasks.value.filter(task => task.priority === 2).length, color: '#F97316' },
+    { label: 'Normal', count: rawTasks.value.filter(task => task.priority === 3).length, color: '#3B82F6' },
+    { label: 'Low', count: rawTasks.value.filter(task => task.priority === 4).length, color: '#10B981' },
+    { label: 'None', count: rawTasks.value.filter(task => !task.priority).length, color: '#71717A' }
+  ]
+})
+
+const assigneeAnalyticsRows = computed(() => {
+  const rows = new Map()
+
+  rawTasks.value.forEach(task => {
+    const ids = getTaskAssigneeIds(task)
+    const bucket = analyticsStatusBucket(task.statusName)
+    const targets = ids.length ? ids : ['unassigned']
+
+    targets.forEach(id => {
+      if (!rows.has(id)) {
+        const member = projectMembers.value.find(item => (item.userId || item.id) === id)
+        rows.set(id, {
+          id,
+          label: id === 'unassigned' ? 'Unassigned' : (member?.fullName || member?.name || member?.email || 'Assignee'),
+          backlog: 0,
+          started: 0,
+          unstarted: 0,
+          completed: 0,
+          cancelled: 0,
+          total: 0
+        })
+      }
+
+      const row = rows.get(id)
+      row[bucket] += 1
+      row.total += 1
+    })
+  })
+
+  return Array.from(rows.values()).sort((a, b) => b.total - a.total || a.label.localeCompare(b.label))
+})
+
+const analyticsInsightLabel = computed(() => {
+  if (analyticsInsightMode.value === 'status') return 'Status distribution'
+  if (analyticsInsightMode.value === 'assignee') return 'Assignee distribution'
+  return 'Priority distribution'
+})
+const analyticsTableHeading = computed(() => {
+  if (analyticsInsightMode.value === 'status') return 'Status'
+  if (analyticsInsightMode.value === 'assignee') return 'Assignee'
+  return 'Priority'
+})
+const setAnalyticsInsightMode = (mode) => {
+  analyticsInsightMode.value = mode
+}
+
+const insightChartOptions = computed(() => ({
+  tooltip: { trigger: 'axis' },
+  grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+  xAxis: {
+    type: 'category',
+    data: analyticsBreakdownRows.value.map(item => item.label),
+    axisLine: { lineStyle: { color: '#3F3F46' } },
+    axisLabel: { color: '#A1A1AA' }
+  },
+  yAxis: {
+    type: 'value',
+    splitLine: { lineStyle: { color: '#27272A' } },
+    axisLabel: { color: '#A1A1AA' }
+  },
+  series: [
+    {
+      type: 'bar',
+      barWidth: '30%',
+      data: analyticsBreakdownRows.value.map(item => ({
+        value: item.count,
+        itemStyle: { color: item.color, borderRadius: [4, 4, 0, 0] }
+      }))
+    }
+  ],
+  backgroundColor: 'transparent'
+}))
 
 const kanbanColumns = computed(() => {
   const groups = [
@@ -771,7 +1018,7 @@ const listViewGroups = computed(() => {
     { id: 'cancelled', name: 'Cancelled', statusName: 'CANCELLED', icon: 'fa-regular fa-circle-xmark', color: '#EF4444', items: [] }
   ]
 
-  filteredTasksList.value.forEach(task => {
+  visibleTopLevelTasks.value.forEach(task => {
     const status = normalizeStatus(task.statusName)
     const target = groups.find(group => group.statusName === status) || groups[0]
     target.items.push(task)
@@ -812,25 +1059,30 @@ const loadInitialData = async () => {
   }
 
   try {
+    localStorage.setItem('currentProjectId', pid)
+    localStorage.setItem('lastProjectId', pid)
+    rawTasks.value = []
+    selectedTask.value = null
+    projectMembers.value = []
+    project.value = {}
     const pRes = await axiosClient.get(`/projects/${pid}`)
     project.value = pRes.data.data
 
     const mRes = await axiosClient.get(`/projects/${pid}/members`)
     projectMembers.value = mRes.data.data || []
 
-    await fetchTasks()
+    await fetchTasks({ reset: false })
   } catch (error) {
     console.error('Lỗi load dự án:', error)
   }
 }
 
-const fetchTasks = async () => {
+const fetchTasks = async (options = {}) => {
   const pid = getProjectId()
   if(!pid) return
   try {
-    const store = useWorkTaskStore();
-    await store.fetchTasks(pid);
-    rawTasks.value = store.tasks; // Keep local reactivity working while syncing Pinia
+    const tasks = await store.fetchTasks(pid, options);
+    rawTasks.value = Array.isArray(tasks) ? tasks : []
     
     // Auto update selectedTask if open
     if (selectedTask.value) {
@@ -912,6 +1164,15 @@ const openCreateTask = (statusName, defaults = {}) => {
      plannedStartDate: defaults?.plannedStartDate || null,
      dueDate: defaults?.dueDate || null
    };
+}
+
+const toggleAnalyticsExpand = () => {
+  isAnalyticsExpanded.value = !isAnalyticsExpanded.value
+}
+
+const closeAnalyticsSidebar = () => {
+  showAnalyticsSidebar.value = false
+  isAnalyticsExpanded.value = false
 }
 
 const openCreateTaskFromCalendar = (dates) => {
@@ -1074,16 +1335,22 @@ const hydrateFiltersFromUrl = () => {
   }
 }
 
-const exportAnalyticsCsv = (type) => {
-  const rows = type === 'priority'
-    ? [['Priority', 'Count'], ['Urgent', rawTasks.value.filter(t => t.priority === 1).length], ['High', rawTasks.value.filter(t => t.priority === 2).length], ['Normal', rawTasks.value.filter(t => t.priority === 3).length], ['Low', rawTasks.value.filter(t => t.priority === 4).length]]
-    : [['Assignee', 'Count'], ['Unassigned', rawTasks.value.filter(t => !getTaskAssigneeIds(t).length).length]]
+const exportAnalyticsCsv = (mode = analyticsInsightMode.value) => {
+  const rows = mode === 'assignee'
+    ? [
+        ['Assignee', 'Backlog', 'Started', 'Unstarted', 'Completed', 'Cancelled', 'Total'],
+        ...assigneeAnalyticsRows.value.map(item => [item.label, item.backlog, item.started, item.unstarted, item.completed, item.cancelled, item.total])
+      ]
+    : [
+        [analyticsTableHeading.value, 'Count'],
+        ...analyticsBreakdownRows.value.map(item => [item.label, item.count])
+      ]
   const csv = rows.map(row => row.join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `${type}-analytics.csv`
+  link.download = `${mode}-analytics.csv`
   link.click()
   URL.revokeObjectURL(url)
 }
@@ -1093,6 +1360,17 @@ onMounted(() => {
   loadInitialData()
   window.addEventListener('global-create-task', handleGlobalCreate)
 })
+
+watch(currentProjectId, (projectId, previousProjectId) => {
+  if (!projectId || projectId === previousProjectId) {
+    return
+  }
+
+  dynamicProjectId = projectId
+  showAnalyticsSidebar.value = false
+  isAnalyticsExpanded.value = false
+  loadInitialData()
+}, { immediate: false })
 
 watch(
   () => [route.query.tab, route.query.sprintId, route.query.moduleId, route.params.cycleId],
@@ -1584,6 +1862,16 @@ onUnmounted(() => {
   background-color: #16181D;
 }
 
+.subtask-row {
+  margin-left: 28px;
+  border-left: 1px dashed #27272A;
+  background: rgba(22, 24, 29, 0.55);
+}
+
+.subtask-row:hover {
+  background: rgba(30, 32, 37, 0.92);
+}
+
 .tr-left,
 .tr-right {
   display: flex;
@@ -1593,6 +1881,15 @@ onUnmounted(() => {
 .tr-left {
   gap: 16px;
   min-width: 0;
+}
+
+.subtask-indent {
+  width: 18px;
+  color: #71717A;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .tr-right {
@@ -1721,6 +2018,10 @@ onUnmounted(() => {
   border-left: 1px solid #1E2025;
 }
 .analytics-panel.slide-in { transform: translateX(0); }
+.analytics-panel.is-expanded {
+  width: 100vw;
+  max-width: 100vw;
+}
 .ap-header {
   padding: 20px 24px;
   display: flex;

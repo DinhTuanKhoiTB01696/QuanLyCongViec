@@ -158,10 +158,11 @@ const handleProjectCreated = (newProject) => {
   flex: 1;
   background: #0D0F11;
   padding: 0;
-  overflow-y: hidden;
+  overflow-y: auto;
   transition: all 0.3s;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .dark .content-area {
@@ -170,7 +171,7 @@ const handleProjectCreated = (newProject) => {
 
 .content-wrapper {
   width: 100%;
-  height: 100%;
+  min-height: 100%;
   margin: 0;
   display: flex;
   flex-direction: column;

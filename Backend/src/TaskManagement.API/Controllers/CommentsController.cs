@@ -113,6 +113,39 @@ namespace TaskManagement.API.Controllers
             return $"{cleanContent}{ReactionMarkerPrefix}{JsonSerializer.Serialize(reactions)}{ReactionMarkerSuffix}";
         }
 
+        private static string SanitizeRichHtml(string? html)
+        {
+            if (string.IsNullOrWhiteSpace(html))
+            {
+                return string.Empty;
+            }
+
+            var sanitized = html;
+
+            // Remove executable/scriptable blocks first.
+            sanitized = Regex.Replace(
+                sanitized,
+                @"<(script|style|iframe|object|embed|link|meta)[^>]*>[\s\S]*?</\1>",
+                string.Empty,
+                RegexOptions.IgnoreCase);
+
+            // Strip inline event handlers such as onclick=...
+            sanitized = Regex.Replace(
+                sanitized,
+                @"\son\w+\s*=\s*(""[^""]*""|'[^']*'|[^\s>]+)",
+                string.Empty,
+                RegexOptions.IgnoreCase);
+
+            // Prevent javascript: URLs in href/src.
+            sanitized = Regex.Replace(
+                sanitized,
+                @"\s(href|src)\s*=\s*(['""])\s*javascript:[\s\S]*?\2",
+                string.Empty,
+                RegexOptions.IgnoreCase);
+
+            return sanitized.Trim();
+        }
+
         private static object MapComment(Comment comment)
         {
             var parsed = ParseCommentContent(comment.Content);
@@ -174,7 +207,7 @@ namespace TaskManagement.API.Controllers
                 Id = Guid.NewGuid(),
                 WorkTaskId = taskId,
                 UserId = userId.Value,
-                Content = content ?? string.Empty,
+                Content = SanitizeRichHtml(content),
                 ParentCommentId = parentCommentId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -310,7 +343,7 @@ namespace TaskManagement.API.Controllers
             if (comment.UserId != userId.Value) return Forbid();
 
             var parsed = ParseCommentContent(comment.Content);
-            comment.Content = ComposeCommentContent(request.Content ?? string.Empty, parsed.Reactions);
+            comment.Content = ComposeCommentContent(SanitizeRichHtml(request.Content), parsed.Reactions);
             comment.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();

@@ -49,6 +49,24 @@ export default [
     meta: { requiredRoles: adminAllowedRoles }
   },
   {
+    path: '/admin/instance/general',
+    name: 'AdminInstanceGeneral',
+    component: () => import('../views/admin/instance/GeneralSettings.vue'),
+    meta: { requiredRoles: adminAllowedRoles }
+  },
+  {
+    path: '/admin/instance/authentication',
+    name: 'AdminInstanceAuthentication',
+    component: () => import('../views/admin/instance/AuthenticationManagement.vue'),
+    meta: { requiredRoles: adminAllowedRoles }
+  },
+  {
+    path: '/admin/instance/email',
+    name: 'AdminInstanceEmail',
+    component: () => import('../views/admin/instance/EmailManagement.vue'),
+    meta: { requiredRoles: adminAllowedRoles }
+  },
+  {
     path: '/admin/customization',
     redirect: '/admin/configuration',
     meta: { requiredRoles: adminAllowedRoles }

@@ -151,7 +151,10 @@ const handleSendOtp = async () => {
     if (valid) {
       isLoading.value = true;
       try {
-        const response = await axiosClient.post('/auth/send-otp', { email: form.email });
+        const response = await axiosClient.post('/auth/send-otp', {
+          email: form.email,
+          purpose: 'register'
+        });
         ElMessage.success(response.data.message || 'Đã gửi mã OTP đến email của bạn');
         form.otp = ''; // Reset OTP field
         step.value = 2;

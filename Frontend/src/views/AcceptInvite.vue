@@ -232,7 +232,10 @@ const sendOtp = async () => {
       type: 'info',
       duration: 0
     })
-    await axiosClient.post('/auth/send-otp', { email: invite.value.email })
+    await axiosClient.post('/auth/send-otp', {
+      email: invite.value.email,
+      purpose: 'invite'
+    })
     loadingMessage.close()
     ElMessage.success('Đã gửi mã xác nhận đến email của bạn.')
     // Clear old OTP digits if regenerating

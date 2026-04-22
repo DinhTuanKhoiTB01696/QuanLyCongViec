@@ -10,196 +10,328 @@ namespace TaskManagement.Infrastructure.Data
     {
         public static async Task SeedMockDataAsync(ApplicationDbContext context)
         {
-            var defaultProject = await context.Projects.FirstOrDefaultAsync(p => p.Name == "Demo Plane Project");
-            if (defaultProject != null)
-            {
-                var hasTasks = await context.WorkTasks.AnyAsync(t => t.ProjectId == defaultProject.Id);
-                if (hasTasks) return;
-            }
+            var now = DateTime.UtcNow;
+            var preferredOwnerId = Guid.Parse("11111111-0000-0000-0000-000000000001");
 
-            var workspaceId = Guid.NewGuid();
-            var ownerId = Guid.Parse("11111111-0000-0000-0000-000000000001");
+            var owner = await context.Users.FirstOrDefaultAsync(u => u.Id == preferredOwnerId)
+                ?? await context.Users.FirstOrDefaultAsync(u => u.Email == "admin@example.com");
 
-            var ownerExists = await context.Users.AnyAsync(u => u.Id == ownerId);
-            if (!ownerExists)
+            if (owner == null)
             {
-                ownerId = Guid.NewGuid();
-                context.Users.Add(new User
+                owner = new User
                 {
-                    Id = ownerId,
+                    Id = preferredOwnerId,
                     FullName = "Admin (Seeded)",
                     Email = "admin@example.com",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
-                    IsActive = true
-                });
+                    IsActive = true,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+                context.Users.Add(owner);
+                await context.SaveChangesAsync();
             }
 
-            var testUserId = Guid.NewGuid();
-            var testUserExists = await context.Users.AnyAsync(u => u.Email == "test@example.com");
-            if (!testUserExists)
+            var testUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "test@example.com");
+            if (testUser == null)
             {
-                context.Users.Add(new User
+                testUser = new User
                 {
-                    Id = testUserId,
+                    Id = Guid.NewGuid(),
                     FullName = "Test User",
                     Email = "test@example.com",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("Test@123"),
-                    IsActive = true
-                });
+                    IsActive = true,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+                context.Users.Add(testUser);
+                await context.SaveChangesAsync();
             }
 
-            var existingWorkspace = await context.Workspaces.FirstOrDefaultAsync(w => w.Slug == "cybwf");
-            if (existingWorkspace == null)
+            var workspace = await context.Workspaces.FirstOrDefaultAsync(w => w.Slug == "cybwf");
+            if (workspace == null)
             {
-                var workspace = new Workspace
+                workspace = new Workspace
                 {
-                    Id = workspaceId,
+                    Id = Guid.NewGuid(),
                     Name = "Cybwf Workspace",
                     Slug = "cybwf",
-                    OwnerId = ownerId,
+                    OwnerId = owner.Id,
                     Timezone = "Asia/Ho_Chi_Minh",
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    CreatedAt = now,
+                    UpdatedAt = now
                 };
                 context.Workspaces.Add(workspace);
+                await context.SaveChangesAsync();
+            }
 
+            var ownerWorkspaceMember = await context.WorkspaceMembers
+                .FirstOrDefaultAsync(m => m.WorkspaceId == workspace.Id && m.UserId == owner.Id);
+            if (ownerWorkspaceMember == null)
+            {
                 context.WorkspaceMembers.Add(new WorkspaceMember
                 {
-                    WorkspaceId = workspaceId,
-                    UserId = ownerId,
+                    WorkspaceId = workspace.Id,
+                    UserId = owner.Id,
                     WorkspaceRole = "OWNER",
-                    JoinedAt = DateTime.UtcNow,
+                    JoinedAt = now,
                     IsActive = true
                 });
             }
-            else
+
+            var testWorkspaceMember = await context.WorkspaceMembers
+                .FirstOrDefaultAsync(m => m.WorkspaceId == workspace.Id && m.UserId == testUser.Id);
+            if (testWorkspaceMember == null)
             {
-                workspaceId = existingWorkspace.Id;
+                context.WorkspaceMembers.Add(new WorkspaceMember
+                {
+                    WorkspaceId = workspace.Id,
+                    UserId = testUser.Id,
+                    WorkspaceRole = "MEMBER",
+                    JoinedAt = now,
+                    IsActive = true
+                });
             }
 
-            var projectId = Guid.NewGuid();
-            var project = new Project
+            if (context.ChangeTracker.HasChanges())
             {
-                Id = projectId,
-                WorkspaceId = workspaceId,
-                Identifier = "CYBWF",
-                IssueSequence = 10,
-                NetworkType = "Public",
-                Name = "Demo Plane Project",
-                Description = "A sample project to test the Plane-like UI",
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            context.Projects.Add(project);
+                await context.SaveChangesAsync();
+            }
 
-            context.ProjectMembers.Add(new ProjectMember
+            var project = await context.Projects.FirstOrDefaultAsync(p => p.Name == "Demo Plane Project");
+            if (project == null)
             {
-                ProjectId = projectId,
-                UserId = ownerId,
-                ProjectRole = "PM",
-                JoinedAt = DateTime.UtcNow,
-                Status = true
-            });
+                project = new Project
+                {
+                    Id = Guid.NewGuid(),
+                    WorkspaceId = workspace.Id,
+                    CreatorId = owner.Id,
+                    Identifier = "CYBWF",
+                    IssueSequence = 10,
+                    NetworkType = "Public",
+                    Name = "Demo Plane Project",
+                    Description = "A sample project to test the Plane-like UI",
+                    Status = true,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+                context.Projects.Add(project);
+                await context.SaveChangesAsync();
+            }
+            else if (project.CreatorId == Guid.Empty)
+            {
+                project.CreatorId = owner.Id;
+                project.UpdatedAt = now;
+                await context.SaveChangesAsync();
+            }
 
-            if (!testUserExists)
+            var ownerProjectMember = await context.ProjectMembers
+                .FirstOrDefaultAsync(m => m.ProjectId == project.Id && m.UserId == owner.Id);
+            if (ownerProjectMember == null)
             {
                 context.ProjectMembers.Add(new ProjectMember
                 {
-                    ProjectId = projectId,
-                    UserId = testUserId,
+                    ProjectId = project.Id,
+                    UserId = owner.Id,
                     ProjectRole = "PM",
-                    JoinedAt = DateTime.UtcNow,
+                    JoinedAt = now,
                     Status = true
-                });
-
-                context.WorkspaceMembers.Add(new WorkspaceMember
-                {
-                    WorkspaceId = workspaceId,
-                    UserId = testUserId,
-                    WorkspaceRole = "MEMBER",
-                    JoinedAt = DateTime.UtcNow,
-                    IsActive = true
                 });
             }
 
-            var statusBacklog = new TaskManagement.Domain.Entities.TaskStatus { Id = Guid.NewGuid(), ProjectId = projectId, Name = "BACKLOG", Position = 0 };
-            var statusTodo = new TaskManagement.Domain.Entities.TaskStatus { Id = Guid.NewGuid(), ProjectId = projectId, Name = "TO DO", Position = 1 };
-            var statusProgress = new TaskManagement.Domain.Entities.TaskStatus { Id = Guid.NewGuid(), ProjectId = projectId, Name = "IN PROGRESS", Position = 2 };
-            var statusReview = new TaskManagement.Domain.Entities.TaskStatus { Id = Guid.NewGuid(), ProjectId = projectId, Name = "IN REVIEW", Position = 3 };
-            var statusDone = new TaskManagement.Domain.Entities.TaskStatus { Id = Guid.NewGuid(), ProjectId = projectId, Name = "DONE", Position = 4 };
-
-            context.TaskStatuses.AddRange(statusBacklog, statusTodo, statusProgress, statusReview, statusDone);
-
-            var typeTask = new TaskType { Id = Guid.NewGuid(), ProjectId = projectId, Name = "Task", ColorCode = "#3b82f6" };
-            var typeBug = new TaskType { Id = Guid.NewGuid(), ProjectId = projectId, Name = "Bug", ColorCode = "#ef4444" };
-            context.TaskTypes.AddRange(typeTask, typeBug);
-
-            var tasks = new[]
+            var testProjectMember = await context.ProjectMembers
+                .FirstOrDefaultAsync(m => m.ProjectId == project.Id && m.UserId == testUser.Id);
+            if (testProjectMember == null)
             {
-                new WorkTask
+                context.ProjectMembers.Add(new ProjectMember
                 {
-                    Id = Guid.NewGuid(),
-                    ProjectId = projectId,
-                    WorkspaceId = workspaceId,
-                    Title = "Nghien cuu kien truc Plane",
-                    Description = "Phan tich schema database",
-                    Priority = 3,
-                    TaskTypeId = typeTask.Id,
-                    TaskStatusId = statusDone.Id,
-                    ReporterId = ownerId,
-                    SortOrder = 10000,
-                    SequenceId = "CYBWF-1",
-                    CreatedAt = DateTime.UtcNow
-                },
-                new WorkTask
+                    ProjectId = project.Id,
+                    UserId = testUser.Id,
+                    ProjectRole = "PM",
+                    JoinedAt = now,
+                    Status = true
+                });
+            }
+
+            if (context.ChangeTracker.HasChanges())
+            {
+                await context.SaveChangesAsync();
+            }
+
+            var statusBacklog = await EnsureTaskStatusAsync(context, project.Id, "BACKLOG", 0, "#64748b");
+            var statusTodo = await EnsureTaskStatusAsync(context, project.Id, "TO DO", 1, "#3b82f6");
+            var statusProgress = await EnsureTaskStatusAsync(context, project.Id, "IN PROGRESS", 2, "#f59e0b");
+            var statusReview = await EnsureTaskStatusAsync(context, project.Id, "IN REVIEW", 3, "#8b5cf6");
+            var statusDone = await EnsureTaskStatusAsync(context, project.Id, "DONE", 4, "#10b981");
+
+            var typeTask = await EnsureTaskTypeAsync(context, project.Id, "Task", "#3b82f6");
+            var typeBug = await EnsureTaskTypeAsync(context, project.Id, "Bug", "#ef4444");
+
+            if (context.ChangeTracker.HasChanges())
+            {
+                await context.SaveChangesAsync();
+            }
+
+            await EnsureTaskAsync(
+                context,
+                project.Id,
+                workspace.Id,
+                typeTask.Id,
+                statusDone.Id,
+                owner.Id,
+                "CYBWF-1",
+                "Nghien cuu kien truc Plane",
+                "Phan tich schema database",
+                3,
+                10000,
+                now);
+
+            await EnsureTaskAsync(
+                context,
+                project.Id,
+                workspace.Id,
+                typeTask.Id,
+                statusProgress.Id,
+                owner.Id,
+                "CYBWF-2",
+                "Thiet ke giao dien Dark Mode",
+                "#0D0D0D background",
+                2,
+                20000,
+                now);
+
+            await EnsureTaskAsync(
+                context,
+                project.Id,
+                workspace.Id,
+                typeBug.Id,
+                statusReview.Id,
+                owner.Id,
+                "CYBWF-3",
+                "Viet API Kanban Reorder",
+                "Testing Lexorank",
+                1,
+                30000,
+                now);
+
+            await EnsureTaskAsync(
+                context,
+                project.Id,
+                workspace.Id,
+                typeTask.Id,
+                statusTodo.Id,
+                owner.Id,
+                "CYBWF-4",
+                "Len ke hoach Sprint 1",
+                "Chuan bi backlog",
+                4,
+                40000,
+                now);
+
+            if (context.ChangeTracker.HasChanges())
+            {
+                await context.SaveChangesAsync();
+            }
+        }
+
+        private static async Task<TaskManagement.Domain.Entities.TaskStatus> EnsureTaskStatusAsync(
+            ApplicationDbContext context,
+            Guid projectId,
+            string name,
+            int position,
+            string colorCode)
+        {
+            var status = await context.TaskStatuses.FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Name == name);
+            if (status != null)
+            {
+                if (status.Position != position || string.IsNullOrWhiteSpace(status.ColorCode))
                 {
-                    Id = Guid.NewGuid(),
-                    ProjectId = projectId,
-                    WorkspaceId = workspaceId,
-                    Title = "Thiet ke giao dien Dark Mode",
-                    Description = "#0D0D0D background",
-                    Priority = 2,
-                    TaskTypeId = typeTask.Id,
-                    TaskStatusId = statusProgress.Id,
-                    ReporterId = ownerId,
-                    SortOrder = 20000,
-                    SequenceId = "CYBWF-2",
-                    CreatedAt = DateTime.UtcNow
-                },
-                new WorkTask
-                {
-                    Id = Guid.NewGuid(),
-                    ProjectId = projectId,
-                    WorkspaceId = workspaceId,
-                    Title = "Viet API Kanban Reorder",
-                    Description = "Testing Lexorank",
-                    Priority = 1,
-                    TaskTypeId = typeBug.Id,
-                    TaskStatusId = statusReview.Id,
-                    ReporterId = ownerId,
-                    SortOrder = 30000,
-                    SequenceId = "CYBWF-3",
-                    CreatedAt = DateTime.UtcNow
-                },
-                new WorkTask
-                {
-                    Id = Guid.NewGuid(),
-                    ProjectId = projectId,
-                    WorkspaceId = workspaceId,
-                    Title = "Len ke hoach Sprint 1",
-                    Description = "Chuan bi backlog",
-                    Priority = 4,
-                    TaskTypeId = typeTask.Id,
-                    TaskStatusId = statusTodo.Id,
-                    ReporterId = ownerId,
-                    SortOrder = 40000,
-                    SequenceId = "CYBWF-4",
-                    CreatedAt = DateTime.UtcNow
+                    status.Position = position;
+                    status.ColorCode = colorCode;
                 }
+
+                return status;
+            }
+
+            status = new TaskManagement.Domain.Entities.TaskStatus
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = projectId,
+                Name = name,
+                Position = position,
+                ColorCode = colorCode
             };
 
-            context.WorkTasks.AddRange(tasks);
-            await context.SaveChangesAsync();
+            context.TaskStatuses.Add(status);
+            return status;
+        }
+
+        private static async Task<TaskType> EnsureTaskTypeAsync(
+            ApplicationDbContext context,
+            Guid projectId,
+            string name,
+            string colorCode)
+        {
+            var taskType = await context.TaskTypes.FirstOrDefaultAsync(t => t.ProjectId == projectId && t.Name == name);
+            if (taskType != null)
+            {
+                if (string.IsNullOrWhiteSpace(taskType.ColorCode))
+                {
+                    taskType.ColorCode = colorCode;
+                }
+
+                return taskType;
+            }
+
+            taskType = new TaskType
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = projectId,
+                Name = name,
+                ColorCode = colorCode
+            };
+
+            context.TaskTypes.Add(taskType);
+            return taskType;
+        }
+
+        private static async Task EnsureTaskAsync(
+            ApplicationDbContext context,
+            Guid projectId,
+            Guid workspaceId,
+            Guid taskTypeId,
+            Guid taskStatusId,
+            Guid reporterId,
+            string sequenceId,
+            string title,
+            string description,
+            int priority,
+            double sortOrder,
+            DateTime now)
+        {
+            var existingTask = await context.WorkTasks.FirstOrDefaultAsync(t => t.ProjectId == projectId && t.SequenceId == sequenceId);
+            if (existingTask != null)
+            {
+                return;
+            }
+
+            context.WorkTasks.Add(new WorkTask
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = projectId,
+                WorkspaceId = workspaceId,
+                Title = title,
+                Description = description,
+                Priority = priority,
+                TaskTypeId = taskTypeId,
+                TaskStatusId = taskStatusId,
+                ReporterId = reporterId,
+                SortOrder = sortOrder,
+                SequenceId = sequenceId,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
         }
     }
 }

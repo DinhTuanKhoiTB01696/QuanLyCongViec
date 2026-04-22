@@ -159,6 +159,16 @@ const visibleComp = computed({
   set: (val) => emit('update:visible', val)
 })
 
+const formatLocalIsoDate = (value) => {
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}T00:00:00`
+}
+
 const form = ref(defaultForm())
 const submitted = ref(false)
 const loading = ref(false)
@@ -240,7 +250,7 @@ const handleSubmit = async () => {
       name: form.value.name,
       key: form.value.key,
       description: form.value.description,
-      startDate: form.value.startDate.toISOString(),
+      startDate: formatLocalIsoDate(form.value.startDate),
       endDate: null,
       departmentId: null,
       networkType: form.value.networkType,

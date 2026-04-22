@@ -1,11 +1,61 @@
 import { defineStore } from 'pinia'
 import axiosClient from '@/api/axiosClient'
 
+const normalizeDateOnly = (value) => {
+  if (!value) return null
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) return value.slice(0, 10)
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const normalizeTaskRecord = (task = {}) => {
+  const parentId = task.parentTaskId || task.parentId || task.ParentTaskId || task.ParentId || null
+  const id = task.id || task.Id || null
+  const projectId = task.projectId || task.ProjectId || null
+
+  return {
+    ...task,
+    id,
+    projectId,
+    parentId,
+    parentTaskId: parentId,
+    assignedUserId: task.assignedUserId || task.AssignedUserId || null,
+    assigneeIds: Array.isArray(task.assigneeIds)
+      ? task.assigneeIds
+      : Array.isArray(task.AssigneeIds)
+        ? task.AssigneeIds
+        : [],
+    assignees: Array.isArray(task.assignees)
+      ? task.assignees
+      : Array.isArray(task.Assignees)
+        ? task.Assignees
+        : [],
+    statusName: task.statusName || task.StatusName || '',
+    sequenceId: task.sequenceId || task.SequenceId || null,
+    sortOrder: task.sortOrder ?? task.SortOrder ?? 0,
+    sprintId: task.sprintId || task.SprintId || null,
+    moduleId: task.moduleId || task.ModuleId || null,
+    plannedStartDate: normalizeDateOnly(task.plannedStartDate || task.PlannedStartDate || null),
+    plannedEndDate: normalizeDateOnly(task.plannedEndDate || task.PlannedEndDate || null),
+    dueDate: normalizeDateOnly(task.dueDate || task.DueDate || null),
+    createdAt: task.createdAt || task.CreatedAt || null,
+    updatedAt: task.updatedAt || task.UpdatedAt || null
+  }
+}
+
 export const useWorkTaskStore = defineStore('workTask', {
   state: () => ({
     tasks: [],
     loading: false,
     error: null,
+    currentProjectId: null,
+    fetchAbortController: null,
+    fetchRequestId: 0
   }),
   getters: {
     backlogTasks: (state) => (state.tasks || []).filter(t => {
@@ -34,18 +84,55 @@ export const useWorkTaskStore = defineStore('workTask', {
     }).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)),
   },
   actions: {
-    async fetchTasks(projectId) {
+    clearTasks(projectId = null) {
+      this.tasks = []
+      this.error = null
+      this.currentProjectId = projectId
+    },
+    async fetchTasks(projectId, options = {}) {
       if (!projectId) return;
+
+      const { reset = true } = options
+      const requestId = this.fetchRequestId + 1
+      this.fetchRequestId = requestId
+      this.fetchAbortController?.abort()
+      const controller = new AbortController()
+      this.fetchAbortController = controller
+
       this.loading = true;
       this.error = null;
+      this.currentProjectId = projectId
+
+      if (reset) {
+        this.tasks = []
+      }
+
       try {
-        const res = await axiosClient.get(`/projects/${projectId}/WorkTasks`);
-        this.tasks = res.data?.data || [];
+        const res = await axiosClient.get(`/projects/${projectId}/WorkTasks`, {
+          signal: controller.signal
+        });
+
+        if (requestId !== this.fetchRequestId || this.currentProjectId !== projectId) {
+          return []
+        }
+
+        this.tasks = (res.data?.data || [])
+          .map(task => normalizeTaskRecord(task))
+          .filter(task => task?.projectId === projectId)
+        return this.tasks
       } catch (err) {
+        if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
+          return []
+        }
+
         this.error = err.message;
         console.error('Failed to fetch tasks:', err);
+        return []
       } finally {
-        this.loading = false;
+        if (requestId === this.fetchRequestId) {
+          this.loading = false;
+          this.fetchAbortController = null
+        }
       }
     },
     async createTask(projectId, payload) {

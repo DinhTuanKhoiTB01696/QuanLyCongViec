@@ -1,6 +1,40 @@
 import { defineStore } from 'pinia'
 import axiosClient from '@/api/axiosClient'
 
+const PROJECT_BUNDLE_CACHE_TTL_MS = 30000
+const resolveProjectId = (project) => project?.id || project?.Id || project?.projectId || project?.ProjectId || null
+const projectIdentityKey = (project) => resolveProjectId(project) || `${project?.key || project?.Key || ''}:${project?.name || project?.Name || ''}`
+
+const dedupeProjects = (projects = []) => {
+  const seen = new Map()
+  for (const project of projects) {
+    const key = projectIdentityKey(project)
+    if (!key || seen.has(key)) continue
+    seen.set(key, project)
+  }
+  return Array.from(seen.values())
+}
+
+const upsertProject = (projects = [], rawProject) => {
+  const mappedProject = mapProjectRow(rawProject)
+  if (!mappedProject?.id) {
+    return dedupeProjects(projects)
+  }
+
+  const nextProjects = [...dedupeProjects(projects)]
+  const existingIndex = nextProjects.findIndex(project => project.id === mappedProject.id)
+  if (existingIndex >= 0) {
+    nextProjects.splice(existingIndex, 1, {
+      ...nextProjects[existingIndex],
+      ...mappedProject
+    })
+    return nextProjects
+  }
+
+  nextProjects.push(mappedProject)
+  return dedupeProjects(nextProjects)
+}
+
 const defaultProjectNodes = (projectId) => ([
   {
     id: `${projectId}-work-items`,
@@ -35,20 +69,20 @@ const defaultProjectNodes = (projectId) => ([
 ])
 
 const mapProjectRow = (project) => ({
-  id: project.id,
-  name: project.name,
-  key: project.key || project.identifier || project.name?.substring(0, 4)?.toUpperCase() || 'PRJ',
-  description: project.description || '',
-  icon: project.icon || null,
-  cover: project.cover || null,
-  networkType: project.networkType || 'Public',
-  leadName: project.leadName || project.creatorName || 'Project',
+  id: resolveProjectId(project),
+  name: project.name || project.Name || '',
+  key: project.key || project.Key || project.identifier || project.Identifier || project.name?.substring(0, 4)?.toUpperCase() || project.Name?.substring(0, 4)?.toUpperCase() || 'PRJ',
+  description: project.description || project.Description || '',
+  icon: project.icon || project.Icon || null,
+  cover: project.cover || project.Cover || null,
+  networkType: project.networkType || project.NetworkType || 'Public',
+  leadName: project.leadName || project.LeadName || project.creatorName || project.CreatorName || 'Project',
   isMember: typeof project.isMember === 'boolean' ? project.isMember : true,
   isFavorite: Boolean(project.isFavorite),
-  myRole: project.myRole || null,
-  createdAt: project.createdAt || null,
-  updatedAt: project.updatedAt || null,
-  children: defaultProjectNodes(project.id),
+  myRole: project.myRole || project.MyRole || null,
+  createdAt: project.createdAt || project.CreatedAt || null,
+  updatedAt: project.updatedAt || project.UpdatedAt || null,
+  children: defaultProjectNodes(resolveProjectId(project)),
   originalRow: project
 })
 
@@ -60,12 +94,20 @@ export const useProjectStore = defineStore('project', {
     loading: false,
     error: null,
     members: [],
-    tags: []
+    tags: [],
+    taskStatusesByProjectId: {},
+    previewTasksByProjectId: {},
+    projectDetailsById: {},
+    membersByProjectId: {},
+    labelsByProjectId: {},
+    bundleFetchedAtByProject: {},
+    detailsAbortController: null,
+    detailsRequestId: 0
   }),
   getters: {
-    sidebarProjects: (state) => state.allProjects.filter(project => project.isMember !== false),
-    favoriteProjects: (state) => state.allProjects.filter(project => project.isFavorite),
-    projectTree: (state) => state.allProjects.map(project => ({
+    sidebarProjects: (state) => dedupeProjects(state.allProjects).filter(project => project.isMember !== false),
+    favoriteProjects: (state) => dedupeProjects(state.allProjects).filter(project => project.isFavorite),
+    projectTree: (state) => dedupeProjects(state.allProjects).map(project => ({
       ...project,
       expanded: state.expandedProjectIds.includes(project.id)
     }))
@@ -79,7 +121,7 @@ export const useProjectStore = defineStore('project', {
       try {
         const response = await axiosClient.get('/projects/discovery');
         const rows = response.data?.data || response.data || [];
-        this.allProjects = rows.map(mapProjectRow);
+        this.allProjects = dedupeProjects(rows.map(mapProjectRow));
         return this.allProjects;
       } catch (err) {
         this.error = err.message || 'Failed to fetch projects';
@@ -91,15 +133,16 @@ export const useProjectStore = defineStore('project', {
     },
     toggleProject(projectId) {
       if (!projectId) return;
+      this.expandedProjectIds = Array.from(new Set(this.expandedProjectIds));
       if (this.expandedProjectIds.includes(projectId)) {
         this.expandedProjectIds = this.expandedProjectIds.filter(id => id !== projectId);
         return;
       }
-      this.expandedProjectIds = [...this.expandedProjectIds, projectId];
+      this.expandedProjectIds = [projectId];
     },
     expandProject(projectId) {
       if (!projectId || this.expandedProjectIds.includes(projectId)) return;
-      this.expandedProjectIds = [...this.expandedProjectIds, projectId];
+      this.expandedProjectIds = [projectId];
     },
     collapseProject(projectId) {
       this.expandedProjectIds = this.expandedProjectIds.filter(id => id !== projectId);
@@ -115,35 +158,142 @@ export const useProjectStore = defineStore('project', {
         this.currentProject = { ...this.currentProject, isFavorite: favorite };
       }
     },
-    async fetchProjectDetails(projectId) {
-      if (!projectId) return;
-      this.loading = true;
-      this.error = null;
+    clearProjectContext(projectId = null) {
+      this.currentProject = projectId
+        ? this.projectDetailsById[projectId] || this.allProjects.find(project => project.id === projectId)?.originalRow || null
+        : null
+      this.members = projectId ? (this.membersByProjectId[projectId] || []) : []
+      this.tags = projectId ? (this.labelsByProjectId[projectId] || []) : []
+    },
+    hydrateProjectBundle(projectId) {
+      if (!projectId || !this.projectDetailsById[projectId]) return null
+
+      this.currentProject = this.projectDetailsById[projectId]
+      this.members = this.membersByProjectId[projectId] || []
+      this.tags = this.labelsByProjectId[projectId] || []
+
+      const mappedProject = mapProjectRow(this.currentProject)
+      if (mappedProject?.id) {
+        this.allProjects = upsertProject(this.allProjects, mappedProject)
+      }
+
+      return this.currentProject
+    },
+    async prefetchProjectBundle(projectId, options = {}) {
+      if (!projectId) return null
+
+      const { force = false } = options
+      const fetchedAt = this.bundleFetchedAtByProject[projectId]
+      const isWarm = fetchedAt && (Date.now() - fetchedAt) < PROJECT_BUNDLE_CACHE_TTL_MS
+      if (!force && isWarm && this.projectDetailsById[projectId]) {
+        return {
+          project: this.projectDetailsById[projectId],
+          members: this.membersByProjectId[projectId] || [],
+          labels: this.labelsByProjectId[projectId] || [],
+          taskStatuses: this.taskStatusesByProjectId[projectId] || [],
+          tasks: this.previewTasksByProjectId[projectId] || []
+        }
+      }
+
       try {
-        const [projRes, membersRes, tagsRes] = await Promise.all([
+        const [projRes, membersRes, labelsRes, statusesRes, tasksRes] = await Promise.all([
           axiosClient.get(`/projects/${projectId}`),
           axiosClient.get(`/projects/${projectId}/members`),
-          axiosClient.get(`/projects/${projectId}/labels`)
+          axiosClient.get(`/projects/${projectId}/labels`),
+          axiosClient.get(`/projects/${projectId}/task-statuses`).catch(() => ({ data: { data: [] } })),
+          axiosClient.get(`/projects/${projectId}/WorkTasks`).catch(() => ({ data: { data: [] } }))
+        ])
+
+        const project = projRes.data?.data || null
+        const members = membersRes.data?.data || []
+        const labels = labelsRes.data?.data || []
+        const taskStatuses = statusesRes.data?.data || []
+        const tasks = (tasksRes.data?.data || []).filter(task => task?.projectId === projectId)
+
+        this.projectDetailsById = { ...this.projectDetailsById, [projectId]: project }
+        this.membersByProjectId = { ...this.membersByProjectId, [projectId]: members }
+        this.labelsByProjectId = { ...this.labelsByProjectId, [projectId]: labels }
+        this.taskStatusesByProjectId = { ...this.taskStatusesByProjectId, [projectId]: taskStatuses }
+        this.previewTasksByProjectId = { ...this.previewTasksByProjectId, [projectId]: tasks }
+        this.bundleFetchedAtByProject = { ...this.bundleFetchedAtByProject, [projectId]: Date.now() }
+
+        if (project) {
+          this.allProjects = upsertProject(this.allProjects, project)
+        }
+
+        return { project, members, labels, taskStatuses, tasks }
+      } catch (err) {
+        console.error('Failed to prefetch project bundle:', err)
+        return null
+      }
+    },
+    async fetchProjectDetails(projectId, options = {}) {
+      if (!projectId) return null;
+
+      const {
+        reset = true,
+        background = false,
+        force = false
+      } = options;
+
+      const fetchedAt = this.bundleFetchedAtByProject[projectId]
+      const isWarm = fetchedAt && (Date.now() - fetchedAt) < PROJECT_BUNDLE_CACHE_TTL_MS
+      if (!force && isWarm && this.projectDetailsById[projectId]) {
+        if (reset) {
+          this.clearProjectContext(projectId)
+        }
+        return this.hydrateProjectBundle(projectId)
+      }
+
+      this.detailsAbortController?.abort();
+      const controller = new AbortController();
+      const requestId = this.detailsRequestId + 1;
+      this.detailsAbortController = controller;
+      this.detailsRequestId = requestId;
+      this.loading = !background;
+      this.error = null;
+
+      if (reset) {
+        this.clearProjectContext(projectId);
+      }
+
+      try {
+        const [projRes, membersRes, tagsRes] = await Promise.all([
+          axiosClient.get(`/projects/${projectId}`, { signal: controller.signal }),
+          axiosClient.get(`/projects/${projectId}/members`, { signal: controller.signal }),
+          axiosClient.get(`/projects/${projectId}/labels`, { signal: controller.signal })
         ]);
+
+        if (requestId !== this.detailsRequestId) {
+          return null;
+        }
+
         this.currentProject = projRes.data?.data || null;
         this.members = membersRes.data?.data || [];
         this.tags = tagsRes.data?.data || [];
+        this.projectDetailsById = { ...this.projectDetailsById, [projectId]: this.currentProject }
+        this.membersByProjectId = { ...this.membersByProjectId, [projectId]: this.members }
+        this.labelsByProjectId = { ...this.labelsByProjectId, [projectId]: this.tags }
+        this.bundleFetchedAtByProject = { ...this.bundleFetchedAtByProject, [projectId]: Date.now() }
 
-        const mappedProject = mapProjectRow(this.currentProject);
-        const existingIndex = this.allProjects.findIndex(project => project.id === mappedProject.id);
-        if (existingIndex >= 0) {
-          this.allProjects.splice(existingIndex, 1, {
-            ...this.allProjects[existingIndex],
-            ...mappedProject
-          });
-        } else {
-          this.allProjects = [...this.allProjects, mappedProject];
+        if (this.currentProject) {
+          this.allProjects = upsertProject(this.allProjects, this.currentProject);
         }
+
+        return this.currentProject;
       } catch (err) {
+        if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
+          return null;
+        }
+
         this.error = err.message || 'Failed to fetch project details';
         console.error('Failed to fetch project details:', err);
+        return null;
       } finally {
-        this.loading = false;
+        if (requestId === this.detailsRequestId) {
+          this.loading = false;
+          this.detailsAbortController = null;
+        }
       }
     }
   }

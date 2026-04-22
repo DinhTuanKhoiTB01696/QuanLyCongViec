@@ -214,7 +214,7 @@
           
           <div class="proj-badge mt-4" v-if="projects.length > 0">
              <i class="fa-solid fa-bell" style="color: #F59E0B"></i>
-             <span>{{ projects[0]?.name || 'Project' }}</span>
+             <span>{{ activeProject?.name || 'Project' }}</span>
           </div>
           
           <input type="text" class="dm-title-input mt-4" placeholder="Title" v-model="form.title" />
@@ -396,11 +396,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onBeforeUnmount, nextTick } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, nextTick, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import axiosClient from '@/api/axiosClient'
 import { ElMessage } from 'element-plus'
 
+const route = useRoute()
 const showModal = ref(false)
 const showMoveModal = ref(false)
 const editMode = ref(false)
@@ -490,6 +492,8 @@ const endIndex = computed(() => Math.min(startIndex.value + visibleCount.value, 
 const visibleDrafts = computed(() => drafts.value.slice(startIndex.value, endIndex.value))
 const virtualOffsetTop = computed(() => startIndex.value * ROW_HEIGHT)
 const virtualContentHeight = computed(() => drafts.value.length * ROW_HEIGHT)
+const selectedProjectId = computed(() => route.params.id || localStorage.getItem('currentProjectId') || projects.value[0]?.id || null)
+const activeProject = computed(() => projects.value.find(project => project.id === selectedProjectId.value) || projects.value[0] || null)
 
 const form = ref({
   id: null,
@@ -599,7 +603,7 @@ const fetchDrafts = async (page = pagination.value.page) => {
       params: {
         page,
         pageSize: pagination.value.pageSize,
-        projectId: projects.value[0]?.id || undefined
+        projectId: selectedProjectId.value || undefined
       }
     })
     drafts.value = res.data?.data || []
@@ -663,7 +667,7 @@ const fetchProjects = async () => {
     const res = await axiosClient.get('/projects')
     projects.value = res.data?.data || []
     if (projects.value.length > 0) {
-      await loadProjectContextData(projects.value[0].id)
+      await loadProjectContextData(selectedProjectId.value || projects.value[0].id)
       await fetchDrafts(1)
     }
   } catch(e) {
@@ -688,7 +692,7 @@ const saveDraft = async () => {
       dueDate: form.value.dueDate,
       cycle: form.value.cycle,
       module: form.value.module,
-      projectId: projects.value[0]?.id || null
+      projectId: selectedProjectId.value || null
     }
     
     if (editMode.value && form.value.id) {
@@ -720,7 +724,7 @@ const updateDraftProperty = async (draft, field, value) => {
       dueDate: draft.dueDate,
       cycle: draft.cycle,
       module: draft.module,
-      projectId: draft.projectId || projects.value[0]?.id || null
+      projectId: draft.projectId || selectedProjectId.value || null
     }
     payload[field] = value
     await axiosClient.put(`/drafts/${draft.id}`, payload)
@@ -779,7 +783,7 @@ const makeCopy = async (draft) => {
       dueDate: draft.dueDate,
       cycle: draft.cycle,
       module: draft.module,
-      projectId: draft.projectId || projects.value[0]?.id || null
+      projectId: draft.projectId || selectedProjectId.value || null
     })
     ElMessage.success('Draft duplicated')
     fetchDrafts(1)
@@ -833,10 +837,18 @@ const moveToProject = async (projectId) => {
 }
 
 onMounted(() => {
-  fetchDrafts()
   fetchProjects()
   document.addEventListener('click', clickOutsidePopover)
 })
+
+watch(selectedProjectId, async (projectId, previousProjectId) => {
+  if (!projectId || projectId === previousProjectId) {
+    return
+  }
+
+  await loadProjectContextData(projectId)
+  await fetchDrafts(1)
+}, { immediate: true })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', clickOutsidePopover)
