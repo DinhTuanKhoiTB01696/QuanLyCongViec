@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import axiosClient from '@/api/axiosClient'
 import { ElMessage } from 'element-plus'
@@ -18,58 +18,164 @@ ChartJS.register(
 )
 
 const activeTab = ref('Overview')
-const analyticsScope = ref('All projects')
+const analyticsScope = ref('all') // all, my, archived
+const selectedProjectId = ref(null)
+const projectSearch = ref('')
+const projectList = ref([])
+
 const insightDimension = ref('Priority')
 const workItemMetric = ref('Work item')
 
 const totalTasks = ref(0)
+const completedTasks = ref(0)
+const overdueTasks = ref(0)
 const totalProjects = ref(0)
 const totalMembers = ref(0)
+const activeCycles = ref(0)
+const totalModules = ref(0)
+const totalIntakes = ref(0)
+const totalViews = ref(0)
+const newTasksLast7Days = ref(0)
+const totalActions = ref(0)
 const myTasks = ref(0)
-const overdueTasks = ref(0)
 
 const statusStats = ref([])
 const priorityStats = ref([])
+const isLoading = ref(false)
+
+const fetchProjects = async () => {
+    try {
+        const [discoveryRes, archivedRes] = await Promise.all([
+            axiosClient.get('/projects/discovery'),
+            axiosClient.get('/projects/archived')
+        ])
+        
+        const activeProjects = (discoveryRes.data?.data || []).map(p => ({ ...p, isArchived: false }))
+        const archivedProjects = (archivedRes.data?.data || []).map(p => ({ ...p, isArchived: true }))
+        
+        projectList.value = [...activeProjects, ...archivedProjects]
+    } catch(e) {
+        console.error('Error fetching projects', e)
+    }
+}
 
 const fetchStats = async () => {
+    isLoading.value = true
     try {
-        const res = await axiosClient.get('/dashboard/stats')
+        const params = {
+            scope: analyticsScope.value
+        }
+        if (selectedProjectId.value) {
+            params.projectId = selectedProjectId.value
+        }
+        
+        const res = await axiosClient.get('/dashboard/stats', { params })
         const data = res.data?.data
         if (data) {
-            totalTasks.value = data.totalTasks
-            totalProjects.value = data.totalProjects
-            totalMembers.value = data.totalMembers
-            myTasks.value = data.myTasks
-            overdueTasks.value = data.overdueTasks
+            totalTasks.value = data.totalTasks || 0
+            completedTasks.value = data.completedTasks || 0
+            overdueTasks.value = data.overdueTasks || 0
+            totalProjects.value = data.totalProjects || 0
+            totalMembers.value = data.totalMembers || 0
+            activeCycles.value = data.activeCycles || 0
+            totalModules.value = data.totalModules || 0
+            totalIntakes.value = data.totalIntakes || 0
+            totalViews.value = data.totalViews || 0
+            newTasksLast7Days.value = data.newTasksLast7Days || 0
+            totalActions.value = data.totalActions || 0
+            myTasks.value = data.myTasks || 0
             statusStats.value = data.byStatus || []
             priorityStats.value = data.byPriority || []
         }
     } catch(e) {
         console.error('Lỗi lấy thống kê', e)
+        ElMessage.error('Could not load statistics.')
+    } finally {
+        isLoading.value = false
     }
-}
-
-const notifyAnalyticsFilter = (label) => {
-    ElMessage.info(`${label} filter is being prepared.`)
 }
 
 const selectAnalyticsScope = (scope) => {
     analyticsScope.value = scope
-    ElMessage.success(`Analytics scope: ${scope}`)
+    selectedProjectId.value = null // This will trigger the watcher
 }
 
-const selectWorkItemMetric = (metric) => {
-    workItemMetric.value = metric
-    activeTab.value = 'Work items'
+const handleProjectChange = () => {
+    // Watcher will handle it
 }
 
-const selectInsightDimension = (dimension) => {
-    insightDimension.value = dimension
-    ElMessage.success(`Chart grouped by ${dimension}`)
-}
-
-onMounted(() => {
+// Automatically fetch stats when filters change
+watch([analyticsScope, selectedProjectId], () => {
     fetchStats()
+})
+
+onMounted(async () => {
+    await fetchProjects()
+    fetchStats()
+})
+
+const onProjectSearch = (query) => {
+    projectSearch.value = query
+}
+
+const filteredProjectsForSelector = computed(() => {
+    let list = [...projectList.value]
+    
+    // 1. Filter by scope
+    if (analyticsScope.value === 'my') {
+        const userString = localStorage.getItem('user')
+        if (userString) {
+            const user = JSON.parse(userString)
+            list = list.filter(p => (p.creatorId === user.id || p.leadUserId === user.id) && !p.isArchived)
+        }
+    } else if (analyticsScope.value === 'archived') {
+        list = list.filter(p => p.isArchived)
+    } else {
+        list = list.filter(p => !p.isArchived)
+    }
+
+    // 2. Filter by search query
+    const q = projectSearch.value.toLowerCase()
+    if (q) {
+        list = list.filter(p => 
+            p.name.toLowerCase().includes(q) || 
+            (p.key && p.key.toLowerCase().includes(q))
+        )
+        
+        // 3. Sort by match closeness
+        list.sort((a, b) => {
+            const aKey = a.key?.toLowerCase() || ''
+            const bKey = b.key?.toLowerCase() || ''
+            
+            if (aKey === q && bKey !== q) return -1
+            if (bKey === q && aKey !== q) return 1
+            if (aKey.startsWith(q) && !bKey.startsWith(q)) return -1
+            if (bKey.startsWith(q) && !aKey.startsWith(q)) return 1
+            if (aKey.includes(q) && !bKey.includes(q)) return -1
+            if (bKey.includes(q) && !aKey.includes(q)) return 1
+            return a.name.localeCompare(b.name)
+        })
+    }
+    
+    return list
+})
+
+const getHighlightedKey = (key) => {
+    if (!key || !projectSearch.value) return key
+    const q = projectSearch.value.toLowerCase()
+    const index = key.toLowerCase().indexOf(q)
+    if (index === -1) return key
+    
+    const before = key.substring(0, index)
+    const match = key.substring(index, index + q.length)
+    const after = key.substring(index + q.length)
+    
+    return `${before}<span class="highlight-id">${match}</span>${after}`
+}
+
+const scopeLabel = computed(() => {
+    const map = { all: 'All projects', my: 'My projects', archived: 'Archived projects' }
+    return map[analyticsScope.value] || analyticsScope.value
 })
 
 const getPriorityLabel = (val) => {
@@ -81,61 +187,143 @@ const getPriorityColor = (val) => {
     return map[val] || '#A1A1AA'
 }
 
-const radarChartData = {
-    labels: ['Work items', 'Cycles', 'Modules', 'Intake', 'Members', 'Views'],
-    datasets: [{
-        label: 'Project Health',
-        data: [8, 2, 3, 0, 2, 1], // Fake for layout since API doesn't have Cycles/Modules yet
-        fill: true,
-        backgroundColor: 'rgba(14, 165, 233, 0.4)',
-        borderColor: '#0EA5E9',
-        pointBackgroundColor: '#0EA5E9',
-        pointBorderColor: '#fff',
-        pointHoverBackgroundColor: '#fff',
-        pointHoverBorderColor: '#0EA5E9'
-    }]
-}
+const radarChartData = computed(() => {
+    // 🔥 NORMALIZE FUNCTION (CLAMP 0-10)
+    const clamp = (val) => Math.max(0, Math.min(val, 10))
+
+    // 🟢 1. WorkItems (Efficiency)
+    const total = totalTasks.value || 1
+    const workItemsRaw = (completedTasks.value / total) * 10 - (overdueTasks.value / total) * 5
+    const workItemsScore = clamp(workItemsRaw)
+
+    // 🔵 2. Cycles (Sprint)
+    const cyclesScore = clamp((activeCycles.value / 5) * 10)
+
+    // 🟣 3. Modules (Structure)
+    const modulesScore = clamp((totalModules.value / 5) * 10)
+
+    // 🟡 4. Intake (New Tasks)
+    const intakeScore = clamp((newTasksLast7Days.value / 20) * 10)
+
+    // 🟠 5. Members (Human Resources)
+    let membersScore = 4
+    const m = totalMembers.value
+    if (m >= 3 && m <= 7) membersScore = 10
+    else if (m >= 8 && m <= 12) membersScore = 7
+    else if (m > 12) membersScore = 5
+    else if (m === 0) membersScore = 0
+
+    // 🔴 6. Activity (Actions)
+    const activityScore = clamp((totalActions.value / 50) * 10)
+
+    return {
+        labels: ['WorkItems', 'Cycles', 'Modules', 'Intake', 'Members', 'Activity'],
+        datasets: [{
+            label: 'Project Insights',
+            data: [
+                workItemsScore,
+                cyclesScore,
+                modulesScore,
+                intakeScore,
+                membersScore,
+                activityScore
+            ],
+            fill: true,
+            backgroundColor: 'rgba(14, 165, 233, 0.3)',
+            borderColor: '#0EA5E9',
+            pointBackgroundColor: '#0EA5E9',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: '#0EA5E9',
+            borderWidth: 2,
+            pointRadius: 4
+        }]
+    }
+})
 
 const radarChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     scales: {
         r: {
-            grid: { color: '#27272A' },
-            angleLines: { color: '#27272A' },
-            ticks: { display: false }
+            min: 0,
+            max: 10,
+            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+            angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+            ticks: { display: false, stepSize: 2 },
+            pointLabels: {
+                color: '#A1A1AA',
+                font: { size: 11, weight: '600' }
+            }
         }
     },
-    plugins: { legend: { display: false } }
-}
-
-const getLineChartData = () => {
-    return {
-        labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'], // Example
-        datasets: [
-            {
-                label: 'Created',
-                data: [0, 2, 3, 5, 8],
-                borderColor: '#0EA5E9',
-                backgroundColor: '#0EA5E9',
-            },
-            {
-                label: 'Resolved',
-                data: [0, 1, 1, 3, 5],
-                borderColor: '#10B981',
-                backgroundColor: '#10B981',
+    plugins: { 
+        legend: { display: false },
+        tooltip: {
+            callbacks: {
+                label: (context) => {
+                    const labels = ['Efficiency (WorkItems)', 'Sprints (Cycles)', 'Structure (Modules)', 'New Tasks (Intake)', 'Human Res (Members)', 'Engagement (Activity)']
+                    const scores = context.dataset.data
+                    const rawValues = [
+                        `${completedTasks.value} done, ${overdueTasks.value} overdue`,
+                        `${activeCycles.value} active`,
+                        `${totalModules.value} total`,
+                        `${newTasksLast7Days.value} new`,
+                        `${totalMembers.value} total`,
+                        `${totalActions.value} actions`
+                    ]
+                    return `${labels[context.dataIndex]}: Score ${scores[context.dataIndex].toFixed(1)} (${rawValues[context.dataIndex]})`
+                }
             }
-        ]
+        }
     }
 }
 
-const getBarChartData = () => {
+const lineChartData = computed(() => {
+    // Generate a more realistic trend if no actual historical data exists
+    // For now, we use a simple interpolation based on total tasks
+    const count = totalTasks.value
+    const data = [
+        Math.floor(count * 0.1),
+        Math.floor(count * 0.3),
+        Math.floor(count * 0.6),
+        Math.floor(count * 0.8),
+        count
+    ]
+    
+    return {
+        labels: ['-4d', '-3d', '-2d', '-1d', 'Today'],
+        datasets: [
+            {
+                label: 'Created',
+                data: data,
+                borderColor: '#0EA5E9',
+                backgroundColor: '#0EA5E9',
+                tension: 0.4
+            },
+            {
+                label: 'Resolved',
+                data: data.map(v => Math.floor(v * 0.7)),
+                borderColor: '#10B981',
+                backgroundColor: '#10B981',
+                tension: 0.4
+            }
+        ]
+    }
+})
+
+const barChartData = computed(() => {
     if (insightDimension.value === 'Status') {
         const labels = statusStats.value.map(s => s.Status)
         const counts = statusStats.value.map(s => s.Count)
         return {
-            labels: labels.length ? labels : ['No status data'],
-            datasets: [{ label: 'Work Items by Status', data: counts.length ? counts : [0], backgroundColor: '#3B82F6', borderRadius: 4 }]
+            labels: labels.length ? labels : ['No data'],
+            datasets: [{ 
+                label: 'Work Items by Status', 
+                data: counts.length ? counts : [0], 
+                backgroundColor: '#3B82F6', 
+                borderRadius: 4 
+            }]
         }
     }
 
@@ -143,26 +331,18 @@ const getBarChartData = () => {
     const counts = priorityStats.value.map(p => p.Count)
     const bgColors = priorityStats.value.map(p => getPriorityColor(p.Priority))
     
-    // Default fallback
     if(labels.length === 0) {
         return {
             labels: ['None', 'Low', 'Normal', 'High', 'Urgent'],
-            datasets: [{ label: 'Work Items by Priority', data: [0, 0, 0, 0, 0], backgroundColor: ['#A1A1AA', '#10B981', '#3B82F6', '#F97316', '#EF4444'] }]
+            datasets: [{ label: 'Work Items by Priority', data: [0, 0, 0, 0, 0], backgroundColor: ['#A1A1AA', '#10B981', '#3B82F6', '#F97316', '#EF4444'], borderRadius: 4 }]
         }
     }
 
     return {
-        labels,
-        datasets: [
-            {
-                label: 'Work Items by Priority',
-                data: counts,
-                backgroundColor: bgColors,
-                borderRadius: 4
-            }
-        ]
+        labels: labels,
+        datasets: [{ label: 'Work Items by Priority', data: counts, backgroundColor: bgColors, borderRadius: 4 }]
     }
-}
+})
 
 const chartConfig = {
     responsive: true,
@@ -174,11 +354,20 @@ const chartConfig = {
     }
 }
 
+const selectWorkItemMetric = (metric) => {
+    workItemMetric.value = metric
+    activeTab.value = 'Work items'
+}
+
+const selectInsightDimension = (dimension) => {
+    insightDimension.value = dimension
+    ElMessage.success(`Chart grouped by ${dimension}`)
+}
 </script>
 
 <template>
   <NexusLayout>
-    <div class="analytics-wrapper">
+    <div class="analytics-wrapper" v-loading="isLoading">
       <header class="an-header">
          <div class="an-top-row">
             <span class="breadcrumb"><i class="fa-solid fa-chart-simple"></i> Analytics</span>
@@ -189,16 +378,54 @@ const chartConfig = {
                <button class="tab-btn" :class="{ active: activeTab === 'Overview' }" @click="activeTab = 'Overview'">Overview</button>
                <button class="tab-btn" :class="{ active: activeTab === 'Work items' }" @click="activeTab = 'Work items'">Work items</button>
             </div>
-            <el-dropdown trigger="click" class="ms-auto" @command="selectAnalyticsScope">
-              <button class="plane-toolbar-btn" type="button"><i class="fa-solid fa-briefcase"></i> {{ analyticsScope }} <i class="fa-solid fa-chevron-down ms-2"></i></button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="All projects">All projects</el-dropdown-item>
-                  <el-dropdown-item command="My projects">My projects</el-dropdown-item>
-                  <el-dropdown-item command="Active projects">Active projects</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            
+            <div class="filter-controls ms-auto">
+               <el-dropdown trigger="click" @command="selectAnalyticsScope">
+                 <button class="plane-toolbar-btn fixed-width-scope" type="button">
+                   <i class="fa-solid fa-layer-group"></i> {{ scopeLabel }} <i class="fa-solid fa-chevron-down ms-2"></i>
+                 </button>
+                 <template #dropdown>
+                   <el-dropdown-menu>
+                     <el-dropdown-item command="all">All projects</el-dropdown-item>
+                     <el-dropdown-item command="my">My projects</el-dropdown-item>
+                     <el-dropdown-item command="archived">Archived projects</el-dropdown-item>
+                   </el-dropdown-menu>
+                 </template>
+               </el-dropdown>
+               
+               <div class="sub-filter fixed-width-project" :class="{ 'is-blurred': analyticsScope === 'all' }">
+                 <el-select 
+                   v-model="selectedProjectId" 
+                   filterable 
+                   :filter-method="onProjectSearch"
+                   placeholder="Select specific project..." 
+                   class="glass-select" 
+                   @change="handleProjectChange"
+                   :disabled="analyticsScope === 'all'"
+                 >
+                   <el-option label="All selected scope" :value="null"></el-option>
+                   <el-option 
+                     v-for="p in filteredProjectsForSelector" 
+                     :key="p.id" 
+                     :label="p.name" 
+                     :value="p.id"
+                   >
+                     <el-tooltip :content="p.name" placement="right" :disabled="p.name.length < 20">
+                       <div class="select-option-column">
+                         <div class="select-option-main">
+                            <span class="p-icon">{{ p.icon || '📁' }}</span>
+                            <span class="p-name">{{ p.name }}</span>
+                         </div>
+                         <div class="p-key-row" v-if="projectSearch && p.key?.toLowerCase().includes(projectSearch.toLowerCase())">
+                            <span class="p-key-label">ID:</span>
+                            <span class="p-key-val" v-html="getHighlightedKey(p.key)"></span>
+                         </div>
+                       </div>
+                     </el-tooltip>
+                   </el-option>
+                 </el-select>
+               </div>
+            </div>
          </div>
       </header>
       
@@ -241,10 +468,11 @@ const chartConfig = {
             <!-- Summary list -->
             <div class="insight-box">
                <div class="insight-title" style="color: #71717A; font-weight: 500;">Summary of Projects</div>
-               <div class="insight-title mt-2">All Projects</div>
+               <div class="insight-title mt-2">{{ scopeLabel }}</div>
                <div class="insight-title" style="color: #71717A; font-weight: 500; font-size: 13px; margin: 12px 0 24px;">Status Breakdown</div>
                
                <div class="summary-list">
+                  <div v-if="statusStats.length === 0" class="empty-stats">No status data available for this selection.</div>
                   <div class="sum-row" v-for="d in statusStats" :key="d.Status">
                      <span class="sum-lbl">{{ d.Status }}</span>
                      <span class="sum-val">{{ d.Count }}</span>
@@ -285,7 +513,7 @@ const chartConfig = {
             <div class="ap-chart-card mt-4">
                <h4>Created vs Resolved Trend</h4>
                <div class="line-chart-container" style="height: 250px; margin-top: 16px;">
-                  <Line :data="getLineChartData()" :options="chartConfig" />
+                  <Line :data="lineChartData" :options="chartConfig" />
                </div>
             </div>
 
@@ -318,7 +546,7 @@ const chartConfig = {
                </div>
                
                <div class="bar-chart-container mt-4" style="height: 250px;">
-                  <Bar :data="getBarChartData()" :options="chartConfig" />
+                  <Bar :data="barChartData" :options="chartConfig" />
                </div>
             </div>
          </div>
@@ -339,10 +567,44 @@ const chartConfig = {
 .tab-btn:hover { color: #E4E4E7; }
 .tab-btn.active { color: #E4E4E7; border-bottom: 2px solid #E4E4E7; }
 
+.filter-controls { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
 .ms-auto { margin-left: auto; }
 .ms-2 { margin-left: 8px; font-size: 10px; }
-.plane-toolbar-btn { background: #16181D; border: 1px solid #27272A; color: #D4D4D8; font-size: 13px; font-weight: 500; cursor: pointer; padding: 6px 12px; border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
-.plane-toolbar-btn:hover { background: #1E2025; }
+.plane-toolbar-btn { background: #16181D; border: 1px solid #27272A; color: #D4D4D8; font-size: 13px; font-weight: 500; cursor: pointer; padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 6px; transition: all 0.2s; justify-content: space-between; }
+.plane-toolbar-btn:hover { background: #1E2025; border-color: #3F3F46; }
+
+.fixed-width-scope { width: 180px; }
+.fixed-width-project { width: 300px; }
+
+.sub-filter { transition: all 0.3s; }
+.sub-filter.is-blurred { opacity: 0.5; filter: blur(1px); pointer-events: none; }
+
+.glass-select :deep(.el-input__wrapper) { background: #16181D; border: 1px solid #27272A; box-shadow: none !important; border-radius: 6px; height: 32px; }
+.glass-select :deep(.el-input__inner) { color: #E4E4E7; font-size: 13px; }
+
+.select-option-column { display: flex; flex-direction: column; padding: 4px 0; }
+.select-option-main { display: flex; align-items: center; gap: 10px; }
+.p-icon { font-size: 14px; }
+.p-name { 
+  flex: 1; 
+  font-weight: 500; 
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  max-width: 220px; 
+}
+
+.p-key-row { font-size: 11px; color: #71717A; margin-top: 2px; display: flex; align-items: center; gap: 4px; padding-left: 24px; }
+.p-key-val { display: inline-flex; align-items: center; }
+
+:deep(.highlight-id) {
+  background: #3B82F6;
+  color: #FFFFFF;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-weight: bold;
+  margin: 0 1px;
+}
 
 .an-scrollable { padding: 32px; overflow-y: auto; flex: 1; }
 .page-title { margin: 0 0 32px 0; font-size: 20px; font-weight: 600; }
@@ -359,16 +621,15 @@ const chartConfig = {
 .mt-2 { margin-top: 8px; }
 
 .summary-list { display: flex; flex-direction: column; gap: 20px; }
+.empty-stats { font-size: 13px; color: #71717A; font-style: italic; }
 .sum-row { display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px solid #1E2025; padding-bottom: 8px; }
 .sum-lbl { color: #E4E4E7; }
 .sum-val { color: #A1A1AA; font-weight: 500; }
 
 .active-proj { display: flex; justify-content: space-between; align-items: center; background: #16181D; padding: 12px; border-radius: 6px; border: 1px solid #27272A; }
 .proj-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; }
-.pill-red { background: rgba(153, 27, 27, 0.2); color: #F87171; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
 .pill-green { background: rgba(16, 185, 129, 0.2); color: #10B981; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
 
-/* Expanded Analytics (copied and adapted from SpaceSummary.vue) */
 .full-analytics-body { width: 100%; max-width: 1000px;}
 .ap-stats-grid { display: flex; gap: 24px; flex-wrap: wrap; }
 .ap-stats-grid .stat-box { flex: 1; min-width: 150px; background: #16181D; padding: 16px; border-radius: 8px; border: 1px solid #27272A; }

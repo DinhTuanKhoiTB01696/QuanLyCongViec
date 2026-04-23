@@ -397,23 +397,22 @@ onUnmounted(() => {
 
 <template>
   <div class="plane-cycles-wrapper">
-    <div class="cycles-view-header">
-      <div class="vh-left">
-        <div class="flex items-center gap-2 text-[13px] font-medium text-gray-400">
-          <i class="fa-solid fa-certificate" style="color: #F59E0B"></i> CYBWF
-          <i class="fa-solid fa-chevron-right text-[9px] mx-1"></i>
-          <i class="fa-solid fa-arrows-spin text-gray-500"></i>
-          <span class="text-gray-200">Cycles</span>
+    <header class="nexus-project-header">
+      <div class="nexus-breadcrumb">
+        <div class="project-icon" style="background: #F59E0B">
+          <i class="fa-solid fa-certificate"></i>
         </div>
+        <span class="view-name">Cycles</span>
       </div>
-      <div class="vh-right">
-        <div class="cycle-search-wrapper" v-if="showCycleSearch">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <input v-model="cycleSearchQuery" type="text" placeholder="Search cycles..." />
+
+      <div class="nexus-controls-row">
+        <div class="nexus-controls-row" v-if="showCycleSearch">
+          <input v-model="cycleSearchQuery" class="nexus-search-input" type="text" placeholder="Search cycles..." />
         </div>
-        <button class="icon-action" type="button" @click="showCycleSearch = !showCycleSearch" :class="{ active: showCycleSearch }"><i class="fa-solid fa-magnifying-glass"></i></button>
+        <button class="nexus-btn nexus-btn-icon" type="button" @click="showCycleSearch = !showCycleSearch" :class="{ active: showCycleSearch }"><i class="fa-solid fa-magnifying-glass"></i></button>
+        
         <div class="cycle-filter-wrapper">
-          <button class="filter-action" type="button" @click="showCycleFilters = !showCycleFilters" :class="{ active: showCycleFilters || hasCycleFilters }">
+          <button class="nexus-btn nexus-btn-outlined" type="button" @click="showCycleFilters = !showCycleFilters" :class="{ active: showCycleFilters || hasCycleFilters }">
             <i class="fa-solid fa-filter"></i> Filters
           </button>
           <div class="cycle-filter-menu" v-if="showCycleFilters" @click.stop>
@@ -425,9 +424,9 @@ onUnmounted(() => {
             <button class="clear-filter-btn" type="button" @click="clearCycleFilters">Clear filters</button>
           </div>
         </div>
-        <button class="primary-action" type="button" @click="showCreateModal = true">Add cycle</button>
+        <button class="nexus-btn nexus-btn-primary" type="button" @click="showCreateModal = true"><i class="fa-solid fa-plus"></i> Add cycle</button>
       </div>
-    </div>
+    </header>
 
     <div class="cycles-body">
       <div class="cycle-section">
@@ -612,7 +611,7 @@ onUnmounted(() => {
           <h2 class="cm-title">Create cycle</h2>
         </div>
 
-        <div class="cm-body">
+        <div class="cm-body" :style="{ paddingBottom: showCalendar ? '300px' : '24px' }">
           <input v-model="newCycle.name" type="text" class="cm-input" placeholder="Title" autofocus />
           <textarea v-model="newCycle.description" class="cm-textarea" placeholder="Description" rows="4"></textarea>
 
@@ -621,7 +620,8 @@ onUnmounted(() => {
               <i class="fa-regular fa-calendar"></i> {{ btnDateText }}
             </button>
 
-            <div class="dp-popover" v-if="showCalendar">
+            <div class="dp-popover" v-if="showCalendar" @click.stop>
+
               <div class="dp-header">
                 <div class="dp-month-year">
                   <span>{{ monthNames[currentMonth] }}</span>

@@ -1,13 +1,13 @@
 <template>
   <NexusLayout>
     <div class="rewards-page">
-      <header class="rewards-header">
-        <div>
+      <header class="nexus-feature-header">
+        <div class="header-info">
           <p class="eyebrow">Gamification</p>
-          <h1>Rewards</h1>
-          <p class="muted">Theo doi diem, cap bac nghe nghiep, contribution share va bonus hoan thanh som.</p>
+          <h1><i class="fa-solid fa-trophy"></i> Rewards</h1>
+          <p class="muted">Theo dõi điểm, cấp bậc nghề nghiệp, contribution share và bonus hoàn thành sớm.</p>
         </div>
-        <button class="refresh-btn" type="button" :disabled="loading" @click="loadRewards">
+        <button class="nexus-btn nexus-btn-outlined" type="button" :disabled="loading" @click="loadRewards">
           <i class="fa-solid fa-rotate"></i> Refresh
         </button>
       </header>

@@ -37,8 +37,9 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiredRoles && to.meta.requiredRoles.length > 0) {
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}')
-      const userRoles = user.systemRoles || []
-      const hasPermission = to.meta.requiredRoles.some(role => userRoles.includes(role))
+      const userRoles = (user.systemRoles || []).map(r => r.toLowerCase())
+      const requiredRoles = (to.meta.requiredRoles || []).map(r => r.toLowerCase())
+      const hasPermission = requiredRoles.some(role => userRoles.includes(role))
 
       if (!hasPermission) {
         return next({

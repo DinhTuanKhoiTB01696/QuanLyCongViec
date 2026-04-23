@@ -2,12 +2,16 @@
   <NexusLayout>
     <div class="ai-page-flex-wrapper">
       <div class="ai-container">
-        <div class="ai-page-header">
-          <div class="header-left">
-            <h2 class="page-title">Tro ly AI</h2>
-            <span class="header-pill">Chat, breakdown, repo analysis</span>
+        <header class="nexus-feature-header">
+          <div class="header-info">
+            <p class="eyebrow">Advanced AI</p>
+            <h1><i class="fa-solid fa-robot"></i> AI Assistant</h1>
+            <p class="muted">Intelligent support for chat, task breakdown, and repository analysis. Powered by Gemini.</p>
           </div>
-        </div>
+          <div class="nexus-controls-row">
+            <span class="nexus-tag bg-[#e0f2fe] text-[#0c4a6e] font-semibold">BETA</span>
+          </div>
+        </header>
 
         <div class="repo-panel">
           <div class="repo-head">

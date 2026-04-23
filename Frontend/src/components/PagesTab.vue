@@ -65,14 +65,30 @@ const filteredPages = computed(() => {
     result = pages.value.filter(p => !p.isPrivate && !p.isArchived)
   }
 
+  // Filter by search query
+  if (filterSearch.value.trim()) {
+    const q = filterSearch.value.toLowerCase()
+    result = result.filter(p => 
+      (p.title || '').toLowerCase().includes(q) || 
+      (p.content || '').toLowerCase().includes(q)
+    )
+  }
+
   const sorted = [...result]
   sorted.sort((left, right) => {
-    if (sortMode.value === 'title') {
-      return (left.title || 'Untitled').localeCompare(right.title || 'Untitled')
+    let comparison = 0
+    if (sortBy.value === 'name') {
+      comparison = (left.title || 'Untitled').localeCompare(right.title || 'Untitled')
+    } else if (sortBy.value === 'date_created') {
+      const leftTime = new Date(left.createdAt || 0).getTime()
+      const rightTime = new Date(right.createdAt || 0).getTime()
+      comparison = leftTime - rightTime
+    } else {
+      const leftTime = new Date(left.updatedAt || left.createdAt || 0).getTime()
+      const rightTime = new Date(right.updatedAt || right.createdAt || 0).getTime()
+      comparison = leftTime - rightTime
     }
-    const leftTime = new Date(left.updatedAt || left.createdAt || 0).getTime()
-    const rightTime = new Date(right.updatedAt || right.createdAt || 0).getTime()
-    return rightTime - leftTime
+    return sortOrder.value === 'desc' ? -comparison : comparison
   })
   return sorted
 })
@@ -332,6 +348,7 @@ function insertTable(rows, cols) {
   if (!editor.value) return
   editor.value.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run()
   tablePickerVisible.value = false
+  ElMessage.success(`Inserted ${rows}x${cols} table`)
 }
 
 async function handleImageUpload(e) {
@@ -410,8 +427,8 @@ function pageMenuItems(page) {
     { label: 'Copy link', action: 'copy-link', icon: 'fa-solid fa-link' },
     { label: 'Make a copy', action: 'copy', icon: 'fa-regular fa-copy' },
     { label: page.isLocked ? 'Unlock' : 'Lock', action: 'lock', icon: page.isLocked ? 'fa-solid fa-unlock' : 'fa-solid fa-lock' },
-    { label: page.isPrivate ? 'Make public' : 'Make private', action: 'privacy', icon: page.isPrivate ? 'fa-solid fa-globe' : 'fa-solid fa-lock' },
-    { label: 'Archive', action: 'archive', icon: 'fa-regular fa-box-archive' }
+    { label: page.isPrivate ? 'Make public' : 'Make private', action: 'privacy', icon: page.isPrivate ? 'fa-solid fa-globe' : 'fa-solid fa-eye-slash' },
+    { label: 'Archive', action: 'archive', icon: 'fa-solid fa-box-archive' }
   ]
 }
 </script>
@@ -420,18 +437,17 @@ function pageMenuItems(page) {
   <div class="plane-pages-wrapper">
     <!-- LIST VIEW -->
     <div v-if="!activePage" class="pages-list-view">
-      <div class="pages-header">
-        <div class="ph-left">
-          <i class="fa-solid fa-certificate" style="color: #F59E0B"></i>
-          <span style="margin-left: 8px">{{ spaceName }}</span>
-          <i class="fa-solid fa-chevron-right" style="font-size: 9px; margin: 0 8px; color: #71717A"></i>
-          <i class="fa-regular fa-file-lines" style="color: #A1A1AA"></i>
-          <span style="color: #E4E4E7; margin-left: 8px">Pages</span>
+      <header class="nexus-project-header">
+        <div class="nexus-breadcrumb">
+          <div class="project-icon" style="background: #F59E0B">
+            <i class="fa-solid fa-certificate"></i>
+          </div>
+          <span class="view-name">Pages</span>
         </div>
-        <div class="ph-right">
-          <button class="primary-action" @click="createPage">Add page</button>
+        <div class="nexus-controls-row">
+          <button class="nexus-btn nexus-btn-primary" @click="createPage"><i class="fa-solid fa-plus"></i> Add page</button>
         </div>
-      </div>
+      </header>
 
       <div class="pages-nav">
         <div class="nav-tab" :class="{ 'active': activeTab === 'Public' }" @click="activeTab = 'Public'">Public</div>
@@ -567,17 +583,22 @@ function pageMenuItems(page) {
               <i class="fa-regular fa-file-lines doc-icon"></i>
               <span class="page-title">{{ page.title || 'Untitled' }}</span>
            </div>
-           <div class="pr-right hover-actions-container" @click.stop>
+            <div class="pr-right hover-actions-container" @click.stop>
               <div class="avatar-xxs">{{ getPageAvatar(page) }}</div>
-              <button class="icon-btn action-hide" :title="page.isPrivate ? 'Private' : 'Public'">
-                <i :class="page.isPrivate ? 'fa-solid fa-lock' : 'fa-solid fa-globe'"></i>
-              </button>
+              <el-tooltip placement="top" :content="page.isPrivate ? 'Private Page' : 'Public Page'">
+                <button class="icon-btn action-hide" @click="togglePrivacy(page)">
+                  <i v-if="page.isPrivate" class="fa-solid fa-user-secret text-amber-500"></i>
+                  <i v-else class="fa-solid fa-globe text-blue-400"></i>
+                </button>
+              </el-tooltip>
               <el-tooltip placement="top" :content="'Created on ' + formatTimestamp(page.createdAt)">
                 <button class="icon-btn action-hide"><i class="fa-solid fa-circle-info"></i></button>
               </el-tooltip>
-              <button class="icon-btn action-hide" @click="toggleStar(page)">
-                <i :class="page.isStarred ? 'fa-solid fa-star text-yellow-500' : 'fa-regular fa-star'"></i>
-              </button>
+              <el-tooltip placement="top" content="Star Page">
+                <button class="icon-btn action-hide" @click="toggleStar(page)">
+                  <i :class="page.isStarred ? 'fa-solid fa-star text-yellow-500' : 'fa-regular fa-star'"></i>
+                </button>
+              </el-tooltip>
               <el-dropdown trigger="click" @command="handlePageCommand">
                 <button class="icon-btn btn-box"><i class="fa-solid fa-ellipsis"></i></button>
                 <template #dropdown>
@@ -609,13 +630,21 @@ function pageMenuItems(page) {
           <span v-else class="status-saved"><i class="fa-solid fa-check"></i> Saved</span>
         </div>
         <div class="eh-right">
-           <button class="icon-btn" @click="toggleLock(activePage)">
-             <i :class="activePage.isLocked ? 'fa-solid fa-lock' : 'fa-solid fa-unlock-keyhole'"></i>
-           </button>
-           <button class="icon-btn" @click="handlePageCommand({ action: 'copy-link', page: activePage })"><i class="fa-solid fa-link"></i></button>
-           <button class="icon-btn"><i class="fa-solid fa-ellipsis"></i></button>
+           <el-tooltip placement="bottom" :content="activePage.isLocked ? 'Unlock Page' : 'Lock Page'">
+             <button class="icon-btn" @click="toggleLock(activePage)">
+               <i :class="activePage.isLocked ? 'fa-solid fa-lock text-amber-500' : 'fa-solid fa-unlock-keyhole'"></i>
+             </button>
+           </el-tooltip>
+           <el-tooltip placement="bottom" content="Copy Link">
+             <button class="icon-btn" @click="handlePageCommand({ action: 'copy-link', page: activePage })"><i class="fa-solid fa-link"></i></button>
+           </el-tooltip>
+           <el-tooltip placement="bottom" content="More actions">
+             <button class="icon-btn"><i class="fa-solid fa-ellipsis"></i></button>
+           </el-tooltip>
            <div class="v-divider"></div>
-           <button class="icon-btn"><i class="fa-solid fa-table-columns"></i></button>
+           <el-tooltip placement="bottom" content="Toggle sidebar">
+             <button class="icon-btn"><i class="fa-solid fa-table-columns"></i></button>
+           </el-tooltip>
         </div>
       </div>
 
@@ -674,13 +703,13 @@ function pageMenuItems(page) {
               <template #reference>
                 <button class="tb-btn"><i class="fa-solid fa-table"></i></button>
               </template>
-              <div class="p-3">
-                <div class="text-[11px] text-gray-400 mb-2 text-center">{{ hoverTableRows || 0 }} x {{ hoverTableCols || 0 }} Table</div>
+              <div class="p-2 bg-[#1B1C20] border border-[#27272A] rounded-lg">
+                <div class="text-[11px] text-gray-400 mb-2 text-center font-medium">{{ hoverTableRows || 0 }} x {{ hoverTableCols || 0 }} Table</div>
                 <div class="grid-picker" @mouseleave="hoverTableRows=0; hoverTableCols=0">
-                  <div v-for="r in 10" :key="'r'+r" class="flex gap-1 mb-1">
+                  <div v-for="r in 10" :key="'r'+r" class="grid-row">
                     <div v-for="c in 10" :key="'r'+r+'c'+c" 
-                         class="w-3.5 h-3.5 border border-gray-700 rounded-sm cursor-pointer transition-colors"
-                         :class="{ 'bg-blue-500 border-blue-400': r <= hoverTableRows && c <= hoverTableCols }"
+                         class="grid-cell"
+                         :class="{ 'active': r <= hoverTableRows && c <= hoverTableCols }"
                          @mouseover="hoverTableRows=r; hoverTableCols=c"
                          @click="insertTable(r, c)"></div>
                   </div>
@@ -697,24 +726,33 @@ function pageMenuItems(page) {
         <editor-content :editor="editor" class="editor-tiptap-content" />
       </div>
 
-      <!-- IMAGE STAGING OVERLAY -->
       <transition name="fade">
-        <div v-if="showImageStaging" class="image-staging-overlay">
+        <div v-if="showImageStaging" class="image-staging-overlay" @click.self="showImageStaging = false">
           <div class="image-staging-card">
             <div class="is-header">
-              <h3>Confirm Images ({{ stagedImages.length }})</h3>
-              <button @click="showImageStaging = false; stagedImages = []" class="close-staging"><i class="fa-solid fa-xmark"></i></button>
+              <div class="flex items-center gap-3">
+                <i class="fa-regular fa-images text-blue-400"></i>
+                <h3 class="text-white">Selected Images ({{ stagedImages.length }})</h3>
+              </div>
+              <div class="flex items-center gap-2">
+                <button class="add-more-staging-btn" @click="() => imageFileInput?.click()">
+                  <i class="fa-solid fa-plus"></i> Add more
+                </button>
+                <button @click="showImageStaging = false; stagedImages = []" class="close-staging"><i class="fa-solid fa-xmark"></i></button>
+              </div>
             </div>
             <div class="is-body">
               <div v-for="img in stagedImages" :key="img.id" class="staged-item">
-                <img :src="img.src" />
-                <button class="remove-staged" @click="removeStagedImage(img.id)"><i class="fa-solid fa-circle-xmark"></i></button>
-                <div class="staged-name text-ellipsis overflow-hidden whitespace-nowrap px-1 text-[10px] text-gray-400">{{ img.name }}</div>
+                <img :src="img.src" class="staged-img" />
+                <button class="remove-staged-btn-fixed" @click="removeStagedImage(img.id)">
+                  <i class="fa-solid fa-x"></i>
+                </button>
+                <div class="staged-name-bar">{{ img.name }}</div>
               </div>
             </div>
             <div class="is-footer">
-              <button class="btn-cancel-staging" @click="showImageStaging = false; stagedImages = []">Cancel</button>
-              <button class="btn-confirm-staging" @click="insertStagedImages">Insert into editor</button>
+              <button class="btn-cancel-staging" @click="showImageStaging = false; stagedImages = []">Clear all</button>
+              <button class="btn-confirm-staging" @click="insertStagedImages">Insert into page</button>
             </div>
           </div>
         </div>
@@ -760,6 +798,7 @@ function pageMenuItems(page) {
 /* Editor */
 .editor-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; border-bottom: 1px solid #1E2025; }
 .eh-left { display: flex; align-items: center; font-size: 13px; font-weight: 500; color: #71717A; }
+.eh-right { display: flex; align-items: center; gap: 12px; }
 .back-btn { background: #1B1C20; border: 1px solid #27272A; border-radius: 4px; padding: 4px 8px; color: #A1A1AA; cursor: pointer; margin-right: 12px; }
 .status-saving { margin-left:16px; color:#F59E0B; font-size:12px; }
 .status-saved { margin-left:16px; color:#10B981; font-size:12px; opacity:0.7; }
@@ -804,23 +843,37 @@ function pageMenuItems(page) {
   z-index: 2000; display: flex; align-items: center; justify-content: center;
 }
 .image-staging-card {
-  width: 500px; max-width: 90vw; background: #1B1C20; border: 1px solid #27272A;
+  width: 600px; max-width: 90vw; background: #1B1C20; border: 1px solid #27272A;
   border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+  box-shadow: 0 25px 60px rgba(0,0,0,0.8);
 }
-.is-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #27272A; }
+.is-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; border-bottom: 1px solid #27272A; }
 .is-header h3 { font-size: 16px; font-weight: 600; }
-.close-staging { background: transparent; border: none; color: #71717A; cursor: pointer; font-size: 18px; }
-.is-body { padding: 20px; display: grid; grid-template-cols: repeat(auto-fill, minmax(100px, 1fr)); gap: 16px; max-height: 350px; overflow-y: auto; }
-.staged-item { position: relative; border-radius: 6px; overflow: hidden; background: #0D0F11; border: 1px solid #27272A; aspect-ratio: 1; display: flex; flex-direction: column; }
-.staged-item img { width: 100%; height: 85px; object-fit: cover; }
-.remove-staged { position: absolute; top: 2px; right: 2px; background: transparent; border: none; color: #F87171; cursor: pointer; font-size: 18px; text-shadow: 0 0 4px rgba(0,0,0,0.8); }
-.is-footer { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 20px; border-top: 1px solid #27272A; background: #16181D; }
-.btn-cancel-staging { background: transparent; border: 1px solid #27272A; color: #E4E4E7; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
-.btn-confirm-staging { background: #0EA5E9; border: none; color: white; padding: 8px 20px; border-radius: 6px; font-weight: 500; cursor: pointer; }
+.add-more-staging-btn { background: #27272A; border: 1px solid #3F3F46; color: #D4D4D8; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; transition: all 0.2s; margin-right: 8px; }
+.add-more-staging-btn:hover { background: #3F3F46; color: #fff; }
+.close-staging { background: transparent; border: none; color: #71717A; cursor: pointer; font-size: 18px; transition: color 0.2s; }
+.close-staging:hover { color: #fff; }
+.is-body { padding: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; max-height: 500px; overflow-y: auto; background: #0D0F11; }
+.staged-item { position: relative; border-radius: 10px; overflow: hidden; background: #16181D; border: 1px solid #27272A; transition: all 0.2s; }
+.staged-item:hover { transform: scale(1.02); border-color: #3B82F6; }
+.staged-img { width: 100%; height: 120px; object-fit: cover; display: block; }
+.remove-staged-btn-fixed { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%; background: rgba(239, 68, 68, 0.9); border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); transition: all 0.2s; z-index: 10; }
+.remove-staged-btn-fixed:hover { background: #EF4444; transform: scale(1.15); }
+.staged-name-bar { background: #1B1C20; padding: 6px 10px; font-size: 11px; color: #A1A1AA; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-top: 1px solid #27272A; }
+.is-footer { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid #27272A; background: #1B1C20; }
+.btn-cancel-staging { background: transparent; border: 1px solid #3F3F46; color: #A1A1AA; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; }
+.btn-cancel-staging:hover { border-color: #EF4444; color: #EF4444; background: rgba(239, 68, 68, 0.05); }
+.btn-confirm-staging { background: #0EA5E9; border: none; color: white; padding: 8px 24px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+.btn-confirm-staging:hover { background: #0284C7; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3); }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
 :deep(.plane-color-picker .el-color-picker__trigger) { border: 1px solid #27272A; background: transparent; border-radius: 4px; padding: 4px 8px; height: 32px; width: 44px; }
 :deep(.plane-color-picker .el-color-picker__color) { border: none; }
+
+/* Table Picker Styles */
+.grid-picker { display: flex; flex-direction: column; gap: 3px; }
+.grid-row { display: flex; gap: 3px; }
+.grid-cell { width: 14px; height: 14px; border: 1px solid #3F3F46; border-radius: 2px; cursor: pointer; transition: all 0.1s; }
+.grid-cell.active { background: #0EA5E9 !important; border-color: #38BDF8 !important; }
 </style>

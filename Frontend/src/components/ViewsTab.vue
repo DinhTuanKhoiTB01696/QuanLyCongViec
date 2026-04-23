@@ -15,6 +15,7 @@ const activeView = ref(null)
 const tasks = ref([])
 const loading = ref(false)
 const showCreateModal = ref(false)
+const modalTab = ref('list')
 const viewType = ref('list') 
 
 // Selected Filters State
@@ -186,6 +187,7 @@ const createView = async () => {
 const resetForm = () => {
     newView.value = { name: '', description: '', queryMetadata: '{}' }
     activeFilters.value = []
+    modalTab.value = 'list'
 }
 
 const deleteView = async (id) => {
@@ -246,30 +248,28 @@ onMounted(() => {
 
 <template>
   <div class="views-page">
-    <!-- Top Header Navigation (Breadcrumbs) - Restored to Turn 9 layout -->
-    <header class="app-header">
-      <div class="header-left">
-        <div class="breadcrumb-refined">
-            <i class="fa-solid fa-certificate text-orange-400"></i>
-            <span class="p-name">CYBWF</span>
-            <i class="fa-solid fa-chevron-right sep"></i>
-            <i class="fa-solid fa-layer-group text-slate-400"></i>
-            <span class="v-name" @click="goBackToList">Views</span>
-            <template v-if="activeView">
-                <i class="fa-solid fa-chevron-right sep"></i>
-                <span class="cur-view">{{ activeView.name }}</span>
-            </template>
+    <header class="nexus-project-header">
+      <div class="nexus-breadcrumb">
+        <div class="project-icon" style="background: #FACC15">
+          <i class="fa-solid fa-certificate"></i>
         </div>
+        <span class="view-name cursor-pointer" @click="goBackToList">Views</span>
+        <template v-if="activeView">
+            <i class="fa-solid fa-chevron-right sep"></i>
+            <span class="view-name">{{ activeView.name }}</span>
+        </template>
       </div>
 
-      <div class="header-right">
+      <div class="nexus-controls-row">
         <template v-if="!activeView">
-            <button class="h-tool-btn" type="button" @click="showViewSearch = !showViewSearch"><i class="fa-solid fa-magnifying-glass"></i></button>
-            <input v-if="showViewSearch" v-model="filterSearch" class="view-search-input" type="text" placeholder="Search views" />
+            <div class="nexus-controls-row" v-if="showViewSearch">
+               <input v-model="filterSearch" class="nexus-search-input" type="text" placeholder="Search views..." />
+            </div>
+            <button class="nexus-btn nexus-btn-icon" type="button" @click="showViewSearch = !showViewSearch"><i class="fa-solid fa-magnifying-glass"></i></button>
+            
             <el-dropdown trigger="click">
-                <button class="h-tool-btn outlined" type="button">
-                    <i class="fa-solid fa-arrow-down-short-wide mr-2"></i>
-                    {{ sortBy }}
+                <button class="nexus-btn nexus-btn-outlined" type="button">
+                    <i class="fa-solid fa-arrow-down-short-wide"></i> {{ sortBy }}
                 </button>
                 <template #dropdown>
                     <el-dropdown-menu class="dark-popover">
@@ -280,11 +280,13 @@ onMounted(() => {
                 </template>
             </el-dropdown>
             
-            <button class="h-tool-btn outlined" type="button" @click="showCreateModal = true"><i class="fa-solid fa-filter mr-2"></i> Filters</button>
-            <button class="add-view-primary" type="button" @click="showCreateModal = true">Add view</button>
+            <button class="nexus-btn nexus-btn-outlined" type="button" @click="showViewSearch = !showViewSearch" :class="{ active: showViewSearch }">
+                <i class="fa-solid fa-filter"></i> Filters
+            </button>
+            <button class="nexus-btn nexus-btn-primary" type="button" @click="showCreateModal = true"><i class="fa-solid fa-plus"></i> Add view</button>
         </template>
         <template v-else>
-            <button class="h-tool-btn outlined" type="button" disabled title="Display settings are configured when creating the view"><i class="fa-solid fa-sliders mr-2"></i> Display</button>
+            <button class="nexus-btn nexus-btn-outlined" type="button" disabled title="Display settings are configured when creating the view"><i class="fa-solid fa-sliders"></i> Display</button>
         </template>
       </div>
     </header>
@@ -339,10 +341,12 @@ onMounted(() => {
             
             <div class="modal-controls-bar">
                 <div class="toggle-group">
-                    <button class="m-toggle active" type="button" disabled><i :class="viewTypeIcon" class="mr-2"></i> List</button>
+                    <button class="m-toggle" :class="{ active: modalTab === 'list' }" @click="modalTab = 'list'" type="button">
+                        <i :class="viewTypeIcon" class="mr-2"></i> List
+                    </button>
                     <!-- UPDATED PLACEMENT TO 'right-start' FOR SCROLLABILITY -->
-                    <el-dropdown trigger="click" popper-class="display-popper-final" placement="right-start" :hide-on-click="false">
-                        <button class="m-toggle" type="button">Display</button>
+                    <el-dropdown trigger="click" popper-class="display-popper-final" placement="right-start" :hide-on-click="false" :z-index="5000">
+                        <button class="m-toggle" :class="{ active: modalTab === 'display' }" @click="modalTab = 'display'" type="button">Display</button>
                         <template #dropdown>
                             <div class="display-scroll-vfinal">
                                 <div class="st-content">
@@ -384,7 +388,7 @@ onMounted(() => {
                         </template>
                     </el-dropdown>
                 </div>
-                <el-dropdown trigger="click" popper-class="filter-modal-popper" placement="bottom-start">
+                <el-dropdown trigger="click" popper-class="filter-modal-popper" placement="bottom-start" :z-index="5000">
                     <button class="filter-btn" type="button"><i class="fa-solid fa-filter-circle-plus mr-2"></i> Filters</button>
                     <template #dropdown>
                         <div class="filter-modal-dropdown">
@@ -447,7 +451,7 @@ onMounted(() => {
 .vi-avatar { width: 22px; height: 22px; border-radius: 50%; background: #0F766E; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 
 /* Modal (Restored to Premium layout) */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 2000; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 2000 !important; }
 .view-modal.premium { width: 700px; background: #16181D; border: 1px solid #2D2F36; border-radius: 16px; overflow: hidden; }
 .modal-header { padding: 20px 24px; border-bottom: 1px solid #2D2F36; font-size: 16px; font-weight: 600; }
 .modal-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
@@ -503,7 +507,7 @@ onMounted(() => {
     content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px; border: solid white; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
 }
 
-:deep(.display-popper-final) { background: transparent !important; border: none !important; box-shadow: none !important; }
+:deep(.display-popper-final) { background: transparent !important; border: none !important; box-shadow: none !important; z-index: 10000 !important; }
 
 /* MODAL FILTER DROPDOWN REFINEMENT */
 .filter-modal-dropdown {
@@ -524,6 +528,7 @@ onMounted(() => {
 .f-opt:hover { background: #27272A; color: #fff; }
 .f-opt i { font-size: 12px; width: 16px; text-align: center; color: #71717A; }
 
-:deep(.filter-modal-popper) { background: transparent !important; border: none !important; box-shadow: none !important; }
+:deep(.filter-modal-popper) { background: transparent !important; border: none !important; box-shadow: none !important; z-index: 10000 !important; }
 </style>
+
 

@@ -1,15 +1,15 @@
 <template>
   <NexusLayout>
     <div class="plane-dashboard">
-      <header class="dashboard-header">
-        <div>
-          <p class="eyebrow">SprintA</p>
-          <h1 class="dashboard-title">Project dashboard</h1>
-          <p class="dashboard-subtitle">{{ currentDateTime }}</p>
+      <header class="nexus-feature-header">
+        <div class="header-info">
+          <p class="eyebrow">SprintA Workspace</p>
+          <h1><i class="fa-solid fa-house"></i> Home</h1>
+          <p class="muted">Welcome back. Track your project health and jump into your active work items.</p>
         </div>
-        <div class="header-actions">
-          <button class="secondary-btn" type="button" @click="router.push('/spaces')">Browse projects</button>
-          <button class="primary-btn" type="button" @click="openTaskModal">New Work Item</button>
+        <div class="nexus-controls-row">
+          <button class="nexus-btn nexus-btn-outlined" type="button" @click="router.push('/spaces')">Browse projects</button>
+          <button class="nexus-btn nexus-btn-primary" type="button" @click="openTaskModal"><i class="fa-solid fa-plus"></i> New Work Item</button>
         </div>
       </header>
 

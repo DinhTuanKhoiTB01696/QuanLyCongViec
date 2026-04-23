@@ -275,7 +275,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpGet("tasks/search")]
-        public async Task<IActionResult> SearchTasks([FromQuery] string? query, [FromQuery] string? status, [FromQuery] Guid? assigneeId, [FromQuery] int? priority)
+        public async Task<IActionResult> SearchTasks([FromQuery] string? query, [FromQuery] string? status, [FromQuery] Guid? assigneeId, [FromQuery] int? priority, [FromQuery] Guid? projectId, [FromQuery] string? scope = "all")
         {
             try
             {
@@ -285,7 +285,7 @@ namespace TaskManagement.API.Controllers
                     return Unauthorized(new { statusCode = 401, message = "Token không hợp lệ." });
                 }
 
-                var tasks = await _workTaskService.SearchTasksAsync(userId, query, status, assigneeId, priority);
+                var tasks = await _workTaskService.SearchTasksAsync(userId, query, status, assigneeId, priority, projectId, scope);
                 return Ok(new { statusCode = 200, message = "Success", data = tasks });
             }
             catch (Exception ex)
@@ -827,16 +827,32 @@ namespace TaskManagement.API.Controllers
                         string.Equals(NormalizeStatusName(ts.Name), normalizedStatusName, StringComparison.OrdinalIgnoreCase));
                     if (newStatus != null)
                     {
-                        var isDoneStatus = newStatus.Name.Contains("DONE", StringComparison.OrdinalIgnoreCase) ||
-                                           newStatus.Name.Contains("Complete", StringComparison.OrdinalIgnoreCase);
+                        var isDoneStatus = newStatus.Name.ToUpperInvariant().Contains("DONE") ||
+                                           newStatus.Name.ToUpperInvariant().Contains("COMPLETE") ||
+                                           newStatus.Name.ToUpperInvariant().Contains("HOÀN THÀNH") ||
+                                           newStatus.Name.ToUpperInvariant().Contains("THÀNH CÔNG");
+
                         if (isDoneStatus && task.TaskAssignments.Any(ta => ta.Status && ta.ProgressPercent < 100))
                         {
-                            return BadRequest(new { statusCode = 400, message = "Chua the hoan thanh task khi van con assignee chua dat 100%." });
+                            var pendingUserNames = task.TaskAssignments
+                                .Where(ta => ta.Status && ta.ProgressPercent < 100)
+                                .Select(ta => ta.User != null ? ta.User.FullName ?? ta.User.Email : "Unknown")
+                                .ToList();
+                                
+                            return BadRequest(new { 
+                                statusCode = 400, 
+                                message = $"Không thể hoàn thành tác vụ vì còn người thực hiện chưa đạt 100% tiến độ: {string.Join(", ", pendingUserNames)}." 
+                            });
                         }
 
                         task.TaskStatusId = newStatus.Id;
                         newStatusName = newStatus.Name;
                     }
+                    else
+                    {
+                        return BadRequest(new { statusCode = 400, message = $"Trạng thái '{statusName}' không hợp lệ cho dự án này." });
+                    }
+
                 }
 
                 task.UpdatedAt = DateTime.UtcNow;
@@ -1143,7 +1159,10 @@ namespace TaskManagement.API.Controllers
         /// GET /api/dashboard/stats — Real-time dashboard statistics from DB
         /// </summary>
         [HttpGet("/api/dashboard/stats")]
-        public async Task<IActionResult> GetDashboardStats([FromServices] ApplicationDbContext context)
+        public async Task<IActionResult> GetDashboardStats(
+            [FromServices] ApplicationDbContext context,
+            [FromQuery] string scope = "all",
+            [FromQuery] Guid? projectId = null)
         {
             var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!Guid.TryParse(userIdStr, out Guid userId))
@@ -1151,18 +1170,50 @@ namespace TaskManagement.API.Controllers
                 return Unauthorized();
             }
 
-            // Lấy danh sách Project mà user tham gia để ngăn chặn Data Leak (cross-tenant)
-            var userProjectIds = await context.ProjectMembers
-                .Where(pm => pm.UserId == userId && pm.Status)
-                .Select(pm => pm.ProjectId)
-                .ToListAsync();
+            // Lấy danh sách Project mà user tham gia hoặc có quyền xem dựa trên scope
+            IQueryable<TaskManagement.Domain.Entities.Project> projectQuery = context.Projects.Where(p => !p.IsDeleted);
 
-            var baseTaskQuery = context.WorkTasks.Where(t => !t.IsDeleted && userProjectIds.Contains(t.ProjectId));
+            if (scope == "my")
+            {
+                // My projects: User là creator hoặc Member hoạt động
+                projectQuery = projectQuery.Where(p => p.CreatorId == userId || p.ProjectMembers.Any(pm => pm.UserId == userId && pm.Status));
+            }
+            else if (scope == "archived")
+            {
+                // Archived projects
+                projectQuery = projectQuery.Where(p => p.IsArchived);
+            }
+            else
+            {
+                // All active projects: User is creator OR Member hoạt động
+                projectQuery = projectQuery.Where(p => !p.IsArchived && (p.CreatorId == userId || p.ProjectMembers.Any(pm => pm.UserId == userId && pm.Status)));
+            }
+
+                        if (projectId.HasValue)
+            {
+                projectQuery = projectQuery.Where(p => p.Id == projectId.Value);
+            }
+
+            var targetProjectIds = await projectQuery.Select(p => p.Id).ToListAsync();
+
+            var baseTaskQuery = context.WorkTasks
+                .Include(t => t.TaskStatus)
+                .Where(t => !t.IsDeleted && targetProjectIds.Contains(t.ProjectId));
 
             var totalTasks = await baseTaskQuery.CountAsync();
+            var doneStatuses = new[] { "DONE", "COMPLETED", "FINISHED", "HOÀN THÀNH", "SUCCESS", "FINISHED", "HOÀN TẤT" };
+
+            var completedTasks = await baseTaskQuery.CountAsync(t =>
+                t.TaskStatus != null && doneStatuses.Contains(t.TaskStatus.Name.ToUpper().Trim()));
+
+            var now = DateTime.UtcNow;
+            var overdueTasks = await baseTaskQuery.CountAsync(t =>
+                t.DueDate.HasValue && t.DueDate < now &&
+                (t.TaskStatus == null || !doneStatuses.Contains(t.TaskStatus.Name.ToUpper().Trim())));
+
             var statusGroups = await baseTaskQuery
-                .GroupBy(t => t.TaskStatus!.Name)
-                .Select(g => new { Status = g.Key ?? "Unknown", Count = g.Count() })
+                .GroupBy(t => t.TaskStatus != null ? t.TaskStatus.Name : "No Status")
+                .Select(g => new { Status = g.Key, Count = g.Count() })
                 .ToListAsync();
 
             var priorityGroups = await baseTaskQuery
@@ -1170,17 +1221,33 @@ namespace TaskManagement.API.Controllers
                 .Select(g => new { Priority = g.Key, Count = g.Count() })
                 .ToListAsync();
 
-            var overdueTasks = await baseTaskQuery
-                .CountAsync(t => t.DueDate.HasValue && t.DueDate < DateTime.UtcNow);
+            var myTasks = await baseTaskQuery.CountAsync(t => 
+                t.AssignedUserId == userId || 
+                t.TaskAssignments.Any(ta => ta.UserId == userId));
 
-            var myTasks = await baseTaskQuery.CountAsync(t => t.AssignedUserId == userId);
-
-            var totalProjects = userProjectIds.Count;
+            var totalProjects = targetProjectIds.Count;
             var totalMembers = await context.ProjectMembers
-                .Where(pm => userProjectIds.Contains(pm.ProjectId) && pm.Status)
+                .Where(pm => targetProjectIds.Contains(pm.ProjectId) && pm.Status)
                 .Select(pm => pm.UserId)
                 .Distinct()
                 .CountAsync();
+
+            var activeCycles = await context.Sprints.CountAsync(s => targetProjectIds.Contains(s.ProjectId) && s.Status);
+            var totalModules = await context.Modules.CountAsync(m => targetProjectIds.Contains(m.ProjectId));
+
+            var totalIntakes = await context.Intakes.CountAsync(i => targetProjectIds.Contains(i.ProjectId));
+            var totalViews = await context.ProjectViews.CountAsync(v => targetProjectIds.Contains(v.ProjectId));
+
+            var sevenDaysAgo = now.AddDays(-7);
+            var newTasksLast7Days = await baseTaskQuery.CountAsync(t => t.CreatedAt >= sevenDaysAgo);
+
+            var thirtyDaysAgo = now.AddDays(-30);
+            // Include both Task logs and System logs that belong to these projects if possible
+            // For now, task-related logs are the primary activity
+            var totalActions = await context.AuditLogs
+                .Where(al => al.CreatedAt >= thirtyDaysAgo && al.WorkTask != null && targetProjectIds.Contains(al.WorkTask.ProjectId))
+                .CountAsync();
+
 
             return Ok(new
             {
@@ -1188,10 +1255,17 @@ namespace TaskManagement.API.Controllers
                 data = new
                 {
                     totalTasks,
+                    completedTasks,
+                    overdueTasks,
                     totalProjects,
                     totalMembers,
+                    activeCycles,
+                    totalModules,
+                    totalIntakes,
+                    totalViews,
+                    newTasksLast7Days,
+                    totalActions,
                     myTasks,
-                    overdueTasks,
                     byStatus = statusGroups,
                     byPriority = priorityGroups
                 }

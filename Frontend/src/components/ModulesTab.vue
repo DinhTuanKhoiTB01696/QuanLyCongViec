@@ -374,24 +374,20 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
 
 <template>
   <div class="plane-modules-wrapper">
-    <div class="modules-view-header">
-      <div class="vh-left">
-        <div class="breadcrumb">
-          <i class="fa-solid fa-certificate breadcrumb-icon"></i>
-          <span>Modules</span>
+    <header class="nexus-project-header">
+      <div class="nexus-breadcrumb">
+        <div class="project-icon" style="background: #3B82F6">
+          <i class="fa-solid fa-certificate"></i>
         </div>
+        <span class="view-name">Modules</span>
       </div>
 
-      <div class="vh-right">
-        <div class="search-box">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <input v-model="moduleSearch" type="text" placeholder="Search modules" />
-        </div>
+      <div class="nexus-controls-row">
+        <input v-model="moduleSearch" class="nexus-search-input" type="text" placeholder="Search modules..." />
 
         <el-dropdown trigger="click" @command="(value) => { sortBy = value.field; sortDirection = value.direction }">
-          <button class="filter-action" type="button">
-            <i class="fa-solid fa-arrow-up-z-a"></i>
-            Sort
+          <button class="nexus-btn nexus-btn-outlined" type="button">
+            <i class="fa-solid fa-arrow-up-z-a"></i> Sort
           </button>
           <template #dropdown>
             <el-dropdown-menu>
@@ -404,7 +400,7 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
         </el-dropdown>
 
         <el-dropdown trigger="click" @command="(value) => statusFilter = value">
-          <button class="filter-action" type="button">
+          <button class="nexus-btn nexus-btn-outlined" type="button">
             <i class="fa-solid fa-filter"></i>
             {{ statusFilter === 'all' ? 'All statuses' : statusConfig[statusFilter]?.label }}
           </button>
@@ -418,21 +414,21 @@ watch([moduleSearch, sortBy, sortDirection], async () => {
           </template>
         </el-dropdown>
 
-        <div class="view-toggles">
-          <button class="view-btn" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'">
+        <div class="view-toggles flex items-center gap-1 bg-[#16181d] p-1 rounded-md">
+          <button class="nexus-btn nexus-btn-icon !h-7 !w-7 !border-none" :class="{ 'bg-[#27272a] text-white': viewMode === 'list' }" @click="viewMode = 'list'">
             <i class="fa-solid fa-bars"></i>
           </button>
-          <button class="view-btn" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'">
+          <button class="nexus-btn nexus-btn-icon !h-7 !w-7 !border-none" :class="{ 'bg-[#27272a] text-white': viewMode === 'grid' }" @click="viewMode = 'grid'">
             <i class="fa-solid fa-border-all"></i>
           </button>
-          <button class="view-btn" :class="{ active: viewMode === 'status' }" @click="viewMode = 'status'">
+          <button class="nexus-btn nexus-btn-icon !h-7 !w-7 !border-none" :class="{ 'bg-[#27272a] text-white': viewMode === 'status' }" @click="viewMode = 'status'">
             <i class="fa-solid fa-table-list"></i>
           </button>
         </div>
 
-        <button class="primary-action" @click="openCreateModal">Add Module</button>
+        <button class="nexus-btn nexus-btn-primary" @click="openCreateModal"><i class="fa-solid fa-plus"></i> Add Module</button>
       </div>
-    </div>
+    </header>
 
     <div class="modules-toolbar-meta">
       <span>{{ totalLoaded }} / {{ modulePagination.totalCount }} loaded</span>

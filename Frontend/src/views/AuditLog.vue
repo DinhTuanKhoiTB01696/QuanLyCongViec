@@ -1,13 +1,17 @@
 <template>
   <NexusLayout>
-          <div class="page-header-flex">
-            <h1 class="page-title">Giao diện trang Audit Log</h1>
-            <div class="page-actions">
-              <el-button type="primary" @click="exportToCSV">
-                <i class="fa-solid fa-download" style="margin-right: 8px;"></i> Export CSV
-              </el-button>
-            </div>
-          </div>
+      <header class="nexus-feature-header">
+        <div class="header-info">
+          <p class="eyebrow">Security & Compliance</p>
+          <h1><i class="fa-solid fa-shield-halved"></i> Audit logs</h1>
+          <p class="muted">Monitor and track all system activities, including user logins, task creations, and data modifications.</p>
+        </div>
+        <div class="nexus-controls-row">
+          <button class="nexus-btn nexus-btn-primary" @click="exportToCSV">
+            <i class="fa-solid fa-download mr-1.5"></i> Export CSV
+          </button>
+        </div>
+      </header>
 
           <!-- Filters Section -->
           <div class="filters-card">
@@ -48,14 +52,18 @@
               </el-col>
               <el-col :xs="24" :sm="12" :md="4">
                 <div class="filter-item">
-                  <label>Resource</label>
-                  <el-select v-model="filters.resource" placeholder="Chọn resource" clearable style="width: 100%">
-                    <el-option label="Tasks" value="tasks" />
-                    <el-option label="Projects" value="projects" />
-                    <el-option label="Members" value="members" />
+                  <label>Dự án</label>
+                  <el-select v-model="filters.projectId" placeholder="Tất cả dự án" clearable filterable style="width: 100%">
+                    <el-option
+                      v-for="p in projectList"
+                      :key="p.id"
+                      :label="`[${p.key || 'PRJ'}] ${p.name}`"
+                      :value="p.id"
+                    />
                   </el-select>
                 </div>
               </el-col>
+
               <el-col :xs="24" :sm="12" :md="6">
                 <div class="filter-item">
                   <label>Tìm kiếm</label>
@@ -205,19 +213,13 @@ const filters = ref({
   user: '',
   action: '',
   resource: '',
-  keyword: ''
+  keyword: '',
+  projectId: null
 })
 
-// // Mock Data
-// const auditLogs = ref([
-//   { id: 'LOG-001', timestamp: '2026-03-30 14:20:05', user: 'Admin', action: 'update', resource: 'Project', targetId: 'PRJ-101', status: 'success', summary: 'Cập nhật cấu hình bảo mật dự án "SprintA"', details: { old: { visibility: 'public' }, new: { visibility: 'private' } } },
-//   { id: 'LOG-002', timestamp: '2026-03-30 15:10:12', user: 'Manager', action: 'create', resource: 'Task', targetId: 'TASK-552', status: 'success', summary: 'Tạo công việc "Thiết kế trang Audit Log"', details: { title: 'Thiết kế trang Audit Log', priority: 'High', assignee: 'Dev-01' } },
-//   { id: 'LOG-003', timestamp: '2026-03-30 15:45:00', user: 'Developer', action: 'delete', resource: 'Task', targetId: 'TASK-102', status: 'failure', summary: 'Thử xóa công việc không có quyền hạn', details: { error: 'Permission Denied', errorCode: 403 } },
-//   { id: 'LOG-004', timestamp: '2026-03-30 16:05:22', user: 'Admin', action: 'login', resource: 'Auth', targetId: 'USR-AD1', status: 'success', summary: 'Đăng nhập từ IP 192.168.1.10', details: { ip: '192.168.1.10', browser: 'Chrome', os: 'Windows 11' } },
-//   { id: 'LOG-005', timestamp: '2026-03-30 16:30:15', user: 'Dev-01', action: 'update', resource: 'Member', targetId: 'MB-05', status: 'success', summary: 'Thay đổi vai trò thành viên sang Developer', details: { prevRole: 'Guest', newRole: 'Developer' } },
-// ])
-
 const auditLogs = ref([])
+
+const projectList = ref([])
 
 onMounted(async () => {
   // Admin/PM guard - chỉ Admin và PM mới được truy cập trang này
@@ -231,7 +233,6 @@ onMounted(async () => {
     return
   }
 
-  
   // restore sidebar settings
   const saved = localStorage.getItem('sidebarPreferences')
   if (saved) {
@@ -253,16 +254,36 @@ onMounted(async () => {
     }
   }
 
-  // fetch logs - backend will check Admin/PM permission
+  await fetchProjects()
   await fetchLogs()
 })
 
-
+const fetchProjects = async () => {
+    try {
+        const [discoveryRes, archivedRes] = await Promise.all([
+            axiosClient.get('/projects/discovery'),
+            axiosClient.get('/projects/archived')
+        ])
+        const activeProjects = (discoveryRes.data?.data || []).map(p => ({ ...p, isArchived: false }))
+        const archivedProjects = (archivedRes.data?.data || []).map(p => ({ ...p, isArchived: true }))
+        projectList.value = [...activeProjects, ...archivedProjects]
+    } catch(e) {
+        console.error('Error fetching projects', e)
+    }
+}
 
 const fetchLogs = async () => {
   loading.value = true
   try {
-    const { data } = await axiosClient.get('/auditlogs')
+    const params = {}
+    if (filters.value.projectId) {
+        params.projectId = filters.value.projectId
+    }
+    if (filters.value.keyword) {
+        params.search = filters.value.keyword
+    }
+    
+    const { data } = await axiosClient.get('/auditlogs', { params })
     auditLogs.value = data.data.items || []
   } catch (error) {
     if (error.response?.status === 403) {
@@ -276,17 +297,25 @@ const fetchLogs = async () => {
   }
 }
 
+// Watch filters for auto-fetch
+watch(() => filters.value.projectId, () => {
+    fetchLogs()
+})
+watch(() => filters.value.keyword, () => {
+    // Debounce would be nice, but simple for now
+    fetchLogs()
+})
+
 const filteredLogs = computed(() => {
   return auditLogs.value.filter(log => {
     const matchUser = !filters.value.user || log.user.toLowerCase().includes(filters.value.user.toLowerCase())
     const matchAction = !filters.value.action || log.action === filters.value.action
     const matchResource = !filters.value.resource || log.resource.toLowerCase().includes(filters.value.resource.toLowerCase())
-    const matchKeyword = !filters.value.keyword || 
-                         log.id.toLowerCase().includes(filters.value.keyword.toLowerCase()) ||
-                         log.summary.toLowerCase().includes(filters.value.keyword.toLowerCase())
-    return matchUser && matchAction && matchResource && matchKeyword
+    // keyword is now handled by backend
+    return matchUser && matchAction && matchResource
   })
 })
+
 
 const paginatedLogs = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value

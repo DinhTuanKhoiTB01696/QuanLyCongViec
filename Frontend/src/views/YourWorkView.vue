@@ -10,70 +10,67 @@ const tabs = ['Summary', 'Assigned', 'Created', 'Subscribed', 'Activity']
 const myTasks = ref([])
 const loading = ref(false)
 const actStore = useActivityStore()
+const selectedProjectId = ref(null)
+const projectList = ref([])
 
-import { ElNotification } from 'element-plus'
+import { ElNotification, ElMessage } from 'element-plus'
 
 const currentUserId = computed(() => {
   const u = localStorage.getItem('user')
   return u ? JSON.parse(u).id : null
 })
 
+const fetchProjects = async () => {
+    try {
+        const [discoveryRes, archivedRes] = await Promise.all([
+            axiosClient.get('/projects/discovery'),
+            axiosClient.get('/projects/archived')
+        ])
+        const activeProjects = (discoveryRes.data?.data || []).map(p => ({ ...p, isArchived: false }))
+        const archivedProjects = (archivedRes.data?.data || []).map(p => ({ ...p, isArchived: true }))
+        projectList.value = [...activeProjects, ...archivedProjects]
+    } catch(e) {
+        console.error('Error fetching projects', e)
+    }
+}
+
 const fetchMyTasks = async () => {
   try {
     loading.value = true
-    const res = await axiosClient.get('/tasks/search') // Get all tasks across all projects
-    myTasks.value = res.data?.data || []
-    actStore.fetchRecentActivities()
-    
-    // Auto-sync backend tasks to local activity log
-    const existingIds = new Set(actStore.activities.map(a => a.id))
-    let added = false
-    myTasks.value.forEach(t => {
-        const id = 'db-' + t.id
-        if (!existingIds.has(id)) {
-            let action = t.reporterId === currentUserId.value ? 'Created' : 'Assigned to'
-            actStore.activities.push({
-               id: id,
-               icon: 'fa-solid fa-list-check',
-               text: `${action} work item`,
-               bold: `"${t.title}"`,
-               time: new Date(t.createdAt).toLocaleString(),
-               _ts: new Date(t.createdAt).getTime()
-            })
-            added = true
-        }
-    })
-    
-    if (added) {
-        actStore.activities.forEach(a => { 
-           if(!a._ts) {
-               // Try to parse time intelligently, fallback to now if failed
-               const ts = Date.parse(a.time);
-               a._ts = isNaN(ts) ? Date.now() : ts;
-           }
-        })
-        actStore.activities.sort((a,b) => b._ts - a._ts)
-        actStore.activities = actStore.activities.slice(0, 50)
-        localStorage.setItem('nexus_activities', JSON.stringify(actStore.activities))
+    const params = {}
+    if (selectedProjectId.value) {
+        params.projectId = selectedProjectId.value
     }
+    
+    // Fetch tasks
+    const res = await axiosClient.get('/tasks/search', { params })
+    myTasks.value = res.data?.data || []
+    
+    // Fetch real activities from store (which now calls API)
+    await actStore.fetchRecentActivities(params)
     
   } catch (err) {
     console.error('Lỗi load tasks:', err)
+    ElMessage.error('Failed to load tasks.')
   } finally {
     loading.value = false
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await fetchProjects()
   fetchMyTasks()
 })
+
+const handleProjectChange = () => {
+    fetchMyTasks()
+}
 
 const seedMockData = async () => {
   try {
     loading.value = true
     const res = await axiosClient.post('/tasks/seed-mock')
     ElNotification({ title: 'Thành công', message: res.data.message || 'Đã tạo dữ liệu mẫu', type: 'success' })
-    actStore.logActivity('Seeded 20 mock work items successfully', 'System Data', 'fa-solid fa-seedling')
     await fetchMyTasks()
   } catch (err) {
     ElNotification({ title: 'Lỗi', message: 'Lỗi khi tạo dữ liệu mẫu', type: 'error' })
@@ -98,7 +95,6 @@ const workload = computed(() => {
     else if (s === 'IN PROGRESS' || s === 'INPROGRESS') workingOn++
     else if (s === 'DONE') completed++
     else if (s === 'CANCELED') canceled++
-    else backlog++
   })
   return { backlog, notStarted, workingOn, completed, canceled }
 })
@@ -112,15 +108,12 @@ const recentActivity = computed(() => {
 })
 
 const listData = computed(() => {
-  let list = myTasks.value;
-  if (activeTab.value === 'Assigned') {
-    list = myTasks.value.filter(t => t.assignedUserId === currentUserId.value);
-  } else if (activeTab.value === 'Created') {
-    list = myTasks.value.filter(t => t.reporterId === currentUserId.value);
-  } else if (activeTab.value === 'Subscribed') {
-    list = myTasks.value.filter(t => t.isSubscribed);
-  }
-
+  let list = []
+  if (activeTab.value === 'Assigned') list = myTasks.value.filter(t => t.assignedUserId === currentUserId.value)
+  else if (activeTab.value === 'Created') list = myTasks.value.filter(t => t.reporterId === currentUserId.value)
+  else if (activeTab.value === 'Subscribed') list = myTasks.value.filter(t => t.isSubscribed)
+  else list = myTasks.value
+  
   return list.map(t => ({
     id: t.sequenceId || t.id.substring(0,8).toUpperCase(),
     rawId: t.id,
@@ -128,8 +121,8 @@ const listData = computed(() => {
     state: t.statusName || 'To Do',
     priority: t.priority || 3,
     assigneeName: t.assigneeName,
-    modules: '0 Modules',
-    cycle: 'No Cycle',
+    modules: t.moduleNames?.join(', ') || '0 Modules',
+    cycle: t.sprintName || 'No Cycle',
     task: t
   }))
 })
@@ -138,18 +131,27 @@ const updateTaskProperty = async (task, field, value) => {
    try {
       const idx = myTasks.value.findIndex(t => t.id === task.id)
       if (idx !== -1) {
+         // Optimistic update
+         const oldValue = myTasks.value[idx][field]
          myTasks.value[idx][field] = value
          
          const updatePayload = {}
+         // Map statusName if needed (backend expects statusName or TaskStatusId in different contexts, but PartialUpdate handles statusName)
          updatePayload[field] = value
-         if (task.projectId) {
-            await axiosClient.patch(`/projects/${task.projectId}/WorkTasks/${task.id}`, updatePayload)
-         }
          
-         let activityText = `Updated ${field} to ${value}`
-         if (field === 'statusName') activityText = `Changed status to ${value}`
-         if (field === 'priority') activityText = `Changed priority to ${value === 1 ? 'Urgent' : value === 2 ? 'High' : value === 3 ? 'Normal' : 'Low'}`
-         actStore.logActivity(activityText, 'on ' + (task.sequenceId || task.id), 'fa-solid fa-pen-to-square')
+         if (task.projectId) {
+            try {
+                await axiosClient.patch(`/projects/${task.projectId}/WorkTasks/${task.id}`, updatePayload)
+                ElMessage.success('Updated successfully')
+                // Refresh activities to show the change
+                actStore.fetchRecentActivities({ projectId: selectedProjectId.value })
+            } catch (err) {
+                // Rollback
+                myTasks.value[idx][field] = oldValue
+                const msg = err.response?.data?.message || 'Failed to update task'
+                ElMessage.error(msg)
+            }
+         }
       }
    } catch (error) {
       console.error('Failed to update task:', error);
@@ -192,10 +194,44 @@ const downloadWordActivity = () => {
       
       <!-- Main Content -->
       <div class="yw-main">
-        <header class="yw-header flex-between">
-           <span class="yw-title"><i class="fa-regular fa-user"></i> Your work</span>
-           <button class="plane-primary-btn" @click="seedMockData" style="background: #10B981"><i class="fa-solid fa-seedling mr-2"></i> Seed Mock Data</button>
+        <header class="nexus-feature-header">
+           <div class="header-info">
+             <p class="eyebrow">Personal Dashboard</p>
+             <h1><i class="fa-solid fa-user"></i> Your work</h1>
+             <p class="muted">Monitor your assignments, track activities, and manage your contributions across projects.</p>
+           </div>
+           
+           <div class="nexus-controls-row">
+             <el-select 
+                v-model="selectedProjectId" 
+                placeholder="Filter by Project" 
+                clearable 
+                filterable
+                @change="handleProjectChange"
+                style="width: 220px;"
+                class="nexus-project-select"
+             >
+                <el-option
+                   v-for="p in projectList"
+                   :key="p.id"
+                   :label="`[${p.key || 'PRJ'}] ${p.name}`"
+                   :value="p.id"
+                >
+                   <div class="flex items-center gap-2">
+                      <div class="project-mini-icon" :style="{ background: p.isArchived ? '#71717A' : '#3b82f6' }">
+                         {{ p.key?.substring(0,2) || 'PJ' }}
+                      </div>
+                      <span>{{ p.name }}</span>
+                      <el-tag v-if="p.isArchived" size="small" type="info" class="ml-auto">Archived</el-tag>
+                   </div>
+                </el-option>
+             </el-select>
+             <button class="nexus-btn nexus-btn-primary" @click="seedMockData" style="background: #10B981">
+                <i class="fa-solid fa-seedling"></i> Seed Data
+             </button>
+           </div>
         </header>
+
 
         <div class="yw-tabs">
            <button 
@@ -448,7 +484,33 @@ const downloadWordActivity = () => {
 
 .yw-header {
   padding: 24px 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
+
+.project-mini-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+}
+
+:deep(.nexus-project-select .el-input__wrapper) {
+  background-color: #1E2025 !important;
+  box-shadow: 0 0 0 1px #3F3F46 inset !important;
+}
+
+:deep(.nexus-project-select .el-input__inner) {
+  color: #E4E4E7 !important;
+}
+
 .yw-title {
   font-size: 16px;
   font-weight: 500;

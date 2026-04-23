@@ -1,18 +1,20 @@
 <template>
   <NexusLayout>
-    <div class="page-header-flex">
-            <h1 class="page-title">Quản trị người dùng & Nhóm</h1>
-            <div class="page-actions">
-              <el-button-group>
-                <el-button type="primary" @click="showInviteModal = true">
-                  <i class="fa-solid fa-plus" style="margin-right: 8px;"></i> Mời thành viên
-                </el-button>
-                <el-button plain @click="showBulkInviteModal = true">
-                  <i class="fa-solid fa-file-import" style="margin-right: 8px;"></i> Nhập CSV
-                </el-button>
-              </el-button-group>
-            </div>
-          </div>
+      <header class="nexus-feature-header">
+        <div class="header-info">
+          <p class="eyebrow">Administration</p>
+          <h1><i class="fa-solid fa-users-gear"></i> User & Team management</h1>
+          <p class="muted">Manage platform access, organize teams, and configure system roles and permissions.</p>
+        </div>
+        <div class="nexus-controls-row">
+          <button class="nexus-btn nexus-btn-primary" @click="showInviteModal = true">
+            <i class="fa-solid fa-plus mr-1.5"></i> Invite member
+          </button>
+          <button class="nexus-btn nexus-btn-outlined" @click="showBulkInviteModal = true">
+            <i class="fa-solid fa-file-import mr-1.5"></i> Import CSV
+          </button>
+        </div>
+      </header>
 
           <el-tabs v-model="activeTab" class="user-tabs">
             <!-- TAB 1: USER LIST -->

@@ -42,9 +42,6 @@ export default [
   {
     path: '/space/:id/settings',
     name: 'ProjectSettings',
-    redirect: to => ({
-      path: '/admin/configuration',
-      query: { projectId: to.params.id }
-    })
+    component: () => import('../views/ProjectSettingsView.vue')
   }
 ]

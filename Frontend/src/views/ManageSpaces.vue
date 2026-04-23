@@ -51,13 +51,16 @@
              <div class="card-actions-top" @click.stop>
                <button class="card-icon-btn" type="button" @click="copySpaceLink(space)"><i class="fa-solid fa-link"></i></button>
                <button class="card-icon-btn" type="button" :class="{ 'starred': space.starred }" @click="toggleStar(space)"><i :class="space.starred ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i></button>
+               <el-tooltip content="Archive Project" placement="top">
+                 <button class="card-icon-btn" type="button" @click="archiveProject(space)" :disabled="!canUserManageSpace(space)"><i class="fa-solid fa-box-archive"></i></button>
+               </el-tooltip>
              </div>
           </div>
           
           <div class="card-body">
             <!-- Floating Project Icon -->
             <div class="floating-icon">
-              <span class="emoji">{{ space.icon || emojiList[index % emojiList.length] || '👇' }}</span>
+              <span class="emoji">{{ space.icon || emojiList[index % emojiList.length] || '📁' }}</span>
             </div>
             
             <div class="proj-title-row">
@@ -66,7 +69,7 @@
             </div>
             
             <p class="proj-desc">
-              {{ space.originalRow?.description || 'Welcome to this Project! This project throws you into the driver\'s seat of work management. Through curated work items, you\'ll uncover key features...' }}
+              {{ space.originalRow?.description || 'Welcome to this Project! This project throws you into the driver\'s seat of work management.' }}
             </p>
             
             <div class="card-footer" @click.stop>
@@ -77,7 +80,7 @@
                <div class="avatar-group">
                  <div class="avatar">{{ space.leadName ? space.leadName.charAt(0).toUpperCase() : 'U' }}</div>
                </div>
-               <button class="card-icon-btn" type="button" @click="goToAdmin(space.id)" :disabled="!canManageSpace" :title="canManageSpace ? 'Project settings' : 'You do not have permission'">
+               <button class="card-icon-btn" type="button" @click="goToAdmin(space)" :disabled="!canUserManageSpace(space)" :title="canUserManageSpace(space) ? 'Project settings' : 'You do not have permission'">
                  <i class="fa-solid fa-gear"></i>
                </button>
             </div>
@@ -97,7 +100,7 @@ import { useRouter } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import CreateSpaceModal from '@/components/CreateSpaceModal.vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useProjectStore } from '@/store/useProjectStore'
 
 const router = useRouter()
@@ -111,18 +114,44 @@ const visibilityFilter = ref('all')
 const isCreateModalVisible = ref(false)
 
 const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-const systemRoles = currentUser.systemRoles || []
-const canManageSpace = computed(() => {
-  return systemRoles.includes('System Admin') || systemRoles.includes('Admin') || systemRoles.includes('PM') || systemRoles.includes('PO') || systemRoles.includes('admin')
+const systemRoles = (currentUser.systemRoles || []).map(r => r.toLowerCase())
+
+const isSystemAdmin = computed(() => {
+  return systemRoles.includes('system admin') || systemRoles.includes('admin') || systemRoles.includes('pm') || systemRoles.includes('po')
 })
 
-const goToAdmin = (projectId) => {
-  if (!canManageSpace.value) {
+const canUserManageSpace = (space) => {
+  if (isSystemAdmin.value) return true
+  // Allow if user is creator
+  const creatorId = space.originalRow?.creatorId || space.creatorId
+  return creatorId === currentUser.id
+}
+
+const goToAdmin = (space) => {
+  if (!canUserManageSpace(space)) {
     ElMessage.warning('You do not have permission to configure this project.')
     return
   }
-  router.push(`/space/${projectId}/settings`)
+  router.push(`/space/${space.id}/settings`)
 }
+
+const archiveProject = async (space) => {
+  try {
+    await ElMessageBox.confirm(
+      `Are you sure you want to archive project "${space.name}"? It will be moved to the Archived section.`,
+      'Archive Project',
+      { confirmButtonText: 'Archive', cancelButtonText: 'Cancel', type: 'warning' }
+    )
+    await axiosClient.put(`/projects/${space.id}/archive`)
+    ElMessage.success('Project archived successfully')
+    fetchSpaces()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('Could not archive project')
+    }
+  }
+}
+
 
 const toggleSort = () => {
   sortDirection.value = sortDirection.value === 'desc' ? 'asc' : 'desc'

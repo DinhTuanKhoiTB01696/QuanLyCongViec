@@ -1,23 +1,23 @@
 import { defineStore } from 'pinia'
+import axiosClient from '@/api/axiosClient'
 
 export const useActivityStore = defineStore('activityStore', {
   state: () => ({
     activities: [],
     loading: false,
+    total: 0
   }),
   actions: {
-    fetchRecentActivities() {
+    async fetchRecentActivities(params = {}) {
       this.loading = true
       try {
-        const stored = localStorage.getItem('nexus_activities')
-        if (stored) {
-          this.activities = JSON.parse(stored)
-        } else {
-          // Initialize mock start log
-          this.activities = [
-            { id: Date.now().toString() + '1', icon: 'fa-regular fa-bell', text: 'Welcome! You can track your activity here.', bold: '', time: new Date().toLocaleString() }
-          ]
-          localStorage.setItem('nexus_activities', JSON.stringify(this.activities))
+        // Default to last 30 days if no timeFilter provided
+        if (!params.timeFilter) params.timeFilter = '30d'
+        
+        const res = await axiosClient.get('/auditlogs', { params })
+        if (res.data && res.data.data) {
+          this.activities = res.data.data.items || []
+          this.total = res.data.data.total || 0
         }
       } catch (err) {
         console.error('Failed to load activities', err)
@@ -26,17 +26,11 @@ export const useActivityStore = defineStore('activityStore', {
       }
     },
     
-    logActivity(text, bold, icon = 'fa-regular fa-bell') {
-      const newAct = {
-        id: Date.now().toString() + Math.floor(Math.random() * 1000),
-        icon,
-        text,
-        bold,
-        time: new Date().toLocaleString()
-      }
-      this.activities.unshift(newAct)
-      if (this.activities.length > 50) this.activities.pop() // keep max 50 items
-      localStorage.setItem('nexus_activities', JSON.stringify(this.activities))
+    async logActivity(text, bold, icon = 'fa-regular fa-bell') {
+      // In a real app, this might be handled by the backend automatically on actions.
+      // But we can keep a local-only log or just refresh from server.
+      await this.fetchRecentActivities()
     }
   }
 })
+
