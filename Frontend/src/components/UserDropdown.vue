@@ -90,6 +90,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { currentTheme, toggleTheme } from '@/utils/theme'
 import { getStoredUser, hasSystemAdminAccess } from '@/utils/permissions'
+import { openNamedAppWindow, PROJECT_ADMIN_WINDOW_NAME } from '@/utils/windowTabs'
 
 const router = useRouter()
 const themeSubVisible = ref(false)
@@ -113,7 +114,7 @@ const handleCommand = async (cmd) => {
     router.push('/profile')
   } else if (cmd === 'admin') {
     const routeData = router.resolve('/admin')
-    window.open(routeData.href, '_blank', 'noopener')
+    openNamedAppWindow(routeData.href, PROJECT_ADMIN_WINDOW_NAME)
   } else if (cmd === 'logout') {
     try {
       const { default: axiosClient } = await import('@/api/axiosClient')
@@ -187,7 +188,6 @@ const selectTheme = (theme) => {
   gap: 12px;
   cursor: pointer;
   color: var(--color-text-secondary);
-  transition: all 0.2s;
 }
 .theme-option:hover {
   background-color: var(--color-surface-hover);

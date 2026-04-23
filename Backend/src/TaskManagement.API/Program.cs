@@ -154,6 +154,35 @@ using (var scope = app.Services.CreateScope())
         // await context.Database.EnsureCreatedAsync();
         if (context.Database.IsRelational())
         {
+            await context.Database.ExecuteSqlRawAsync(@"
+IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
+BEGIN
+    CREATE TABLE [__EFMigrationsHistory] (
+        [MigrationId] nvarchar(150) NOT NULL,
+        [ProductVersion] nvarchar(32) NOT NULL,
+        CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260422145022_PlaneRenovation'
+)
+AND OBJECT_ID(N'dbo.AIPromptTemplates', N'U') IS NOT NULL
+AND OBJECT_ID(N'dbo.Organizations', N'U') IS NOT NULL
+AND OBJECT_ID(N'dbo.Permissions', N'U') IS NOT NULL
+AND OBJECT_ID(N'dbo.ProjectTemplates', N'U') IS NOT NULL
+AND OBJECT_ID(N'dbo.Roles', N'U') IS NOT NULL
+AND OBJECT_ID(N'dbo.SystemSettings', N'U') IS NOT NULL
+AND COL_LENGTH(N'dbo.Users', N'AvatarUrl') IS NOT NULL
+AND COL_LENGTH(N'dbo.Users', N'CoverUrl') IS NOT NULL
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260422145022_PlaneRenovation', N'10.0.5');
+END;
+");
+
             try
             {
                 await context.Database.MigrateAsync();
@@ -183,6 +212,36 @@ END;
 IF COL_LENGTH('dbo.Pages', 'IsStarred') IS NULL
 BEGIN
     ALTER TABLE dbo.Pages ADD IsStarred bit NOT NULL CONSTRAINT DF_Pages_IsStarred DEFAULT(0);
+END;
+IF COL_LENGTH('dbo.Users', 'AvatarUrl') IS NULL
+BEGIN
+    ALTER TABLE dbo.Users ADD AvatarUrl nvarchar(max) NULL;
+END;
+IF COL_LENGTH('dbo.Users', 'CoverUrl') IS NULL
+BEGIN
+    ALTER TABLE dbo.Users ADD CoverUrl nvarchar(max) NULL;
+END;
+IF COL_LENGTH('dbo.SystemSettings', 'Description') IS NULL
+BEGIN
+    ALTER TABLE dbo.SystemSettings ADD Description nvarchar(max) NULL;
+END;
+IF COL_LENGTH('dbo.SystemSettings', 'LastModifiedAt') IS NULL
+BEGIN
+    ALTER TABLE dbo.SystemSettings ADD LastModifiedAt datetime2 NOT NULL CONSTRAINT DF_SystemSettings_LastModifiedAt DEFAULT SYSUTCDATETIME();
+END;
+IF COL_LENGTH('dbo.TaskStatuses', 'ColorCode') IS NULL
+BEGIN
+    ALTER TABLE dbo.TaskStatuses ADD ColorCode nvarchar(max) NULL;
+END;
+IF OBJECT_ID('dbo.AIPromptTemplates', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.AIPromptTemplates (
+        Id uniqueidentifier NOT NULL,
+        Code nvarchar(max) NOT NULL,
+        TemplateContent nvarchar(max) NOT NULL,
+        IsActive bit NOT NULL,
+        CONSTRAINT PK_AIPromptTemplates PRIMARY KEY (Id)
+    );
 END;
 IF OBJECT_ID('dbo.TaskSubscribers', 'U') IS NULL
 BEGIN

@@ -75,6 +75,19 @@ namespace TaskManagement.API.Controllers
             ("CANCELLED", 5)
         };
 
+        private static string ResolveDefaultStatusColor(string statusName)
+        {
+            return NormalizeStatusName(statusName) switch
+            {
+                "TO DO" => "#3b82f6",
+                "IN PROGRESS" => "#f59e0b",
+                "IN REVIEW" => "#8b5cf6",
+                "DONE" => "#10b981",
+                "CANCELLED" => "#ef4444",
+                _ => "#64748b"
+            };
+        }
+
         private static DateTime? ParseDateOnlyUtc(System.Text.Json.JsonElement property)
         {
             if (property.ValueKind == System.Text.Json.JsonValueKind.Null)
@@ -196,6 +209,7 @@ namespace TaskManagement.API.Controllers
                     Id = Guid.NewGuid(),
                     ProjectId = projectId,
                     Name = status.Name,
+                    ColorCode = ResolveDefaultStatusColor(status.Name),
                     Position = status.Position
                 });
             }
@@ -421,83 +435,105 @@ namespace TaskManagement.API.Controllers
         [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,Admin")]
         public async Task<IActionResult> CreateProjectTaskStatus(Guid projectId, [FromBody] SaveTaskStatusRequest request, [FromServices] ApplicationDbContext context)
         {
-            if (string.IsNullOrWhiteSpace(request.Name))
+            try
             {
-                return BadRequest(new { statusCode = 400, message = "Ten trang thai khong de trong." });
+                if (string.IsNullOrWhiteSpace(request.Name))
+                {
+                    return BadRequest(new { statusCode = 400, message = "Ten trang thai khong de trong." });
+                }
+
+                await EnsureDefaultTaskStatusesAsync(context, projectId);
+
+                var requestedName = request.Name.Trim();
+                var existingNames = await context.TaskStatuses
+                    .Where(status => status.ProjectId == projectId)
+                    .Select(status => status.Name)
+                    .ToListAsync();
+                var exists = existingNames.Any(name =>
+                    string.Equals(name?.Trim(), requestedName, StringComparison.OrdinalIgnoreCase));
+                if (exists)
+                {
+                    return Conflict(new { statusCode = 409, message = "Trang thai da ton tai trong project." });
+                }
+
+                var maxPosition = await context.TaskStatuses
+                    .Where(status => status.ProjectId == projectId)
+                    .Select(status => (int?)status.Position)
+                    .MaxAsync() ?? 0;
+
+                var status = new TaskManagement.Domain.Entities.TaskStatus
+                {
+                    Id = Guid.NewGuid(),
+                    ProjectId = projectId,
+                    Name = requestedName,
+                    ColorCode = string.IsNullOrWhiteSpace(request.ColorCode) ? ResolveDefaultStatusColor(requestedName) : request.ColorCode.Trim(),
+                    Position = request.Position ?? (maxPosition + 1)
+                };
+
+                context.TaskStatuses.Add(status);
+                await context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    statusCode = 201,
+                    message = "Da tao trang thai.",
+                    data = new { status.Id, status.Name, status.ColorCode, status.Position }
+                });
             }
-
-            await EnsureDefaultTaskStatusesAsync(context, projectId);
-
-            var normalizedName = NormalizeStatusName(request.Name);
-            var exists = await context.TaskStatuses
-                .AnyAsync(status => status.ProjectId == projectId && NormalizeStatusName(status.Name) == normalizedName);
-            if (exists)
+            catch (Exception ex)
             {
-                return Conflict(new { statusCode = 409, message = "Trang thai da ton tai trong project." });
+                return StatusCode(500, new { statusCode = 500, message = ex.Message });
             }
-
-            var maxPosition = await context.TaskStatuses
-                .Where(status => status.ProjectId == projectId)
-                .Select(status => (int?)status.Position)
-                .MaxAsync() ?? 0;
-
-            var status = new TaskManagement.Domain.Entities.TaskStatus
-            {
-                Id = Guid.NewGuid(),
-                ProjectId = projectId,
-                Name = request.Name.Trim(),
-                ColorCode = request.ColorCode,
-                Position = request.Position ?? (maxPosition + 1)
-            };
-
-            context.TaskStatuses.Add(status);
-            await context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                statusCode = 201,
-                message = "Da tao trang thai.",
-                data = new { status.Id, status.Name, status.ColorCode, status.Position }
-            });
         }
 
         [HttpPut("projects/{projectId}/task-statuses/{statusId}")]
         [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,Admin")]
         public async Task<IActionResult> UpdateProjectTaskStatus(Guid projectId, Guid statusId, [FromBody] SaveTaskStatusRequest request, [FromServices] ApplicationDbContext context)
         {
-            var status = await context.TaskStatuses.FirstOrDefaultAsync(item => item.Id == statusId && item.ProjectId == projectId);
-            if (status == null)
+            try
             {
-                return NotFound(new { statusCode = 404, message = "Trang thai khong ton tai." });
-            }
-
-            if (!string.IsNullOrWhiteSpace(request.Name))
-            {
-                var normalizedName = NormalizeStatusName(request.Name);
-                var duplicateExists = await context.TaskStatuses
-                    .AnyAsync(item => item.ProjectId == projectId && item.Id != statusId && NormalizeStatusName(item.Name) == normalizedName);
-                if (duplicateExists)
+                var status = await context.TaskStatuses.FirstOrDefaultAsync(item => item.Id == statusId && item.ProjectId == projectId);
+                if (status == null)
                 {
-                    return Conflict(new { statusCode = 409, message = "Trang thai da ton tai trong project." });
+                    return NotFound(new { statusCode = 404, message = "Trang thai khong ton tai." });
                 }
 
-                status.Name = request.Name.Trim();
+                if (!string.IsNullOrWhiteSpace(request.Name))
+                {
+                    var requestedName = request.Name.Trim();
+                    var existingNames = await context.TaskStatuses
+                        .Where(item => item.ProjectId == projectId && item.Id != statusId)
+                        .Select(item => item.Name)
+                        .ToListAsync();
+                    var duplicateExists = existingNames.Any(name =>
+                        string.Equals(name?.Trim(), requestedName, StringComparison.OrdinalIgnoreCase));
+                    if (duplicateExists)
+                    {
+                        return Conflict(new { statusCode = 409, message = "Trang thai da ton tai trong project." });
+                    }
+
+                    status.Name = requestedName;
+                }
+
+                status.ColorCode = string.IsNullOrWhiteSpace(request.ColorCode) ? status.ColorCode ?? ResolveDefaultStatusColor(status.Name) : request.ColorCode.Trim();
+                if (request.Position.HasValue)
+                {
+                    status.Position = request.Position.Value;
+                }
+
+                await context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    statusCode = 200,
+                    message = "Da cap nhat trang thai.",
+                    data = new { status.Id, status.Name, status.ColorCode, status.Position }
+                });
             }
-
-            status.ColorCode = request.ColorCode ?? status.ColorCode;
-            if (request.Position.HasValue)
+            catch (Exception ex)
             {
-                status.Position = request.Position.Value;
+                return StatusCode(500, new { statusCode = 500, message = ex.Message });
             }
-
-            await context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                statusCode = 200,
-                message = "Da cap nhat trang thai.",
-                data = new { status.Id, status.Name, status.ColorCode, status.Position }
-            });
         }
 
         [HttpDelete("projects/{projectId}/task-statuses/{statusId}")]

@@ -50,6 +50,7 @@ import UserDropdown from '@/components/UserDropdown.vue'
 import NotificationsDropdown from '@/components/NotificationsDropdown.vue'
 import { useProjectStore } from '@/store/useProjectStore'
 import { toggleTheme, currentTheme } from '@/utils/theme'
+import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 
 const router = useRouter()
 const route = useRoute()
@@ -138,13 +139,41 @@ watch(currentProjectId, (projectId) => {
   }
 
   localStorage.setItem('currentProjectId', projectId)
-  projectStore.fetchProjectDetails(projectId).catch(() => {})
+  projectStore.fetchProjectDetails(projectId, { force: true }).catch(() => {})
 }, { immediate: true })
 
 onMounted(() => {
-  projectStore.fetchAllProjects().catch(() => {})
+  projectStore.fetchAllProjects(true).catch(() => {})
   document.addEventListener('click', handleClickOutside)
   document.addEventListener('keydown', handleEscKey)
+})
+
+let unsubscribeAdminRealtime = null
+
+onMounted(() => {
+  unsubscribeAdminRealtime = subscribeAdminRealtime(async ({ type, payload }) => {
+    const activeProjectId = currentProjectId.value || null
+
+    if (payload?.projectId && activeProjectId && `${payload.projectId}` !== `${activeProjectId}`) {
+      await projectStore.fetchAllProjects(true).catch(() => {})
+      return
+    }
+
+    if (
+      [
+        'project-settings-updated',
+        'project-settings-favorite-updated',
+        'project-settings-integrations-updated',
+        'project-administration-updated',
+        'project-settings-deleted'
+      ].includes(type)
+    ) {
+      await projectStore.fetchAllProjects(true).catch(() => {})
+      if (activeProjectId && type !== 'project-settings-deleted') {
+        await projectStore.fetchProjectDetails(activeProjectId, { force: true }).catch(() => {})
+      }
+    }
+  })
 })
 
 onBeforeUnmount(() => {
@@ -155,6 +184,7 @@ onBeforeUnmount(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   document.removeEventListener('keydown', handleEscKey)
+  unsubscribeAdminRealtime?.()
 })
 </script>
 

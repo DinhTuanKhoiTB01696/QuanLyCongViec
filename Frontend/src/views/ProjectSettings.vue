@@ -242,11 +242,11 @@
               </label>
               <label>
                 <span>Start date</span>
-                <input v-model="newModule.startDate" type="date" />
+                <input v-model="newModule.startDate" type="date" :min="todayDate" />
               </label>
               <label>
                 <span>Target date</span>
-                <input v-model="newModule.targetDate" type="date" />
+                <input v-model="newModule.targetDate" type="date" :min="newModule.startDate || todayDate" />
               </label>
               <label class="wide">
                 <span>Description</span>
@@ -319,11 +319,11 @@
                       </label>
                       <label>
                         <span>Start date</span>
-                        <input v-model="module.startDate" type="date" />
+                        <input v-model="module.startDate" type="date" :min="todayDate" />
                       </label>
                       <label>
                         <span>Target date</span>
-                        <input v-model="module.targetDate" type="date" />
+                        <input v-model="module.targetDate" type="date" :min="module.startDate || todayDate" />
                       </label>
                       <label class="wide">
                         <span>Description</span>
@@ -376,11 +376,11 @@
                       </label>
                       <label>
                         <span>Start date</span>
-                        <input v-model="module.startDate" type="date" />
+                        <input v-model="module.startDate" type="date" :min="todayDate" />
                       </label>
                       <label>
                         <span>Target date</span>
-                        <input v-model="module.targetDate" type="date" />
+                        <input v-model="module.targetDate" type="date" :min="module.startDate || todayDate" />
                       </label>
                       <label class="wide">
                         <span>Description</span>
@@ -417,11 +417,11 @@
               </label>
               <label>
                 <span>Start date</span>
-                <input v-model="newCycle.startDate" type="date" />
+                <input v-model="newCycle.startDate" type="date" :min="todayDate" />
               </label>
               <label>
                 <span>End date</span>
-                <input v-model="newCycle.endDate" type="date" />
+                <input v-model="newCycle.endDate" type="date" :min="newCycle.startDate || todayDate" />
               </label>
               <label class="wide">
                 <span>Description</span>
@@ -442,11 +442,11 @@
                   </label>
                   <label>
                     <span>Start date</span>
-                    <input v-model="sprint.startDate" type="date" />
+                    <input v-model="sprint.startDate" type="date" :min="todayDate" />
                   </label>
                   <label>
                     <span>End date</span>
-                    <input v-model="sprint.endDate" type="date" />
+                    <input v-model="sprint.endDate" type="date" :min="sprint.startDate || todayDate" />
                   </label>
                   <div class="meta-strip compact">
                     <span>State: {{ sprint.state }}</span>
@@ -477,7 +477,7 @@
             </div>
 
             <div v-if="integrations.length === 0" class="empty-state">
-              No integrations loaded for this project.
+              GitHub integration is not configured for this project yet.
             </div>
             <div v-else class="stack-list">
               <div v-for="integration in integrations" :key="integration.provider" class="stack-row">
@@ -494,20 +494,20 @@
                     </select>
                   </label>
                   <label>
-                    <span>Project key</span>
-                    <input v-model="integration.projectKey" type="text" :placeholder="`${integration.displayName} project key`" />
+                    <span>Repository</span>
+                    <input v-model="integration.projectKey" type="text" placeholder="owner/repository" />
                   </label>
                   <label class="wide">
-                    <span>Endpoint</span>
-                    <input v-model="integration.endpoint" type="text" :placeholder="httpsPlaceholders[integration.provider] || 'https://'" />
+                    <span>API endpoint</span>
+                    <input v-model="integration.endpoint" type="text" :placeholder="httpsPlaceholders[integration.provider] || 'https://api.github.com/repos/owner/repository'" />
                   </label>
                   <label>
-                    <span>Secret / webhook</span>
+                    <span>Access token</span>
                     <input v-model="integration.secret" type="password" placeholder="Stored only for this project" />
                   </label>
                   <label class="wide">
                     <span>Notes</span>
-                    <input v-model="integration.notes" type="text" placeholder="What this integration is used for" />
+                    <input v-model="integration.notes" type="text" placeholder="Used by AI repo analysis and task breakdown" />
                   </label>
                   <div class="meta-strip compact">
                     <span>Provider: {{ integration.provider }}</span>
@@ -530,7 +530,7 @@
             </div>
 
             <div class="empty-state helper-panel">
-              Project managers can keep provider settings isolated per project. Members still use the connected features without seeing these secrets.
+              Only GitHub is available here so AI can analyze the connected repository and break work into tasks later.
             </div>
           </div>
 
@@ -556,11 +556,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import axiosClient from '@/api/axiosClient'
+import { broadcastAdminRealtime, subscribeAdminRealtime } from '@/utils/adminRealtime'
 
 const route = useRoute()
 const router = useRouter()
@@ -640,10 +641,10 @@ const newCycle = ref({
 })
 
 const httpsPlaceholders = {
-  github: 'https://api.github.com/repos/org/repo',
-  jira: 'https://company.atlassian.net',
-  slack: 'https://hooks.slack.com/services/...'
+  github: 'https://api.github.com/repos/org/repo'
 }
+
+const todayDate = new Date().toISOString().slice(0, 10)
 
 const normalizeDateInput = (value) => {
   if (!value) return ''
@@ -676,6 +677,11 @@ const normalizeIntegration = (integration) => ({
   updatedAt: integration.updatedAt || ''
 })
 
+const isPastDate = (value) => {
+  if (!value) return false
+  return normalizeDateInput(value) < todayDate
+}
+
 const normalizeModuleStatus = (status) => {
   const value = `${status || ''}`.trim().toLowerCase()
   if (!value) return 'Backlog'
@@ -685,6 +691,10 @@ const normalizeModuleStatus = (status) => {
   if (value === 'paused') return 'Paused'
   if (value === 'completed' || value === 'complete') return 'Completed'
   return 'Backlog'
+}
+
+const notifyProjectSettingsRealtime = (type = 'project-settings-updated') => {
+  broadcastAdminRealtime(type, { projectId })
 }
 
 const loadProjectSettings = async () => {
@@ -723,7 +733,10 @@ const loadProjectSettings = async () => {
       colorCode: status.colorCode || '#3b82f6',
       position: status.position ?? index
     }))
-    integrations.value = (integrationsRes.data?.data || []).map(normalizeIntegration)
+    newState.value.position = taskStatuses.value.length
+    integrations.value = (integrationsRes.data?.data || [])
+      .map(normalizeIntegration)
+      .filter(integration => integration.provider === 'github')
 
     generalForm.value = {
       name: project.value.name || '',
@@ -731,8 +744,6 @@ const loadProjectSettings = async () => {
       startDate: normalizeDateInput(project.value.startDate),
       endDate: normalizeDateInput(project.value.endDate)
     }
-
-    newState.value.position = taskStatuses.value.length
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not load project settings')
     router.replace(`/space/${projectId}`)
@@ -744,7 +755,9 @@ const loadProjectSettings = async () => {
 const loadIntegrations = async () => {
   try {
     const response = await axiosClient.get(`/projects/${projectId}/integrations`)
-    integrations.value = (response.data?.data || []).map(normalizeIntegration)
+    integrations.value = (response.data?.data || [])
+      .map(normalizeIntegration)
+      .filter(integration => integration.provider === 'github')
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not load project integrations')
   }
@@ -758,14 +771,24 @@ const saveGeneral = async () => {
 
   savingGeneral.value = true
   try {
-    await axiosClient.put(`/projects/${projectId}`, {
+    const response = await axiosClient.put(`/projects/${projectId}`, {
       name: generalForm.value.name.trim(),
       description: generalForm.value.description?.trim() || '',
       startDate: generalForm.value.startDate || null,
       endDate: generalForm.value.endDate || null,
       departmentId: project.value.departmentId || null
     })
+    const updatedProject = response.data?.data || {}
+    project.value = {
+      ...project.value,
+      ...updatedProject,
+      name: updatedProject.name || generalForm.value.name.trim(),
+      description: updatedProject.description ?? generalForm.value.description?.trim() ?? '',
+      startDate: updatedProject.startDate || generalForm.value.startDate || null,
+      endDate: updatedProject.endDate || generalForm.value.endDate || null
+    }
     ElMessage.success('Project general settings updated')
+    notifyProjectSettingsRealtime()
     await loadProjectSettings()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not save project settings')
@@ -790,6 +813,7 @@ const inviteMember = async () => {
     inviteForm.value.role = 'Developer'
     ElMessage.success('Member invited successfully')
     await loadProjectSettings()
+    notifyProjectSettingsRealtime()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not invite member')
   } finally {
@@ -802,6 +826,7 @@ const updateMemberRole = async (member, role) => {
     await axiosClient.put(`/projects/${projectId}/members/${member.userId}/role`, { role })
     member.projectRole = role
     ElMessage.success('Member role updated')
+    notifyProjectSettingsRealtime()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not update member role')
     await loadProjectSettings()
@@ -814,6 +839,7 @@ const removeMember = async (member) => {
     await axiosClient.delete(`/projects/${projectId}/members/${member.userId}`)
     ElMessage.success('Member removed')
     await loadProjectSettings()
+    notifyProjectSettingsRealtime()
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error(error.response?.data?.message || 'Could not remove member')
@@ -834,9 +860,14 @@ const createState = async () => {
       colorCode: newState.value.colorCode,
       position: newState.value.position
     })
-    newState.value = { name: '', colorCode: '#3b82f6', position: taskStatuses.value.length + 1 }
+    newState.value = {
+      name: '',
+      colorCode: '#3b82f6',
+      position: taskStatuses.value.length + 1
+    }
     ElMessage.success('State created')
     await loadProjectSettings()
+    notifyProjectSettingsRealtime()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not create state')
   } finally {
@@ -852,6 +883,7 @@ const saveState = async (status) => {
       position: status.position
     })
     ElMessage.success('State updated')
+    notifyProjectSettingsRealtime()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not update state')
     await loadProjectSettings()
@@ -864,6 +896,7 @@ const deleteState = async (status) => {
     await axiosClient.delete(`/projects/${projectId}/task-statuses/${status.id}`)
     ElMessage.success('State deleted')
     await loadProjectSettings()
+    notifyProjectSettingsRealtime()
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error(error.response?.data?.message || 'Could not delete state')
@@ -887,6 +920,7 @@ const createLabel = async () => {
     newLabel.value = { name: '', colorCode: '#3b82f6', description: '' }
     ElMessage.success('Label created')
     await loadProjectSettings()
+    notifyProjectSettingsRealtime()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not create label')
   } finally {
@@ -900,6 +934,7 @@ const deleteLabel = async (label) => {
     await axiosClient.delete(`/projects/${projectId}/labels/${label.id}`)
     ElMessage.success('Label deleted')
     await loadProjectSettings()
+    notifyProjectSettingsRealtime()
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error(error.response?.data?.message || 'Could not delete label')
@@ -915,6 +950,7 @@ const saveLabel = async (label) => {
       description: label.description?.trim() || ''
     })
     ElMessage.success('Label updated')
+    notifyProjectSettingsRealtime()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not update label')
     await loadProjectSettings()
@@ -924,6 +960,14 @@ const saveLabel = async (label) => {
 const createModule = async () => {
   if (!newModule.value.name.trim()) {
     ElMessage.warning('Module name is required')
+    return
+  }
+  if (isPastDate(newModule.value.startDate) || isPastDate(newModule.value.targetDate)) {
+    ElMessage.warning('Past dates are not allowed for modules')
+    return
+  }
+  if (newModule.value.startDate && newModule.value.targetDate && newModule.value.targetDate < newModule.value.startDate) {
+    ElMessage.warning('Target date must be on or after the start date')
     return
   }
 
@@ -947,6 +991,7 @@ const createModule = async () => {
     }
     ElMessage.success('Module created')
     await loadProjectSettings()
+    notifyProjectSettingsRealtime()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not create module')
   } finally {
@@ -960,6 +1005,7 @@ const deleteModule = async (module) => {
     await axiosClient.delete(`/projects/${projectId}/modules/${module.id}`)
     ElMessage.success('Module disabled')
     await loadProjectSettings()
+    notifyProjectSettingsRealtime()
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error(error.response?.data?.message || 'Could not disable module')
@@ -968,6 +1014,14 @@ const deleteModule = async (module) => {
 }
 
 const saveModule = async (module) => {
+  if (isPastDate(module.startDate) || isPastDate(module.targetDate)) {
+    ElMessage.warning('Past dates are not allowed for modules')
+    return
+  }
+  if (module.startDate && module.targetDate && module.targetDate < module.startDate) {
+    ElMessage.warning('Target date must be on or after the start date')
+    return
+  }
   try {
     await axiosClient.put(`/projects/${projectId}/modules/${module.id}`, {
       name: module.name?.trim(),
@@ -979,6 +1033,7 @@ const saveModule = async (module) => {
     })
     ElMessage.success('Module updated')
     await loadProjectSettings()
+    notifyProjectSettingsRealtime()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not update module')
   }
@@ -991,6 +1046,7 @@ const restoreModule = async (module) => {
     })
     ElMessage.success('Module restored')
     await loadProjectSettings()
+    notifyProjectSettingsRealtime()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not restore module')
   }
@@ -999,6 +1055,14 @@ const restoreModule = async (module) => {
 const createCycle = async () => {
   if (!newCycle.value.name.trim() || !newCycle.value.startDate || !newCycle.value.endDate) {
     ElMessage.warning('Cycle name, start date, and end date are required')
+    return
+  }
+  if (isPastDate(newCycle.value.startDate) || isPastDate(newCycle.value.endDate)) {
+    ElMessage.warning('Past dates are not allowed for cycles')
+    return
+  }
+  if (newCycle.value.endDate < newCycle.value.startDate) {
+    ElMessage.warning('End date must be on or after the start date')
     return
   }
 
@@ -1013,6 +1077,7 @@ const createCycle = async () => {
     newCycle.value = { name: '', description: '', startDate: '', endDate: '' }
     ElMessage.success('Cycle created')
     await loadProjectSettings()
+    notifyProjectSettingsRealtime()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not create cycle')
   } finally {
@@ -1021,6 +1086,14 @@ const createCycle = async () => {
 }
 
 const saveCycle = async (sprint) => {
+  if (isPastDate(sprint.startDate) || isPastDate(sprint.endDate)) {
+    ElMessage.warning('Past dates are not allowed for cycles')
+    return
+  }
+  if (sprint.startDate && sprint.endDate && sprint.endDate < sprint.startDate) {
+    ElMessage.warning('End date must be on or after the start date')
+    return
+  }
   try {
     await axiosClient.put(`/projects/${projectId}/sprints/${sprint.id}`, {
       name: sprint.name?.trim(),
@@ -1029,6 +1102,7 @@ const saveCycle = async (sprint) => {
     })
     ElMessage.success('Cycle updated')
     await loadProjectSettings()
+    notifyProjectSettingsRealtime()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not update cycle')
   }
@@ -1039,6 +1113,7 @@ const startCycle = async (sprint) => {
     await axiosClient.post(`/projects/${projectId}/sprints/${sprint.id}/start`)
     ElMessage.success('Cycle started')
     await loadProjectSettings()
+    notifyProjectSettingsRealtime()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not start cycle')
   }
@@ -1054,6 +1129,7 @@ const closeCycleToBacklog = async (sprint) => {
     await axiosClient.post(`/projects/${projectId}/sprints/${sprint.id}/close`, { targetSprintId: null })
     ElMessage.success('Cycle closed and unfinished work moved to backlog')
     await loadProjectSettings()
+    notifyProjectSettingsRealtime()
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error(error.response?.data?.message || 'Could not close cycle')
@@ -1066,6 +1142,7 @@ const toggleFavoriteCycle = async (sprint) => {
     await axiosClient.patch(`/projects/${projectId}/sprints/${sprint.id}/favorite`)
     sprint.isFavorite = !sprint.isFavorite
     ElMessage.success(sprint.isFavorite ? 'Cycle marked as favorite' : 'Cycle removed from favorites')
+    notifyProjectSettingsRealtime('project-settings-favorite-updated')
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not update cycle favorite state')
     await loadProjectSettings()
@@ -1084,7 +1161,9 @@ const saveIntegrations = async () => {
   savingIntegrations.value = true
   try {
     await axiosClient.put(`/projects/${projectId}/integrations`, {
-      items: integrations.value.map(integration => ({
+      items: integrations.value
+        .filter(integration => integration.provider === 'github')
+        .map(integration => ({
         provider: integration.provider,
         displayName: integration.displayName,
         enabled: integration.enabled,
@@ -1097,6 +1176,7 @@ const saveIntegrations = async () => {
     })
     ElMessage.success('Project integrations updated')
     await loadIntegrations()
+    notifyProjectSettingsRealtime('project-settings-integrations-updated')
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not update project integrations')
   } finally {
@@ -1135,6 +1215,7 @@ const toggleArchive = async () => {
     await axiosClient.put(`/projects/${projectId}/${action}`)
     ElMessage.success(action === 'archive' ? 'Project archived' : 'Project restored')
     await loadProjectSettings()
+    notifyProjectSettingsRealtime()
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error(error.response?.data?.message || 'Could not update project status')
@@ -1152,6 +1233,7 @@ const deleteProject = async () => {
 
     await axiosClient.delete(`/projects/${projectId}`)
     ElMessage.success('Project deleted')
+    notifyProjectSettingsRealtime('project-settings-deleted')
     router.replace('/spaces')
   } catch (error) {
     if (error !== 'cancel') {
@@ -1172,7 +1254,36 @@ const goToCyclesWorkspace = () => {
   router.push(`/space/${projectId}/cycles`)
 }
 
-onMounted(loadProjectSettings)
+let unsubscribeAdminRealtime = null
+
+onMounted(async () => {
+  await loadProjectSettings()
+  unsubscribeAdminRealtime = subscribeAdminRealtime(async ({ type, payload }) => {
+    if (payload?.projectId && `${payload.projectId}` !== `${projectId}`) {
+      return
+    }
+
+    if (type === 'project-settings-deleted') {
+      router.replace('/spaces')
+      return
+    }
+
+    if (
+      [
+        'project-settings-updated',
+        'project-settings-favorite-updated',
+        'project-settings-integrations-updated',
+        'project-administration-updated'
+      ].includes(type)
+    ) {
+      await loadProjectSettings()
+    }
+  })
+})
+
+onUnmounted(() => {
+  unsubscribeAdminRealtime?.()
+})
 </script>
 
 <style scoped>

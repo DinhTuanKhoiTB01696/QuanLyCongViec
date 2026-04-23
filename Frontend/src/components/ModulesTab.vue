@@ -1,8 +1,9 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 
 const props = defineProps({
   projectId: { type: String, required: true }
@@ -394,6 +395,26 @@ watch(
 
 watch([moduleSearch, sortBy, sortDirection], async () => {
   await refreshModules()
+})
+
+const unsubscribeAdminRealtime = subscribeAdminRealtime(async ({ type, payload }) => {
+  if (!props.projectId) return
+  if (payload?.projectId && `${payload.projectId}` !== `${props.projectId}`) return
+
+  if (
+    [
+      'project-settings-updated',
+      'project-settings-favorite-updated',
+      'project-settings-integrations-updated',
+      'project-administration-updated'
+    ].includes(type)
+  ) {
+    await Promise.all([fetchMembers(), fetchProjectTasks(), refreshModules()])
+  }
+})
+
+onUnmounted(() => {
+  unsubscribeAdminRealtime?.()
 })
 
 </script>

@@ -95,11 +95,12 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import apexchart from 'vue3-apexcharts'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import axiosClient from '@/api/axiosClient'
 import { useLocale } from '@/composables/useLocale'
+import { broadcastAdminRealtime, subscribeAdminRealtime } from '@/utils/adminRealtime'
 
 const { t } = useLocale()
 const isLoading = ref(false)
@@ -108,6 +109,10 @@ let metricsInterval = null
 
 const defaultTaskStatuses = ref([])
 const projectStatuses = ref([])
+const themeColors = ref({})
+const templates = ref([])
+const defaultTemplates = []
+const selectedPreset = ref('')
 
 const getDefaultTaskStatusSeed = () => ([
   { key: 'BACKLOG', name: 'Backlog', color: '#94a3b8', position: 0, isDefault: true },
@@ -196,6 +201,7 @@ const saveDefaultTaskStatuses = async () => {
     })
     ElMessage.success(t('Default workflow statuses saved.', 'Đã lưu trạng thái công việc mặc định.'))
     await fetchDefaultTaskStatuses()
+    broadcastAdminRealtime('project-administration-updated')
   } catch (error) {
     ElMessage.error(error.response?.data?.message || t('Could not save default workflow statuses.', 'Không thể lưu trạng thái công việc mặc định.'))
   }
@@ -208,6 +214,7 @@ const saveProjectStatuses = async () => {
     })
     ElMessage.success(t('Project statuses saved.', 'Đã lưu trạng thái dự án.'))
     await fetchProjectStatuses()
+    broadcastAdminRealtime('project-administration-updated')
   } catch (error) {
     ElMessage.error(error.response?.data?.message || t('Could not save project statuses.', 'Không thể lưu trạng thái dự án.'))
   }
@@ -219,8 +226,9 @@ const fetchMetrics = async () => {
     const data = res.data?.data || []
     chartSeries.value = [{ name: 'Response Time (ms)', data }]
     currentResponseTime.value = data.length ? data[data.length - 1] : 0
-  } catch (error) {
-    console.error(error)
+  } catch {
+    chartSeries.value = [{ name: 'Response Time (ms)', data: [] }]
+    currentResponseTime.value = 0
   }
 }
 
@@ -268,6 +276,7 @@ const saveThemeToBackend = async (showMessage = true) => {
     const customPresets = templates.value.filter((item) => !defaultTemplates.find((preset) => preset.name === item.name))
     payload.Settings.SavedPresets = JSON.stringify(customPresets)
     await axiosClient.put('/settings/ThemeSettings', payload)
+    broadcastAdminRealtime('project-administration-updated')
     if (showMessage) {
       ElMessage.success(t('Theme saved.', 'Đã lưu theme.'))
     }
@@ -331,15 +340,30 @@ const saveAndAddFavorite = async () => {
     }
   }
 }
+
+let unsubscribeAdminRealtime = null
+
 onMounted(async () => {
   try {
     isLoading.value = true
     await Promise.all([
       fetchDefaultTaskStatuses(),
       fetchProjectStatuses(),
-      fetchMetrics()
+      fetchMetrics(),
+      fetchTheme()
     ])
     metricsInterval = setInterval(fetchMetrics, 10000)
+    unsubscribeAdminRealtime = subscribeAdminRealtime(async ({ type }) => {
+      if (!['project-settings-updated', 'project-settings-favorite-updated', 'project-settings-integrations-updated', 'project-administration-updated'].includes(type)) {
+        return
+      }
+
+      await Promise.all([
+        fetchDefaultTaskStatuses(),
+        fetchProjectStatuses(),
+        fetchTheme()
+      ])
+    })
   } finally {
     isLoading.value = false
   }
@@ -347,6 +371,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (metricsInterval) clearInterval(metricsInterval)
+  unsubscribeAdminRealtime?.()
 })
 </script>
 

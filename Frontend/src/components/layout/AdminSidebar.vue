@@ -8,7 +8,7 @@
     <div class="back-link">
       <a href="#" @click.prevent="goBack" class="flex items-center gap-2">
         <i class="fa-solid fa-arrow-left"></i>
-        <span>{{ t('Back to App', 'Quay lại Ứng dụng') }}</span>
+        <span>{{ t('Back to App', 'Back to App') }}</span>
       </a>
     </div>
 
@@ -19,59 +19,51 @@
     >
       <el-menu-item v-if="canAccessSystemAdmin" index="/admin/audit-log">
         <i class="fa-solid fa-file-lines menu-icon"></i>
-        <span>{{ t('Audit Log', 'Nhật ký Hệ thống') }}</span>
+        <span>{{ t('Audit Log', 'Audit Log') }}</span>
       </el-menu-item>
 
       <el-menu-item v-if="canAccessUserDirectory" index="/admin/users">
         <i class="fa-solid fa-users menu-icon"></i>
-        <span>{{ t('User Management', 'Quản lý Người dùng') }}</span>
+        <span>{{ t('User Management', 'User Management') }}</span>
       </el-menu-item>
 
       <el-menu-item v-if="canAccessUserDirectory" index="/admin/roles">
         <i class="fa-solid fa-shield-halved menu-icon"></i>
-        <span>{{ t('Role Management', 'Quản lý Vai trò') }}</span>
+        <span>{{ t('Role Management', 'Role Management') }}</span>
       </el-menu-item>
-
-      <!-- <el-sub-menu index="/admin/organization">
-        <template #title>
-          <i class="fa-regular fa-building menu-icon"></i>
-          <span>{{ t('Organization', 'Tổ chức') }}</span>
-        </template>
-        <el-menu-item index="/admin/organization/profile">{{ t('Profile', 'Hồ sơ') }}</el-menu-item>
-        <el-menu-item index="/admin/organization/contact">{{ t('Contact', 'Liên hệ') }}</el-menu-item>
-      </el-sub-menu> -->
 
       <el-menu-item v-if="canAccessSystemAdmin" index="/admin/configuration">
         <i class="fa-solid fa-gear menu-icon"></i>
-        <span>{{ t('Configuration', 'Cấu hình') }}</span>
+        <span>{{ t('Configuration', 'Configuration') }}</span>
       </el-menu-item>
 
       <el-sub-menu v-if="canAccessSystemAdmin" index="/admin/instance">
         <template #title>
           <i class="fa-solid fa-server menu-icon"></i>
-          <span>{{ t('Instance', 'Cáº¥p há»‡ thá»‘ng') }}</span>
+          <span>{{ t('Instance', 'Instance') }}</span>
         </template>
-        <el-menu-item index="/admin/instance/general">{{ t('General settings', 'CÃ i Ä‘áº·t chung') }}</el-menu-item>
-        <el-menu-item index="/admin/instance/authentication">{{ t('Authentication', 'Quáº£n lÃ½ Ä‘Äƒng nháº­p') }}</el-menu-item>
+        <el-menu-item index="/admin/instance/general">{{ t('General settings', 'General settings') }}</el-menu-item>
+        <el-menu-item index="/admin/instance/authentication">{{ t('Authentication', 'Authentication') }}</el-menu-item>
         <el-menu-item index="/admin/instance/email">{{ t('Email / SMTP', 'Email / SMTP') }}</el-menu-item>
       </el-sub-menu>
 
       <el-sub-menu v-if="canAccessSystemAdmin" index="/admin/security">
         <template #title>
           <i class="fa-solid fa-shield-halved menu-icon"></i>
-          <span>{{ t('Security', 'Bảo mật') }}</span>
+          <span>{{ t('Security', 'Security') }}</span>
         </template>
-        <el-menu-item index="/admin/security/2fa">{{ t('Two-Factor Auth', 'Xác thực 2 bước') }}</el-menu-item>
-        <el-menu-item index="/admin/security/password">{{ t('Change Password', 'Đổi mật khẩu') }}</el-menu-item>
-        <el-menu-item index="/admin/security/ip-whitelist">{{ t('IP Whitelist', 'IP cho phép') }}</el-menu-item>
+        <el-menu-item index="/admin/security/2fa">{{ t('Two-Factor Auth', 'Two-Factor Auth') }}</el-menu-item>
+        <el-menu-item index="/admin/security/password">{{ t('Change Password', 'Change Password') }}</el-menu-item>
+        <el-menu-item index="/admin/security/ip-whitelist">{{ t('IP Whitelist', 'IP Whitelist') }}</el-menu-item>
       </el-sub-menu>
+
       <div style="flex-grow: 1;"></div>
-      
+
       <div class="sidebar-footer">
         <div class="lang-selector" @click.stop="langMenuOpen = !langMenuOpen">
           <div class="lang-current">
-            <span class="lang-flag">{{ locale === 'vi' ? '🇻🇳' : '🇺🇸' }}</span>
-            <span class="lang-name">{{ locale === 'vi' ? 'Tiếng Việt' : 'English' }}</span>
+            <span class="lang-flag">{{ locale === 'vi' ? 'VN' : 'EN' }}</span>
+            <span class="lang-name">{{ locale === 'vi' ? 'Vietnamese' : 'English' }}</span>
             <i class="fa-solid fa-chevron-down lang-arrow" :class="{ 'is-open': langMenuOpen }"></i>
           </div>
 
@@ -83,8 +75,8 @@
                 :class="{ active: locale === 'vi' }"
                 @click.stop="setLocale('vi')"
               >
-                <span class="lang-flag">🇻🇳</span>
-                <span>Tiếng Việt</span>
+                <span class="lang-flag">VN</span>
+                <span>Vietnamese</span>
                 <i v-if="locale === 'vi'" class="fa-solid fa-check lang-check"></i>
               </button>
               <button
@@ -93,7 +85,7 @@
                 :class="{ active: locale === 'en' }"
                 @click.stop="setLocale('en')"
               >
-                <span class="lang-flag">🇺🇸</span>
+                <span class="lang-flag">EN</span>
                 <span>English</span>
                 <i v-if="locale === 'en'" class="fa-solid fa-check lang-check"></i>
               </button>
@@ -123,7 +115,7 @@ const setLocale = (lang) => {
   langMenuOpen.value = false
 }
 
-const closeLangMenu = (e) => {
+const closeLangMenu = () => {
   langMenuOpen.value = false
 }
 
@@ -149,9 +141,7 @@ const goBack = () => {
   }
 }
 
-const activeMenu = computed(() => {
-  return route.path
-})
+const activeMenu = computed(() => route.path)
 </script>
 
 <style scoped>
@@ -291,7 +281,10 @@ const activeMenu = computed(() => {
 }
 
 .lang-flag {
-  font-size: 18px;
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
 }
 
 .lang-name {
@@ -354,19 +347,17 @@ const activeMenu = computed(() => {
   color: var(--color-accent);
 }
 
-/* Dropdown animation */
 .lang-dropdown-enter-active {
   transition: all 0.2s ease;
 }
+
 .lang-dropdown-leave-active {
   transition: all 0.15s ease;
 }
+
 .lang-dropdown-enter-from,
 .lang-dropdown-leave-to {
   opacity: 0;
   transform: translateY(6px);
 }
 </style>
-
-
-

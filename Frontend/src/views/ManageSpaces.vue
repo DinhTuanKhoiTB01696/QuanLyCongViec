@@ -92,7 +92,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
@@ -100,6 +100,8 @@ import CreateSpaceModal from '@/components/CreateSpaceModal.vue'
 import { ElMessage } from 'element-plus'
 import { useProjectStore } from '@/store/useProjectStore'
 import { canAccessProjectSettings, getProjectSettingsDeniedMessage, hasSystemAdminAccess } from '@/utils/permissions'
+import { subscribeAdminRealtime } from '@/utils/adminRealtime'
+import { getProjectSettingsWindowName, openNamedAppWindow } from '@/utils/windowTabs'
 
 const router = useRouter()
 const projectStore = useProjectStore()
@@ -122,7 +124,7 @@ const goToAdmin = (space) => {
     return
   }
   const routeData = router.resolve(`/space/${space.id}/settings`)
-  window.open(routeData.href, '_blank', 'noopener')
+  openNamedAppWindow(routeData.href, getProjectSettingsWindowName(space.id))
 }
 
 const toggleSort = () => {
@@ -189,6 +191,29 @@ const fetchSpaces = async () => {
 
 onMounted(() => {
   fetchSpaces()
+})
+
+let unsubscribeAdminRealtime = null
+
+onMounted(() => {
+  unsubscribeAdminRealtime = subscribeAdminRealtime(async ({ type }) => {
+    if (
+      [
+        'project-settings-updated',
+        'project-settings-favorite-updated',
+        'project-settings-integrations-updated',
+        'project-administration-updated',
+        'project-settings-deleted'
+      ].includes(type)
+    ) {
+      await fetchSpaces()
+      await projectStore.fetchAllProjects(true).catch(() => {})
+    }
+  })
+})
+
+onUnmounted(() => {
+  unsubscribeAdminRealtime?.()
 })
 
 const filteredSpaces = computed(() => {

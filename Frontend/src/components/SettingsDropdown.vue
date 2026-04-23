@@ -68,6 +68,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { canAccessAdminUserDirectory, getStoredUser, hasSystemAdminAccess } from '@/utils/permissions'
+import { openNamedAppWindow, PROJECT_ADMIN_WINDOW_NAME } from '@/utils/windowTabs'
 
 const router = useRouter()
 const currentUser = computed(() => getStoredUser())
@@ -82,7 +83,7 @@ const handleCommand = (path) => {
   }
 
   const routeData = router.resolve({ path })
-  window.open(routeData.href, 'NexusAdminWindow')
+  openNamedAppWindow(routeData.href, PROJECT_ADMIN_WINDOW_NAME)
 }
 </script>
 

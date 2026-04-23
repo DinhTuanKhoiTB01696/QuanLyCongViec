@@ -222,9 +222,19 @@ const openProject = (projectId) => {
   router.push(`/space/${projectId}`)
 }
 
-const openTaskModal = (project = null) => {
+const openTaskModal = async (project = null) => {
+  const availableProjects = visibleProjects.value.length
+    ? visibleProjects.value
+    : await projectStore.fetchAllProjects(true)
+
+  if (!availableProjects.length) {
+    ElMessage.warning('Create a project before creating a work item.')
+    await router.push('/spaces')
+    return
+  }
+
   taskForm.value = {
-    projectId: project?.id || visibleProjects.value[0]?.id || '',
+    projectId: project?.id || availableProjects[0]?.id || '',
     title: '',
     description: '',
     statusName: 'TO DO'

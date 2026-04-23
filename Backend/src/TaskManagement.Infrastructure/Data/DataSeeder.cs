@@ -12,6 +12,9 @@ namespace TaskManagement.Infrastructure.Data
         {
             var now = DateTime.UtcNow;
             var preferredOwnerId = Guid.Parse("11111111-0000-0000-0000-000000000001");
+            const string demoWorkspaceSlug = "cybwf";
+            const string demoProjectIdentifier = "CYBWF";
+            const string demoProjectName = "Demo Plane Project";
             var standardRoles = new[]
             {
                 new { Name = "Admin", Description = "System Administrator" },
@@ -77,14 +80,18 @@ namespace TaskManagement.Infrastructure.Data
                 await context.SaveChangesAsync();
             }
 
-            var workspace = await context.Workspaces.FirstOrDefaultAsync(w => w.Slug == "cybwf");
+            var workspaceWasCreated = false;
+            var workspace = await context.Workspaces
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(w => w.Slug == demoWorkspaceSlug);
             if (workspace == null)
             {
+                workspaceWasCreated = true;
                 workspace = new Workspace
                 {
                     Id = Guid.NewGuid(),
                     Name = "Cybwf Workspace",
-                    Slug = "cybwf",
+                    Slug = demoWorkspaceSlug,
                     OwnerId = owner.Id,
                     Timezone = "Asia/Ho_Chi_Minh",
                     CreatedAt = now,
@@ -127,18 +134,27 @@ namespace TaskManagement.Infrastructure.Data
                 await context.SaveChangesAsync();
             }
 
-            var project = await context.Projects.FirstOrDefaultAsync(p => p.Name == "Demo Plane Project");
+            var project = await context.Projects
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(p =>
+                    p.WorkspaceId == workspace.Id
+                    && (p.Identifier == demoProjectIdentifier || p.Name == demoProjectName));
             if (project == null)
             {
+                if (!workspaceWasCreated)
+                {
+                    return;
+                }
+
                 project = new Project
                 {
                     Id = Guid.NewGuid(),
                     WorkspaceId = workspace.Id,
                     CreatorId = owner.Id,
-                    Identifier = "CYBWF",
+                    Identifier = demoProjectIdentifier,
                     IssueSequence = 10,
                     NetworkType = "Public",
-                    Name = "Demo Plane Project",
+                    Name = demoProjectName,
                     Description = "A sample project to test the Plane-like UI",
                     Status = true,
                     CreatedAt = now,
@@ -146,6 +162,10 @@ namespace TaskManagement.Infrastructure.Data
                 };
                 context.Projects.Add(project);
                 await context.SaveChangesAsync();
+            }
+            else if (project.IsDeleted)
+            {
+                return;
             }
             else if (project.CreatorId == Guid.Empty)
             {

@@ -1693,24 +1693,20 @@ const fetchAdditionalProjectData = async () => {
             userId: member.userId || member.id,
             fullName: member.fullName || member.name || member.email
         }));
-        const desiredOrder = ['BACKLOG', 'TO DO', 'IN PROGRESS', 'IN REVIEW', 'DONE', 'CANCELLED'];
-        const statusMap = new Map();
-        for (const status of (statusesRes.data?.data || [])) {
-            const normalized = normalizeStatusName(status.name);
-            if (!statusMap.has(normalized)) {
-                statusMap.set(normalized, {
-                    ...status,
-                    name: normalized,
-                    displayName: normalized
-                });
-            }
-        }
-        desiredOrder.forEach((name, index) => {
-            if (!statusMap.has(name)) {
-                statusMap.set(name, { id: `fallback-${index}`, name, displayName: name });
-            }
-        });
-        projectStatuses.value = desiredOrder.map(name => statusMap.get(name)).filter(Boolean);
+        const fallbackStatuses = [
+          { id: 'fallback-backlog', name: 'BACKLOG', displayName: 'Backlog' },
+          { id: 'fallback-todo', name: 'TO DO', displayName: 'To Do' },
+          { id: 'fallback-progress', name: 'IN PROGRESS', displayName: 'In Progress' },
+          { id: 'fallback-review', name: 'IN REVIEW', displayName: 'In Review' },
+          { id: 'fallback-done', name: 'DONE', displayName: 'Done' },
+          { id: 'fallback-cancelled', name: 'CANCELLED', displayName: 'Cancelled' }
+        ];
+        const incomingStatuses = (statusesRes.data?.data || []).map((status) => ({
+            ...status,
+            name: status.name,
+            displayName: status.displayName || status.name
+        }));
+        projectStatuses.value = incomingStatuses.length ? incomingStatuses : fallbackStatuses;
     } catch(e) {}
 };
 

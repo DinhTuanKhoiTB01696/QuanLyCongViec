@@ -143,11 +143,12 @@
 </template>
 
 <script setup>
-import { computed, ref, defineProps, defineEmits, watch, onMounted, nextTick } from 'vue'
+import { computed, ref, defineProps, defineEmits, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useSprintStore } from '@/store/useSprintStore'
 import { useProjectStore } from '@/store/useProjectStore'
+import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 
 const route = useRoute()
 const router = useRouter()
@@ -182,7 +183,38 @@ watch(currentProjectId, async (newVal, oldVal) => {
 }, { immediate: true })
 
 onMounted(() => {
-  projectStore.fetchAllProjects().catch(() => {})
+  projectStore.fetchAllProjects(true).catch(() => {})
+})
+
+let unsubscribeAdminRealtime = null
+
+onMounted(() => {
+  unsubscribeAdminRealtime = subscribeAdminRealtime(async ({ type, payload }) => {
+    const activeProjectId = route.params.id || localStorage.getItem('currentProjectId') || null
+    if (payload?.projectId && activeProjectId && `${payload.projectId}` !== `${activeProjectId}`) {
+      await projectStore.fetchAllProjects(true).catch(() => {})
+      return
+    }
+
+    if (
+      [
+        'project-settings-updated',
+        'project-settings-favorite-updated',
+        'project-settings-integrations-updated',
+        'project-administration-updated',
+        'project-settings-deleted'
+      ].includes(type)
+    ) {
+      await projectStore.fetchAllProjects(true).catch(() => {})
+      if (activeProjectId && type !== 'project-settings-deleted') {
+        await projectStore.fetchProjectDetails(activeProjectId, { force: true }).catch(() => {})
+      }
+    }
+  })
+})
+
+onUnmounted(() => {
+  unsubscribeAdminRealtime?.()
 })
 
 const toggleProject = (projectId) => {
@@ -212,7 +244,7 @@ const triggerCreateTask = async () => {
     : await projectStore.fetchAllProjects()
 
   if (!projects.length) {
-    ElMessage.warning('Bạn cần tạo project trước khi tạo work item.')
+    ElMessage.warning('Create a project before creating a work item.')
     await router.push('/spaces')
     return
   }

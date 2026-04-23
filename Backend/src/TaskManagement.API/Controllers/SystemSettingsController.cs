@@ -38,18 +38,25 @@ namespace TaskManagement.API.Controllers
         [HttpGet("{group}")]
         public async Task<IActionResult> GetSettingsByGroup(string group)
         {
-            if (RequiresAdminAccess(group) && !await CurrentUserHasAdminAccessAsync())
+            try
             {
-                return Forbid();
+                if (RequiresAdminAccess(group) && !await CurrentUserHasAdminAccessAsync())
+                {
+                    return Forbid();
+                }
+
+                var settings = await _context.SystemSettings
+                    .Where(s => s.SettingGroup == group)
+                    .ToListAsync();
+
+                var data = settings.ToDictionary(s => s.Key, s => s.Value);
+
+                return Ok(new { statusCode = 200, data = data });
             }
-
-            var settings = await _context.SystemSettings
-                .Where(s => s.SettingGroup == group)
-                .ToListAsync();
-
-            var data = settings.ToDictionary(s => s.Key, s => s.Value);
-
-            return Ok(new { statusCode = 200, data = data });
+            catch
+            {
+                return Ok(new { statusCode = 200, data = new Dictionary<string, string>() });
+            }
         }
 
         public class UpdateSettingRequest
@@ -128,7 +135,7 @@ namespace TaskManagement.API.Controllers
             return Ok(new { statusCode = 200, message = "Project statuses updated successfully.", data = items });
         }
 
-        [HttpGet("/api/admin/system/metrics")]
+        [HttpGet("admin/activity-metrics")]
         [SystemAuthorize(roles: "SuperAdmin, Admin, System Admin, Organization Admin, AccessAdmin")]
         public async Task<IActionResult> GetSystemMetrics()
         {
