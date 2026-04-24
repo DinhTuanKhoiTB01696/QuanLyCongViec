@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using TaskManagement.API.Filters;
 using TaskManagement.Application.DTOs.Project;
@@ -39,8 +40,12 @@ namespace TaskManagement.API.Controllers
         {
             try
             {
-                await _projectMemberService.InviteMemberAsync(projectId, request);
-                return Ok(new { statusCode = 200, message = "Success", data = "Thêm thành viên thành công." });
+                var inviterName = User.FindFirstValue(ClaimTypes.Name)
+                    ?? User.FindFirstValue(ClaimTypes.Email)
+                    ?? "SprintA admin";
+
+                await _projectMemberService.InviteMemberAsync(projectId, request, inviterName);
+                return Ok(new { statusCode = 200, message = "Success", data = "Da gui loi moi tham gia du an qua email." });
             }
             catch (InvalidOperationException ex)
             {
@@ -63,7 +68,7 @@ namespace TaskManagement.API.Controllers
             try
             {
                 await _projectMemberService.RemoveMemberAsync(projectId, userId);
-                return Ok(new { statusCode = 200, message = "Success", data = "Xóa thành viên thành công và đã xử lý task mồ côi." });
+                return Ok(new { statusCode = 200, message = "Success", data = "Xoa thanh vien thanh cong va da xu ly task mo coi." });
             }
             catch (ArgumentException ex)
             {
@@ -83,11 +88,11 @@ namespace TaskManagement.API.Controllers
             {
                 if (string.IsNullOrWhiteSpace(request?.Role))
                 {
-                    return BadRequest(new { statusCode = 400, message = "Role không để trống." });
+                    return BadRequest(new { statusCode = 400, message = "Role khong de trong." });
                 }
 
                 await _projectMemberService.UpdateMemberRoleAsync(projectId, userId, request.Role);
-                return Ok(new { statusCode = 200, message = "Success", data = "Cập nhật role thành công." });
+                return Ok(new { statusCode = 200, message = "Success", data = "Cap nhat role thanh cong." });
             }
             catch (ArgumentException ex)
             {

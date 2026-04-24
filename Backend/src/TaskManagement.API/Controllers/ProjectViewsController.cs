@@ -35,7 +35,8 @@ namespace TaskManagement.API.Controllers
                     v.Description,
                     v.QueryMetadata,
                     v.IsFavorite,
-                    v.CreatedAt
+                    v.CreatedAt,
+                    v.UpdatedAt
                 })
                 .ToListAsync();
 
@@ -53,7 +54,8 @@ namespace TaskManagement.API.Controllers
                     v.Description,
                     v.QueryMetadata,
                     v.IsFavorite,
-                    v.CreatedAt
+                    v.CreatedAt,
+                    v.UpdatedAt
                 })
                 .FirstOrDefaultAsync();
 
@@ -65,6 +67,13 @@ namespace TaskManagement.API.Controllers
             public string Name {get; set;} = string.Empty;
             public string? Description {get; set;}
             public string QueryMetadata {get; set;} = "{}";
+        }
+
+        public class UpdateViewDto
+        {
+            public string? Name { get; set; }
+            public string? Description { get; set; }
+            public string? QueryMetadata { get; set; }
         }
 
         [HttpPost]
@@ -100,6 +109,59 @@ namespace TaskManagement.API.Controllers
             view.IsFavorite = !view.IsFavorite;
             await _context.SaveChangesAsync();
             return Ok(new { statusCode = 200, data = new { isFavorite = view.IsFavorite }, message = "Favorite toggled" });
+        }
+
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> Update(Guid projectId, Guid id, [FromBody] UpdateViewDto dto)
+        {
+            var view = await _context.ProjectViews.FirstOrDefaultAsync(v => v.ProjectId == projectId && v.Id == id);
+            if (view == null) return NotFound(new { statusCode = 404, message = "View not found" });
+
+            if (!string.IsNullOrWhiteSpace(dto.Name))
+            {
+                view.Name = dto.Name.Trim();
+            }
+
+            if (dto.Description != null)
+            {
+                view.Description = dto.Description;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.QueryMetadata))
+            {
+                view.QueryMetadata = dto.QueryMetadata;
+            }
+
+            view.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                statusCode = 200,
+                data = new
+                {
+                    view.Id,
+                    view.Name,
+                    view.Description,
+                    view.QueryMetadata,
+                    view.IsFavorite,
+                    view.CreatedAt,
+                    view.UpdatedAt
+                },
+                message = "View updated"
+            });
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid projectId, Guid id)
+        {
+            var view = await _context.ProjectViews.FirstOrDefaultAsync(v => v.ProjectId == projectId && v.Id == id);
+            if (view == null) return NotFound(new { statusCode = 404, message = "View not found" });
+
+            _context.ProjectViews.Remove(view);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "View deleted" });
         }
     }
 }

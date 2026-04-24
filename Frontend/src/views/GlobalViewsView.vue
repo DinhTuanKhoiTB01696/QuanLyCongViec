@@ -1,11 +1,17 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import axiosClient from '@/api/axiosClient'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
+import FilterBar from '@/components/FilterBar.vue'
 
 const rawTasks = ref([])
 const loading = ref(false)
 const showFilters = ref(false)
+const displayProps = ref(['ID', 'Assignee', 'Start date', 'Due date', 'Labels', 'Priority', 'State'])
+const groupBy = ref('States')
+const orderBy = ref('Manual')
+const showSubItems = ref(false)
+const activeFilters = ref([])
 
 const analyticsScope = ref('all') // all, my, archived
 const selectedProjectId = ref(null)
@@ -15,6 +21,77 @@ const filters = ref({
   status: '',
   search: ''
 })
+
+const getTaskFieldValue = (task, field) => {
+  const fieldMap = {
+    status: task.statusName || task.state || task.status,
+    priority: task.priorityName || task.priority,
+    assignee: task.assigneeName || task.assignedToName || task.assignees?.map(a => a.fullName || a.name).join(', '),
+    creator: task.reporterName || task.createdByName || task.creatorName,
+    label: task.labels?.map(l => l.name || l.labelName).join(', '),
+    startDate: task.plannedStartDate || task.startDate,
+    dueDate: task.dueDate || task.plannedEndDate,
+    cycle: task.sprintName || task.cycleName,
+    module: task.moduleName,
+    createdAt: task.createdAt || task.createdDate,
+    updatedAt: task.updatedAt || task.updatedDate
+  }
+  return fieldMap[field] ?? task[field]
+}
+
+const normalizeValue = (value) => `${value ?? ''}`.toLowerCase()
+
+const applyTaskFilters = (items, filterList) => {
+  if (!filterList?.length) return items
+
+  return items.filter(task => filterList.every(filter => {
+    const actual = getTaskFieldValue(task, filter.field)
+    const expected = filter.value
+    const operator = filter.operator || filter.condition || 'is'
+    const actualText = normalizeValue(actual)
+    const expectedText = normalizeValue(expected)
+    const actualDate = actual ? new Date(actual).getTime() : null
+    const expectedDate = expected ? new Date(expected).getTime() : null
+
+    if (operator === 'empty') return !actual
+    if (operator === 'not empty') return Boolean(actual)
+    if (operator === 'overdue') return actualDate && actualDate < Date.now()
+    if (operator === 'before') return actualDate && expectedDate && actualDate < expectedDate
+    if (operator === 'after') return actualDate && expectedDate && actualDate > expectedDate
+    if (operator === 'between') {
+      const endDate = filter.valueTo ? new Date(filter.valueTo).getTime() : null
+      return actualDate && expectedDate && endDate && actualDate >= expectedDate && actualDate <= endDate
+    }
+    if (operator === 'is not' || operator === 'is_not') return actualText !== expectedText
+    if (operator === 'includes') return actualText.includes(expectedText)
+    if (operator === 'not includes' || operator === 'not_includes') return !actualText.includes(expectedText)
+    if (operator === 'in') return expectedText.split(',').map(v => v.trim()).includes(actualText)
+    if (operator === 'not in' || operator === 'not_in') return !expectedText.split(',').map(v => v.trim()).includes(actualText)
+    return actualText === expectedText || actualText.includes(expectedText)
+  }))
+}
+
+const visibleColumns = computed(() => new Set(displayProps.value))
+const showColumn = (name) => visibleColumns.value.has(name)
+
+const toggleDisplayProp = (prop) => {
+  const idx = displayProps.value.indexOf(prop)
+  if (idx > -1) displayProps.value.splice(idx, 1)
+  else displayProps.value.push(prop)
+}
+
+const handleRemoveFilter = (id) => {
+  activeFilters.value = activeFilters.value.filter(f => f.id !== id)
+}
+
+const handleClearFilters = () => {
+  activeFilters.value = []
+}
+
+const handleAddFilter = (filter) => {
+  if (!filter?.id) return
+  activeFilters.value.push(filter)
+}
 
 const fetchProjects = async () => {
     try {
@@ -69,7 +146,27 @@ const filteredProjects = computed(() => {
 })
 
 const filteredTasks = computed(() => {
-  return rawTasks.value
+  let nextTasks = [...rawTasks.value]
+
+  if (!showSubItems.value) {
+    nextTasks = nextTasks.filter(task => !(task.parentTaskId || task.parentId))
+  }
+
+  nextTasks = applyTaskFilters(nextTasks, activeFilters.value)
+
+  if (orderBy.value === 'Last created') {
+    nextTasks.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+  } else if (orderBy.value === 'Last updated') {
+    nextTasks.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+  } else if (orderBy.value === 'Start date') {
+    nextTasks.sort((a, b) => new Date(a.startDate || a.plannedStartDate || 0) - new Date(b.startDate || b.plannedStartDate || 0))
+  } else if (orderBy.value === 'Due date') {
+    nextTasks.sort((a, b) => new Date(a.dueDate || a.plannedEndDate || 0) - new Date(b.dueDate || b.plannedEndDate || 0))
+  } else if (orderBy.value === 'Priority') {
+    nextTasks.sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999))
+  }
+
+  return nextTasks
 })
 
 const getStatusIcon = (st) => {
@@ -138,73 +235,123 @@ const getPrioIcon = (pr) => {
               <option value="DONE" style="background: var(--color-border);">Done</option>
            </select>
            <button class="plane-toolbar-btn" @click="showFilters = !showFilters"><i class="fa-solid fa-filter"></i></button>
-           <button class="plane-toolbar-btn">Display</button>
+           <el-dropdown trigger="click" popper-class="display-popper-final" placement="bottom-end" :hide-on-click="false" :z-index="5000">
+             <button class="plane-toolbar-btn">Display</button>
+             <template #dropdown>
+               <div class="display-scroll-vfinal">
+                 <div class="st-content">
+                   <div class="st-sect">
+                     <div class="st-sect-header"><span>Display Properties</span><i class="fa-solid fa-chevron-up"></i></div>
+                     <div class="st-chips">
+                       <span v-for="p in ['ID', 'Assignee', 'Start date', 'Due date', 'Labels', 'Priority', 'State', 'Estimate', 'Module', 'Cycle']"
+                             :key="p" class="p-chip-st" :class="{ selected: displayProps.includes(p) }" @click.stop="toggleDisplayProp(p)">{{ p }}</span>
+                     </div>
+                   </div>
+                   <div class="st-sect">
+                     <div class="st-sect-header"><span>Group by</span><i class="fa-solid fa-chevron-up"></i></div>
+                     <div class="st-radios">
+                       <label class="st-opt" v-for="g in ['States', 'Priority', 'Cycle', 'Module', 'Labels', 'Assignees', 'Created by', 'None']" :key="g">
+                         <input type="radio" name="global-groupby" :value="g" v-model="groupBy" />
+                         <span class="st-dot"></span><span class="st-label">{{ g }}</span>
+                       </label>
+                     </div>
+                   </div>
+                   <div class="st-sect">
+                     <div class="st-sect-header"><span>Order by</span><i class="fa-solid fa-chevron-up"></i></div>
+                     <div class="st-radios">
+                       <label class="st-opt" v-for="o in ['Manual', 'Last created', 'Last updated', 'Start date', 'Due date', 'Priority']" :key="o">
+                         <input type="radio" name="global-orderby" :value="o" v-model="orderBy" />
+                         <span class="st-dot"></span><span class="st-label">{{ o }}</span>
+                       </label>
+                     </div>
+                   </div>
+                   <div class="divider"></div>
+                   <div class="st-foot">
+                     <label class="st-check">
+                       <input type="checkbox" v-model="showSubItems" />
+                       <span class="checkmark"></span>
+                       <span class="st-label">Show sub-work items</span>
+                     </label>
+                   </div>
+                 </div>
+               </div>
+             </template>
+           </el-dropdown>
         </div>
       </header>
+
+      <div v-if="showFilters" class="global-filter-bar">
+        <FilterBar
+          :filters="activeFilters"
+          @remove="handleRemoveFilter"
+          @clear="handleClearFilters"
+          @add="handleAddFilter"
+        />
+      </div>
       
       <!-- Table content -->
       <div class="spreadsheet-container">
         <table class="plane-table">
           <thead>
             <tr>
-              <th style="width: 25%;">Work items</th>
-              <th><i class="fa-regular fa-circle-dot"></i> State <i class="fa-solid fa-chevron-down f-10"></i></th>
-              <th><i class="fa-solid fa-signal"></i> Priority <i class="fa-solid fa-chevron-down f-10"></i></th>
-              <th><i class="fa-solid fa-user-group"></i> Assignees <i class="fa-solid fa-chevron-down f-10"></i></th>
-              <th><i class="fa-solid fa-tag"></i> Labels <i class="fa-solid fa-chevron-down f-10"></i></th>
-              <th><i class="fa-solid fa-table-cells-large"></i> Modules <i class="fa-solid fa-chevron-down f-10"></i></th>
-              <th><i class="fa-solid fa-arrows-spin"></i> Cycle <i class="fa-solid fa-chevron-down f-10"></i></th>
-              <th><i class="fa-regular fa-calendar"></i> Start date <i class="fa-solid fa-chevron-down f-10"></i></th>
-              <th><i class="fa-solid fa-calendar-day"></i> Due date <i class="fa-solid fa-chevron-down f-10"></i></th>
-              <th><i class="fa-solid fa-triangle-exclamation"></i> Estimate <i class="fa-solid fa-chevron-down f-10"></i></th>
+              <th style="width: 25%;" v-if="showColumn('ID')">Work items</th>
+              <th v-if="showColumn('State')"><i class="fa-regular fa-circle-dot"></i> State <i class="fa-solid fa-chevron-down f-10"></i></th>
+              <th v-if="showColumn('Priority')"><i class="fa-solid fa-signal"></i> Priority <i class="fa-solid fa-chevron-down f-10"></i></th>
+              <th v-if="showColumn('Assignee')"><i class="fa-solid fa-user-group"></i> Assignees <i class="fa-solid fa-chevron-down f-10"></i></th>
+              <th v-if="showColumn('Labels')"><i class="fa-solid fa-tag"></i> Labels <i class="fa-solid fa-chevron-down f-10"></i></th>
+              <th v-if="showColumn('Module')"><i class="fa-solid fa-table-cells-large"></i> Modules <i class="fa-solid fa-chevron-down f-10"></i></th>
+              <th v-if="showColumn('Cycle')"><i class="fa-solid fa-arrows-spin"></i> Cycle <i class="fa-solid fa-chevron-down f-10"></i></th>
+              <th v-if="showColumn('Start date')"><i class="fa-regular fa-calendar"></i> Start date <i class="fa-solid fa-chevron-down f-10"></i></th>
+              <th v-if="showColumn('Due date')"><i class="fa-solid fa-calendar-day"></i> Due date <i class="fa-solid fa-chevron-down f-10"></i></th>
+              <th v-if="showColumn('Estimate')"><i class="fa-solid fa-triangle-exclamation"></i> Estimate <i class="fa-solid fa-chevron-down f-10"></i></th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="t in filteredTasks" :key="t.id">
-              <td>
+              <td v-if="showColumn('ID')">
                 <div class="wi-cell">
                   <span class="wi-id">{{ t.sequenceId || t.id.substring(0,8).toUpperCase() }}</span>
                   <span class="wi-title">{{ t.title }}</span>
                 </div>
               </td>
-              <td>
+              <td v-if="showColumn('State')">
                 <div class="state-cell">
                   <i :class="getStatusIcon(t.statusName || 'BACKLOG').class"></i>
                   <span>{{ t.statusName || 'BACKLOG' }}</span>
                 </div>
               </td>
-              <td>
+              <td v-if="showColumn('Priority')">
                 <div class="prio-cell">
                   <i class="fa-solid fa-signal" v-if="t.priority === 3" style="color: #F59E0B"></i>
                   <i class="fa-solid fa-ban text-muted" v-else></i>
                   <span>{{ t.priority === 3 ? 'High' : 'None' }}</span>
                 </div>
               </td>
-              <td>
+              <td v-if="showColumn('Assignee')">
                 <div class="assignee-cell">
                   <i class="fa-regular fa-user" v-if="!t.assigneeName"></i>
                   <span class="text-muted" v-if="!t.assigneeName">Assignees</span>
                   <span class="d-dot" style="background: #0EA5E9; padding: 2px 6px; color: white; border-radius: 4px; font-size: 10px;" v-else>{{ t.assigneeName.substring(0,2).toUpperCase() }}</span>
                 </div>
               </td>
-              <td>
+              <td v-if="showColumn('Labels')">
                 <div class="label-cell text-muted">
                   <i class="fa-solid fa-tag"></i> Select labels
                 </div>
               </td>
-              <td>
+              <td v-if="showColumn('Module')">
                 <div class="module-cell text-muted">
                   <i class="fa-solid fa-table-cells-large"></i> 0 Modules
                 </div>
               </td>
-              <td>
+              <td v-if="showColumn('Cycle')">
                 <div class="cycle-cell text-muted">
                   <i class="fa-solid fa-arrows-spin"></i> No Cycle
                 </div>
               </td>
-              <td class="text-muted"><i class="fa-regular fa-calendar"></i> Start date</td>
-              <td class="text-muted"><i class="fa-solid fa-calendar-day"></i> Due date</td>
-              <td class="text-muted"><i class="fa-solid fa-caret-up"></i> Estimate</td>
+              <td v-if="showColumn('Start date')" class="text-muted"><i class="fa-regular fa-calendar"></i> {{ t.plannedStartDate || t.startDate || 'Start date' }}</td>
+              <td v-if="showColumn('Due date')" class="text-muted"><i class="fa-solid fa-calendar-day"></i> {{ t.dueDate || t.plannedEndDate || 'Due date' }}</td>
+              <td v-if="showColumn('Estimate')" class="text-muted"><i class="fa-solid fa-caret-up"></i> {{ t.totalEstimatedHours || t.estimatedHours || 'Estimate' }}</td>
             </tr>
           </tbody>
         </table>
@@ -258,6 +405,9 @@ const getPrioIcon = (pr) => {
   gap: 6px;
 }
 .plane-toolbar-btn:hover { background: var(--color-border); }
+.global-filter-bar {
+  padding: 12px 24px 0;
+}
 
 .scope-btn {
   background: transparent;
@@ -350,6 +500,43 @@ const getPrioIcon = (pr) => {
 .assignee-cell, .label-cell, .module-cell, .cycle-cell { display: flex; align-items: center; gap: 6px; }
 .d-dot { width: 6px; height: 6px; border-radius: 50%; background: #9333EA; display: inline-block; }
 td i { width: 14px; text-align: center; }
+
+.display-scroll-vfinal {
+  width: 330px;
+  background: var(--color-surface);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  max-height: 520px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.display-scroll-vfinal::-webkit-scrollbar { width: 5px; }
+.display-scroll-vfinal::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 10px; }
+.st-content { padding: 20px; padding-bottom: 30px; }
+.st-sect { margin-bottom: 24px; }
+.st-sect-header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 700; color: var(--color-text-muted); margin-bottom: 12px; }
+.st-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.p-chip-st { padding: 6px 10px; background: var(--color-bg); border-radius: 6px; font-size: 12px; color: var(--color-text-secondary); cursor: pointer; border: 1px solid var(--color-border); }
+.p-chip-st.selected { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+.st-radios { display: flex; flex-direction: column; gap: 11px; }
+.st-opt { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.st-opt input { display: none; }
+.st-dot { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--color-border); position: relative; }
+.st-opt input:checked + .st-dot { border-color: var(--color-accent); }
+.st-opt input:checked + .st-dot::after {
+  content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: 8px; color: var(--color-accent);
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+}
+.st-label { font-size: 13px; color: var(--color-text-secondary); }
+.divider { height: 1px; background: #2D2F36; margin: 16px 0; }
+.st-check { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.st-check input { display: none; }
+.checkmark { width: 15px; height: 15px; border: 1.5px solid #3F3F46; border-radius: 4px; position: relative; }
+.st-check input:checked + .checkmark { background: #0EA5E9; border-color: #0EA5E9; }
+.st-check input:checked + .checkmark::after {
+  content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px; border: solid white; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+}
+:deep(.display-popper-final) { background: transparent !important; border: none !important; box-shadow: none !important; z-index: 10000 !important; }
 </style>
 
 

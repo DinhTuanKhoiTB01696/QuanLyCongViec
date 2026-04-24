@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using TaskManagement.Application.Common;
 using TaskManagement.Application.DTOs.Project;
@@ -13,21 +16,65 @@ namespace TaskManagement.Infrastructure.Services
     public class ProjectMemberService : IProjectMemberService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IEmailService _emailService;
+        private readonly IConfiguration _configuration;
 
-        public ProjectMemberService(ApplicationDbContext context)
+        public ProjectMemberService(ApplicationDbContext context, IEmailService emailService, IConfiguration configuration)
         {
             _context = context;
+            _emailService = emailService;
+            _configuration = configuration;
         }
 
-        public async Task InviteMemberAsync(Guid projectId, ProjectMemberRequestDto request)
+        public async Task InviteMemberAsync(Guid projectId, ProjectMemberRequestDto request, string inviterName)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email && !u.IsDeleted);
-            if (user == null)
+            var normalizedEmail = request.Email?.Trim().ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(normalizedEmail))
             {
-                throw new ArgumentException("Nguoi dung khong ton tai trong he thong.");
+                throw new ArgumentException("Email thanh vien khong duoc de trong.");
+            }
+
+            var project = await _context.Projects
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == projectId && !p.IsDeleted);
+
+            if (project == null)
+            {
+                throw new ArgumentException("Du an khong ton tai.");
+            }
+
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                .FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+
+            if (user?.IsDeleted == true)
+            {
+                throw new ArgumentException("Email nay thuoc ve mot tai khoan da bi xoa.");
             }
 
             var resolvedProjectRole = await ResolveProjectRoleAsync(request.Role);
+            var now = DateTime.UtcNow;
+
+            if (user == null)
+            {
+                user = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Email = normalizedEmail,
+                    FullName = BuildNameFromEmail(normalizedEmail),
+                    PasswordHash = string.Empty,
+                    IsActive = false,
+                    IsDeleted = false,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+
+                _context.Users.Add(user);
+            }
+            else
+            {
+                user.UpdatedAt = now;
+            }
 
             bool isAlreadyMember = await _context.ProjectMembers
                 .AnyAsync(pm => pm.ProjectId == projectId && pm.UserId == user.Id && pm.Status);
@@ -42,9 +89,9 @@ namespace TaskManagement.Infrastructure.Services
 
             if (softDeletedMember != null)
             {
-                softDeletedMember.Status = true;
+                softDeletedMember.Status = false;
                 softDeletedMember.ProjectRole = resolvedProjectRole;
-                softDeletedMember.JoinedAt = DateTime.UtcNow;
+                softDeletedMember.JoinedAt = now;
                 softDeletedMember.LeftAt = null;
             }
             else
@@ -54,13 +101,46 @@ namespace TaskManagement.Infrastructure.Services
                     ProjectId = projectId,
                     UserId = user.Id,
                     ProjectRole = resolvedProjectRole,
-                    JoinedAt = DateTime.UtcNow,
-                    Status = true
+                    JoinedAt = now,
+                    Status = false
                 };
                 _context.ProjectMembers.Add(newMember);
             }
 
+            var activeInviteTokens = await _context.RefreshTokens
+                .Where(token => token.UserId == user.Id &&
+                                token.DeviceId == "Invite" &&
+                                !token.IsRevoked)
+                .ToListAsync();
+
+            foreach (var inviteToken in activeInviteTokens)
+            {
+                inviteToken.IsRevoked = true;
+            }
+
+            var rawInviteToken = GenerateInviteToken();
+            var inviteTokenHash = HashToken(rawInviteToken);
+            _context.RefreshTokens.Add(new RefreshToken
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Token = inviteTokenHash,
+                DeviceId = "Invite",
+                ExpiryTime = now.AddDays(7),
+                IsRevoked = false
+            });
+
             await _context.SaveChangesAsync();
+
+            var acceptUrl = BuildInviteUrl(rawInviteToken);
+            await _emailService.SendInviteEmailAsync(
+                normalizedEmail,
+                user.FullName,
+                inviterName,
+                "SprintA",
+                project.Name,
+                acceptUrl,
+                request.InviteMessage);
         }
 
         public async Task RemoveMemberAsync(Guid projectId, Guid userId)
@@ -186,6 +266,40 @@ namespace TaskManagement.Infrastructure.Services
             }
 
             throw new ArgumentException($"Vai tro '{requestedRole}' khong hop le cho du an.");
+        }
+
+        private string BuildInviteUrl(string rawInviteToken)
+        {
+            var frontendBaseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
+            return $"{frontendBaseUrl.TrimEnd('/')}/accept-invite?token={Uri.EscapeDataString(rawInviteToken)}";
+        }
+
+        private static string GenerateInviteToken()
+        {
+            var bytes = RandomNumberGenerator.GetBytes(48);
+            return Convert.ToBase64String(bytes)
+                .Replace("+", "-", StringComparison.Ordinal)
+                .Replace("/", "_", StringComparison.Ordinal)
+                .TrimEnd('=');
+        }
+
+        private static string HashToken(string token)
+        {
+            var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+            return Convert.ToHexString(hashBytes);
+        }
+
+        private static string BuildNameFromEmail(string email)
+        {
+            var localPart = email.Split('@')[0];
+            var words = localPart
+                .Split(new[] { '.', '_', '-' }, StringSplitOptions.RemoveEmptyEntries)
+                .Where(word => !string.IsNullOrWhiteSpace(word))
+                .Select(word => word.Length == 1
+                    ? char.ToUpperInvariant(word[0]).ToString()
+                    : char.ToUpperInvariant(word[0]) + word[1..]);
+
+            return string.Join(' ', words);
         }
     }
 }

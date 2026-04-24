@@ -13,6 +13,7 @@ const projectId = computed(() => route.params.id || localStorage.getItem('curren
 const views = ref([])
 const activeView = ref(null)
 const tasks = ref([])
+const projectMembers = ref([])
 const loading = ref(false)
 const showCreateModal = ref(false)
 const modalTab = ref('list')
@@ -22,16 +23,35 @@ const viewType = ref('list')
 const activeFilters = ref([])
 const showViewSearch = ref(false)
 
-const addFilterOption = (label, icon) => {
-    // Check if we want to allow multiples (like Start date) or just one of a kind
-    // For now, let's just add it with a unique ID
-    activeFilters.value.push({
-        id: Date.now(),
-        label: label,
-        condition: 'is',
-        value: '--',
-        icon: icon
-    })
+const quickFilterPresets = {
+    status: { field: 'status', label: 'Status', icon: 'fa-regular fa-circle-dot', operator: 'is', value: 'TO DO' },
+    assignee: { field: 'assignee', label: 'Assignee', icon: 'fa-regular fa-user', operator: 'empty', value: '' },
+    priority: { field: 'priority', label: 'Priority', icon: 'fa-solid fa-signal', operator: 'is', value: 'High' },
+    label: { field: 'label', label: 'Label', icon: 'fa-solid fa-tag', operator: 'empty', value: '' },
+    cycle: { field: 'cycle', label: 'Cycle', icon: 'fa-regular fa-circle-pause', operator: 'empty', value: '' },
+    module: { field: 'module', label: 'Module', icon: 'fa-solid fa-table-cells-large', operator: 'empty', value: '' },
+    startDate: { field: 'startDate', label: 'Start date', icon: 'fa-regular fa-calendar-plus', operator: 'empty', value: '' },
+    dueDate: { field: 'dueDate', label: 'Target date', icon: 'fa-regular fa-calendar', operator: 'overdue', value: '' },
+    createdAt: { field: 'createdAt', label: 'Created at', icon: 'fa-regular fa-calendar', operator: 'after', value: 'Today' },
+    updatedAt: { field: 'updatedAt', label: 'Updated at', icon: 'fa-regular fa-calendar', operator: 'after', value: 'Today' }
+}
+
+const addFilterOption = (presetKey) => {
+    const preset = quickFilterPresets[presetKey]
+    if (!preset) return
+
+    const filter = {
+        id: `${preset.field}-${Date.now()}`,
+        field: preset.field,
+        operator: preset.operator,
+        value: preset.value,
+        label: preset.label,
+        condition: preset.operator,
+        displayValue: preset.value || preset.operator,
+        icon: preset.icon
+    }
+
+    activeFilters.value.push(filter)
 }
 
 const handleRemoveFilter = (id) => {
@@ -46,6 +66,47 @@ const handleAddFilter = (filter) => {
     if (!filter?.id) return
     activeFilters.value.push(filter)
 }
+
+const parseViewMetadata = (rawMetadata) => {
+    try {
+        const parsed = typeof rawMetadata === 'string' ? JSON.parse(rawMetadata || '{}') : (rawMetadata || {})
+        return {
+            filters: Array.isArray(parsed.filters) ? parsed.filters.filter(item => item?.field) : [],
+            displayProps: Array.isArray(parsed.displayProps) && parsed.displayProps.length ? parsed.displayProps : ['ID', 'Assignee', 'Start date', 'Due date', 'Labels', 'Priority', 'State'],
+            groupBy: parsed.groupBy || 'States',
+            orderBy: parsed.orderBy || 'Manual',
+            showSubItems: Boolean(parsed.showSubItems),
+            viewType: parsed.viewType || 'list'
+        }
+    } catch {
+        return {
+            filters: [],
+            displayProps: ['ID', 'Assignee', 'Start date', 'Due date', 'Labels', 'Priority', 'State'],
+            groupBy: 'States',
+            orderBy: 'Manual',
+            showSubItems: false,
+            viewType: 'list'
+        }
+    }
+}
+
+const syncDesignerFromMetadata = (metadata) => {
+    activeFilters.value = metadata.filters
+    displayProps.value = metadata.displayProps
+    groupBy.value = metadata.groupBy
+    orderBy.value = metadata.orderBy
+    showSubItems.value = metadata.showSubItems
+    viewType.value = metadata.viewType
+}
+
+const buildQueryMetadata = () => JSON.stringify({
+    filters: activeFilters.value,
+    displayProps: displayProps.value,
+    groupBy: groupBy.value,
+    orderBy: orderBy.value,
+    showSubItems: showSubItems.value,
+    viewType: viewType.value
+})
 
 const getTaskFieldValue = (task, field) => {
     const fieldMap = {
@@ -116,36 +177,65 @@ const showSubItems = ref(false)
 
 const filteredViews = computed(() => {
   const q = filterSearch.value.trim().toLowerCase()
-  if (!q) return views.value
-  return views.value.filter(view =>
+  const nextViews = !q
+    ? [...views.value]
+    : views.value.filter(view =>
     `${view.name || ''} ${view.description || ''}`.toLowerCase().includes(q)
   )
+
+  const sortValue = (view) => {
+    if (sortBy.value === 'Name') return `${view.name || ''}`.toLowerCase()
+    if (sortBy.value === 'Created at') return new Date(view.createdAt || 0).getTime()
+    return new Date(view.updatedAt || view.createdAt || 0).getTime()
+  }
+
+  nextViews.sort((a, b) => {
+    const left = sortValue(a)
+    const right = sortValue(b)
+    if (left === right) return 0
+    const result = left > right ? 1 : -1
+    return sortDir.value === 'Descending' ? result * -1 : result
+  })
+
+  return nextViews
 })
 
 const fetchViews = async () => {
   try {
     const res = await axiosClient.get(`/projects/${projectId.value}/views`)
-    views.value = res.data.data
+    views.value = res.data.data || []
   } catch (err) {
     console.error('Failed to fetch views', err)
   }
 }
 
-const selectView = async (view) => {
-  activeView.value = view
-  await fetchViewTasks(view)
+const fetchProjectMembers = async () => {
+  try {
+    const res = await axiosClient.get(`/projects/${projectId.value}/members`)
+    projectMembers.value = res.data?.data || []
+  } catch (err) {
+    console.error('Failed to fetch project members', err)
+    projectMembers.value = []
+  }
 }
 
-const fetchViewTasks = async (view) => {
+const selectView = async (view) => {
+  activeView.value = view
+  const metadata = parseViewMetadata(view.queryMetadata)
+  syncDesignerFromMetadata(metadata)
+  await fetchViewTasks(view, metadata)
+}
+
+const fetchViewTasks = async (view, metadataInput = null) => {
   loading.value = true
   try {
+    const metadata = metadataInput || parseViewMetadata(view.queryMetadata)
+    const priorityFilter = metadata.filters.find(filter => filter.field === 'priority' && ['is', 'in'].includes(filter.operator))
     let priority = null
-    let metadataFilters = []
-    try {
-        const metadata = JSON.parse(view.queryMetadata)
-        if (metadata.priority === 'Urgent') priority = 1
-        metadataFilters = metadata.filters || []
-    } catch(e) {}
+    if ((priorityFilter?.value || '').toLowerCase() === 'urgent') priority = 1
+    else if ((priorityFilter?.value || '').toLowerCase() === 'high') priority = 2
+    else if ((priorityFilter?.value || '').toLowerCase() === 'normal') priority = 3
+    else if ((priorityFilter?.value || '').toLowerCase() === 'low') priority = 4
 
     const res = await axiosClient.get(`/tasks/search`, {
       params: { 
@@ -153,7 +243,7 @@ const fetchViewTasks = async (view) => {
         projectId: projectId.value
       }
     })
-    tasks.value = applyTaskFilters(res.data.data || [], metadataFilters)
+    tasks.value = applyTaskFilters(res.data.data || [], metadata.filters)
   } catch (err) {
     console.error('Failed to fetch tasks', err)
   } finally {
@@ -166,16 +256,10 @@ const createView = async () => {
   try {
     const payload = {
       ...newView.value,
-      queryMetadata: JSON.stringify({
-        filters: activeFilters.value,
-        displayProps: displayProps.value,
-        groupBy: groupBy.value,
-        orderBy: orderBy.value,
-        showSubItems: showSubItems.value
-      })
+      queryMetadata: buildQueryMetadata()
     }
     const res = await axiosClient.post(`/projects/${projectId.value}/views`, payload)
-    views.value.push(res.data.data)
+    views.value.unshift(res.data.data)
     ElNotification.success('View created successfully')
     showCreateModal.value = false
     resetForm()
@@ -187,6 +271,11 @@ const createView = async () => {
 const resetForm = () => {
     newView.value = { name: '', description: '', queryMetadata: '{}' }
     activeFilters.value = []
+    displayProps.value = ['ID', 'Assignee', 'Start date', 'Due date', 'Labels', 'Priority', 'State']
+    groupBy.value = 'States'
+    orderBy.value = 'Manual'
+    showSubItems.value = false
+    viewType.value = 'list'
     modalTab.value = 'list'
 }
 
@@ -213,6 +302,16 @@ const toggleFavorite = async (view) => {
   } catch (err) {
     ElNotification.error('Failed to toggle favorite')
   }
+}
+
+const handleViewCommand = async (view, command) => {
+    if (command === 'favorite') {
+        await toggleFavorite(view)
+        return
+    }
+    if (command === 'delete') {
+        await deleteView(view.id)
+    }
 }
 
 const resetModal = () => {
@@ -243,6 +342,13 @@ const viewTypeIcon = computed(() => {
 
 onMounted(() => {
   fetchViews()
+  fetchProjectMembers()
+})
+
+watch(projectId, async () => {
+    activeView.value = null
+    tasks.value = []
+    await Promise.all([fetchViews(), fetchProjectMembers()])
 })
 </script>
 
@@ -309,13 +415,21 @@ onMounted(() => {
                 <button class="vi-star" type="button" :class="{ active: view.isFavorite }" @click.stop="toggleFavorite(view)">
                     <i class="fa-regular fa-star"></i>
                 </button>
-                <button class="vi-more" type="button" @click.stop="deleteView(view.id)"><i class="fa-solid fa-ellipsis"></i></button>
+                <el-dropdown trigger="click" @command="command => handleViewCommand(view, command)">
+                    <button class="vi-more" type="button" @click.stop><i class="fa-solid fa-ellipsis"></i></button>
+                    <template #dropdown>
+                        <el-dropdown-menu class="dark-popover">
+                            <el-dropdown-item command="favorite">{{ view.isFavorite ? 'Remove favorite' : 'Add to favorite' }}</el-dropdown-item>
+                            <el-dropdown-item command="delete">Delete view</el-dropdown-item>
+                        </el-dropdown-menu>
+                    </template>
+                </el-dropdown>
             </div>
         </div>
       </div>
 
       <div v-else class="detail-container">
-        <ListView :tasks="tasks" />
+        <ListView :tasks="tasks" :project-members="projectMembers" />
       </div>
     </main>
 
@@ -397,18 +511,16 @@ onMounted(() => {
                                 <input type="text" placeholder="Search" />
                             </div>
                             <div class="f-options">
-                                <div class="f-opt" @click="addFilterOption('State', 'fa-regular fa-circle-dot')"><i class="fa-regular fa-circle-dot"></i> State</div>
-                                <div class="f-opt" @click="addFilterOption('State Group', 'fa-regular fa-circle-dot')"><i class="fa-regular fa-circle-dot"></i> State Group</div>
-                                <div class="f-opt" @click="addFilterOption('Assignees', 'fa-regular fa-user')"><i class="fa-regular fa-user"></i> Assignees</div>
-                                <div class="f-opt" @click="addFilterOption('Priority', 'fa-solid fa-signal')"><i class="fa-solid fa-signal"></i> Priority</div>
-                                <div class="f-opt" @click="addFilterOption('Mentions', 'fa-solid fa-at')"><i class="fa-solid fa-at"></i> Mentions</div>
-                                <div class="f-opt" @click="addFilterOption('Label', 'fa-solid fa-tag')"><i class="fa-solid fa-tag"></i> Label</div>
-                                <div class="f-opt" @click="addFilterOption('Cycle', 'fa-regular fa-circle-pause')"><i class="fa-regular fa-circle-pause"></i> Cycle</div>
-                                <div class="f-opt" @click="addFilterOption('Module', 'fa-solid fa-table-cells-large')"><i class="fa-solid fa-table-cells-large"></i> Module</div>
-                                <div class="f-opt" @click="addFilterOption('Start date', 'fa-regular fa-calendar-plus')"><i class="fa-regular fa-calendar-plus"></i> Start date</div>
-                                <div class="f-opt" @click="addFilterOption('Target date', 'fa-regular fa-calendar')"><i class="fa-regular fa-calendar"></i> Target date</div>
-                                <div class="f-opt" @click="addFilterOption('Created at', 'fa-regular fa-calendar')"><i class="fa-regular fa-calendar"></i> Created at</div>
-                                <div class="f-opt" @click="addFilterOption('Updated at', 'fa-regular fa-calendar')"><i class="fa-regular fa-calendar"></i> Updated at</div>
+                                <div class="f-opt" @click="addFilterOption('status')"><i class="fa-regular fa-circle-dot"></i> State</div>
+                                <div class="f-opt" @click="addFilterOption('assignee')"><i class="fa-regular fa-user"></i> Assignees</div>
+                                <div class="f-opt" @click="addFilterOption('priority')"><i class="fa-solid fa-signal"></i> Priority</div>
+                                <div class="f-opt" @click="addFilterOption('label')"><i class="fa-solid fa-tag"></i> Label</div>
+                                <div class="f-opt" @click="addFilterOption('cycle')"><i class="fa-regular fa-circle-pause"></i> Cycle</div>
+                                <div class="f-opt" @click="addFilterOption('module')"><i class="fa-solid fa-table-cells-large"></i> Module</div>
+                                <div class="f-opt" @click="addFilterOption('startDate')"><i class="fa-regular fa-calendar-plus"></i> Start date</div>
+                                <div class="f-opt" @click="addFilterOption('dueDate')"><i class="fa-regular fa-calendar"></i> Target date</div>
+                                <div class="f-opt" @click="addFilterOption('createdAt')"><i class="fa-regular fa-calendar"></i> Created at</div>
+                                <div class="f-opt" @click="addFilterOption('updatedAt')"><i class="fa-regular fa-calendar"></i> Updated at</div>
                             </div>
                         </div>
                     </template>
