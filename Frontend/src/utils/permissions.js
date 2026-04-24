@@ -1,6 +1,26 @@
 import { getStoredUserSession } from '@/utils/authSession'
 
 const normalizeRole = (role) => (role || '').trim().toLowerCase()
+const canonicalProjectRole = (role) => {
+  const normalized = normalizeRole(role).replace(/[-\s]+/g, '_')
+
+  switch (normalized) {
+    case 'project_manager':
+      return 'pm'
+    case 'product_owner':
+      return 'po'
+    case 'scrum_master':
+      return 'sm'
+    case 'dev':
+      return 'developer'
+    case 'tester':
+      return 'qa'
+    case 'project_admin':
+      return 'admin'
+    default:
+      return normalized
+  }
+}
 
 export const SYSTEM_ADMIN_ROLES = [
   'superadmin',
@@ -17,11 +37,15 @@ export const ADMIN_USER_DIRECTORY_ROLES = [
 
 export const PROJECT_SETTINGS_ROLES = [
   'project_manager',
-  'project manager',
   'pm',
   'po',
+  'sm',
+  'scrum_master',
+  'project_lead',
   'admin'
 ]
+
+export const MANAGER_PROJECT_ROLES = [...PROJECT_SETTINGS_ROLES]
 
 export const getStoredUser = () => {
   return getStoredUserSession()
@@ -42,14 +66,14 @@ export const canAccessAdminUserDirectory = (user = getStoredUser()) => {
   return roles.some(role => ADMIN_USER_DIRECTORY_ROLES.includes(role))
 }
 
-export const normalizeProjectRole = (role) => normalizeRole(role).replace(/-/g, '_')
+export const normalizeProjectRole = (role) => canonicalProjectRole(role)
 
 export const canAccessProjectSettings = (project, user = getStoredUser()) => {
   if (hasSystemAdminAccess(user)) {
     return true
   }
 
-  const projectRole = normalizeProjectRole(project?.myRole || project?.MyRole || project?.projectRole || project?.ProjectRole)
+  const projectRole = canonicalProjectRole(project?.myRole || project?.MyRole || project?.projectRole || project?.ProjectRole)
   if (!projectRole) {
     return false
   }

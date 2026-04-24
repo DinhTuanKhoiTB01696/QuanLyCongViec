@@ -12,7 +12,7 @@
             <span class="active-page">
               <i class="fa-solid fa-layer-group"></i> Work Items
             </span>
-            <span class="item-count">{{ topLevelTasks.length }}</span>
+            <span class="item-count">{{ visibleTopLevelTasks.length }}</span>
           </div>
         </div>
         
@@ -301,6 +301,7 @@
       :selectedTask="selectedTask"
       :projectId="getProjectId()"
       :projectMembers="projectMembers"
+      :currentProjectRole="currentProjectRole"
       :canGoBack="taskDetailHistory.length > 0"
       @close="closeTaskDetail"
       @back="goBackTaskDetail"
@@ -325,23 +326,23 @@
             <div class="ap-stats-grid">
                <div class="stat-box">
                   <span class="lbl">Total Work items</span>
-                  <span class="val">{{ rawTasks.length }}</span>
+                  <span class="val">{{ visibleTopLevelTasks.length }}</span>
                </div>
                <div class="stat-box">
                   <span class="lbl">Started Work items</span>
-                  <span class="val">{{ rawTasks.filter(t => t.statusName === 'IN PROGRESS').length }}</span>
+                  <span class="val">{{ visibleTopLevelTasks.filter(t => t.statusName === 'IN PROGRESS').length }}</span>
                </div>
                <div class="stat-box">
                   <span class="lbl">Backlog Work items</span>
-                  <span class="val">{{ rawTasks.filter(t => !t.statusName || t.statusName === 'TO DO' || t.statusName === 'TODO').length }}</span>
+                  <span class="val">{{ visibleTopLevelTasks.filter(t => !t.statusName || t.statusName === 'TO DO' || t.statusName === 'TODO').length }}</span>
                </div>
                <div class="stat-box">
                   <span class="lbl">Unstarted Work items</span>
-                  <span class="val">{{ rawTasks.filter(t => t.statusName === 'IN REVIEW').length }}</span>
+                  <span class="val">{{ visibleTopLevelTasks.filter(t => t.statusName === 'IN REVIEW').length }}</span>
                </div>
                <div class="stat-box">
                   <span class="lbl">Completed Work items</span>
-                  <span class="val">{{ rawTasks.filter(t => t.statusName === 'DONE').length }}</span>
+                  <span class="val">{{ visibleTopLevelTasks.filter(t => t.statusName === 'DONE').length }}</span>
                </div>
             </div>
             
@@ -435,9 +436,11 @@ import { ref, onMounted, computed, defineAsyncComponent, watch, nextTick, onUnmo
   import { useRoute, useRouter } from 'vue-router'
   import { ElMessage } from 'element-plus'
   import axiosClient from '@/api/axiosClient'
-  import { subscribeAdminRealtime } from '@/utils/adminRealtime'
+  import { broadcastAdminRealtime, subscribeAdminRealtime } from '@/utils/adminRealtime'
+  import { getStoredUserSession } from '@/utils/authSession'
   import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/projectContext'
   import { signalRService } from '@/api/signalrService'
+import { hasSystemAdminAccess, normalizeProjectRole } from '@/utils/permissions'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import draggable from 'vuedraggable'
 import TaskDetailModal from '@/components/TaskDetailModal.vue'
@@ -485,6 +488,11 @@ const rawTasks = ref([])
 const allTasks = ref([])
 const projectMembers = ref([])
 const projectStatuses = ref([])
+const projectExecutionRules = ref({
+  enableRoleBasedTaskVisibility: false,
+  managerAlwaysSeeAllTasks: true
+})
+const visibilityOverrideRoles = ['pm', 'po', 'project_lead', 'admin']
 const selectedTask = ref(null)
 const taskDetailHistory = ref([])
 const inlineCreateColId = ref(null)
@@ -613,7 +621,10 @@ const matchesTaskFilters = (task) => {
 }
 
 const topLevelTasks = computed(() => rawTasks.value)
-const visibleTasks = computed(() => (showSubtasks.value ? (allTasks.value || []) : topLevelTasks.value))
+const visibleTasks = computed(() => {
+  const sourceTasks = showSubtasks.value ? (allTasks.value || []) : topLevelTasks.value
+  return sourceTasks.filter(canCurrentUserSeeTask)
+})
 const visibleTopLevelTasks = computed(() => filteredTasksList.value.filter(task => !isSubtask(task)))
 const defaultTaskStatusOptions = [
   { name: 'BACKLOG', label: 'Backlog', color: 'var(--color-text-muted)', icon: 'fa-regular fa-circle-dashed' },
@@ -693,13 +704,57 @@ const normalizePriority = (value) => {
 const filterValues = (value) => Array.isArray(value) ? value : `${value || ''}`.split(',').map(item => item.trim()).filter(Boolean)
 const valuesInclude = (values, target) => values.map(normalizeText).includes(normalizeText(target))
 const currentUserId = () => {
-  try {
-    const rawUser = localStorage.getItem('user')
-    const user = rawUser ? JSON.parse(rawUser) : null
-    return user?.id || user?.userId || localStorage.getItem('userId') || null
-  } catch {
-    return localStorage.getItem('userId') || null
+  const user = getStoredUserSession()
+  return user?.id || user?.userId || null
+}
+
+const currentProjectRole = computed(() => {
+  const currentUser = getStoredUserSession()
+  const currentUserIdValue = currentUser?.id || currentUser?.userId
+  const matchedMember = (projectMembers.value || [])
+    .find(member => `${member.userId || member.id || ''}` === `${currentUserIdValue || ''}`)
+  const membershipRole = matchedMember?.projectRole || matchedMember?.ProjectRole
+
+  const role = membershipRole
+    || project.value?.myRole
+    || project.value?.MyRole
+    || project.value?.projectRole
+    || project.value?.ProjectRole
+
+  return normalizeProjectRole(role)
+})
+
+const canCurrentUserSeeTask = (task) => {
+  const rules = projectExecutionRules.value || {}
+
+  const currentUser = getStoredUserSession()
+  if (hasSystemAdminAccess(currentUser)) return true
+
+  if (rules.managerAlwaysSeeAllTasks && currentProjectRole.value && visibilityOverrideRoles.includes(currentProjectRole.value)) {
+    return true
   }
+
+  const visibilityMode = normalizeProjectRole(task?.visibilityMode || '').replace(/_scoped$/, '') || 'project'
+  if (visibilityMode === 'project') return true
+
+  const me = currentUserId()
+  const assigneeIds = getTaskAssigneeIds(task)
+  if (visibilityMode === 'assigned') {
+    return Boolean(
+      me && (
+        `${task?.assignedUserId || ''}` === `${me}`
+        || assigneeIds.some(id => `${id}` === `${me}`)
+      )
+    )
+  }
+  if (visibilityMode === 'role') {
+    if (!currentProjectRole.value) return false
+    return (task?.visibleToRoles || [])
+      .map(role => normalizeProjectRole(role))
+      .includes(currentProjectRole.value)
+  }
+
+  return true
 }
 const getTaskDate = (task, field) => {
   const value = task[field] || (field === 'startDate' ? task.plannedStartDate : null) || (field === 'dueDate' ? task.dueDate : null)
@@ -898,8 +953,8 @@ const createdResolvedOptions = computed(() => {
       xAxis: { type: 'category', data: ['Apr 01', 'Apr 02', 'Apr 03', 'Apr 04'], axisLine: { lineStyle: { color: '#3F3F46' } } },
       yAxis: { type: 'value', splitLine: { lineStyle: { color: 'var(--color-border)' } } },
       series: [
-         { name: 'Created', type: 'line', data: [rawTasks.value.length, 0, 0, 0], itemStyle: { color: '#3B82F6' }, smooth: true },
-         { name: 'Resolved', type: 'line', data: [rawTasks.value.filter(t => t.statusName === 'DONE').length, 0, 0, 0], itemStyle: { color: '#10B981' }, smooth: true }
+         { name: 'Created', type: 'line', data: [visibleTopLevelTasks.value.length, 0, 0, 0], itemStyle: { color: '#3B82F6' }, smooth: true },
+         { name: 'Resolved', type: 'line', data: [visibleTopLevelTasks.value.filter(t => t.statusName === 'DONE').length, 0, 0, 0], itemStyle: { color: '#10B981' }, smooth: true }
       ],
       backgroundColor: 'transparent'
    }
@@ -909,7 +964,7 @@ const analyticsBreakdownRows = computed(() => {
   if (analyticsInsightMode.value === 'assignee') {
     const counts = new Map()
 
-    rawTasks.value.forEach(task => {
+    visibleTopLevelTasks.value.forEach(task => {
       const ids = getTaskAssigneeIds(task)
       if (!ids.length) {
         counts.set('unassigned', (counts.get('unassigned') || 0) + 1)
@@ -934,24 +989,24 @@ const analyticsBreakdownRows = computed(() => {
   if (analyticsInsightMode.value === 'status') {
     return taskStatusOptions.value.map(option => ({
       label: option.label,
-      count: rawTasks.value.filter(task => normalizeStatus(task.statusName) === option.name).length,
+      count: visibleTopLevelTasks.value.filter(task => normalizeStatus(task.statusName) === option.name).length,
       color: option.color
     }))
   }
 
   return [
-    { label: 'Urgent', count: rawTasks.value.filter(task => task.priority === 1).length, color: '#EF4444' },
-    { label: 'High', count: rawTasks.value.filter(task => task.priority === 2).length, color: '#F97316' },
-    { label: 'Normal', count: rawTasks.value.filter(task => task.priority === 3).length, color: '#3B82F6' },
-    { label: 'Low', count: rawTasks.value.filter(task => task.priority === 4).length, color: '#10B981' },
-    { label: 'None', count: rawTasks.value.filter(task => !task.priority).length, color: 'var(--color-text-muted)' }
+    { label: 'Urgent', count: visibleTopLevelTasks.value.filter(task => task.priority === 1).length, color: '#EF4444' },
+    { label: 'High', count: visibleTopLevelTasks.value.filter(task => task.priority === 2).length, color: '#F97316' },
+    { label: 'Normal', count: visibleTopLevelTasks.value.filter(task => task.priority === 3).length, color: '#3B82F6' },
+    { label: 'Low', count: visibleTopLevelTasks.value.filter(task => task.priority === 4).length, color: '#10B981' },
+    { label: 'None', count: visibleTopLevelTasks.value.filter(task => !task.priority).length, color: 'var(--color-text-muted)' }
   ]
 })
 
 const assigneeAnalyticsRows = computed(() => {
   const rows = new Map()
 
-  rawTasks.value.forEach(task => {
+  visibleTopLevelTasks.value.forEach(task => {
     const ids = getTaskAssigneeIds(task)
     const bucket = analyticsStatusBucket(task.statusName)
     const targets = ids.length ? ids : ['unassigned']
@@ -1121,19 +1176,29 @@ const loadInitialData = async (options = {}) => {
       project.value = {}
       carryOverTaskIds.value = []
     }
-    const [pRes, mRes, statusesRes] = await Promise.all([
+    const [pRes, mRes, statusesRes, executionRulesRes] = await Promise.all([
       axiosClient.get(`/projects/${pid}`),
       axiosClient.get(`/projects/${pid}/members`),
-      axiosClient.get(`/projects/${pid}/task-statuses`).catch(() => ({ data: { data: [] } }))
+      axiosClient.get(`/projects/${pid}/task-statuses`).catch(() => ({ data: { data: [] } })),
+      axiosClient.get(`/projects/${pid}/execution-rules`).catch(() => ({ data: { data: {} } }))
     ])
     project.value = pRes.data.data
-    projectMembers.value = mRes.data.data || []
+    projectMembers.value = (mRes.data.data || []).map(member => ({
+      ...member,
+      userId: member.userId || member.id,
+      fullName: member.fullName || member.name || member.email,
+      projectRole: member.projectRole || member.ProjectRole || member.myRole || member.MyRole || ''
+    }))
     projectStatuses.value = (statusesRes.data?.data || []).map((status) => ({
       ...status,
       name: normalizeStatus(status.name),
       displayName: status.displayName || status.name,
       colorCode: status.colorCode || ''
     }))
+    projectExecutionRules.value = {
+      enableRoleBasedTaskVisibility: Boolean(executionRulesRes.data?.data?.enableRoleBasedTaskVisibility),
+      managerAlwaysSeeAllTasks: executionRulesRes.data?.data?.managerAlwaysSeeAllTasks !== false
+    }
 
     if (activeCarryOverSprintId.value) {
       const carryOverRes = await axiosClient.get(`/projects/${pid}/sprints/${activeCarryOverSprintId.value}/carry-over-tasks`)
@@ -1156,7 +1221,8 @@ const fetchTasks = async (options = {}) => {
       // Auto update selectedTask if open
       if (selectedTask.value) {
         const updatedTask = allTasks.value.find(t => t.id === selectedTask.value.id);
-        if (updatedTask) selectedTask.value = updatedTask;
+        if (updatedTask && canCurrentUserSeeTask(updatedTask)) selectedTask.value = updatedTask;
+        else if (!updatedTask || !canCurrentUserSeeTask(selectedTask.value)) selectedTask.value = null;
       }
   } catch(error) {
     console.error('Lỗi load tasks:', error)
@@ -1193,7 +1259,10 @@ const putBackedTaskFields = new Set([
   'priority',
   'assignedUserId',
   'sprintId',
-  'taskTypeId'
+  'taskTypeId',
+  'totalEstimatedHours',
+  'visibilityMode',
+  'visibleToRoles'
 ])
 
 const buildPutTaskPayload = (task, overrides = {}) => {
@@ -1210,6 +1279,9 @@ const buildPutTaskPayload = (task, overrides = {}) => {
     dueDate: normalizeDateOnly(mergedTask.dueDate) || null,
     sprintId: mergedTask.sprintId || null,
     taskTypeId: mergedTask.taskTypeId || '00000000-0000-0000-0000-000000000000',
+    totalEstimatedHours: Number(mergedTask.totalEstimatedHours || 0),
+    visibilityMode: mergedTask.visibilityMode || 'project',
+    visibleToRoles: Array.isArray(mergedTask.visibleToRoles) ? mergedTask.visibleToRoles : [],
     rowVersion: mergedTask.rowVersion || null
   }
 }
@@ -1219,6 +1291,23 @@ const syncTopLevelTasks = () => {
 }
 
 watch(allTasks, syncTopLevelTasks, { deep: true, immediate: true })
+
+watch(
+  () => ({
+    enableRoleBasedTaskVisibility: Boolean(projectExecutionRules.value?.enableRoleBasedTaskVisibility),
+    managerAlwaysSeeAllTasks: Boolean(projectExecutionRules.value?.managerAlwaysSeeAllTasks)
+  }),
+  async (rules) => {
+    allTasks.value = (allTasks.value || []).filter(canCurrentUserSeeTask)
+
+    if (selectedTask.value && !canCurrentUserSeeTask(selectedTask.value)) {
+      selectedTask.value = null
+    }
+
+    await fetchTasks({ reset: false })
+  },
+  { deep: true }
+)
 
 const updateTask = async (task, field, value, previousValue = task ? task[field] : undefined) => {
   const pid = getProjectId()
@@ -1465,10 +1554,24 @@ onMounted(() => {
 
 let unsubscribeAdminRealtime = null
 let signalRTaskUpdatedHandler = null
+let signalRProjectEventHandler = null
+let realtimeRefreshTimer = null
 
 const handleRealtimeTaskUpdated = (task) => {
   if (!task?.id) return
   const normalizedTask = store.normalizeTaskRecord(task, getProjectId())
+  if (!canCurrentUserSeeTask(normalizedTask)) {
+    allTasks.value = allTasks.value.filter(item => item.id !== normalizedTask.id)
+    if (selectedTask.value?.id === normalizedTask.id) {
+      selectedTask.value = null
+    }
+    clearTimeout(realtimeRefreshTimer)
+    realtimeRefreshTimer = setTimeout(() => {
+      fetchTasks({ reset: false })
+    }, 120)
+    return
+  }
+
   const index = allTasks.value.findIndex(item => item.id === normalizedTask.id)
   if (index >= 0) {
     allTasks.value[index] = { ...allTasks.value[index], ...normalizedTask }
@@ -1477,8 +1580,17 @@ const handleRealtimeTaskUpdated = (task) => {
   }
 
   if (selectedTask.value?.id === normalizedTask.id) {
-    selectedTask.value = { ...selectedTask.value, ...normalizedTask }
+    if (canCurrentUserSeeTask(normalizedTask)) {
+      selectedTask.value = { ...selectedTask.value, ...normalizedTask }
+    } else {
+      selectedTask.value = null
+    }
   }
+
+  clearTimeout(realtimeRefreshTimer)
+  realtimeRefreshTimer = setTimeout(() => {
+    fetchTasks({ reset: false })
+  }, 120)
 }
 
 const startTaskRealtime = async (projectId) => {
@@ -1487,11 +1599,20 @@ const startTaskRealtime = async (projectId) => {
     signalRService.off('TaskUpdated', signalRTaskUpdatedHandler)
     signalRService.off('WorkTaskUpdated', signalRTaskUpdatedHandler)
   }
+  if (signalRProjectEventHandler) {
+    signalRService.off('ProjectRealtimeEvent', signalRProjectEventHandler)
+  }
 
   await signalRService.startConnection(projectId)
   signalRTaskUpdatedHandler = handleRealtimeTaskUpdated
   signalRService.on('TaskUpdated', signalRTaskUpdatedHandler)
   signalRService.on('WorkTaskUpdated', signalRTaskUpdatedHandler)
+  signalRProjectEventHandler = (event) => {
+    if (!event?.type) return
+    if (event?.projectId && `${event.projectId}` !== `${projectId}`) return
+    broadcastAdminRealtime(event.type, event.payload || { projectId })
+  }
+  signalRService.on('ProjectRealtimeEvent', signalRProjectEventHandler)
 }
 
 onMounted(() => {
@@ -1509,7 +1630,7 @@ onMounted(() => {
         'project-administration-updated'
       ].includes(type)
     ) {
-      await loadInitialData({ preserveExisting: true })
+      await loadInitialData({ preserveExisting: false })
     }
   })
 })
@@ -1551,9 +1672,13 @@ watch(
 
 onUnmounted(() => {
   window.removeEventListener('global-create-task', handleGlobalCreate)
+  clearTimeout(realtimeRefreshTimer)
   if (signalRTaskUpdatedHandler) {
     signalRService.off('TaskUpdated', signalRTaskUpdatedHandler)
     signalRService.off('WorkTaskUpdated', signalRTaskUpdatedHandler)
+  }
+  if (signalRProjectEventHandler) {
+    signalRService.off('ProjectRealtimeEvent', signalRProjectEventHandler)
   }
   unsubscribeAdminRealtime?.()
 })

@@ -99,7 +99,7 @@ import NexusLayout from '@/components/layout/NexusLayout.vue'
 import CreateSpaceModal from '@/components/CreateSpaceModal.vue'
 import { ElMessage } from 'element-plus'
 import { useProjectStore } from '@/store/useProjectStore'
-import { canAccessProjectSettings, getProjectSettingsDeniedMessage, hasSystemAdminAccess } from '@/utils/permissions'
+import { canAccessProjectSettings, getProjectSettingsDeniedMessage, getStoredUser } from '@/utils/permissions'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { getProjectSettingsWindowName, openNamedAppWindow } from '@/utils/windowTabs'
 
@@ -113,10 +113,9 @@ const showProjectFilters = ref(false)
 const visibilityFilter = ref('all')
 const isCreateModalVisible = ref(false)
 
-const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-const canManageSpace = (space) => canAccessProjectSettings(space, currentUser)
-const isSystemAdmin = hasSystemAdminAccess(currentUser)
-const showProjectSettingsButton = () => isSystemAdmin
+const currentUser = computed(() => getStoredUser())
+const canManageSpace = (space) => canAccessProjectSettings(space, currentUser.value)
+const showProjectSettingsButton = (space) => canManageSpace(space)
 
 const goToAdmin = (space) => {
   if (!canManageSpace(space)) {
