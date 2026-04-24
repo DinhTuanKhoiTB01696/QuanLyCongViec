@@ -34,6 +34,9 @@
             </div>
           </div>
           <div class="pc-actions">
+            <el-button link type="info" @click="router.push(`/space/${project.id}`)">
+              <i class="fa-solid fa-eye"></i> View
+            </el-button>
             <el-button link type="primary" @click="handleRestore(project)">
               <i class="fa-solid fa-rotate-left"></i> Restore
             </el-button>
@@ -55,10 +58,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import axiosClient from '@/api/axiosClient'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
+const router = useRouter()
 const archivedProjects = ref([])
 const loading = ref(true)
 

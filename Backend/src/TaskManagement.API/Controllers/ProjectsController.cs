@@ -18,6 +18,10 @@ namespace TaskManagement.API.Controllers
     {
         private readonly IProjectService _projectService;
         private readonly ApplicationDbContext _context;
+        private static readonly string[] SystemOverrideRoles =
+        {
+            "SuperAdmin", "Admin", "System Admin", "Organization Admin", "AccessAdmin", "Access Admin"
+        };
 
         public ProjectsController(IProjectService projectService, ApplicationDbContext context)
         {
@@ -419,8 +423,19 @@ namespace TaskManagement.API.Controllers
             if (project == null)
                 return NotFound(ApiResponse<object>.Error("Project not found.", 404));
 
+            var claimRoles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
+            var dbRoles = await _context.UserRoles
+                .AsNoTracking()
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.Role.Name)
+                .ToListAsync();
+
+            var hasSystemOverride = claimRoles
+                .Concat(dbRoles)
+                .Any(role => SystemOverrideRoles.Contains(role, StringComparer.OrdinalIgnoreCase));
+
             var isMember = project.ProjectMembers.Any(pm => pm.UserId == userId && pm.Status);
-            if (!isMember)
+            if (!isMember && !hasSystemOverride)
                 return StatusCode(403, ApiResponse<object>.Error("Forbidden.", 403));
 
             var favorite = true;

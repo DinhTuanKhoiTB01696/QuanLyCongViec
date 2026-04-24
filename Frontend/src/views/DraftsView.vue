@@ -2,14 +2,15 @@
   <NexusLayout>
     <div class="drafts-wrapper">
       <!-- Header -->
-      <header class="dr-header">
-        <div class="dr-left">
-          <i class="fa-solid fa-pen-nib text-muted"></i>
-          <span class="dr-title">Drafts</span>
-          <span class="dr-badge">{{ pagination.totalCount }}</span>
+      <!-- Header -->
+      <header class="nexus-feature-header">
+        <div class="header-info">
+          <p class="eyebrow">Work Items</p>
+          <h1><i class="fa-solid fa-pen-nib"></i> Drafts <span class="text-muted ml-3 text-sm font-normal">{{ pagination.totalCount }}</span></h1>
+          <p class="muted">Manage your unpublished work items and refine them before moving to a project.</p>
         </div>
         <div class="dr-right">
-          <button class="plane-primary-btn" @click="openModal">Draft a work item</button>
+          <button class="nexus-btn nexus-btn-primary" @click="openModal"><i class="fa-solid fa-plus mr-2"></i> Draft a work item</button>
         </div>
       </header>
 

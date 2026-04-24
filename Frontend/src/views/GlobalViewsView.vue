@@ -7,33 +7,69 @@ const rawTasks = ref([])
 const loading = ref(false)
 const showFilters = ref(false)
 
+const analyticsScope = ref('all') // all, my, archived
+const selectedProjectId = ref(null)
+const projectList = ref([])
+
 const filters = ref({
   status: '',
   search: ''
 })
 
-onMounted(async () => {
+const fetchProjects = async () => {
+    try {
+        const [discoveryRes, archivedRes] = await Promise.all([
+            axiosClient.get('/projects/discovery'),
+            axiosClient.get('/projects/archived')
+        ])
+        
+        const activeProjects = (discoveryRes.data?.data || []).map(p => ({ ...p, isArchived: false }))
+        const archivedProjects = (archivedRes.data?.data || []).map(p => ({ ...p, isArchived: true }))
+        
+        projectList.value = [...activeProjects, ...archivedProjects]
+    } catch(e) {
+        console.error('Error fetching projects', e)
+    }
+}
+
+const fetchTasks = async () => {
   try {
     loading.value = true
-    const res = await axiosClient.get('/tasks/search')
+    const params = {
+      scope: analyticsScope.value,
+      query: filters.value.search,
+      status: filters.value.status
+    }
+    if (selectedProjectId.value) {
+      params.projectId = selectedProjectId.value
+    }
+    const res = await axiosClient.get('/tasks/search', { params })
     rawTasks.value = res.data?.data || []
   } catch (err) {
     console.error('Failed to load global tasks', err)
   } finally {
     loading.value = false
   }
+}
+
+onMounted(async () => {
+  await fetchProjects()
+  fetchTasks()
+})
+
+watch([analyticsScope, selectedProjectId, () => filters.value.status, () => filters.value.search], () => {
+  fetchTasks()
+})
+
+const filteredProjects = computed(() => {
+    if (analyticsScope.value === 'all') return projectList.value
+    if (analyticsScope.value === 'my') return projectList.value.filter(p => p.isMember)
+    if (analyticsScope.value === 'archived') return projectList.value.filter(p => p.isArchived)
+    return projectList.value
 })
 
 const filteredTasks = computed(() => {
-  let list = rawTasks.value
-  if (filters.value.status) {
-    list = list.filter(t => (t.statusName || 'BACKLOG').toUpperCase().trim() === filters.value.status)
-  }
-  if (filters.value.search) {
-    list = list.filter(t => t.title.toLowerCase().includes(filters.value.search.toLowerCase()) || 
-                      (t.sequenceId && t.sequenceId.toLowerCase().includes(filters.value.search.toLowerCase())))
-  }
-  return list
+  return rawTasks.value
 })
 
 const getStatusIcon = (st) => {
@@ -59,6 +95,39 @@ const getPrioIcon = (pr) => {
         <div class="vh-left">
            <span class="breadcrumb"><i class="fa-solid fa-layer-group"></i> Views <i class="fa-solid fa-chevron-right separator"></i> All work items <i class="fa-solid fa-chevron-down ms-2" style="font-size: 10px;"></i></span>
         </div>
+        
+        <!-- Filter Controls -->
+        <div class="analytics-filters" style="display: flex; gap: 8px; align-items: center; background: #111315; padding: 4px 12px; border-radius: 8px; border: 1px solid #1E2025; margin: 0 16px;">
+            <div class="scope-selector" style="display: flex; background: #0D0F11; border-radius: 6px; padding: 2px;">
+                <button 
+                    @click="analyticsScope = 'all'; selectedProjectId = null"
+                    :class="['scope-btn', { active: analyticsScope === 'all' }]"
+                >All projects</button>
+                <button 
+                    @click="analyticsScope = 'my'; selectedProjectId = null"
+                    :class="['scope-btn', { active: analyticsScope === 'my' }]"
+                >My projects</button>
+                <button 
+                    @click="analyticsScope = 'archived'; selectedProjectId = null"
+                    :class="['scope-btn', { active: analyticsScope === 'archived' }]"
+                >Archived projects</button>
+            </div>
+
+            <div class="project-selector-wrap" style="position: relative;">
+                <select 
+                    v-model="selectedProjectId"
+                    style="background: transparent; border: 1px solid #27272A; color: #E4E4E7; padding: 4px 12px; border-radius: 4px; font-size: 13px; min-width: 160px; outline: none; cursor: pointer;"
+                    :disabled="analyticsScope === 'all'"
+                    :style="{ opacity: analyticsScope === 'all' ? 0.5 : 1 }"
+                >
+                    <option :value="null" style="background: #1E2025;">Filter by project</option>
+                    <option v-for="p in filteredProjects" :key="p.id" :value="p.id" style="background: #1E2025;">
+                        {{ p.name }}
+                    </option>
+                </select>
+            </div>
+        </div>
+
         <div class="vh-right" style="display: flex; gap: 8px; align-items: center;">
            <input type="text" v-model="filters.search" placeholder="Search tasks..." style="background: transparent; border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 4px 8px; border-radius: 4px; font-size: 13px;" />
            <select v-model="filters.status" style="background: transparent; border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 4px 8px; border-radius: 4px; font-size: 13px;">
@@ -189,6 +258,32 @@ const getPrioIcon = (pr) => {
   gap: 6px;
 }
 .plane-toolbar-btn:hover { background: var(--color-border); }
+
+.scope-btn {
+  background: transparent;
+  border: none;
+  color: #A1A1AA;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+.scope-btn:hover { color: #E4E4E7; }
+.scope-btn.active {
+  background: #1E2025;
+  color: #E4E4E7;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.project-selector-wrap select:focus {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 1px #3B82F6 !important;
+}
+.project-selector-wrap select:hover:not(:disabled) {
+  border-color: #3F3F46;
+}
 
 .plane-primary-btn {
   background: #0EA5E9;

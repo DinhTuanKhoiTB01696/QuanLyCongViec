@@ -51,13 +51,16 @@
              <div class="card-actions-top" @click.stop>
                <button class="card-icon-btn" type="button" @click="copySpaceLink(space)"><i class="fa-solid fa-link"></i></button>
                <button class="card-icon-btn" type="button" :class="{ 'starred': space.starred }" @click="toggleStar(space)"><i :class="space.starred ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i></button>
+               <el-tooltip content="Archive Project" placement="top">
+                 <button class="card-icon-btn" type="button" @click="archiveProject(space)" :disabled="!canManageSpace(space)"><i class="fa-solid fa-box-archive"></i></button>
+               </el-tooltip>
              </div>
           </div>
           
           <div class="card-body">
             <!-- Floating Project Icon -->
             <div class="floating-icon">
-              <span class="emoji">{{ space.icon || emojiList[index % emojiList.length] || '👇' }}</span>
+              <span class="emoji">{{ space.icon || emojiList[index % emojiList.length] || '📁' }}</span>
             </div>
             
             <div class="proj-title-row">
@@ -66,7 +69,7 @@
             </div>
             
             <p class="proj-desc">
-              {{ space.originalRow?.description || 'Welcome to this Project! This project throws you into the driver\'s seat of work management. Through curated work items, you\'ll uncover key features...' }}
+              {{ space.originalRow?.description || 'Welcome to this Project! This project throws you into the driver\'s seat of work management.' }}
             </p>
             
             <div class="card-footer" @click.stop>
@@ -97,9 +100,9 @@ import { useRouter } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import CreateSpaceModal from '@/components/CreateSpaceModal.vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useProjectStore } from '@/store/useProjectStore'
-import { canAccessProjectSettings, getProjectSettingsDeniedMessage, hasSystemAdminAccess } from '@/utils/permissions'
+import { canAccessProjectSettings, getProjectSettingsDeniedMessage, getStoredUser, hasSystemAdminAccess } from '@/utils/permissions'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { getProjectSettingsWindowName, openNamedAppWindow } from '@/utils/windowTabs'
 
@@ -113,10 +116,10 @@ const showProjectFilters = ref(false)
 const visibilityFilter = ref('all')
 const isCreateModalVisible = ref(false)
 
-const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+const currentUser = getStoredUser()
 const canManageSpace = (space) => canAccessProjectSettings(space, currentUser)
 const isSystemAdmin = hasSystemAdminAccess(currentUser)
-const showProjectSettingsButton = () => isSystemAdmin
+const showProjectSettingsButton = (space) => canManageSpace(space)
 
 const goToAdmin = (space) => {
   if (!canManageSpace(space)) {
@@ -126,6 +129,24 @@ const goToAdmin = (space) => {
   const routeData = router.resolve(`/space/${space.id}/settings`)
   openNamedAppWindow(routeData.href, getProjectSettingsWindowName(space.id))
 }
+
+const archiveProject = async (space) => {
+  try {
+    await ElMessageBox.confirm(
+      `Are you sure you want to archive project "${space.name}"? It will be moved to the Archived section.`,
+      'Archive Project',
+      { confirmButtonText: 'Archive', cancelButtonText: 'Cancel', type: 'warning' }
+    )
+    await axiosClient.put(`/projects/${space.id}/archive`)
+    ElMessage.success('Project archived successfully')
+    fetchSpaces()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('Could not archive project')
+    }
+  }
+}
+
 
 const toggleSort = () => {
   sortDirection.value = sortDirection.value === 'desc' ? 'asc' : 'desc'
@@ -171,7 +192,7 @@ const fetchSpaces = async () => {
     // Transform data
     spaces.value = data.map(p => ({
       id: p.id,
-      starred: Boolean(p.isFavorite),
+      starred: Boolean(p.isFavorite ?? p.IsFavorite),
       name: p.name,
       key: p.key || p.identifier || p.name.substring(0, 4).toUpperCase(),
       myRole: p.myRole || p.MyRole || null,

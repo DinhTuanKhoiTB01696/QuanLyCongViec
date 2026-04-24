@@ -265,12 +265,14 @@ BEGIN
 END;
 IF COL_LENGTH('dbo.TaskDrafts', 'ProjectId') IS NOT NULL
 BEGIN
-    UPDATE td
-    SET ProjectId = TRY_CONVERT(uniqueidentifier, JSON_VALUE(td.PayloadJson, '$.projectId'))
-    FROM dbo.TaskDrafts td
-    WHERE td.ProjectId IS NULL
-      AND ISJSON(td.PayloadJson) = 1
-      AND JSON_VALUE(td.PayloadJson, '$.projectId') IS NOT NULL;
+    EXEC('
+        UPDATE td
+        SET ProjectId = TRY_CONVERT(uniqueidentifier, JSON_VALUE(td.PayloadJson, ''$.projectId''))
+        FROM dbo.TaskDrafts td
+        WHERE td.ProjectId IS NULL
+          AND ISJSON(td.PayloadJson) = 1
+          AND JSON_VALUE(td.PayloadJson, ''$.projectId'') IS NOT NULL;
+    ');
 END;
 ");
         }

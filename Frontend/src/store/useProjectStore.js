@@ -79,7 +79,7 @@ const mapProjectRow = (project) => ({
   networkType: project.networkType || project.NetworkType || 'Public',
   leadName: project.leadName || project.LeadName || project.creatorName || project.CreatorName || 'Project',
   isMember: typeof project.isMember === 'boolean' ? project.isMember : true,
-  isFavorite: Boolean(project.isFavorite),
+  isFavorite: Boolean(project.isFavorite ?? project.IsFavorite),
   myRole: project.myRole || project.MyRole || null,
   createdAt: project.createdAt || project.CreatedAt || null,
   updatedAt: project.updatedAt || project.UpdatedAt || null,

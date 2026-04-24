@@ -11,7 +11,7 @@ namespace TaskManagement.Infrastructure.Data
         {
             var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
             // Use dummy connection string for migration generation since it just needs the provider
-            optionsBuilder.UseSqlServer("Server=CUONGCODER\\SQLEXPRESS;Database=TaskManagementDB;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True");
+            optionsBuilder.UseSqlServer("Server=TUFF\\SQLEXPRESS;Database=TaskManagementDB_v2;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True");
 
             return new ApplicationDbContext(optionsBuilder.Options, null, null);
         }

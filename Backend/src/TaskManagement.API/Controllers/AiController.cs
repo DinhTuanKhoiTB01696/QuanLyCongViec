@@ -53,7 +53,25 @@ namespace TaskManagement.API.Controllers
             }
             catch (InvalidOperationException ex)
             {
+                if (IsTransientAiFailure(ex))
+                {
+                    return Ok(ApiResponse<string>.Success(
+                        BuildLocalChatFallback(request.Message),
+                        "Gemini tam thoi chua san sang. He thong da dung local chat fallback."));
+                }
                 return BadRequest(ApiResponse<object>.Error(ex.Message));
+            }
+            catch (HttpRequestException ex) when (IsTransientAiFailure(ex))
+            {
+                return Ok(ApiResponse<string>.Success(
+                    BuildLocalChatFallback(request.Message),
+                    "Gemini tam thoi chua san sang. He thong da dung local chat fallback."));
+            }
+            catch (TaskCanceledException)
+            {
+                return Ok(ApiResponse<string>.Success(
+                    BuildLocalChatFallback(request.Message),
+                    "Gemini tam thoi chua san sang. He thong da dung local chat fallback."));
             }
         }
 
@@ -349,6 +367,24 @@ namespace TaskManagement.API.Controllers
 
             var safeTitle = string.IsNullOrWhiteSpace(title) ? "cong viec nay" : $"\"{title}\"";
             return $"Gemini tam thoi khong san sang sau 3 lan thu lai. Ban co the thu lai sau it phut hoac tu tach {safeTitle} thanh 3-5 buoc nho: muc tieu, dau viec, kiem thu, ban giao.";
+        }
+
+        private static string BuildLocalChatFallback(string? message)
+        {
+            var clean = (message ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(clean))
+            {
+                return "Gemini dang tam nghi vi vuot quota, nhung SprintA van san sang ho tro. Hay nhap ro ten task, du an, hoac cau hoi ban muon xu ly.";
+            }
+
+            return
+                $"Gemini dang tam nghi vi vuot quota nen SprintA dang tra loi bang local fallback.\n\n" +
+                $"Noi dung ban vua gui: \"{clean}\"\n\n" +
+                $"De tiep tuc khong bi dung mach, ban co the lam theo 4 buoc:\n" +
+                $"- Lam ro muc tieu chinh cua yeu cau nay.\n" +
+                $"- Tach no thanh 3-5 dau viec nho de giao ngay.\n" +
+                $"- Neu la viec ky thuat, them tieu chi kiem thu va rui ro.\n" +
+                $"- Neu can, hoi tiep theo mau: tom tat, breakdown, test case, hoac handoff.";
         }
 
         private static List<AiSubTaskDto> BuildLocalBreakdownFallback(AiBreakdownRequestDto request)

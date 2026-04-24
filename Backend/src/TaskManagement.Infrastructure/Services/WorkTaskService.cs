@@ -342,7 +342,7 @@ namespace TaskManagement.Infrastructure.Services
                 }
             }
 
-            if (dto.TaskTypeId != Guid.Empty)
+            if (dto.TaskTypeId != Guid.Empty && dto.TaskTypeId != taskToUpdate.TaskTypeId)
             {
                 var taskTypeExists = await _context.TaskTypes
                     .AnyAsync(tt => tt.Id == dto.TaskTypeId && tt.ProjectId == taskToUpdate.ProjectId);
@@ -667,13 +667,28 @@ namespace TaskManagement.Infrastructure.Services
             };
         }
 
-        public async Task<List<WorkTaskResponseDto>> SearchTasksAsync(Guid userId, string? query, string? status, Guid? assigneeId, int? priority)
+        public async Task<List<WorkTaskResponseDto>> SearchTasksAsync(Guid userId, string? query, string? status, Guid? assigneeId, int? priority, Guid? projectId = null, string? scope = "all")
         {
             // TÌM CÁC PROJECT MÀ USER CÓ QUYỀN
-            var userProjectIds = await _context.ProjectMembers
-                .Where(pm => pm.UserId == userId)
-                .Select(pm => pm.ProjectId)
-                .ToListAsync();
+            var userProjectIdsQuery = _context.ProjectMembers
+                .Where(pm => pm.UserId == userId && pm.Status);
+
+            if (scope == "my")
+            {
+                // Only projects created by user or where user is a member (already covered by member check)
+                // But typically "My Projects" means projects where I am a creator or lead.
+                // Let's stick to Projects I am a member of for now, or refine if needed.
+                var userCreatedProjectIds = await _context.Projects
+                    .Where(p => p.CreatorId == userId && !p.IsDeleted)
+                    .Select(p => p.Id)
+                    .ToListAsync();
+                
+                var memberProjectIds = await userProjectIdsQuery.Select(pm => pm.ProjectId).ToListAsync();
+                var combinedIds = userCreatedProjectIds.Union(memberProjectIds).ToList();
+                userProjectIdsQuery = _context.ProjectMembers.Where(pm => combinedIds.Contains(pm.ProjectId));
+            }
+
+            var userProjectIds = await userProjectIdsQuery.Select(pm => pm.ProjectId).ToListAsync();
 
             var dbQuery = _context.WorkTasks
                 .Include(wt => wt.TaskStatus)
@@ -684,7 +699,29 @@ namespace TaskManagement.Infrastructure.Services
                     .ThenInclude(ta => ta.User)
                 .Include(wt => wt.IssueModules)
                 .Include(wt => wt.IssueLabels)
-                .Where(wt => (userProjectIds.Contains(wt.ProjectId) || wt.Subscribers.Any(s => s.UserId == userId)) && !wt.IsDeleted && !wt.IsArchived);
+                .Include(wt => wt.Project)
+                .Where(wt => !wt.IsDeleted);
+
+            // Scope filter
+            if (scope == "archived")
+            {
+                dbQuery = dbQuery.Where(wt => wt.Project.IsArchived || wt.IsArchived);
+            }
+            else
+            {
+                dbQuery = dbQuery.Where(wt => !wt.Project.IsArchived && !wt.IsArchived);
+            }
+
+            // Project ID filter
+            if (projectId.HasValue && projectId.Value != Guid.Empty)
+            {
+                dbQuery = dbQuery.Where(wt => wt.ProjectId == projectId.Value);
+            }
+            else
+            {
+                // If no specific project, restrict to user's projects
+                dbQuery = dbQuery.Where(wt => userProjectIds.Contains(wt.ProjectId) || wt.Subscribers.Any(s => s.UserId == userId));
+            }
 
             // Filtering
             if (!string.IsNullOrEmpty(query))

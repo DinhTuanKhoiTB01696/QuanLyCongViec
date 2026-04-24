@@ -1,25 +1,21 @@
 <template>
   <div class="dashboard-layout">
-    <!-- Navbar -->
-    <NexusTopbar 
-      :sidebarVisible="sidebarVisible" 
-      @toggle-sidebar="toggleSidebar" 
+    <NexusTopbar
+      :sidebarVisible="sidebarVisible"
+      @toggle-sidebar="toggleSidebar"
       @toggle-ai="toggleAI"
       @toggle-create="toggleCreate"
     />
 
     <div class="main-body">
-      <!-- Sidebar Overlay for Mobile -->
-      <div 
-        class="sidebar-overlay" 
-        v-if="sidebarVisible && isMobile" 
+      <div
+        v-if="sidebarVisible && isMobile"
+        class="sidebar-overlay"
         @click="sidebarVisible = false"
       ></div>
 
-      <!-- Sidebar -->
       <NexusSidebar :isVisible="sidebarVisible" @close-mobile="sidebarVisible = false" />
 
-      <!-- Main Content -->
       <main class="content-area">
         <div class="content-wrapper">
           <slot></slot>
@@ -27,49 +23,65 @@
       </main>
     </div>
 
-    <!-- AI Sidebar Popup -->
     <transition name="slide-right">
-      <aside class="ai-sidebar" v-if="aiVisible">
+      <aside v-if="aiVisible" class="ai-sidebar">
         <div class="ai-header">
-          <h4><i class="fa-solid fa-robot"></i> Trợ lý AI</h4>
+          <h4><i class="fa-solid fa-robot"></i> AI Assistant</h4>
           <button class="close-ai" @click="toggleAI">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
-        
-        <div class="ai-content">
+
+        <div ref="aiContentRef" class="ai-content">
           <div class="quick-actions">
-            <el-button size="small" round plain>Tóm tắt công việc</el-button>
-            <el-button size="small" round plain>Gợi ý ưu tiên</el-button>
+            <el-button size="small" round plain @click="useQuickPrompt('Tom tat cong viec dang mo')">
+              Tom tat cong viec
+            </el-button>
+            <el-button size="small" round plain @click="useQuickPrompt('Goi y uu tien viec can lam tiep theo')">
+              Goi y uu tien
+            </el-button>
           </div>
-          <div class="chat-message bot">
+
+          <div
+            v-for="(message, index) in chatHistory"
+            :key="`${message.role}-${index}`"
+            class="chat-message"
+            :class="message.role"
+          >
             <div class="message-bubble">
-              Xin chào! Mình có thể giúp gì cho bạn hôm nay?
+              {{ message.content }}
             </div>
           </div>
         </div>
 
         <div class="ai-input-area">
           <div class="ai-input-wrapper">
-            <input type="text" placeholder="Hỏi AI..." />
+            <input
+              v-model="aiInput"
+              type="text"
+              placeholder="Hoi AI..."
+              @keyup.enter="sendAiMessage"
+            />
             <div class="ai-input-actions">
-              <button class="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+              <button class="send-btn" :disabled="aiSending || !aiInput.trim()" @click="sendAiMessage">
+                <i v-if="!aiSending" class="fa-solid fa-paper-plane"></i>
+                <i v-else class="fa-solid fa-spinner fa-spin"></i>
+              </button>
             </div>
           </div>
         </div>
       </aside>
     </transition>
 
-    <!-- Space Creation Modal -->
     <CreateSpaceModal v-model:visible="createSpaceVisible" @created="handleSpaceCreated" />
-
-    <!-- Project/Task Creation Modal -->
     <CreateProjectModal v-model:visible="createVisible" @created="handleProjectCreated" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import axiosClient from '@/api/axiosClient'
 import CreateProjectModal from '../CreateProjectModal.vue'
 import CreateSpaceModal from '../CreateSpaceModal.vue'
 import NexusTopbar from './NexusTopbar.vue'
@@ -80,6 +92,15 @@ const aiVisible = ref(false)
 const createVisible = ref(false)
 const createSpaceVisible = ref(false)
 const isMobile = ref(window.innerWidth <= 1024)
+const aiInput = ref('')
+const aiSending = ref(false)
+const aiContentRef = ref(null)
+const chatHistory = ref([
+  {
+    role: 'bot',
+    content: 'Xin chao! Minh co the giup ban tom tat, tra loi cau hoi, va goi y viec tiep theo.'
+  }
+])
 
 const updateSize = () => {
   isMobile.value = window.innerWidth <= 1024
@@ -100,23 +121,72 @@ const toggleSidebar = () => {
   sidebarVisible.value = !sidebarVisible.value
 }
 
-const toggleAI = () => {
+const scrollAiToBottom = async () => {
+  await nextTick()
+  if (aiContentRef.value) {
+    aiContentRef.value.scrollTop = aiContentRef.value.scrollHeight
+  }
+}
+
+const toggleAI = async () => {
   aiVisible.value = !aiVisible.value
+  if (aiVisible.value) {
+    await scrollAiToBottom()
+  }
 }
 
 const toggleCreate = () => {
   createVisible.value = !createVisible.value
 }
 
-const toggleCreateSpace = () => {
-  createSpaceVisible.value = !createSpaceVisible.value
+const useQuickPrompt = (prompt) => {
+  aiInput.value = prompt
+}
+
+const sendAiMessage = async () => {
+  const outgoing = aiInput.value.trim()
+  if (!outgoing || aiSending.value) return
+
+  aiSending.value = true
+  aiInput.value = ''
+  chatHistory.value.push({ role: 'user', content: outgoing })
+  chatHistory.value.push({ role: 'bot', content: 'Dang suy nghi...' })
+  await scrollAiToBottom()
+
+  try {
+    const history = chatHistory.value
+      .filter(item => item.content !== 'Dang suy nghi...')
+      .map(item => ({
+        role: item.role === 'bot' ? 'assistant' : 'user',
+        content: item.content
+      }))
+
+    const response = await axiosClient.post('/ai/chat', {
+      message: outgoing,
+      history
+    })
+
+    chatHistory.value.pop()
+    chatHistory.value.push({
+      role: 'bot',
+      content: response.data?.data || response.data?.message || 'AI khong tra ve noi dung.'
+    })
+  } catch (error) {
+    chatHistory.value.pop()
+    const message = error.response?.data?.message || 'Khong gui duoc tin nhan toi AI.'
+    chatHistory.value.push({ role: 'bot', content: message })
+    ElMessage.error(message)
+  } finally {
+    aiSending.value = false
+    await scrollAiToBottom()
+  }
 }
 
 const handleSpaceCreated = (newSpace) => {
   if (newSpace && newSpace.id) {
-    window.location.href = `/space/${newSpace.id}`;
+    window.location.href = `/space/${newSpace.id}`
   } else {
-    window.location.reload();
+    window.location.reload()
   }
 }
 
@@ -183,7 +253,6 @@ const handleProjectCreated = (newProject) => {
   }
 }
 
-/* AI Sidebar Styles */
 .ai-sidebar {
   position: fixed;
   right: 0;
@@ -191,7 +260,7 @@ const handleProjectCreated = (newProject) => {
   bottom: 0;
   width: 360px;
   background: var(--color-surface);
-  box-shadow: -4px 0 24px rgba(0,0,0,0.1);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
   z-index: 2000;
   display: flex;
   flex-direction: column;
@@ -203,23 +272,121 @@ const handleProjectCreated = (newProject) => {
   }
 }
 
-.dark .ai-sidebar { box-shadow: -4px 0 24px rgba(0,0,0,0.5); }
+.dark .ai-sidebar {
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
+}
 
-.ai-header { padding: 20px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; }
-.ai-header h4 { margin: 0; display: flex; align-items: center; gap: 8px; color: #3b82f6; font-size: 18px; }
-.close-ai { background: transparent; border: none; font-size: 18px; color: var(--color-text-muted); cursor: pointer; }
+.ai-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-.ai-content { flex: 1; padding: 20px; overflow-y: auto; }
-.quick-actions { display: flex; gap: 8px; margin-bottom: 24px; }
-.message-bubble { background: var(--color-bg); padding: 12px 16px; border-radius: 16px; border-top-left-radius: 4px; font-size: 14px; line-height: 1.5; }
+.ai-header h4 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #3b82f6;
+  font-size: 18px;
+}
 
-.ai-input-area { padding: 20px; border-top: 1px solid var(--color-border); }
-.ai-input-wrapper { display: flex; background: var(--color-bg); border-radius: 20px; padding: 8px 16px; align-items: center; }
-.ai-input-wrapper input { flex: 1; background: transparent; border: none; outline: none; color: var(--color-text-primary); }
-.send-btn { background: #3b82f6; color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.close-ai {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
 
-.slide-right-enter-active, .slide-right-leave-active { transition: transform 0.3s ease; }
-.slide-right-enter-from, .slide-right-leave-to { transform: translateX(100%); }
+.ai-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.quick-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.chat-message {
+  display: flex;
+  margin-bottom: 12px;
+}
+
+.chat-message.user {
+  justify-content: flex-end;
+}
+
+.message-bubble {
+  max-width: 88%;
+  background: var(--color-bg);
+  padding: 12px 16px;
+  border-radius: 16px;
+  border-top-left-radius: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.chat-message.user .message-bubble {
+  background: rgba(59, 130, 246, 0.16);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 4px;
+}
+
+.ai-input-area {
+  padding: 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.ai-input-wrapper {
+  display: flex;
+  background: var(--color-bg);
+  border-radius: 20px;
+  padding: 8px 16px;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-input-wrapper input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-text-primary);
+}
+
+.send-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.send-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.slide-right-enter-from,
+.slide-right-leave-to {
+  transform: translateX(100%);
+}
 </style>
-
-

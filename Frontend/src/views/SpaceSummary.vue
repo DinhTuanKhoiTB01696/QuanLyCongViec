@@ -3,37 +3,38 @@
     <div class="plane-board-container">
       
       <!-- Plane Style Header -->
-      <header class="plane-space-header">
-        <div class="sh-left">
-          <div class="breadcrumb">
-            <span class="proj-icon">{{ projectBadge }}</span>
-            <span class="proj-name">{{ project?.name || 'Project' }}</span>
-            <i class="fa-solid fa-chevron-right separator"></i>
-            <span class="active-page">
-              <i class="fa-solid fa-layer-group"></i> Work Items
-            </span>
-            <span class="item-count">{{ topLevelTasks.length }}</span>
+      <header class="nexus-project-header">
+        <div class="nexus-breadcrumb">
+          <div class="project-icon" style="background: #3B82F6">
+             {{ projectBadge }}
           </div>
+          <span class="view-name">{{ project?.name || 'Project' }}</span>
+          <i class="fa-solid fa-chevron-right sep"></i>
+          <span class="view-name">
+            <i class="fa-solid fa-layer-group mr-1.5"></i> Work Items
+          </span>
+          <span class="text-muted ml-2 text-xs">{{ topLevelTasks.length }}</span>
         </div>
         
-        <div class="sh-right">
+        <div class="nexus-controls-row">
           <!-- View Toggles -->
-          <div class="view-toggles">
-            <button class="toggle-btn" :class="{ active: currentTab === 'list' }" @click="currentTab = 'list'" title="List view"><i class="fa-solid fa-bars"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'board' }" @click="currentTab = 'board'" title="Kanban view"><i class="fa-solid fa-table-columns"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'calendar' }" @click="currentTab = 'calendar'" title="Calendar view"><i class="fa-regular fa-calendar"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'spreadsheet' }" @click="currentTab = 'spreadsheet'" title="Spreadsheet view"><i class="fa-solid fa-table-cells"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'timeline' }" @click="currentTab = 'timeline'" title="Gantt chart view"><i class="fa-solid fa-chart-gantt"></i></button>
+          <div class="view-toggles flex items-center gap-1 bg-[#16181d] p-1 rounded-md">
+            <button class="nexus-btn nexus-btn-icon !h-7 !w-7 !border-none" :class="{ 'bg-[#27272a] text-white': currentTab === 'list' }" @click="currentTab = 'list'" title="List view"><i class="fa-solid fa-bars"></i></button>
+            <button class="nexus-btn nexus-btn-icon !h-7 !w-7 !border-none" :class="{ 'bg-[#27272a] text-white': currentTab === 'board' }" @click="currentTab = 'board'" title="Kanban view"><i class="fa-solid fa-table-columns"></i></button>
+            <button class="nexus-btn nexus-btn-icon !h-7 !w-7 !border-none" :class="{ 'bg-[#27272a] text-white': currentTab === 'calendar' }" @click="currentTab = 'calendar'" title="Calendar view"><i class="fa-regular fa-calendar"></i></button>
+            <button class="nexus-btn nexus-btn-icon !h-7 !w-7 !border-none" :class="{ 'bg-[#27272a] text-white': currentTab === 'spreadsheet' }" @click="currentTab = 'spreadsheet'" title="Spreadsheet view"><i class="fa-solid fa-table-cells"></i></button>
+            <button class="nexus-btn nexus-btn-icon !h-7 !w-7 !border-none" :class="{ 'bg-[#27272a] text-white': currentTab === 'timeline' }" @click="currentTab = 'timeline'" title="Gantt chart view"><i class="fa-solid fa-chart-gantt"></i></button>
           </div>
 
-          <button class="plane-toolbar-btn" @click="showFilterPanel = !showFilterPanel" :class="{ active: showFilterPanel || activeTaskFilters.length }">
+          <button class="nexus-btn nexus-btn-outlined" @click="showFilterPanel = !showFilterPanel" :class="{ active: showFilterPanel || activeTaskFilters.length }">
             <i class="fa-solid fa-filter"></i>
-            <span v-if="activeTaskFilters.length" class="filter-count">{{ activeTaskFilters.length }}</span>
+            Filters
+            <span v-if="activeTaskFilters.length" class="bg-[#38bdf8] text-black text-[10px] px-1 rounded-full ml-1">{{ activeTaskFilters.length }}</span>
           </button>
           
           <!-- Display Dropdown -->
           <div class="display-dropdown-wrapper">
-             <button class="plane-toolbar-btn" @click.stop="showDisplayDropdown = !showDisplayDropdown" :class="{ 'active': showDisplayDropdown }">Display</button>
+             <button class="nexus-btn nexus-btn-outlined" @click.stop="showDisplayDropdown = !showDisplayDropdown" :class="{ 'active': showDisplayDropdown }">Display</button>
              <div class="plane-dropdown-menu" v-show="showDisplayDropdown" @click.stop>
                 <div class="dd-section">
                    <div class="dd-title">
@@ -64,10 +65,10 @@
              </div>
           </div>
           
-          <button class="plane-toolbar-btn" @click="showAnalyticsSidebar = true">Analytics</button>
+          <button class="nexus-btn nexus-btn-outlined" @click="showAnalyticsSidebar = true">Analytics</button>
           
-          <button class="plane-primary-btn" @click="openCreateTask('TO DO')">
-            Add work item
+          <button class="nexus-btn nexus-btn-primary" @click="openCreateTask('TO DO')">
+            <i class="fa-solid fa-plus"></i> Add work item
           </button>
         </div>
       </header>

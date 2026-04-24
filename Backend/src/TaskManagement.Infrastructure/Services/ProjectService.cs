@@ -271,6 +271,7 @@ namespace TaskManagement.Infrastructure.Services
                 {
                     Id = p.Id,
                     Name = p.Name,
+                    Key = p.Identifier,
                     Description = p.Description,
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
@@ -279,6 +280,18 @@ namespace TaskManagement.Infrastructure.Services
                     DepartmentId = p.DepartmentId,
                     DepartmentName = p.Department != null ? p.Department.Name : null,
                     ActiveMemberCount = p.ProjectMembers.Count(m => m.Status),
+                    NetworkType = p.NetworkType,
+                    LeadUserId = p.ProjectMembers
+                        .Where(pm => pm.Status && (pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PROJECT_MANAGER"))
+                        .OrderBy(pm => pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
+                        .Select(pm => (Guid?)pm.UserId)
+                        .FirstOrDefault(),
+                    LeadName = p.ProjectMembers
+                        .Where(pm => pm.Status && (pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PROJECT_MANAGER"))
+                        .OrderBy(pm => pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
+                        .Select(pm => pm.User.FullName)
+                        .FirstOrDefault(),
+                    Cover = p.NavigationConfig,
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
                     IsMember = canAccessAllProjects || p.ProjectMembers.Any(pm => pm.UserId == userId && pm.Status),

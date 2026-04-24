@@ -6,9 +6,9 @@
           <i class="fa-solid fa-note-sticky text-muted"></i>
           <span class="st-title flex items-center gap-2">Stickies <span class="bg-[var(--color-surface)] text-[var(--color-text-muted)] text-[10px] px-1.5 py-0.5 rounded" v-if="stickies.length > 0">{{ stickies.length }}</span></span>
         </div>
-        <div class="st-right">
-          <button class="plane-toolbar-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
-          <button class="plane-primary-btn flex items-center gap-1.5" @click="addSticky">Add sticky</button>
+        <div class="nexus-controls-row">
+          <input type="text" class="nexus-search-input" placeholder="Search stickies..." />
+          <button class="nexus-btn nexus-btn-primary" @click="addSticky"><i class="fa-solid fa-plus mr-1.5"></i> Add sticky</button>
         </div>
       </header>
 
@@ -41,18 +41,17 @@
           :class="{ 'is-new': sticky.isNew }"
           :data-sticky-color="sticky.color || 'zinc'"
         >
-             <textarea 
+             <div 
+                contenteditable="true"
                 class="sticky-input" 
-                v-model="sticky.content"
+                @input="e => updateStickyContent(sticky, e)"
+                @blur="commitStickyContent(sticky)"
                 placeholder="Click to type here..."
-                :ref="el => { if (el) textareaRefs[sticky.id] = el }"
+                :ref="el => setStickyRef(sticky, el)"
                 :style="{ 
-                  fontWeight: sticky.isBold ? '600' : '400',
-                  fontStyle: sticky.isItalic ? 'italic' : 'normal',
                   textAlign: sticky.align
                 }"
-                @input="debouncedSave()"
-              ></textarea>
+              ></div>
              
              <div class="sticky-footer">
                 <div class="sf-left">
@@ -77,8 +76,8 @@
                      </div>
                    </el-popover>
                    
-                   <button class="sf-btn" :class="{ 'active': sticky.isBold }" @click="sticky.isBold = !sticky.isBold; debouncedSave()"><i class="fa-solid fa-bold"></i></button>
-                   <button class="sf-btn" :class="{ 'active': sticky.isItalic }" @click="sticky.isItalic = !sticky.isItalic; debouncedSave()"><i class="fa-solid fa-italic"></i></button>
+                   <button class="sf-btn" @click="formatText('bold')"><i class="fa-solid fa-bold"></i></button>
+                   <button class="sf-btn" @click="formatText('italic')"><i class="fa-solid fa-italic"></i></button>
                    <button class="sf-btn" @click="cycleAlignment(sticky)">
                      <i v-if="sticky.align === 'left'" class="fa-solid fa-align-left"></i>
                      <i v-if="sticky.align === 'center'" class="fa-solid fa-align-center"></i>
@@ -97,6 +96,7 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
+import { ElNotification } from 'element-plus'
 
 // Sticky color palette - dark theme friendly
 const backgroundColors = [
@@ -117,6 +117,18 @@ const backgroundColors = [
 const stickies = ref([])
 // Holds textarea DOM element refs keyed by sticky id
 const textareaRefs = {}
+
+const setStickyRef = (sticky, el) => {
+  if (!el) {
+    delete textareaRefs[sticky.id]
+    return
+  }
+
+  textareaRefs[sticky.id] = el
+  if (document.activeElement !== el && el.innerHTML !== (sticky.content || '')) {
+    el.innerHTML = sticky.content || ''
+  }
+}
 
 // Debounce timer for auto-save
 let saveTimer = null
@@ -153,20 +165,29 @@ const getRandomColor = () => {
 }
 
 const addSticky = async () => {
+  if (stickies.value.length >= 100) {
+    ElNotification({ 
+      title: 'Limit reached', 
+      message: 'Stickies are limited to 100 to ensure performance.', 
+      type: 'warning' 
+    })
+    return
+  }
+
   const newId = Date.now()
   const newSticky = {
     id: newId,
     content: '',
     color: getRandomColor(),
-    isBold: false,
-    isItalic: false,
+    isBold: false, // Legacy, kept for compatibility
+    isItalic: false, // Legacy, kept for compatibility
     align: 'left',
     isNew: true // triggers highlight animation
   }
   stickies.value.push(newSticky)
   saveToStorage()
 
-  // Wait for DOM to render, then focus the new sticky's textarea
+  // Wait for DOM to render, then focus the new sticky
   await nextTick()
   const el = textareaRefs[newId]
   if (el) el.focus()
@@ -184,10 +205,28 @@ const deleteSticky = (id) => {
   saveToStorage()
 }
 
+const updateStickyContent = (sticky, event) => {
+  sticky.content = event.target.innerHTML
+  debouncedSave()
+}
+
+const commitStickyContent = (sticky) => {
+  const el = textareaRefs[sticky.id]
+  if (el) {
+    sticky.content = el.innerHTML
+  }
+  debouncedSave()
+}
+
 const cycleAlignment = (sticky) => {
   if (sticky.align === 'left') sticky.align = 'center'
   else if (sticky.align === 'center') sticky.align = 'right'
   else sticky.align = 'left'
+  debouncedSave()
+}
+
+const formatText = (command) => {
+  document.execCommand(command, false, null)
   debouncedSave()
 }
 </script>
@@ -332,6 +371,10 @@ const cycleAlignment = (sticky) => {
   font-size: 15px;
   resize: none;
   line-height: 1.6;
+  direction: ltr;
+  unicode-bidi: plaintext;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 .sticky-input::placeholder { color: var(--s-text); opacity: 0.4; font-style: normal; font-weight: normal;}
 

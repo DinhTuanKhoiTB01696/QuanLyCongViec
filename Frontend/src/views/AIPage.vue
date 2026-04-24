@@ -2,12 +2,16 @@
   <NexusLayout>
     <div class="ai-page-flex-wrapper">
       <div class="ai-container">
-        <div class="ai-page-header">
-          <div class="header-left">
-            <h2 class="page-title">Tro ly AI</h2>
-            <span class="header-pill">Chat, breakdown, repo analysis</span>
+        <header class="nexus-feature-header">
+          <div class="header-info">
+            <p class="eyebrow">Advanced AI</p>
+            <h1><i class="fa-solid fa-robot"></i> AI Assistant</h1>
+            <p class="muted">Intelligent support for chat, task breakdown, and repository analysis. Powered by Gemini.</p>
           </div>
-        </div>
+          <div class="nexus-controls-row">
+            <span class="nexus-tag bg-[#e0f2fe] text-[#0c4a6e] font-semibold">BETA</span>
+          </div>
+        </header>
 
         <div class="repo-panel">
           <div class="repo-head">
@@ -277,14 +281,14 @@ import { useProjectStore } from '@/store/useProjectStore'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 import { useSprintStore } from '@/store/useSprintStore'
 import { broadcastAdminRealtime } from '@/utils/adminRealtime'
-import { hasSystemAdminAccess, normalizeProjectRole } from '@/utils/permissions'
+import { getStoredUser, hasSystemAdminAccess, normalizeProjectRole } from '@/utils/permissions'
 import { getScopedCurrentProjectId } from '@/utils/projectContext'
 
 const router = useRouter()
 const projectStore = useProjectStore()
 const workTaskStore = useWorkTaskStore()
 const sprintStore = useSprintStore()
-const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+const currentUser = getStoredUser()
 const aiManagerProjectRoles = ['pm', 'po', 'sm', 'admin', 'project_manager', 'project_lead', 'scrum_master']
 const showCustomizeModal = ref(false)
 const sidebarPreferences = ref({ audit: true, users: true })

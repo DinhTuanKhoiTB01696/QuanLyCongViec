@@ -1,8 +1,8 @@
 <template>
   <NexusLayout>
     <div class="rewards-page">
-      <header class="rewards-header">
-        <div>
+      <header class="nexus-feature-header">
+        <div class="header-info">
           <p class="eyebrow">Gamification</p>
           <h1>Rewards</h1>
           <p class="muted">Track points, career level, contribution share, and early completion bonuses.</p>

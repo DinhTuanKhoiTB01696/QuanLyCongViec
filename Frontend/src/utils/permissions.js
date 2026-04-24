@@ -17,10 +17,12 @@ export const ADMIN_USER_DIRECTORY_ROLES = [
 
 export const PROJECT_SETTINGS_ROLES = [
   'project_manager',
-  'project manager',
   'pm',
   'po',
-  'admin'
+  'admin',
+  'scrum_master',
+  'project_lead',
+  'sm'
 ]
 
 export const getStoredUser = () => {
@@ -42,7 +44,7 @@ export const canAccessAdminUserDirectory = (user = getStoredUser()) => {
   return roles.some(role => ADMIN_USER_DIRECTORY_ROLES.includes(role))
 }
 
-export const normalizeProjectRole = (role) => normalizeRole(role).replace(/-/g, '_')
+export const normalizeProjectRole = (role) => normalizeRole(role).replace(/[\s-]+/g, '_')
 
 export const canAccessProjectSettings = (project, user = getStoredUser()) => {
   if (hasSystemAdminAccess(user)) {

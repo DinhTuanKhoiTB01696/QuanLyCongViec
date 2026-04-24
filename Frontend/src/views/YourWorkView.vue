@@ -12,11 +12,27 @@ const tabs = ['Summary', 'Assigned', 'Created', 'Subscribed', 'Activity']
 const myTasks = ref([])
 const loading = ref(false)
 const actStore = useActivityStore()
+const selectedProjectId = ref(null)
+const projectList = ref([])
 
 const currentUserId = computed(() => {
   const user = localStorage.getItem('user')
   return user ? JSON.parse(user).id : null
 })
+
+const fetchProjects = async () => {
+    try {
+        const [discoveryRes, archivedRes] = await Promise.all([
+            axiosClient.get('/projects/discovery'),
+            axiosClient.get('/projects/archived')
+        ])
+        const activeProjects = (discoveryRes.data?.data || []).map(p => ({ ...p, isArchived: false }))
+        const archivedProjects = (archivedRes.data?.data || []).map(p => ({ ...p, isArchived: true }))
+        projectList.value = [...activeProjects, ...archivedProjects]
+    } catch(e) {
+        console.error('Error fetching projects', e)
+    }
+}
 
 const fetchMyTasks = async () => {
   try {
@@ -61,7 +77,8 @@ const fetchMyTasks = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await fetchProjects()
   fetchMyTasks()
 })
 
@@ -234,6 +251,7 @@ const downloadWordActivity = () => {
         <header class="yw-header flex-between">
           <span class="yw-title"><i class="fa-regular fa-user"></i> Your work</span>
         </header>
+
 
         <div class="yw-tabs">
           <button
@@ -478,6 +496,9 @@ const downloadWordActivity = () => {
 
 .yw-header {
   padding: 24px 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .yw-title {
