@@ -2,11 +2,10 @@
   <AdminLayout>
     <div class="admin-page">
       <div class="page-header">
-        <div class="breadcrumb">SYSTEM / CONFIGURATION</div>
+        <div class="breadcrumb">{{ t('SYSTEM / CONFIGURATION', 'HỆ THỐNG / CẤU HÌNH') }}</div>
         <h1 class="text-hero">{{ t('System Configuration', 'Cấu hình hệ thống') }}</h1>
         <p class="text-desc">
-          Manage workflow defaults, project lifecycle states, and application aesthetics. 
-          Configure the foundational building blocks for all workspace activities.
+          {{ t('Manage workflow defaults, project lifecycle states, and application aesthetics. Configure the foundational building blocks for all workspace activities.', 'Quản lý mặc định quy trình làm việc, trạng thái vòng đời dự án và thẩm mỹ ứng dụng. Cấu hình các khối xây dựng cơ bản cho mọi hoạt động của không gian làm việc.') }}
         </p>
       </div>
 
@@ -29,10 +28,9 @@
               <input v-model="status.name" type="text" class="status-input" />
               <input v-model="status.color" type="color" class="color-input" />
               <label class="toggle-row mini-toggle">
-                <input v-model="status.isDefault" type="checkbox" />
-                <span>{{ t('Default', 'Mặc định') }}</span>
+                <el-switch v-model="status.isDefault" />
+                <span>{{ t('Visible', 'Hiển thị') }}</span>
               </label>
-              <button type="button" class="plain-action danger-action" @click="removeStatusRow(defaultTaskStatuses, index)">{{ t('Remove', 'Xóa') }}</button>
             </div>
           </div>
 
@@ -59,10 +57,9 @@
               <input v-model="status.name" type="text" class="status-input" />
               <input v-model="status.color" type="color" class="color-input" />
               <label class="toggle-row mini-toggle">
-                <input v-model="status.isDefault" type="checkbox" />
-                <span>{{ t('Default', 'Mặc định') }}</span>
+                <el-switch v-model="status.isDefault" />
+                <span>{{ t('Visible', 'Hiển thị') }}</span>
               </label>
-              <button type="button" class="plain-action danger-action" @click="removeStatusRow(projectStatuses, index)">{{ t('Remove', 'Xóa') }}</button>
             </div>
           </div>
 
@@ -79,7 +76,7 @@
               <p>{{ t('Real-time response metrics for monitoring system stability.', 'Chỉ số phản hồi thời gian thực để giám sát sự ổn định hệ thống.') }}</p>
             </div>
             <div class="performance-metric">
-              <span class="metric-label">Avg Response</span>
+              <span class="metric-label">{{ t('Avg Response', 'Độ trễ TB') }}</span>
               <strong class="metric-value">{{ currentResponseTime }}ms</strong>
             </div>
           </div>
@@ -154,18 +151,18 @@ const normalizeStatuses = (items) => items
     isDefault: Boolean(item.isDefault)
   }))
 
-const addStatusRow = (target) => {
-  target.value.push({
-    key: `CUSTOM_${target.value.length + 1}`,
+const addStatusRow = (targetArray) => {
+  targetArray.push({
+    key: `CUSTOM_${targetArray.length + 1}`,
     name: '',
     color: '#94a3b8',
-    position: target.value.length,
-    isDefault: false
+    position: targetArray.length,
+    isDefault: true
   })
 }
 
-const removeStatusRow = (target, index) => {
-  target.value.splice(index, 1)
+const removeStatusRow = (targetArray, index) => {
+  targetArray.splice(index, 1)
 }
 
 const resetDefaultTaskStatuses = () => {
@@ -404,12 +401,12 @@ onUnmounted(() => {
 
 .status-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 56px 120px 80px;
+  grid-template-columns: minmax(0, 1fr) 48px 120px;
   gap: 16px;
   align-items: center;
-  padding: 8px 12px;
+  padding: 10px 16px;
   border: 1px solid var(--color-border);
-  border-radius: 2px;
+  border-radius: 8px;
   background: var(--color-surface-hover);
 }
 
@@ -421,15 +418,35 @@ onUnmounted(() => {
 }
 
 .color-input {
-  width: 100%;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
+  border-radius: 8px !important;
+  overflow: hidden;
+  justify-self: center;
+  flex-shrink: 0;
+}
+
+.color-input::-webkit-color-swatch-wrapper {
+  padding: 0 !important;
+}
+.color-input::-webkit-color-swatch {
+  border: none !important;
+  border-radius: 8px !important;
+}
+.color-input::-moz-color-swatch {
+  border: none !important;
+  border-radius: 8px !important;
 }
 
 .mini-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
   padding: 0;
 }
 

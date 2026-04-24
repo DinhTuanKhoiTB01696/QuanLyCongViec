@@ -53,6 +53,8 @@ namespace TaskManagement.API.Controllers
             [FromQuery] Guid? projectId, 
             [FromQuery] Guid? taskId, 
             [FromQuery] string? timeFilter, 
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
             [FromQuery] string? search,
             [FromQuery] int page = 1, [FromQuery] int limit = 100)
         {
@@ -122,6 +124,17 @@ namespace TaskManagement.API.Controllers
                     else if (timeFilter == "30d")
                         query = query.Where(al => al.CreatedAt >= now.AddDays(-30));
                 }
+                
+                if (startDate.HasValue)
+                {
+                    var startUtc = startDate.Value.ToUniversalTime();
+                    query = query.Where(al => al.CreatedAt >= startUtc);
+                }
+                if (endDate.HasValue)
+                {
+                    var endUtc = endDate.Value.ToUniversalTime();
+                    query = query.Where(al => al.CreatedAt <= endUtc);
+                }
 
                 var taskEntities = await query
                     .OrderByDescending(al => al.CreatedAt)
@@ -159,6 +172,17 @@ namespace TaskManagement.API.Controllers
                         var now = DateTime.UtcNow;
                         if (timeFilter == "24h") sysQuery = sysQuery.Where(al => al.CreatedAt >= now.AddHours(-24));
                         else if (timeFilter == "30d") sysQuery = sysQuery.Where(al => al.CreatedAt >= now.AddDays(-30));
+                    }
+                    
+                    if (startDate.HasValue)
+                    {
+                        var startUtc = startDate.Value.ToUniversalTime();
+                        sysQuery = sysQuery.Where(al => al.CreatedAt >= startUtc);
+                    }
+                    if (endDate.HasValue)
+                    {
+                        var endUtc = endDate.Value.ToUniversalTime();
+                        sysQuery = sysQuery.Where(al => al.CreatedAt <= endUtc);
                     }
                     
                     totalSystemLogs = await sysQuery.CountAsync();
@@ -245,7 +269,7 @@ namespace TaskManagement.API.Controllers
                         return new AuditLogResponseItem
                         {
                             Id = "LOG-" + al.Id.ToString().Substring(0, 8).ToUpper(),
-                            Timestamp = al.CreatedAt.ToString("o"),
+                            Timestamp = DateTime.SpecifyKind(al.CreatedAt, DateTimeKind.Utc).ToString("yyyy-MM-ddTHH:mm:ssZ"),
                             User = al.FullName ?? al.Email ?? "Unknown",
                             Action = actionStr,
                             Resource = $"[{al.ProjectName}] {al.TaskTitle}",
@@ -258,7 +282,7 @@ namespace TaskManagement.API.Controllers
                         return new AuditLogResponseItem
                         {
                             Id = "SYS-" + al.Id.ToString().Substring(0, 8).ToUpper(),
-                            Timestamp = al.CreatedAt.ToString("o"),
+                            Timestamp = DateTime.SpecifyKind(al.CreatedAt, DateTimeKind.Utc).ToString("yyyy-MM-ddTHH:mm:ssZ"),
                             User = al.FullName ?? al.Email ?? "System",
                             Action = al.Action?.ToLower() ?? "system",
                             Resource = al.TaskTitle ?? "System",

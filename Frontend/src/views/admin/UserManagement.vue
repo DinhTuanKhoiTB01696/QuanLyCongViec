@@ -3,7 +3,7 @@
     <div class="directory-page" :class="{ 'is-dimmed': showInvitePanel || showExportModal }" @click="closePageMenus">
       <div class="page-header">
         <div class="header-copy">
-          <div class="breadcrumb">ADMIN / USER DIRECTORY</div>
+          <div class="breadcrumb">{{ t('ADMIN / USER DIRECTORY', 'QUẢN TRỊ / DANH BẠ NGƯỜI DÙNG') }}</div>
           <h1 class="text-hero">{{ t('Users', 'Người dùng') }}</h1>
           <p class="text-desc">
             {{ t('Manage accounts, invitations, and access permissions for members in the organization.', 'Quản lý tài khoản, lời mời và quyền truy cập của thành viên trong tổ chức.') }}
@@ -551,11 +551,11 @@
             </el-select>
 
             <el-select v-model="inviteForm.projectRole" class="project-role-select" popper-class="admin-project-dropdown">
-              <el-option label="Developer" value="DEV"></el-option>
-              <el-option label="Project Manager" value="PM"></el-option>
-              <el-option label="Product Owner" value="PO"></el-option>
-              <el-option label="QA" value="QA"></el-option>
-              <el-option label="Guest" value="Guest"></el-option>
+              <el-option :label="t('Developer', 'Lập trình viên')" value="DEV"></el-option>
+              <el-option :label="t('Project Manager', 'Quản lý dự án')" value="PM"></el-option>
+              <el-option :label="t('Product Owner', 'Chủ sở hữu sản phẩm')" value="PO"></el-option>
+              <el-option :label="t('QA', 'Kiểm thử viên')" value="QA"></el-option>
+              <el-option :label="t('Guest', 'Khách')" value="Guest"></el-option>
             </el-select>
           </div>
           <p class="hint">{{ t('If a project is selected, the invited user will be added to it after accepting.', 'Nếu chọn dự án, người được mời sẽ được thêm vào sau khi chấp nhận.') }}</p>
@@ -767,29 +767,29 @@ const appAccessRows = [
   }
 ]
 
-const roleFilterOptions = [
-  { value: 'organization-admin', label: 'Organization admin' },
-  { value: 'site-admin', label: 'Site admin' },
-  { value: 'user-access-admin', label: 'User access admin' },
-  { value: 'app-admin', label: 'App admin' },
-  { value: 'user', label: 'User' },
-  { value: 'guest', label: 'Guest' },
-  { value: 'jsm-customer', label: 'Jira Service Management customer' }
-]
+const roleFilterOptions = computed(() => [
+  { value: 'organization-admin', label: t('Organization admin', 'Quản trị viên tổ chức') },
+  { value: 'site-admin', label: t('Site admin', 'Quản trị viên trang') },
+  { value: 'user-access-admin', label: t('User access admin', 'Quản trị viên truy cập') },
+  { value: 'app-admin', label: t('App admin', 'Quản trị ứng dụng') },
+  { value: 'user', label: t('User', 'Người dùng') },
+  { value: 'guest', label: t('Guest', 'Khách') },
+  { value: 'jsm-customer', label: t('Jira Service Management customer', 'Khách hàng dịch vụ') }
+])
 
-const appFilterOptions = [
-  { value: 'Goals', label: 'Goals', icon: 'fa-bullseye', tone: 'tone-neutral' },
-  { value: 'Jira Administration', label: 'Jira Administration', icon: 'fa-bolt', tone: 'tone-blue' },
+const appFilterOptions = computed(() => [
+  { value: 'Goals', label: t('Goals', 'Mục tiêu'), icon: 'fa-bullseye', tone: 'tone-neutral' },
+  { value: 'Jira Administration', label: t('Jira Administration', 'Quản trị Jira'), icon: 'fa-bolt', tone: 'tone-blue' },
   { value: 'Jira', label: 'Jira', icon: 'fa-bolt', tone: 'tone-blue' },
-  { value: 'Projects', label: 'Projects', icon: 'fa-rocket', tone: 'tone-dark' }
-]
+  { value: 'Projects', label: t('Projects', 'Dự án'), icon: 'fa-rocket', tone: 'tone-dark' }
+])
 
-const statusFilterOptions = [
-  { value: 'active', label: 'ACTIVE', className: 'status-active' },
-  { value: 'invited', label: 'INVITED', className: 'status-invited' },
-  { value: 'suspended', label: 'SUSPENDED', className: 'status-suspended' },
-  { value: 'deactivated', label: 'DEACTIVATED', className: 'status-deactivated' }
-]
+const statusFilterOptions = computed(() => [
+  { value: 'active', label: t('ACTIVE', 'HOẠT ĐỘNG'), className: 'status-active' },
+  { value: 'invited', label: t('INVITED', 'ĐÃ MỜI'), className: 'status-invited' },
+  { value: 'suspended', label: t('SUSPENDED', 'TẠM NGƯNG'), className: 'status-suspended' },
+  { value: 'deactivated', label: t('DEACTIVATED', 'VÔ HIỆU HÓA'), className: 'status-deactivated' }
+])
 
 const avatarColors = ['#579dff', '#c97cf4', '#00b8d9', '#22a06b', '#f5cd47', '#e2483d', '#6e5dc6', '#4bce97']
 
@@ -1773,8 +1773,8 @@ onUnmounted(() => {
 .filter-button,
 .plain-action,
 .clear-filters-btn {
-  min-height: 34px;
-  border-radius: 2px;
+  min-height: 36px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
@@ -2239,7 +2239,7 @@ onUnmounted(() => {
   inset: 0;
   z-index: 90;
   overflow-y: auto;
-  background: #ffffff;
+  background: var(--bg-layout, #1a1d24);
 }
 
 .close-invite {
@@ -2252,7 +2252,7 @@ onUnmounted(() => {
   height: 38px;
   border: 1px solid transparent;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--bg-layout, #1a1d24);
   color: var(--color-text-secondary);
   cursor: pointer;
   font-size: 18px;
@@ -2307,15 +2307,15 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   padding: 5px 8px;
-  border: 1px solid #8590a2;
-  border-radius: 2px;
-  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--input-bg, #1a1d24);
 }
 
 .email-composer.is-focused,
 .group-composer.is-focused {
-  border-color: #0c66e4;
-  box-shadow: 0 0 0 1px #0c66e4;
+  border-color: var(--color-accent, #0c66e4);
+  box-shadow: 0 0 0 1px var(--color-accent, #0c66e4);
 }
 
 .email-composer input,
@@ -2335,9 +2335,9 @@ onUnmounted(() => {
   gap: 6px;
   min-height: 26px;
   padding: 0 7px;
-  border: 1px solid #dfe1e6;
-  border-radius: 2px;
-  background: #f1f2f4;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
   color: var(--color-text-primary);
   font-size: 13px;
 }
@@ -2688,14 +2688,14 @@ onUnmounted(() => {
 :deep(.el-input__wrapper),
 :deep(.el-select__wrapper),
 :deep(.el-textarea__inner) {
-  border-radius: 2px !important;
+  border-radius: 6px !important;
 }
 
 ::v-deep(.invite-panel .el-input__wrapper),
 ::v-deep(.invite-panel .el-textarea__inner),
 ::v-deep(.invite-panel .el-select__wrapper) {
-  background-color: #ffffff !important;
-  box-shadow: 0 0 0 1px #8590a2 inset !important;
+  background-color: var(--input-bg, #1a1d24) !important;
+  box-shadow: 0 0 0 1px var(--color-border) inset !important;
 }
 
 :deep(.invite-panel .el-input__inner),

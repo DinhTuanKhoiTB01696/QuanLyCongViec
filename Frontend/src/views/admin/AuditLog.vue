@@ -2,9 +2,9 @@
   <AdminLayout>
     <div class="admin-page">
       <div class="page-header">
-        <div class="breadcrumb">SYSTEM / AUDIT LOG</div>
+        <div class="breadcrumb">{{ t('SYSTEM / AUDIT LOG', 'HỆ THỐNG / NHẬT KÝ') }}</div>
         <h1 class="text-hero">{{ t('System Audit Log', 'Nhật ký Hệ thống') }}</h1>
-        <p class="text-desc">Monitor and search important system activities, security events, and administrative changes.</p>
+        <p class="text-desc">{{ t('Monitor and search important system activities, security events, and administrative changes.', 'Theo dõi và tìm kiếm các hoạt động quan trọng của hệ thống, sự kiện bảo mật và thay đổi quản trị.') }}</p>
       </div>
 
       <div class="header-actions-row">
@@ -24,6 +24,8 @@
             range-separator="→"
             :start-placeholder="t('From', 'Từ')"
             :end-placeholder="t('To', 'Đến')"
+            format="DD/MM/YYYY"
+            value-format="YYYY-MM-DD"
             :disabled-date="disabledDate"
             class="compact-date-picker"
             @change="fetchLogs"
@@ -31,7 +33,7 @@
 
           <div class="realtime-toggle">
             <el-switch v-model="isRealtime" @change="handleRealtimeToggle" />
-            <span>Realtime</span>
+            <span>{{ t('Realtime', 'Thời gian thực') }}</span>
           </div>
         </div>
       </div>
@@ -39,13 +41,18 @@
       <section class="settings-card no-padding">
         <div v-loading="loading">
           <el-table :data="logs" style="width: 100%" class="admin-table">
-            <el-table-column prop="timestamp" label="TIMESTAMP" width="180">
+            <template #empty>
+              <div class="empty-state">
+                <span>{{ t('No Data', 'Không có dữ liệu') }}</span>
+              </div>
+            </template>
+            <el-table-column prop="timestamp" :label="t('TIMESTAMP', 'THỜI GIAN')" width="180">
               <template #default="scope">
                 <span class="timestamp-text">{{ formatDateLocal(scope.row.timestamp) }}</span>
               </template>
             </el-table-column>
             
-            <el-table-column prop="user" label="USER" width="200">
+            <el-table-column prop="user" :label="t('USER', 'NGƯỜI DÙNG')" width="200">
               <template #default="scope">
                 <div class="user-cell-audit">
                   <div class="mini-avatar">{{ getInitials(scope.row.user) }}</div>
@@ -54,13 +61,13 @@
               </template>
             </el-table-column>
 
-            <el-table-column prop="action" label="ACTION" width="140">
+            <el-table-column prop="action" :label="t('ACTION', 'HÀNH ĐỘNG')" width="140">
               <template #default="scope">
                 <span class="action-tag">{{ scope.row.action }}</span>
               </template>
             </el-table-column>
 
-            <el-table-column prop="resource" label="RESOURCE">
+            <el-table-column prop="resource" :label="t('RESOURCE', 'TÀI NGUYÊN')">
               <template #default="scope">
                 <div class="resource-stack">
                   <strong>{{ scope.row.resource }}</strong>
@@ -69,21 +76,22 @@
               </template>
             </el-table-column>
 
-            <el-table-column prop="status" label="STATUS" width="120">
+            <el-table-column prop="status" :label="t('STATUS', 'TRẠNG THÁI')" width="120">
               <template #default="scope">
                 <div class="status-badge" :class="scope.row.status.toLowerCase()">
-                  {{ scope.row.status }}
+                  {{ t(scope.row.status, scope.row.status === 'SUCCESS' ? 'THÀNH CÔNG' : (scope.row.status === 'ERROR' ? 'LỖI' : scope.row.status)) }}
                 </div>
               </template>
             </el-table-column>
           </el-table>
 
-          <div class="table-footer" v-if="total > 0">
+          <div class="table-footer" v-if="total > 10">
             <el-pagination
               v-model:current-page="currentPage"
               layout="prev, pager, next"
               :total="total"
-              :page-size="20"
+              :page-size="10"
+              :hide-on-single-page="true"
               @current-change="handlePageChange"
               class="compact-pagination"
             />
@@ -148,7 +156,7 @@ const fetchProjects = async () => {
 const fetchLogs = async (isBackground = false) => {
     if (!isBackground) loading.value = true
     try {
-        const params = { page: currentPage.value, limit: 20 }
+        const params = { page: currentPage.value, limit: 10 }
         if (dateRange.value?.length === 2) {
             params.startDate = dateRange.value[0].toISOString()
             params.endDate = dateRange.value[1].toISOString()
@@ -199,6 +207,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 20px;
   margin-bottom: 24px;
+  flex-wrap: wrap;
 }
 
 .search-box {
@@ -218,18 +227,49 @@ onUnmounted(() => {
 
 .search-box input {
   width: 100%;
-  padding: 8px 12px 8px 36px;
+  padding: 8px 12px 8px 42px !important;
   background: var(--input-bg);
   border: 1px solid var(--border-color);
-  border-radius: 2px;
+  border-radius: 8px !important;
   color: var(--text-primary);
   outline: none;
+  box-sizing: border-box;
+}
+
+::v-deep(.compact-date-picker),
+::v-deep(.compact-date-picker.el-date-editor),
+::v-deep(.compact-date-picker .el-input__wrapper) {
+  width: 360px !important;
+  min-width: 360px !important;
+  flex: 0 0 auto !important;
+}
+
+::v-deep(.el-date-editor) {
+  border-radius: 8px !important;
+  background-color: var(--input-bg) !important;
+  box-shadow: 0 0 0 1px var(--border-color) inset !important;
+}
+::v-deep(.el-range-input) {
+  color: var(--text-primary) !important;
+}
+::v-deep(.el-range-separator) {
+  color: var(--text-muted) !important;
+}
+
+::v-deep(.compact-select .el-input__wrapper) {
+  border-radius: 8px !important;
+  background-color: var(--input-bg) !important;
+  box-shadow: 0 0 0 1px var(--border-color) inset !important;
+}
+::v-deep(.compact-select .el-input__inner) {
+  color: var(--text-primary) !important;
 }
 
 .filter-group {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 ::v-deep(.admin-table th.el-table__cell) {
@@ -339,6 +379,28 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   border-top: 1px solid var(--border-color);
+}
+
+::v-deep(.el-pagination button) {
+  background-color: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+  border-radius: 6px !important;
+  margin: 0 4px;
+}
+::v-deep(.el-pagination button:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+::v-deep(.el-pagination .el-pager li) {
+  background-color: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+  border-radius: 6px !important;
+  margin: 0 4px;
+}
+::v-deep(.el-pagination .el-pager li.is-active) {
+  background-color: rgba(13, 148, 136, 0.2) !important;
+  color: #0d9488 !important;
+  border: 1px solid #0d9488 !important;
 }
 
 @media (max-width: 1000px) {

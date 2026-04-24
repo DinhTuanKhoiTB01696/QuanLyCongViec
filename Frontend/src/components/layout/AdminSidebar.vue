@@ -37,14 +37,12 @@
         <span>{{ t('Configuration', 'Configuration') }}</span>
       </el-menu-item>
 
-      <el-sub-menu v-if="canAccessSystemAdmin" index="/admin/instance">
+      <el-sub-menu v-if="false" index="/admin/instance">
         <template #title>
           <i class="fa-solid fa-server menu-icon"></i>
           <span>{{ t('Instance', 'Instance') }}</span>
         </template>
         <el-menu-item index="/admin/instance/general">{{ t('General settings', 'General settings') }}</el-menu-item>
-        <el-menu-item index="/admin/instance/authentication">{{ t('Authentication', 'Authentication') }}</el-menu-item>
-        <el-menu-item index="/admin/instance/email">{{ t('Email / SMTP', 'Email / SMTP') }}</el-menu-item>
       </el-sub-menu>
 
       <el-sub-menu v-if="canAccessSystemAdmin" index="/admin/security">
@@ -52,9 +50,11 @@
           <i class="fa-solid fa-shield-halved menu-icon"></i>
           <span>{{ t('Security', 'Security') }}</span>
         </template>
+        <el-menu-item index="/admin/instance/authentication">{{ t('Authentication', 'Authentication') }}</el-menu-item>
+        <el-menu-item index="/admin/instance/email">{{ t('Email / SMTP', 'Email / SMTP') }}</el-menu-item>
         <el-menu-item index="/admin/security/2fa">{{ t('Two-Factor Auth', 'Two-Factor Auth') }}</el-menu-item>
         <el-menu-item index="/admin/security/password">{{ t('Change Password', 'Change Password') }}</el-menu-item>
-        <el-menu-item index="/admin/security/ip-whitelist">{{ t('IP Whitelist', 'IP Whitelist') }}</el-menu-item>
+        <el-menu-item v-if="false" index="/admin/security/ip-whitelist">{{ t('IP Whitelist', 'IP Whitelist') }}</el-menu-item>
       </el-sub-menu>
 
       <div style="flex-grow: 1;"></div>

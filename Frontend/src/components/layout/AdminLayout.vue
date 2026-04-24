@@ -34,8 +34,29 @@ import AdminSidebar from './AdminSidebar.vue'
   max-width: 1200px;
   margin: 0 auto;
 }
+</style><style>
+.admin-layout .primary-btn,
+.admin-layout .secondary-btn,
+.admin-layout .btn-ghost,
+.admin-layout .neutral-btn,
+.admin-layout .filter-button,
+.admin-layout .el-button {
+  border-radius: 8px !important;
+}
+
+.admin-layout .el-input__wrapper,
+.admin-layout .el-textarea__inner,
+.admin-layout .el-select__wrapper,
+.admin-layout input[type="text"],
+.admin-layout input[type="color"] {
+  border-radius: 8px !important;
+}
+
+.admin-layout .status-row {
+  border-radius: 8px !important;
+}
+
+.admin-layout .settings-card {
+  border-radius: 12px !important;
+}
 </style>
-
-
-
-

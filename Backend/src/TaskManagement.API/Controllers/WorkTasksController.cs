@@ -70,16 +70,6 @@ namespace TaskManagement.API.Controllers
             return "BACKLOG";
         }
 
-        private static readonly (string Name, int Position)[] DefaultTaskStatuses =
-        {
-            ("BACKLOG", 0),
-            ("TO DO", 1),
-            ("IN PROGRESS", 2),
-            ("IN REVIEW", 3),
-            ("DONE", 4),
-            ("CANCELLED", 5)
-        };
-
         private static string ResolveDefaultStatusColor(string statusName)
         {
             return NormalizeStatusName(statusName) switch
@@ -91,6 +81,46 @@ namespace TaskManagement.API.Controllers
                 "CANCELLED" => "#ef4444",
                 _ => "#64748b"
             };
+        }
+
+        private class GlobalStatusItem
+        {
+            public string Key { get; set; } = string.Empty;
+            public string Name { get; set; } = string.Empty;
+            public string Color { get; set; } = string.Empty;
+            public int Position { get; set; }
+            public bool IsDefault { get; set; }
+        }
+
+        private static async Task<List<GlobalStatusItem>> GetGlobalTaskStatusesAsync(ApplicationDbContext context)
+        {
+            var setting = await context.SystemSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.SettingGroup == "AdminDefaults" && s.Key == "DefaultTaskStatuses");
+
+            var defaultItems = new List<GlobalStatusItem>
+            {
+                new() { Key = "BACKLOG", Name = "Backlog", Color = "#71717A", Position = 0, IsDefault = true },
+                new() { Key = "TODO", Name = "To Do", Color = "#94A3B8", Position = 1, IsDefault = true },
+                new() { Key = "IN_PROGRESS", Name = "In Progress", Color = "#3B82F6", Position = 2, IsDefault = true },
+                new() { Key = "IN_REVIEW", Name = "In Review", Color = "#F59E0B", Position = 3, IsDefault = true },
+                new() { Key = "DONE", Name = "Done", Color = "#10B981", Position = 4, IsDefault = true },
+                new() { Key = "CANCELLED", Name = "Cancelled", Color = "#EF4444", Position = 5, IsDefault = true }
+            };
+
+            if (setting == null || string.IsNullOrWhiteSpace(setting.Value))
+            {
+                return defaultItems;
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<List<GlobalStatusItem>>(setting.Value) ?? defaultItems;
+            }
+            catch
+            {
+                return defaultItems;
+            }
         }
 
         private static DateTime? ParseDateOnlyUtc(System.Text.Json.JsonElement property)
@@ -282,33 +312,55 @@ namespace TaskManagement.API.Controllers
 
         private static async Task EnsureDefaultTaskStatusesAsync(ApplicationDbContext context, Guid projectId)
         {
+            var globalStatuses = await GetGlobalTaskStatusesAsync(context);
+
             var existingStatuses = await context.TaskStatuses
                 .Where(ts => ts.ProjectId == projectId)
                 .ToListAsync();
 
-            var existingNormalized = existingStatuses
-                .Select(ts => NormalizeStatusName(ts.Name))
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            var missingStatuses = DefaultTaskStatuses
-                .Where(status => !existingNormalized.Contains(status.Name))
-                .ToList();
-
-            if (!missingStatuses.Any())
+            // 1. Merge duplicates in existing project statuses to fix the "TODO vs TO DO" bug
+            var groupedStatuses = existingStatuses.GroupBy(ts => NormalizeStatusName(ts.Name)).Where(g => g.Count() > 1).ToList();
+            foreach (var group in groupedStatuses)
             {
-                return;
+                var survivor = group.OrderBy(ts => ts.Position).First();
+                var duplicates = group.Where(ts => ts.Id != survivor.Id).ToList();
+                foreach (var dup in duplicates)
+                {
+                    var tasks = await context.WorkTasks.Where(t => t.TaskStatusId == dup.Id).ToListAsync();
+                    foreach (var task in tasks)
+                    {
+                        task.TaskStatusId = survivor.Id;
+                    }
+                    context.TaskStatuses.Remove(dup);
+                    existingStatuses.Remove(dup);
+                }
             }
 
-            foreach (var status in missingStatuses)
+            // 2. Add or update all global statuses
+            foreach (var globalStatus in globalStatuses)
             {
-                context.TaskStatuses.Add(new TaskManagement.Domain.Entities.TaskStatus
+                var existing = existingStatuses.FirstOrDefault(ts => NormalizeStatusName(ts.Name) == NormalizeStatusName(globalStatus.Name));
+                if (existing == null)
                 {
-                    Id = Guid.NewGuid(),
-                    ProjectId = projectId,
-                    Name = status.Name,
-                    ColorCode = ResolveDefaultStatusColor(status.Name),
-                    Position = status.Position
-                });
+                    // Only add if it's default
+                    if (globalStatus.IsDefault)
+                    {
+                        context.TaskStatuses.Add(new TaskManagement.Domain.Entities.TaskStatus
+                        {
+                            Id = Guid.NewGuid(),
+                            ProjectId = projectId,
+                            Name = globalStatus.Name,
+                            ColorCode = globalStatus.Color,
+                            Position = globalStatus.Position
+                        });
+                    }
+                }
+                else
+                {
+                    existing.Name = globalStatus.Name;
+                    existing.ColorCode = globalStatus.Color;
+                    existing.Position = globalStatus.Position;
+                }
             }
 
             await context.SaveChangesAsync();
@@ -509,18 +561,34 @@ namespace TaskManagement.API.Controllers
             {
                 await EnsureDefaultTaskStatusesAsync(context, projectId);
 
-                var statuses = await context.TaskStatuses
+                var globalStatuses = await GetGlobalTaskStatusesAsync(context);
+                var inactiveGlobalNames = globalStatuses.Where(s => !s.IsDefault).Select(s => NormalizeStatusName(s.Name)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                var dbStatuses = await context.TaskStatuses
                     .Where(ts => ts.ProjectId == projectId)
                     .OrderBy(ts => ts.Position)
-                    .Select(ts => new
+                    .ToListAsync();
+
+                var statusesToReturn = new List<object>();
+                foreach (var ts in dbStatuses)
+                {
+                    if (inactiveGlobalNames.Contains(NormalizeStatusName(ts.Name)))
+                    {
+                        var hasTasks = await context.WorkTasks.AnyAsync(t => t.ProjectId == projectId && t.TaskStatusId == ts.Id && !t.IsDeleted);
+                        if (!hasTasks) continue; // Hide this status from the frontend
+                    }
+
+                    statusesToReturn.Add(new
                     {
                         ts.Id,
                         ts.Name,
-                        DisplayName = ts.Name
-                    })
-                    .ToListAsync();
+                        DisplayName = ts.Name,
+                        ColorCode = ts.ColorCode,
+                        ts.Position
+                    });
+                }
 
-                return Ok(new { statusCode = 200, message = "Success", data = statuses });
+                return Ok(new { statusCode = 200, message = "Success", data = statusesToReturn });
             }
             catch (Exception ex)
             {

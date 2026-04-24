@@ -37,12 +37,16 @@
               <span class="item-text">Configuration</span>
             </div>
 
-            <div v-if="canAccessAdmin" class="settings-menu-header">
+            <div v-if="false" class="settings-menu-header">
               <span class="item-text">Instance</span>
             </div>
 
-            <div v-if="canAccessAdmin" class="settings-menu-item indented" @click="handleCommand('/admin/instance/general')">
+            <div v-if="false" class="settings-menu-item indented" @click="handleCommand('/admin/instance/general')">
               <span class="item-text">General settings</span>
+            </div>
+
+            <div v-if="canAccessAdmin" class="settings-menu-header">
+              <span class="item-text">Security</span>
             </div>
 
             <div v-if="canAccessAdmin" class="settings-menu-item indented" @click="handleCommand('/admin/instance/authentication')">
