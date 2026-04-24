@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace TaskManagement.Application.DTOs.WorkTask
 {
@@ -14,6 +15,9 @@ namespace TaskManagement.Application.DTOs.WorkTask
         public DateTime? DueDate { get; set; }
         public Guid? SprintId { get; set; }
         public Guid TaskTypeId { get; set; }
+        public double? TotalEstimatedHours { get; set; }
+        public string? VisibilityMode { get; set; }
+        public List<string>? VisibleToRoles { get; set; }
         public byte[]? RowVersion { get; set; }
     }
 }
