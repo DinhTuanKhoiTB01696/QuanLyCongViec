@@ -93,13 +93,18 @@ axiosClient.interceptors.response.use(
                 return axiosClient(originalRequest);
             } catch (err) {
                 processQueue(err, null);
-                // Refresh token failed (expired or invalid), force logout
-                clearAuthSession();
-                const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-                const redirect = currentPath && !currentPath.startsWith('/login')
-                    ? `?redirect=${encodeURIComponent(currentPath)}`
-                    : '';
-                window.location.href = `/login${redirect}`; // Redirect to login
+                const refreshStatus = err?.response?.status
+                const shouldForceLogout = refreshStatus === 401 || refreshStatus === 403
+
+                if (shouldForceLogout) {
+                    clearAuthSession();
+                    const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+                    const redirect = currentPath && !currentPath.startsWith('/login')
+                        ? `?redirect=${encodeURIComponent(currentPath)}`
+                        : '';
+                    window.location.href = `/login${redirect}`;
+                }
+
                 return Promise.reject(err);
             } finally {
                 isRefreshing = false;

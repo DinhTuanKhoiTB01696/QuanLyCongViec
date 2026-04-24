@@ -149,10 +149,43 @@
                min="0"
                step="0.5"
                class="estimate-inline-input"
-               @input="event => updateEstimatedHours(event.target.value, selectedTask)"
+               @change="event => updateEstimatedHours(event.target.value, selectedTask)"
              />
              <small>h</small>
            </div>
+
+           <el-dropdown v-if="isRoleVisibilityEnabled" trigger="click" @command="(cmd) => selectVisibilityMode(cmd, selectedTask)">
+             <div class="t-btn">
+               <i class="fa-solid fa-eye"></i>
+               <span>Visibility</span>
+               {{ getVisibilityLabel(selectedTask) }}
+             </div>
+             <template #dropdown>
+               <el-dropdown-menu class="theme-dropdown">
+                 <el-dropdown-item command="project">Project members</el-dropdown-item>
+                 <el-dropdown-item command="assigned">Assigned only</el-dropdown-item>
+                 <el-dropdown-item command="role">Role scoped</el-dropdown-item>
+               </el-dropdown-menu>
+             </template>
+           </el-dropdown>
+
+           <el-popover v-if="isRoleVisibilityEnabled && selectedTask?.visibilityMode === 'role'" placement="bottom-start" trigger="click" popper-class="plane-popover" :width="260" :disabled="!canEditTaskVisibility">
+             <template #reference>
+               <div class="t-btn" :class="{ disabled: !canEditTaskVisibility }">
+                 <i class="fa-solid fa-user-shield"></i>
+                 <span>Roles</span>
+                 {{ selectedTask?.visibleToRoles?.length ? selectedTask.visibleToRoles.join(', ') : 'Select roles' }}
+               </div>
+             </template>
+             <div class="popover-content">
+               <div class="popover-list">
+                 <div class="popover-item" v-for="role in availableVisibilityRoles" :key="role" @click="toggleVisibleRole(role, selectedTask)">
+                   <span>{{ role }}</span>
+                   <i v-if="selectedTask?.visibleToRoles?.includes(role)" class="fa-solid fa-check ms-auto"></i>
+                 </div>
+               </div>
+             </div>
+           </el-popover>
 
            <!-- CYCLE -->
            <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover" :width="280" @show="cycleSearch = ''">
@@ -559,6 +592,43 @@
                     </div>
                   </div>
                 </div>
+                <div v-if="isRoleVisibilityEnabled" class="p-row">
+                  <div class="p-label"><i class="fa-solid fa-eye"></i> Visibility</div>
+                  <div class="p-val">
+                    <el-dropdown trigger="click" @command="(cmd) => selectVisibilityMode(cmd)">
+                      <div class="property-trigger" :class="{ 'muted-val': !selectedTask?.visibilityMode }">
+                        <i class="fa-solid fa-eye"></i>
+                        <span>Visibility</span>
+                        <span class="property-value">{{ getVisibilityLabel(selectedTask) }}</span>
+                      </div>
+                      <template #dropdown>
+                        <el-dropdown-menu class="theme-dropdown">
+                          <el-dropdown-item command="project">Project members</el-dropdown-item>
+                          <el-dropdown-item command="assigned">Assigned only</el-dropdown-item>
+                          <el-dropdown-item command="role">Role scoped</el-dropdown-item>
+                        </el-dropdown-menu>
+                      </template>
+                    </el-dropdown>
+                    <div v-if="selectedTask?.visibilityMode === 'role'" class="estimate-breakdown mt-2">
+                      <div class="estimate-breakdown-row">
+                        <span>Visible roles</span>
+                        <strong>{{ selectedTask?.visibleToRoles?.length ? selectedTask.visibleToRoles.join(', ') : 'None' }}</strong>
+                      </div>
+                      <div class="ai-assignee-metrics">
+                        <button
+                          v-for="role in availableVisibilityRoles"
+                          :key="`visibility-role-${role}`"
+                          class="secondary-mini-btn"
+                          type="button"
+                          :disabled="!canEditTaskVisibility"
+                          @click="toggleVisibleRole(role)"
+                        >
+                          {{ selectedTask?.visibleToRoles?.includes(role) ? 'Unselect' : 'Select' }} {{ role }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                <div class="p-row">
                  <div class="p-label"><i class="fa-solid fa-chart-simple"></i> Priority</div>
                  <div class="p-val">
@@ -655,10 +725,11 @@
                        step="0.5"
                        class="estimate-hours-input"
                        :disabled="isEstimateDerivedFromSubtasks"
-                       @input="event => updateEstimatedHours(event.target.value)"
+                       @change="event => updateEstimatedHours(event.target.value)"
                      />
-                    </div>
+                   </div>
                    <small v-if="isEstimateDerivedFromSubtasks" class="estimate-helper-text">This parent estimate is derived from sub-work items.</small>
+                   <small v-else-if="selectedTask?.estimateSourceLabel" class="estimate-helper-text">{{ selectedTask.estimateSourceLabel }}</small>
                    <div class="estimate-breakdown">
                      <div class="estimate-breakdown-row">
                        <span>Actual tracked</span>
@@ -1095,7 +1166,8 @@ import { ref, watch, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import axiosClient from '@/api/axiosClient';
 import DOMPurify from 'dompurify';
-import { hasSystemAdminAccess, normalizeProjectRole } from '@/utils/permissions';
+import { subscribeAdminRealtime } from '@/utils/adminRealtime';
+import { getStoredUser, hasSystemAdminAccess, normalizeProjectRole } from '@/utils/permissions';
 import { useProjectStore } from '@/store/useProjectStore';
 import {
   buildFreshWorkSession,
@@ -1112,6 +1184,7 @@ const props = defineProps({
   projectId: { type: [String, Number], required: true },
   projectMembers: { type: Array, default: () => [] },
   currentUser: { type: Object, default: () => ({}) },
+  currentProjectRole: { type: String, default: '' },
   canGoBack: { type: Boolean, default: false }
 });
 
@@ -1156,6 +1229,15 @@ const projectCycles = ref([]);
 const projectModules = ref([]);
 const projectMemberOptions = ref([]);
 const projectStatuses = ref([]);
+const projectExecutionRules = ref({
+  enableRoleBasedTaskVisibility: false,
+  managerAlwaysSeeAllTasks: true,
+  defaultTaskVisibilityMode: 'project',
+  defaultBaseHours: 4,
+  hoursPerStoryPoint: 2,
+  estimateBaselineMode: 'role_then_project',
+  roleHourMultipliers: {}
+});
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 const parseDateValue = (value) => {
@@ -1210,17 +1292,26 @@ const filteredMembers = computed(() => {
 });
 
 const currentProjectRole = computed(() => {
+  const currentUser = props.currentUser && Object.keys(props.currentUser).length
+    ? props.currentUser
+    : getStoredUser();
+  const currentUserIdValue = currentUser?.id || currentUser?.userId;
+  const matchedMember = projectMemberOptions.value
+    .find(member => `${member.userId || member.id || ''}` === `${currentUserIdValue || ''}`);
+  const membershipRole = matchedMember?.projectRole || matchedMember?.ProjectRole;
+
+  if (props.currentProjectRole) {
+    return normalizeProjectRole(props.currentProjectRole);
+  }
+
   const currentProjectMatch = `${projectStore.currentProject?.id || ''}` === `${props.projectId || ''}`
     ? projectStore.currentProject
     : null;
-
-  const cachedProject = projectStore.allProjects.find(project => `${project.id || ''}` === `${props.projectId || ''}`);
-  const role = currentProjectMatch?.myRole
+  const role = membershipRole
+    || currentProjectMatch?.myRole
     || currentProjectMatch?.MyRole
-    || cachedProject?.myRole
-    || cachedProject?.MyRole
-    || cachedProject?.projectRole
-    || cachedProject?.ProjectRole;
+    || currentProjectMatch?.projectRole
+    || currentProjectMatch?.ProjectRole;
 
   return normalizeProjectRole(role);
 });
@@ -1228,9 +1319,7 @@ const currentProjectRole = computed(() => {
 const canUseAiAssigneeSuggestion = computed(() => {
   const currentUser = props.currentUser && Object.keys(props.currentUser).length
     ? props.currentUser
-    : (() => {
-        try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
-      })();
+    : getStoredUser();
 
   if (hasSystemAdminAccess(currentUser)) {
     return true;
@@ -1240,6 +1329,114 @@ const canUseAiAssigneeSuggestion = computed(() => {
 });
 
 const canManageTaskAssignees = computed(() => canUseAiAssigneeSuggestion.value);
+const isRoleVisibilityEnabled = computed(() => Boolean(projectExecutionRules.value?.enableRoleBasedTaskVisibility));
+const canEditTaskVisibility = computed(() => canUseAiAssigneeSuggestion.value && isRoleVisibilityEnabled.value);
+
+const availableVisibilityRoles = computed(() => {
+  return Array.from(new Set(
+    projectMemberOptions.value
+      .map(member => normalizeProjectRole(member.projectRole || member.ProjectRole))
+      .filter(Boolean)
+  ));
+});
+
+const getMemberProjectRole = (userId) => {
+  const member = projectMemberOptions.value.find(item => item.userId === userId);
+  return normalizeProjectRole(member?.projectRole || member?.ProjectRole);
+};
+
+const calculateBaselineEstimate = (task = props.selectedTask) => {
+  if (!task) return 0;
+  const rules = projectExecutionRules.value || {};
+  const storyPoints = Number(task.storyPoints || 0);
+  const priority = Number(task.priority || 0);
+  const assigneeIds = getAssigneeIds(task);
+  const primaryRole = assigneeIds.map(getMemberProjectRole).find(Boolean) || currentProjectRole.value || 'developer';
+  let hours = storyPoints > 0
+    ? storyPoints * Number(rules.hoursPerStoryPoint || 2)
+    : Number(rules.defaultBaseHours || 4);
+
+  if (priority === 1) hours += 4;
+  else if (priority === 2) hours += 2;
+
+  const title = String(task.title || '').toLowerCase();
+  if (/(api|integration|migration|security|payment)/.test(title)) hours += 2.5;
+  if (/(bug|fix|hotfix)/.test(title)) hours += 1;
+
+  const roleMultiplier = Number(rules.roleHourMultipliers?.[primaryRole] ?? 1);
+  hours *= roleMultiplier > 0 ? roleMultiplier : 1;
+
+  return Math.round(Math.max(0.5, Math.min(80, hours)) * 10) / 10;
+};
+
+const applyProjectDefaultsToTask = (task = props.selectedTask, options = {}) => {
+  if (!task) return;
+
+  if (!task.visibilityMode) {
+    task.visibilityMode = projectExecutionRules.value.defaultTaskVisibilityMode || 'project';
+  }
+
+  if (!Array.isArray(task.visibleToRoles)) {
+    task.visibleToRoles = [];
+  }
+
+  if (task.visibilityMode === 'role' && task.visibleToRoles.length === 0) {
+    const fallbackRole = currentProjectRole.value || getMemberProjectRole(getAssigneeIds(task)[0]);
+    if (fallbackRole) {
+      task.visibleToRoles = [fallbackRole];
+    }
+  }
+
+  const shouldApplyBaseline = options.forceEstimate || (task.isNew && !Number(task.totalEstimatedHours || 0))
+  if (shouldApplyBaseline && (!subtasksList.value || !subtasksList.value.length)) {
+    task.totalEstimatedHours = calculateBaselineEstimate(task);
+    task.estimateSourceLabel = 'Suggested from project baseline';
+  }
+};
+
+const selectVisibilityMode = (mode, task = props.selectedTask) => {
+  if (!task || !canEditTaskVisibility.value) return;
+  task.visibilityMode = mode;
+  if (mode !== 'role') {
+    task.visibleToRoles = [];
+  } else if (!task.visibleToRoles?.length && currentProjectRole.value) {
+    task.visibleToRoles = [currentProjectRole.value];
+  }
+
+  if (!task.isNew) {
+    updateTaskFields(task, {
+      visibilityMode: task.visibilityMode,
+      visibleToRoles: task.visibleToRoles || []
+    });
+  }
+};
+
+const toggleVisibleRole = (role, task = props.selectedTask) => {
+  if (!task || !canEditTaskVisibility.value) return;
+  const nextRole = normalizeProjectRole(role);
+  const currentRoles = Array.isArray(task.visibleToRoles) ? [...task.visibleToRoles] : [];
+  task.visibleToRoles = currentRoles.includes(nextRole)
+    ? currentRoles.filter(item => item !== nextRole)
+    : [...currentRoles, nextRole];
+
+  if (!task.isNew) {
+    updateTaskFields(task, {
+      visibilityMode: task.visibilityMode || 'role',
+      visibleToRoles: task.visibleToRoles
+    });
+  }
+};
+
+const getVisibilityLabel = (task = props.selectedTask) => {
+  const mode = task?.visibilityMode || 'project';
+  if (mode === 'assigned') return 'Assigned only';
+  if (mode === 'role') {
+    return task?.visibleToRoles?.length
+      ? `Role scoped (${task.visibleToRoles.join(', ')})`
+      : 'Role scoped';
+  }
+  return 'Project members';
+};
 
 const filteredLabels = computed(() => {
     if (!labelSearch.value) return projectLabels.value;
@@ -1933,13 +2130,14 @@ const addReaction = async (c, emoji) => {
 const fetchAdditionalProjectData = async () => {
     if (!props.projectId) return;
     try {
-        const [cyclesRes, modulesRes, labelsRes, tasksRes, membersRes, statusesRes] = await Promise.all([
+        const [cyclesRes, modulesRes, labelsRes, tasksRes, membersRes, statusesRes, executionRulesRes] = await Promise.all([
              axiosClient.get(`/projects/${props.projectId}/sprints`).catch(()=>({data:{data:[]}})),
              axiosClient.get(`/projects/${props.projectId}/modules`).catch(()=>({data:{data:[]}})),
              axiosClient.get(`/projects/${props.projectId}/labels`).catch(()=>({data:{data:[]}})),
              axiosClient.get(`/projects/${props.projectId}/WorkTasks`).catch(()=>({data:{data:[]}})),
              axiosClient.get(`/projects/${props.projectId}/members`).catch(()=>({data:{data:[]}})),
-             axiosClient.get(`/projects/${props.projectId}/task-statuses`).catch(()=>({data:{data:[]}}))
+             axiosClient.get(`/projects/${props.projectId}/task-statuses`).catch(()=>({data:{data:[]}})),
+             axiosClient.get(`/projects/${props.projectId}/execution-rules`).catch(()=>({data:{data:{}}}))
         ]);
         projectCycles.value = cyclesRes.data?.data || [];
         projectModules.value = modulesRes.data?.data || [];
@@ -1948,7 +2146,8 @@ const fetchAdditionalProjectData = async () => {
         projectMemberOptions.value = (membersRes.data?.data || []).map(member => ({
             ...member,
             userId: member.userId || member.id,
-            fullName: member.fullName || member.name || member.email
+            fullName: member.fullName || member.name || member.email,
+            projectRole: member.projectRole || member.ProjectRole || member.myRole || member.MyRole || ''
         }));
         const fallbackStatuses = [
           { id: 'fallback-backlog', name: 'BACKLOG', displayName: 'Backlog' },
@@ -1964,6 +2163,16 @@ const fetchAdditionalProjectData = async () => {
             displayName: status.displayName || status.name
         }));
         projectStatuses.value = incomingStatuses.length ? incomingStatuses : fallbackStatuses;
+        projectExecutionRules.value = {
+          enableRoleBasedTaskVisibility: Boolean(executionRulesRes.data?.data?.enableRoleBasedTaskVisibility),
+          managerAlwaysSeeAllTasks: executionRulesRes.data?.data?.managerAlwaysSeeAllTasks !== false,
+          defaultTaskVisibilityMode: executionRulesRes.data?.data?.defaultTaskVisibilityMode || 'project',
+          defaultBaseHours: Number(executionRulesRes.data?.data?.defaultBaseHours ?? 4),
+          hoursPerStoryPoint: Number(executionRulesRes.data?.data?.hoursPerStoryPoint ?? 2),
+          estimateBaselineMode: executionRulesRes.data?.data?.estimateBaselineMode || 'role_then_project',
+          roleHourMultipliers: executionRulesRes.data?.data?.roleHourMultipliers || {}
+        };
+        applyProjectDefaultsToTask(props.selectedTask, { forceEstimate: false });
     } catch(e) {}
 };
 
@@ -1989,6 +2198,8 @@ const toggleLabelDetail = async (labelId) => {
 };
 // ======================================================================
 
+let unsubscribeExecutionRulesRealtime = null;
+
 watch(showTaskModal, (val) => {
   if (!val) emit('close');
 });
@@ -2004,6 +2215,14 @@ onMounted(() => {
   window.addEventListener('scroll', touchWorkSessionActivity, { passive: true });
   window.addEventListener('click', touchWorkSessionActivity, { passive: true });
   document.addEventListener('visibilitychange', syncWorkSessionOnVisibility);
+  unsubscribeExecutionRulesRealtime = subscribeAdminRealtime(async ({ type, payload }) => {
+    if (!props.projectId) return;
+    if (payload?.projectId && `${payload.projectId}` !== `${props.projectId}`) return;
+
+    if (['project-settings-updated', 'project-administration-updated'].includes(type)) {
+      await fetchAdditionalProjectData();
+    }
+  });
 });
 
 onUnmounted(() => {
@@ -2013,6 +2232,7 @@ onUnmounted(() => {
   window.removeEventListener('scroll', touchWorkSessionActivity);
   window.removeEventListener('click', touchWorkSessionActivity);
   document.removeEventListener('visibilitychange', syncWorkSessionOnVisibility);
+  unsubscribeExecutionRulesRealtime?.();
 });
 
 const formatDate = (dateStr) => {
@@ -2154,13 +2374,8 @@ const getCurrentUserId = () => {
   const propUserId = props.currentUser?.id || props.currentUser?.userId;
   if (propUserId) return propUserId;
 
-  try {
-    const rawUser = localStorage.getItem('user');
-    const parsedUser = rawUser ? JSON.parse(rawUser) : null;
-    return parsedUser?.id || parsedUser?.userId || null;
-  } catch {
-    return null;
-  }
+  const storedUser = getStoredUser();
+  return storedUser?.id || storedUser?.userId || null;
 };
 
 const getWorkSessionContext = (task = props.selectedTask) => ({
@@ -2572,11 +2787,9 @@ const calculateSuggestedEstimate = (task = props.selectedTask) => {
 
   if (priority === 1) hours += 4;
   if (priority === 2) hours += 2;
-  if (priority === 4) hours = Math.max(1, hours - 0.5);
 
   if (/(api|integration|refactor|migration|security|payment|deploy)/.test(title)) hours += 3;
   if (/(bug|fix|hotfix|patch)/.test(title)) hours += 1.5;
-  if (/(ui|ux|copy|docs|content)/.test(title)) hours = Math.max(1.5, hours - 0.5);
 
   return Math.round(hours * 2) / 2;
 };
@@ -2595,8 +2808,11 @@ const updateEstimatedHours = (rawValue, task = props.selectedTask) => {
     ElMessage.warning('Parent estimate is derived from sub-work items.');
     return;
   }
-  const nextValue = Math.max(0, Number(rawValue) || 0);
+  const parsedValue = Number(rawValue);
+  const shouldApplyBaseline = !Number.isFinite(parsedValue) || parsedValue <= 0;
+  const nextValue = shouldApplyBaseline ? calculateBaselineEstimate(task) : Math.max(0, parsedValue);
   task.totalEstimatedHours = nextValue;
+  task.estimateSourceLabel = shouldApplyBaseline ? 'Suggested from project baseline' : '';
   distributeEstimateAcrossAssignees(task, { persist: false });
   if (!task.isNew) {
     updateTaskFields(task, {
@@ -2851,6 +3067,12 @@ const normalizeTaskSnapshot = (task) => {
   task.dueDate = formatDateOnly(task.dueDate);
   task.totalEstimatedHours = Number(task.totalEstimatedHours ?? 0);
   task.storyPoints = Number(task.storyPoints ?? 0);
+  task.visibilityMode = task.visibilityMode || task.VisibilityMode || 'project';
+  task.visibleToRoles = Array.isArray(task.visibleToRoles)
+    ? task.visibleToRoles.map(role => normalizeProjectRole(role)).filter(Boolean)
+    : Array.isArray(task.VisibleToRoles)
+      ? task.VisibleToRoles.map(role => normalizeProjectRole(role)).filter(Boolean)
+      : [];
 
   if (Array.isArray(task.assignees)) {
     task.assignees = task.assignees.map(item => ({
@@ -2929,7 +3151,9 @@ const submitNewTask = async () => {
             sprintId: props.selectedTask.sprintId,
             moduleId: props.selectedTask.moduleId,
             parentTaskId: getParentId(props.selectedTask),
-            labelIds: props.selectedTask.labelIds || []
+            labelIds: props.selectedTask.labelIds || [],
+            visibilityMode: props.selectedTask.visibilityMode || 'project',
+            visibleToRoles: props.selectedTask.visibleToRoles || []
         });
         ElMessage.success('Đã tạo thành công');
         emit('refresh-tasks');
@@ -2981,7 +3205,9 @@ const submitSubtask = async () => {
             statusName: 'BACKLOG',
             taskTypeId: props.selectedTask.taskTypeId,
             priority: props.selectedTask.priority,
-            totalEstimatedHours: 0
+            totalEstimatedHours: 0,
+            visibilityMode: props.selectedTask.visibilityMode || 'project',
+            visibleToRoles: props.selectedTask.visibleToRoles || []
         });
         isCreatingSubtask.value = false;
         newSubtaskTitle.value = '';

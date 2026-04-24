@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using TaskManagement.Application.Common;
 using TaskManagement.Infrastructure.Data;
 
 namespace TaskManagement.API.Filters
@@ -34,7 +35,7 @@ namespace TaskManagement.API.Filters
         {
             _allowedRoles = roles
                 .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(r => r.Trim())
+                .Select(ProjectExecutionRuleHelper.NormalizeProjectRole)
                 .Where(r => !string.IsNullOrWhiteSpace(r))
                 .ToArray();
             _dbContext = dbContext;
@@ -100,7 +101,9 @@ namespace TaskManagement.API.Filters
             }
 
             // 5. Check Roles
-            if (_allowedRoles.Length > 0 && !_allowedRoles.Contains(member.ProjectRole, StringComparer.OrdinalIgnoreCase))
+            var normalizedMemberRole = ProjectExecutionRuleHelper.NormalizeProjectRole(member.ProjectRole);
+
+            if (_allowedRoles.Length > 0 && !_allowedRoles.Contains(normalizedMemberRole, StringComparer.OrdinalIgnoreCase))
             {
                 context.Result = new ObjectResult(new { statusCode = 403, message = $"Forbidden. Role '{member.ProjectRole}' is not allowed to perform this action." })
                 {

@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using TaskManagement.Application.Common;
 using TaskManagement.Application.DTOs.AI;
 using TaskManagement.Application.DTOs.WorkTask;
 using TaskManagement.Application.Interfaces;
@@ -19,8 +20,8 @@ namespace TaskManagement.Infrastructure.Services
         private readonly IWorkTaskService _workTaskService;
         private readonly IConfiguration _configuration;
         private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
-        private static readonly string[] RepositoryExecutionProjectRoles = { "PM", "PO", "SM", "PROJECT_MANAGER", "PROJECT_LEAD", "Admin" };
-        private static readonly string[] AssigneeSuggestionProjectRoles = { "PM", "PO", "SM", "PROJECT_MANAGER", "SCRUM_MASTER", "Admin" };
+        private static readonly string[] RepositoryExecutionProjectRoles = { "PM", "PO", "SM", "Project Lead", "PROJECT_MANAGER", "PROJECT_LEAD", "Admin" };
+        private static readonly string[] AssigneeSuggestionProjectRoles = { "PM", "PO", "SM", "Project Lead", "PROJECT_MANAGER", "PROJECT_LEAD", "SCRUM_MASTER", "Admin" };
         private static readonly string[] SystemExecutionRoles = { "Admin", "System Admin", "SuperAdmin", "Organization Admin" };
 
         public GeminiAiService(
@@ -939,8 +940,10 @@ namespace TaskManagement.Infrastructure.Services
                 .Select(pm => pm.ProjectRole)
                 .FirstOrDefaultAsync();
 
-            if (string.IsNullOrWhiteSpace(projectRole) ||
-                !RepositoryExecutionProjectRoles.Contains(projectRole, StringComparer.OrdinalIgnoreCase))
+            var normalizedProjectRole = ProjectExecutionRuleHelper.NormalizeProjectRole(projectRole);
+
+            if (string.IsNullOrWhiteSpace(normalizedProjectRole) ||
+                !RepositoryExecutionProjectRoles.Any(role => ProjectExecutionRuleHelper.NormalizeProjectRole(role) == normalizedProjectRole))
             {
                 throw new UnauthorizedAccessException("Ban khong co quyen tao backlog AI cho project nay.");
             }
@@ -969,8 +972,10 @@ namespace TaskManagement.Infrastructure.Services
                 .Select(pm => pm.ProjectRole)
                 .FirstOrDefaultAsync();
 
-            if (string.IsNullOrWhiteSpace(projectRole) ||
-                !AssigneeSuggestionProjectRoles.Contains(projectRole, StringComparer.OrdinalIgnoreCase))
+            var normalizedProjectRole = ProjectExecutionRuleHelper.NormalizeProjectRole(projectRole);
+
+            if (string.IsNullOrWhiteSpace(normalizedProjectRole) ||
+                !AssigneeSuggestionProjectRoles.Any(role => ProjectExecutionRuleHelper.NormalizeProjectRole(role) == normalizedProjectRole))
             {
                 throw new UnauthorizedAccessException("Ban khong co quyen dung AI goi y assignee cho project nay.");
             }

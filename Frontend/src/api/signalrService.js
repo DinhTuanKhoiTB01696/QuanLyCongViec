@@ -26,6 +26,18 @@ class SignalRService {
       .configureLogging(signalR.LogLevel.None)
       .build()
 
+    this.connection.onreconnected(async () => {
+      if (this.connection && this.projectId) {
+        try {
+          await this.connection.invoke('JoinProjectGroup', this.projectId)
+        } catch (err) {
+          if (!isExpectedNetworkError(err)) {
+            console.error('SignalR rejoin group error:', err)
+          }
+        }
+      }
+    })
+
     try {
       await this.connection.start()
       await this.connection.invoke('JoinProjectGroup', projectId)
@@ -59,6 +71,24 @@ class SignalRService {
   off(eventName, callback) {
     if (this.connection) {
       this.connection.off(eventName, callback)
+    }
+  }
+
+  async sendProjectEvent(projectId, type, payload = {}) {
+    if (!projectId || !type) return
+
+    if (!this.connection || this.projectId !== projectId) {
+      await this.startConnection(projectId)
+    }
+
+    if (!this.connection) return
+
+    try {
+      await this.connection.invoke('BroadcastProjectEvent', projectId, type, JSON.stringify(payload || {}))
+    } catch (err) {
+      if (!isExpectedNetworkError(err)) {
+        console.error('SignalR project event error:', err)
+      }
     }
   }
 }

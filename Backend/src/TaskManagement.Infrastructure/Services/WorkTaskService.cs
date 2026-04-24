@@ -2,7 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
+using TaskManagement.Application.Common;
+using TaskManagement.Application.DTOs.Project;
 using TaskManagement.Application.DTOs.WorkTask;
 using TaskManagement.Application.Interfaces;
 using TaskManagement.Infrastructure.Data;
@@ -13,8 +16,10 @@ namespace TaskManagement.Infrastructure.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IGamificationService _gamificationService;
-        private static readonly string[] ManagerRoles = { "PM", "PO", "SM", "PROJECT_MANAGER", "SCRUM_MASTER" };
+        private static readonly string[] ManagerRoles = { "PM", "PO", "SM", "Project Lead", "PROJECT_MANAGER", "PROJECT_LEAD", "SCRUM_MASTER", "Admin" };
+        private static readonly string[] VisibilityOverrideRoles = { "PM", "PO", "Project Lead", "PROJECT_MANAGER", "PROJECT_LEAD", "Admin" };
         private static readonly string[] SystemOverrideRoles = { "superadmin", "admin", "system admin", "organization admin", "accessadmin", "access admin" };
+        private const string TaskVisibilitySettingGroup = "TaskVisibility";
 
         public WorkTaskService(ApplicationDbContext context, IGamificationService gamificationService)
         {
@@ -39,6 +44,11 @@ namespace TaskManagement.Infrastructure.Services
                 throw new UnauthorizedAccessException("Ban khong phai thanh vien active cua du an nay.");
             }
 
+            var executionRules = await LoadExecutionRulesAsync(projectId);
+            var normalizedProjectRole = ProjectExecutionRuleHelper.NormalizeProjectRole(membership?.ProjectRole);
+            var canSeeAllTasks = hasSystemOverride
+                || (executionRules.ManagerAlwaysSeeAllTasks && IsVisibilityOverrideRole(normalizedProjectRole));
+
             var query = _context.WorkTasks
                 .Include(wt => wt.TaskStatus)
                 .Include(wt => wt.TaskType)
@@ -49,6 +59,38 @@ namespace TaskManagement.Infrastructure.Services
                 .Include(wt => wt.TaskAssignments)
                     .ThenInclude(ta => ta.User)
                 .Where(wt => wt.ProjectId == projectId && !wt.IsDeleted && !wt.IsArchived);
+
+            if (!canSeeAllTasks)
+            {
+                var accessRecords = await _context.WorkTasks
+                    .AsNoTracking()
+                    .Where(wt => wt.ProjectId == projectId && !wt.IsDeleted && !wt.IsArchived)
+                    .Select(wt => new TaskVisibilityAccessRecord
+                    {
+                        Id = wt.Id,
+                        ReporterId = wt.ReporterId,
+                        AssignedUserId = wt.AssignedUserId,
+                        AssigneeIds = wt.TaskAssignments
+                            .Where(ta => ta.Status)
+                            .Select(ta => ta.UserId)
+                            .ToList()
+                    })
+                    .ToListAsync();
+
+                var accessVisibilityMap = await LoadTaskVisibilityMapAsync(accessRecords.Select(item => item.Id));
+                var allowedTaskIds = accessRecords
+                    .Where(record => CanUserViewTask(
+                        record,
+                        accessVisibilityMap.TryGetValue(record.Id, out var visibility)
+                            ? visibility
+                            : new TaskVisibilityDto(),
+                        normalizedProjectRole,
+                        userId))
+                    .Select(record => record.Id)
+                    .ToHashSet();
+
+                query = query.Where(wt => allowedTaskIds.Contains(wt.Id));
+            }
 
             var dtos = await query
                 .AsNoTracking()
@@ -108,6 +150,16 @@ namespace TaskManagement.Infrastructure.Services
                 })
                 .ToListAsync();
 
+            var visibilityMap = await LoadTaskVisibilityMapAsync(dtos.Select(item => item.Id));
+            foreach (var dto in dtos)
+            {
+                var visibility = visibilityMap.TryGetValue(dto.Id, out var config)
+                    ? config
+                    : new TaskVisibilityDto();
+                dto.VisibilityMode = visibility.Mode;
+                dto.VisibleToRoles = visibility.Roles;
+            }
+
             // Optional normalization of status name (since it's a DTO logic)
             foreach (var d in dtos) d.StatusName = NormalizeStatusName(d.StatusName);
 
@@ -152,6 +204,7 @@ namespace TaskManagement.Infrastructure.Services
 
             // 6. Generate SequenceId (e.g., CUN-42)
             var project = await _context.Projects.FirstAsync(p => p.Id == request.ProjectId);
+            var executionRules = LoadExecutionRules(project.NavigationConfig);
             project.IssueSequence += 1;
             string sequenceId = $"{project.Identifier}-{project.IssueSequence}";
 
@@ -211,6 +264,26 @@ namespace TaskManagement.Infrastructure.Services
                 {
                     throw new InvalidOperationException("Label khong thuoc du an nay.");
                 }
+            }
+
+            var normalizedVisibility = await ResolveTaskVisibilityAsync(
+                request.VisibilityMode,
+                request.VisibleToRoles,
+                request.ProjectId,
+                reporterId,
+                executionRules);
+
+            if (request.TotalEstimatedHours <= 0)
+            {
+                var primaryRole = await ResolvePrimaryProjectRoleAsync(request.ProjectId, requestedAssigneeIds, reporterId);
+                request.TotalEstimatedHours = ProjectExecutionRuleHelper.CalculateSuggestedEstimateHours(
+                    executionRules,
+                    primaryRole,
+                    request.StoryPoints,
+                    request.Priority,
+                    requestedAssigneeIds.Count,
+                    0,
+                    request.Title);
             }
 
             // 7. Create entity
@@ -281,6 +354,8 @@ namespace TaskManagement.Infrastructure.Services
                 await _context.SaveChangesAsync();
             }
 
+            await SaveTaskVisibilityAsync(workTask.Id, normalizedVisibility);
+
             // Reload with navigation properties
             var created = await _context.WorkTasks
                 .Include(wt => wt.TaskStatus)
@@ -293,7 +368,7 @@ namespace TaskManagement.Infrastructure.Services
                     .ThenInclude(ta => ta.User)
                 .FirstAsync(wt => wt.Id == workTask.Id);
 
-            return MapToDto(created);
+            return await MapToDtoAsync(created);
         }
 
         public async Task<WorkTaskResponseDto> UpdateAsync(Guid taskId, Guid userId, UpdateWorkTaskDto dto)
@@ -316,7 +391,7 @@ namespace TaskManagement.Infrastructure.Services
             if (membership == null)
                 throw new UnauthorizedAccessException("Bạn không phải thành viên của dự án này.");
 
-            bool isManager = ManagerRoles.Contains(membership.ProjectRole, StringComparer.OrdinalIgnoreCase);
+            bool isManager = IsManagerRole(ProjectExecutionRuleHelper.NormalizeProjectRole(membership.ProjectRole));
             if (!isManager && taskToUpdate.ReporterId != userId && taskToUpdate.AssignedUserId != userId && !taskToUpdate.TaskAssignments.Any(ta => ta.UserId == userId))
             {
                  throw new UnauthorizedAccessException("Bạn không có quyền sửa đổi tác vụ này.");
@@ -342,7 +417,7 @@ namespace TaskManagement.Infrastructure.Services
                 }
             }
 
-            if (dto.TaskTypeId != Guid.Empty && dto.TaskTypeId != taskToUpdate.TaskTypeId)
+            if (dto.TaskTypeId != Guid.Empty)
             {
                 var taskTypeExists = await _context.TaskTypes
                     .AnyAsync(tt => tt.Id == dto.TaskTypeId && tt.ProjectId == taskToUpdate.ProjectId);
@@ -369,6 +444,10 @@ namespace TaskManagement.Infrastructure.Services
             taskToUpdate.DueDate = dto.DueDate;
             taskToUpdate.SprintId = dto.SprintId;
             taskToUpdate.TaskTypeId = dto.TaskTypeId != Guid.Empty ? dto.TaskTypeId : taskToUpdate.TaskTypeId;
+            if (dto.TotalEstimatedHours.HasValue)
+            {
+                taskToUpdate.TotalEstimatedHours = Math.Max(0, dto.TotalEstimatedHours.Value);
+            }
             
             taskToUpdate.UpdatedAt = DateTime.UtcNow;
 
@@ -379,8 +458,19 @@ namespace TaskManagement.Infrastructure.Services
             }
 
             await _context.SaveChangesAsync();
+            if (dto.VisibilityMode != null || dto.VisibleToRoles != null)
+            {
+                var executionRules = await LoadExecutionRulesAsync(taskToUpdate.ProjectId);
+                var visibility = await ResolveTaskVisibilityAsync(
+                    dto.VisibilityMode,
+                    dto.VisibleToRoles,
+                    taskToUpdate.ProjectId,
+                    userId,
+                    executionRules);
+                await SaveTaskVisibilityAsync(taskToUpdate.Id, visibility);
+            }
 
-            return MapToDto(taskToUpdate);
+            return await MapToDtoAsync(taskToUpdate);
         }
 
         public async Task UpdateTaskStatusAsync(Guid taskId, Guid userId, UpdateTaskStatusRequestDto request)
@@ -398,7 +488,7 @@ namespace TaskManagement.Infrastructure.Services
             if (membership == null)
                 throw new UnauthorizedAccessException("Ban khong phai thanh vien cua du an nay.");
 
-            var canUpdateTask = ManagerRoles.Contains(membership.ProjectRole, StringComparer.OrdinalIgnoreCase)
+            var canUpdateTask = IsManagerRole(ProjectExecutionRuleHelper.NormalizeProjectRole(membership.ProjectRole))
                 || taskToUpdate.ReporterId == userId
                 || taskToUpdate.AssignedUserId == userId
                 || taskToUpdate.TaskAssignments.Any(ta => ta.UserId == userId && ta.Status);
@@ -667,28 +757,29 @@ namespace TaskManagement.Infrastructure.Services
             };
         }
 
-        public async Task<List<WorkTaskResponseDto>> SearchTasksAsync(Guid userId, string? query, string? status, Guid? assigneeId, int? priority, Guid? projectId = null, string? scope = "all")
+        private async Task<WorkTaskResponseDto> MapToDtoAsync(TaskManagement.Domain.Entities.WorkTask wt)
+        {
+            var dto = MapToDto(wt);
+            var visibility = await LoadTaskVisibilityAsync(wt.Id);
+            dto.VisibilityMode = visibility.Mode;
+            dto.VisibleToRoles = visibility.Roles;
+            return dto;
+        }
+
+        public async Task<List<WorkTaskResponseDto>> SearchTasksAsync(
+            Guid userId,
+            string? query,
+            string? status,
+            Guid? assigneeId,
+            int? priority,
+            Guid? projectId = null,
+            string? scope = "all")
         {
             // TÌM CÁC PROJECT MÀ USER CÓ QUYỀN
-            var userProjectIdsQuery = _context.ProjectMembers
-                .Where(pm => pm.UserId == userId && pm.Status);
-
-            if (scope == "my")
-            {
-                // Only projects created by user or where user is a member (already covered by member check)
-                // But typically "My Projects" means projects where I am a creator or lead.
-                // Let's stick to Projects I am a member of for now, or refine if needed.
-                var userCreatedProjectIds = await _context.Projects
-                    .Where(p => p.CreatorId == userId && !p.IsDeleted)
-                    .Select(p => p.Id)
-                    .ToListAsync();
-                
-                var memberProjectIds = await userProjectIdsQuery.Select(pm => pm.ProjectId).ToListAsync();
-                var combinedIds = userCreatedProjectIds.Union(memberProjectIds).ToList();
-                userProjectIdsQuery = _context.ProjectMembers.Where(pm => combinedIds.Contains(pm.ProjectId));
-            }
-
-            var userProjectIds = await userProjectIdsQuery.Select(pm => pm.ProjectId).ToListAsync();
+            var userProjectIds = await _context.ProjectMembers
+                .Where(pm => pm.UserId == userId && pm.Status)
+                .Select(pm => pm.ProjectId)
+                .ToListAsync();
 
             var dbQuery = _context.WorkTasks
                 .Include(wt => wt.TaskStatus)
@@ -699,28 +790,11 @@ namespace TaskManagement.Infrastructure.Services
                     .ThenInclude(ta => ta.User)
                 .Include(wt => wt.IssueModules)
                 .Include(wt => wt.IssueLabels)
-                .Include(wt => wt.Project)
-                .Where(wt => !wt.IsDeleted);
+                .Where(wt => (userProjectIds.Contains(wt.ProjectId) || wt.Subscribers.Any(s => s.UserId == userId)) && !wt.IsDeleted && !wt.IsArchived);
 
-            // Scope filter
-            if (scope == "archived")
-            {
-                dbQuery = dbQuery.Where(wt => wt.Project.IsArchived || wt.IsArchived);
-            }
-            else
-            {
-                dbQuery = dbQuery.Where(wt => !wt.Project.IsArchived && !wt.IsArchived);
-            }
-
-            // Project ID filter
             if (projectId.HasValue && projectId.Value != Guid.Empty)
             {
                 dbQuery = dbQuery.Where(wt => wt.ProjectId == projectId.Value);
-            }
-            else
-            {
-                // If no specific project, restrict to user's projects
-                dbQuery = dbQuery.Where(wt => userProjectIds.Contains(wt.ProjectId) || wt.Subscribers.Any(s => s.UserId == userId));
             }
 
             // Filtering
@@ -748,7 +822,70 @@ namespace TaskManagement.Infrastructure.Services
                 dbQuery = dbQuery.Where(wt => wt.Priority == priority.Value);
             }
 
+            var accessRecords = await dbQuery
+                .AsNoTracking()
+                .Select(wt => new
+                {
+                    wt.Id,
+                    wt.ProjectId,
+                    wt.ReporterId,
+                    wt.AssignedUserId,
+                    AssigneeIds = wt.TaskAssignments
+                        .Where(ta => ta.Status)
+                        .Select(ta => ta.UserId)
+                        .ToList()
+                })
+                .ToListAsync();
+
+            var visibilityMap = await LoadTaskVisibilityMapAsync(accessRecords.Select(item => item.Id));
+            var projectIds = accessRecords.Select(item => item.ProjectId).Distinct().ToList();
+            var membershipRoles = await _context.ProjectMembers
+                .AsNoTracking()
+                .Where(item => item.UserId == userId && item.Status && projectIds.Contains(item.ProjectId))
+                .ToDictionaryAsync(
+                    item => item.ProjectId,
+                    item => ProjectExecutionRuleHelper.NormalizeProjectRole(item.ProjectRole));
+
+            var projectRuleLookup = await _context.Projects
+                .AsNoTracking()
+                .Where(project => projectIds.Contains(project.Id) && !project.IsDeleted)
+                .ToDictionaryAsync(
+                    project => project.Id,
+                    project => LoadExecutionRules(project.NavigationConfig));
+
+            var allowedTaskIds = accessRecords
+                .Where(record =>
+                {
+                    var rules = projectRuleLookup.TryGetValue(record.ProjectId, out var config)
+                        ? config
+                        : ProjectExecutionRuleHelper.NormalizeExecutionRules(null);
+                    var normalizedProjectRole = membershipRoles.TryGetValue(record.ProjectId, out var role)
+                        ? role
+                        : string.Empty;
+                    if (rules.ManagerAlwaysSeeAllTasks && IsVisibilityOverrideRole(normalizedProjectRole))
+                    {
+                        return true;
+                    }
+
+                    return CanUserViewTask(
+                        new TaskVisibilityAccessRecord
+                        {
+                            Id = record.Id,
+                            ReporterId = record.ReporterId,
+                            AssignedUserId = record.AssignedUserId,
+                            AssigneeIds = record.AssigneeIds
+                        },
+                        visibilityMap.TryGetValue(record.Id, out var visibility)
+                            ? visibility
+                            : new TaskVisibilityDto(),
+                        normalizedProjectRole,
+                        userId);
+                })
+                .Select(record => record.Id)
+                .ToHashSet();
+
             var results = await dbQuery
+                .Where(wt => allowedTaskIds.Contains(wt.Id))
                 .OrderByDescending(wt => wt.CreatedAt)
                 .Select(wt => new WorkTaskResponseDto
                 {
@@ -796,9 +933,248 @@ namespace TaskManagement.Infrastructure.Services
                 })
                 .ToListAsync();
 
+            foreach (var result in results)
+            {
+                var visibility = visibilityMap.TryGetValue(result.Id, out var config)
+                    ? config
+                    : new TaskVisibilityDto();
+                result.VisibilityMode = visibility.Mode;
+                result.VisibleToRoles = visibility.Roles;
+            }
+
             foreach (var r in results) r.StatusName = NormalizeStatusName(r.StatusName);
 
             return results;
+        }
+
+        private async Task<ProjectExecutionRulesDto> LoadExecutionRulesAsync(Guid projectId)
+        {
+            var rawNavigationConfig = await _context.Projects
+                .AsNoTracking()
+                .Where(project => project.Id == projectId && !project.IsDeleted)
+                .Select(project => project.NavigationConfig)
+                .FirstOrDefaultAsync();
+
+            return LoadExecutionRules(rawNavigationConfig);
+        }
+
+        private static ProjectExecutionRulesDto LoadExecutionRules(string? rawNavigationConfig)
+        {
+            if (string.IsNullOrWhiteSpace(rawNavigationConfig))
+            {
+                return ProjectExecutionRuleHelper.NormalizeExecutionRules(null);
+            }
+
+            try
+            {
+                using var document = JsonDocument.Parse(rawNavigationConfig);
+                if (document.RootElement.ValueKind != JsonValueKind.Object ||
+                    !document.RootElement.TryGetProperty("executionRules", out var executionRulesElement))
+                {
+                    return ProjectExecutionRuleHelper.NormalizeExecutionRules(null);
+                }
+
+                return ProjectExecutionRuleHelper.NormalizeExecutionRules(
+                    executionRulesElement.Deserialize<ProjectExecutionRulesDto>());
+            }
+            catch
+            {
+                return ProjectExecutionRuleHelper.NormalizeExecutionRules(null);
+            }
+        }
+
+        private static bool IsManagerRole(string? normalizedProjectRole)
+        {
+            return !string.IsNullOrWhiteSpace(normalizedProjectRole)
+                && ManagerRoles.Any(role =>
+                    ProjectExecutionRuleHelper.NormalizeProjectRole(role) == normalizedProjectRole);
+        }
+
+        private static bool IsVisibilityOverrideRole(string? normalizedProjectRole)
+        {
+            return !string.IsNullOrWhiteSpace(normalizedProjectRole)
+                && VisibilityOverrideRoles.Any(role =>
+                    ProjectExecutionRuleHelper.NormalizeProjectRole(role) == normalizedProjectRole);
+        }
+
+        private sealed class TaskVisibilityAccessRecord
+        {
+            public Guid Id { get; set; }
+            public Guid ReporterId { get; set; }
+            public Guid? AssignedUserId { get; set; }
+            public List<Guid> AssigneeIds { get; set; } = new();
+        }
+
+        private static bool CanUserViewTask(TaskVisibilityAccessRecord task, TaskVisibilityDto visibility, string normalizedProjectRole, Guid userId)
+        {
+            var visibilityMode = ProjectExecutionRuleHelper.NormalizeVisibilityMode(visibility.Mode);
+
+            if (visibilityMode == "project")
+            {
+                return true;
+            }
+
+            if (visibilityMode == "assigned")
+            {
+                return task.AssignedUserId == userId || task.AssigneeIds.Contains(userId);
+            }
+
+            if (visibilityMode == "role")
+            {
+                return visibility.Roles
+                    .Select(ProjectExecutionRuleHelper.NormalizeProjectRole)
+                    .Contains(normalizedProjectRole, StringComparer.OrdinalIgnoreCase);
+            }
+
+            return true;
+        }
+
+        private static bool CanUserViewTask(WorkTaskResponseDto task, string normalizedProjectRole, Guid userId)
+        {
+            return CanUserViewTask(
+                new TaskVisibilityAccessRecord
+                {
+                    Id = task.Id,
+                    ReporterId = task.ReporterId,
+                    AssignedUserId = task.AssignedUserId,
+                    AssigneeIds = task.Assignees.Select(assignee => assignee.UserId).Distinct().ToList()
+                },
+                new TaskVisibilityDto
+                {
+                    Mode = task.VisibilityMode,
+                    Roles = task.VisibleToRoles
+                },
+                normalizedProjectRole,
+                userId);
+        }
+
+        private async Task<Dictionary<Guid, TaskVisibilityDto>> LoadTaskVisibilityMapAsync(IEnumerable<Guid> taskIds)
+        {
+            var ids = taskIds
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, TaskVisibilityDto>();
+            }
+
+            var keyMap = ids.ToDictionary(id => id.ToString(), id => id, StringComparer.OrdinalIgnoreCase);
+            var rawSettings = await _context.SystemSettings
+                .AsNoTracking()
+                .Where(setting => setting.SettingGroup == TaskVisibilitySettingGroup && keyMap.Keys.Contains(setting.Key))
+                .ToListAsync();
+
+            var result = new Dictionary<Guid, TaskVisibilityDto>();
+            foreach (var setting in rawSettings)
+            {
+                if (!keyMap.TryGetValue(setting.Key, out var taskId))
+                {
+                    continue;
+                }
+
+                result[taskId] = ProjectExecutionRuleHelper.ParseTaskVisibility(setting.Value);
+            }
+
+            return result;
+        }
+
+        private async Task<TaskVisibilityDto> LoadTaskVisibilityAsync(Guid taskId)
+        {
+            var setting = await _context.SystemSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.SettingGroup == TaskVisibilitySettingGroup && item.Key == taskId.ToString());
+
+            return setting == null
+                ? ProjectExecutionRuleHelper.NormalizeTaskVisibility(new TaskVisibilityDto())
+                : ProjectExecutionRuleHelper.ParseTaskVisibility(setting.Value);
+        }
+
+        private async Task SaveTaskVisibilityAsync(Guid taskId, TaskVisibilityDto visibility)
+        {
+            var normalized = ProjectExecutionRuleHelper.NormalizeTaskVisibility(visibility);
+            var setting = await _context.SystemSettings
+                .FirstOrDefaultAsync(item => item.SettingGroup == TaskVisibilitySettingGroup && item.Key == taskId.ToString());
+
+            if (setting == null)
+            {
+                setting = new Domain.Entities.SystemSetting
+                {
+                    Id = Guid.NewGuid(),
+                    SettingGroup = TaskVisibilitySettingGroup,
+                    Key = taskId.ToString(),
+                    Description = "Task visibility configuration"
+                };
+                _context.SystemSettings.Add(setting);
+            }
+
+            setting.Value = ProjectExecutionRuleHelper.BuildTaskVisibilityPayload(normalized);
+            setting.LastModifiedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
+
+        private async Task<TaskVisibilityDto> ResolveTaskVisibilityAsync(
+            string? requestedMode,
+            IEnumerable<string>? requestedRoles,
+            Guid projectId,
+            Guid actorUserId,
+            ProjectExecutionRulesDto executionRules)
+        {
+            var normalizedMode = ProjectExecutionRuleHelper.NormalizeVisibilityMode(
+                string.IsNullOrWhiteSpace(requestedMode)
+                    ? executionRules.DefaultTaskVisibilityMode
+                    : requestedMode);
+
+            var normalizedRoles = (requestedRoles ?? Array.Empty<string>())
+                .Select(ProjectExecutionRuleHelper.NormalizeProjectRole)
+                .Where(role => !string.IsNullOrWhiteSpace(role))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (normalizedMode == "role" && !normalizedRoles.Any())
+            {
+                var actorRole = await _context.ProjectMembers
+                    .AsNoTracking()
+                    .Where(item => item.ProjectId == projectId && item.UserId == actorUserId && item.Status)
+                    .Select(item => item.ProjectRole)
+                    .FirstOrDefaultAsync();
+
+                var normalizedActorRole = ProjectExecutionRuleHelper.NormalizeProjectRole(actorRole);
+                if (!string.IsNullOrWhiteSpace(normalizedActorRole))
+                {
+                    normalizedRoles.Add(normalizedActorRole);
+                }
+            }
+
+            return ProjectExecutionRuleHelper.NormalizeTaskVisibility(new TaskVisibilityDto
+            {
+                Mode = normalizedMode,
+                Roles = normalizedRoles
+            });
+        }
+
+        private async Task<string?> ResolvePrimaryProjectRoleAsync(Guid projectId, IReadOnlyCollection<Guid> assigneeIds, Guid fallbackUserId)
+        {
+            var candidateUserIds = assigneeIds.Any()
+                ? assigneeIds.ToList()
+                : new List<Guid> { fallbackUserId };
+
+            foreach (var candidateUserId in candidateUserIds)
+            {
+                var role = await _context.ProjectMembers
+                    .AsNoTracking()
+                    .Where(item => item.ProjectId == projectId && item.UserId == candidateUserId && item.Status)
+                    .Select(item => item.ProjectRole)
+                    .FirstOrDefaultAsync();
+
+                if (!string.IsNullOrWhiteSpace(role))
+                {
+                    return role;
+                }
+            }
+
+            return null;
         }
 
         public async Task ArchiveAsync(Guid id)

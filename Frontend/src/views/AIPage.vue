@@ -2,16 +2,12 @@
   <NexusLayout>
     <div class="ai-page-flex-wrapper">
       <div class="ai-container">
-        <header class="nexus-feature-header">
-          <div class="header-info">
-            <p class="eyebrow">Advanced AI</p>
-            <h1><i class="fa-solid fa-robot"></i> AI Assistant</h1>
-            <p class="muted">Intelligent support for chat, task breakdown, and repository analysis. Powered by Gemini.</p>
+        <div class="ai-page-header">
+          <div class="header-left">
+            <h2 class="page-title">Tro ly AI</h2>
+            <span class="header-pill">Chat, breakdown, repo analysis</span>
           </div>
-          <div class="nexus-controls-row">
-            <span class="nexus-tag bg-[#e0f2fe] text-[#0c4a6e] font-semibold">BETA</span>
-          </div>
-        </header>
+        </div>
 
         <div class="repo-panel">
           <div class="repo-head">
@@ -281,14 +277,15 @@ import { useProjectStore } from '@/store/useProjectStore'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 import { useSprintStore } from '@/store/useSprintStore'
 import { broadcastAdminRealtime } from '@/utils/adminRealtime'
-import { getStoredUser, hasSystemAdminAccess, normalizeProjectRole } from '@/utils/permissions'
+import { signalRService } from '@/api/signalrService'
+import { hasSystemAdminAccess, normalizeProjectRole } from '@/utils/permissions'
 import { getScopedCurrentProjectId } from '@/utils/projectContext'
 
 const router = useRouter()
 const projectStore = useProjectStore()
 const workTaskStore = useWorkTaskStore()
 const sprintStore = useSprintStore()
-const currentUser = getStoredUser()
+const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
 const aiManagerProjectRoles = ['pm', 'po', 'sm', 'admin', 'project_manager', 'project_lead', 'scrum_master']
 const showCustomizeModal = ref(false)
 const sidebarPreferences = ref({ audit: true, users: true })
@@ -582,7 +579,7 @@ const createBacklogItems = async (mode) => {
         projectStore.fetchProjectDetails(currentProjectId.value, { force: true }).catch(() => null),
         projectStore.fetchAllProjects(true).catch(() => [])
       ])
-      broadcastAdminRealtime('project-settings-updated', { projectId: currentProjectId.value, source: 'ai-repo-create' })
+      notifyProjectRealtime('project-settings-updated', { source: 'ai-repo-create' })
     }
 
     ElMessage.success(response.data?.message || `Da tao ${created.length} work items`)
@@ -644,7 +641,7 @@ const createReviewedBacklogItems = async () => {
         projectStore.fetchAllProjects(true).catch(() => []),
         sprintStore.fetchSprints(currentProjectId.value, { force: true }).catch(() => [])
       ])
-      broadcastAdminRealtime('project-settings-updated', { projectId: currentProjectId.value, source: 'ai-operational-review' })
+      notifyProjectRealtime('project-settings-updated', { source: 'ai-operational-review' })
     }
 
     ElMessage.success(response.data?.message || `Da tao ${created.length} work items`)
@@ -665,10 +662,20 @@ const parseRepo = (url) => {
   }
 }
 
+const notifyProjectRealtime = (type, payload = {}) => {
+  const projectId = currentProjectId.value
+  if (!projectId || !type) return
+
+  const message = { projectId, source: 'ai-page', ...payload }
+  broadcastAdminRealtime(type, message)
+  signalRService.sendProjectEvent(`${projectId}`, type, message)
+}
+
 onMounted(() => {
   projectStore.fetchAllProjects().catch(() => [])
   if (currentProjectId.value) {
     sprintStore.fetchSprints(currentProjectId.value).catch(() => [])
+    signalRService.startConnection(`${currentProjectId.value}`)
   }
   const saved = localStorage.getItem('sidebarPreferences')
   if (saved) {
@@ -708,6 +715,7 @@ watch(currentProjectId, (projectId) => {
   }
 
   sprintStore.fetchSprints(projectId, { force: true }).catch(() => [])
+  signalRService.startConnection(`${projectId}`)
 })
 
 watch(repoAnalysis, () => {

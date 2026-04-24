@@ -74,6 +74,526 @@
             </div>
           </div>
 
+          <div v-else-if="activeTab === 'execution'" class="settings-card">
+            <div class="card-head">
+              <div>
+                <h2>Execution Rules</h2>
+                <p>Configure task visibility by role and baseline estimate defaults for new work items.</p>
+              </div>
+              <button class="primary-btn" type="button" :disabled="savingExecutionRules" @click="saveExecutionRules">
+                {{ savingExecutionRules ? 'Saving...' : 'Save execution rules' }}
+              </button>
+            </div>
+
+            <div class="form-grid">
+              <label class="wide switch-row">
+                <span>Enable role-based task visibility</span>
+                <input v-model="executionRulesForm.enableRoleBasedTaskVisibility" type="checkbox" />
+              </label>
+
+              <label class="wide switch-row">
+                <span>Managers always see all tasks</span>
+                <input v-model="executionRulesForm.managerAlwaysSeeAllTasks" type="checkbox" />
+              </label>
+
+              <label>
+                <span>Default task visibility</span>
+                <select v-model="executionRulesForm.defaultTaskVisibilityMode">
+                  <option value="project">Project members</option>
+                  <option value="assigned">Assigned only</option>
+                  <option value="role">Role scoped</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Estimate baseline mode</span>
+                <select v-model="executionRulesForm.estimateBaselineMode">
+                  <option value="role_then_project">Role then project</option>
+                  <option value="project_only">Project only</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Default base hours</span>
+                <input v-model.number="executionRulesForm.defaultBaseHours" type="number" min="1" step="0.5" />
+              </label>
+
+              <label>
+                <span>Hours per story point</span>
+                <input v-model.number="executionRulesForm.hoursPerStoryPoint" type="number" min="0.5" step="0.5" />
+              </label>
+            </div>
+
+            <div class="stack-list">
+              <div class="stack-row">
+                <div class="row-main">
+                  <strong>Role multipliers</strong>
+                  <p>Used when the assignee has no project history yet.</p>
+                </div>
+              </div>
+              <div class="stack-row multiplier-grid">
+                <label v-for="roleKey in Object.keys(executionRulesForm.roleHourMultipliers)" :key="roleKey">
+                  <span>{{ roleKey.toUpperCase() }}</span>
+                  <input v-model.number="executionRulesForm.roleHourMultipliers[roleKey]" type="number" min="0.3" max="3" step="0.05" />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="activeTab === 'points'" class="settings-card">
+            <div class="card-head">
+              <div>
+                <h2>Điểm theo project</h2>
+                <p>Theo dõi điểm từng thành viên trong project, cộng trừ thủ công và xem lịch sử điều chỉnh.</p>
+              </div>
+            </div>
+
+            <div class="inline-form invite-grid">
+              <label>
+                <span>Thành viên</span>
+                <select v-model="pointAdjustmentForm.userId">
+                  <option :value="null">Chọn thành viên</option>
+                  <option v-for="member in members" :key="`point-${member.userId}`" :value="member.userId">
+                    {{ member.fullName || member.email }}
+                  </option>
+                </select>
+              </label>
+              <label>
+                <span>Số điểm</span>
+                <input v-model.number="pointAdjustmentForm.amount" type="number" step="1" />
+              </label>
+              <label>
+                <span>Loại điều chỉnh</span>
+                <select v-model="pointAdjustmentForm.adjustmentType">
+                  <option value="Manual">Manual</option>
+                  <option value="Bonus">Bonus</option>
+                  <option value="Penalty">Penalty</option>
+                </select>
+              </label>
+              <label class="wide">
+                <span>Lý do</span>
+                <input v-model="pointAdjustmentForm.reason" type="text" placeholder="Ví dụ: hỗ trợ team QA, xử lý hotfix, vi phạm SLA..." />
+              </label>
+              <button class="secondary-btn" type="button" :disabled="savingPointAdjustment" @click="createPointAdjustment">
+                {{ savingPointAdjustment ? 'Đang lưu...' : 'Cộng / trừ điểm' }}
+              </button>
+            </div>
+
+            <div class="metric-grid">
+              <div class="metric-card">
+                <span>Tổng điểm project</span>
+                <strong>{{ pointManagement.totalProjectPoints || 0 }}</strong>
+              </div>
+              <div class="metric-card">
+                <span>Tổng điều chỉnh tay</span>
+                <strong>{{ pointManagement.totalManualAdjustments || 0 }}</strong>
+              </div>
+              <div class="metric-card">
+                <span>Số thành viên có điểm</span>
+                <strong>{{ pointManagement.leaderboard?.length || 0 }}</strong>
+              </div>
+            </div>
+
+            <div class="two-column-grid">
+              <div class="helper-panel">
+                <div class="section-split">
+                  <h3>Bảng xếp hạng theo project</h3>
+                  <p>Điểm gồm giao dịch từ task trong project cộng với điều chỉnh tay.</p>
+                </div>
+                <div v-if="!pointManagement.leaderboard?.length" class="empty-state">Chưa có dữ liệu điểm trong project.</div>
+                <div v-else class="stack-list">
+                  <div v-for="member in pointManagement.leaderboard" :key="`lb-${member.userId}`" class="stack-row">
+                    <div class="row-main">
+                      <strong>{{ member.userName }}</strong>
+                      <p>{{ member.projectRole || 'Member' }} · Task {{ member.taskPoints }} · Manual {{ member.manualAdjustments }}</p>
+                    </div>
+                    <div class="row-actions">
+                      <strong>{{ member.totalPoints }} pts</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="helper-panel">
+                <div class="section-split">
+                  <h3>Lịch sử điểm gần nhất</h3>
+                  <p>Hiển thị cả giao dịch task và điều chỉnh tay ở cấp project.</p>
+                </div>
+                <div v-if="!pointManagement.history?.length" class="empty-state">Chưa có lịch sử điểm.</div>
+                <div v-else class="stack-list compact-list">
+                  <div v-for="entry in pointManagement.history" :key="`history-${entry.id}`" class="stack-row">
+                    <div class="row-main">
+                      <strong>{{ entry.userName }}</strong>
+                      <p>{{ entry.reason }}</p>
+                      <small>{{ entry.transactionType }} · {{ formatDateLabel(entry.createdAt) }}</small>
+                    </div>
+                    <div class="row-actions">
+                      <strong :class="{ 'negative-chip': entry.amount < 0 }">{{ entry.amount > 0 ? '+' : '' }}{{ entry.amount }}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="activeTab === 'rewardRules'" class="settings-card">
+            <div class="card-head">
+              <div>
+                <h2>Rule thưởng / phạt</h2>
+                <p>Quy định điểm cơ bản, thưởng sớm, thưởng accuracy, phạt trễ hạn và giới hạn chỉnh tay.</p>
+              </div>
+              <button class="primary-btn" type="button" :disabled="savingRewardRules" @click="saveRewardRules">
+                {{ savingRewardRules ? 'Đang lưu...' : 'Lưu rule thưởng / phạt' }}
+              </button>
+            </div>
+
+            <div class="form-grid">
+              <label>
+                <span>Hệ số điểm cơ bản</span>
+                <input v-model.number="rewardRulesForm.basePointMultiplier" type="number" min="0.2" max="5" step="0.1" />
+              </label>
+              <label>
+                <span>% thưởng hoàn thành sớm</span>
+                <input v-model.number="rewardRulesForm.earlyBonusPercent" type="number" min="0" max="100" step="1" />
+              </label>
+              <label>
+                <span>% thưởng estimate sát thực tế</span>
+                <input v-model.number="rewardRulesForm.accuracyBonusPercent" type="number" min="0" max="100" step="1" />
+              </label>
+              <label>
+                <span>% phạt trễ hạn</span>
+                <input v-model.number="rewardRulesForm.latePenaltyPercent" type="number" min="0" max="100" step="1" />
+              </label>
+              <label>
+                <span>Điểm thưởng cộng tác nhiều assignee</span>
+                <input v-model.number="rewardRulesForm.collaborationBonusPoints" type="number" min="0" max="100" step="1" />
+              </label>
+              <label>
+                <span>Giới hạn cộng / trừ tay</span>
+                <input v-model.number="rewardRulesForm.manualAdjustmentLimit" type="number" min="10" max="5000" step="10" />
+              </label>
+            </div>
+          </div>
+
+          <div v-else-if="activeTab === 'milestones'" class="settings-card">
+            <div class="card-head">
+              <div>
+                <h2>Milestone / release</h2>
+                <p>Tạo milestone, gắn cycle liên quan và theo dõi tiến độ release trong project.</p>
+              </div>
+            </div>
+
+            <div class="inline-form module-grid">
+              <label>
+                <span>Tên milestone</span>
+                <input v-model="newMilestone.name" type="text" placeholder="Release 1.2 hardening" />
+              </label>
+              <label>
+                <span>Release version</span>
+                <input v-model="newMilestone.releaseVersion" type="text" placeholder="v1.2.0" />
+              </label>
+              <label>
+                <span>Bắt đầu</span>
+                <input v-model="newMilestone.startDate" type="date" />
+              </label>
+              <label>
+                <span>Mục tiêu</span>
+                <input v-model="newMilestone.targetDate" type="date" />
+              </label>
+              <label>
+                <span>Trạng thái</span>
+                <select v-model="newMilestone.status">
+                  <option value="Planned">Planned</option>
+                  <option value="Active">Active</option>
+                  <option value="At Risk">At Risk</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </label>
+              <label class="wide">
+                <span>Mô tả</span>
+                <input v-model="newMilestone.description" type="text" placeholder="Mục tiêu phát hành và phạm vi release" />
+              </label>
+              <label class="wide">
+                <span>Cycle liên kết</span>
+                <select v-model="newMilestone.linkedSprintIds" multiple size="4">
+                  <option v-for="sprint in sprints" :key="`new-ms-${sprint.id}`" :value="sprint.id">{{ sprint.name }}</option>
+                </select>
+              </label>
+              <button class="secondary-btn" type="button" :disabled="savingMilestone" @click="createMilestone">
+                {{ savingMilestone ? 'Đang tạo...' : 'Tạo milestone' }}
+              </button>
+            </div>
+
+            <div v-if="!milestones.length" class="empty-state">Chưa có milestone nào.</div>
+            <div v-else class="stack-list">
+              <div v-for="milestone in milestones" :key="milestone.id" class="stack-row">
+                <div class="row-main editable-grid">
+                  <label>
+                    <span>Tên</span>
+                    <input v-model="milestone.name" type="text" />
+                  </label>
+                  <label>
+                    <span>Release</span>
+                    <input v-model="milestone.releaseVersion" type="text" />
+                  </label>
+                  <label>
+                    <span>Bắt đầu</span>
+                    <input v-model="milestone.startDate" type="date" />
+                  </label>
+                  <label>
+                    <span>Mục tiêu</span>
+                    <input v-model="milestone.targetDate" type="date" />
+                  </label>
+                  <label>
+                    <span>Trạng thái</span>
+                    <select v-model="milestone.status">
+                      <option value="Planned">Planned</option>
+                      <option value="Active">Active</option>
+                      <option value="At Risk">At Risk</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Archived">Archived</option>
+                    </select>
+                  </label>
+                  <label class="wide">
+                    <span>Mô tả</span>
+                    <input v-model="milestone.description" type="text" />
+                  </label>
+                  <label class="wide">
+                    <span>Cycle liên kết</span>
+                    <select v-model="milestone.linkedSprintIds" multiple size="4">
+                      <option v-for="sprint in sprints" :key="`${milestone.id}-${sprint.id}`" :value="sprint.id">{{ sprint.name }}</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="row-actions vertical-actions">
+                  <button class="secondary-btn" type="button" @click="saveMilestone(milestone)">Save</button>
+                  <button class="danger-outline-btn" type="button" @click="deleteMilestone(milestone)">Delete</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="activeTab === 'capacity'" class="settings-card">
+            <div class="card-head">
+              <div>
+                <h2>Capacity / workload</h2>
+                <p>Thiết lập ngưỡng giờ và số task active theo role để cảnh báo quá tải.</p>
+              </div>
+              <button class="primary-btn" type="button" :disabled="savingCapacityRules" @click="saveCapacityRules">
+                {{ savingCapacityRules ? 'Đang lưu...' : 'Lưu capacity' }}
+              </button>
+            </div>
+
+            <div class="form-grid">
+              <label>
+                <span>Giờ mặc định / tuần</span>
+                <input v-model.number="capacityRulesForm.defaultWeeklyHours" type="number" min="8" max="80" step="1" />
+              </label>
+              <label>
+                <span>% near limit</span>
+                <input v-model.number="capacityRulesForm.nearLimitPercent" type="number" min="40" max="100" step="1" />
+              </label>
+              <label>
+                <span>% over limit</span>
+                <input v-model.number="capacityRulesForm.overLimitPercent" type="number" min="60" max="200" step="1" />
+              </label>
+              <label>
+                <span>Task active tối đa / người</span>
+                <input v-model.number="capacityRulesForm.maxActiveTasksPerMember" type="number" min="1" max="30" step="1" />
+              </label>
+            </div>
+
+            <div class="two-column-grid">
+              <div class="helper-panel">
+                <div class="section-split">
+                  <h3>Giờ chuẩn theo role</h3>
+                </div>
+                <div class="multiplier-grid">
+                  <label v-for="roleKey in Object.keys(capacityRulesForm.roleWeeklyHours)" :key="`cap-hours-${roleKey}`">
+                    <span>{{ roleKey }}</span>
+                    <input v-model.number="capacityRulesForm.roleWeeklyHours[roleKey]" type="number" min="4" max="80" step="1" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="helper-panel">
+                <div class="section-split">
+                  <h3>Task active tối đa theo role</h3>
+                </div>
+                <div class="multiplier-grid">
+                  <label v-for="roleKey in Object.keys(capacityRulesForm.roleActiveTaskLimits)" :key="`cap-tasks-${roleKey}`">
+                    <span>{{ roleKey }}</span>
+                    <input v-model.number="capacityRulesForm.roleActiveTaskLimits[roleKey]" type="number" min="1" max="30" step="1" />
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="activeTab === 'baseline'" class="settings-card">
+            <div class="card-head">
+              <div>
+                <h2>Baseline estimate</h2>
+                <p>Quản lý giờ gợi ý mặc định cho user mới, theo role và theo baseline planning đã xác nhận.</p>
+              </div>
+              <button class="primary-btn" type="button" :disabled="savingBaselineSettings" @click="saveBaselineSettings">
+                {{ savingBaselineSettings ? 'Đang lưu...' : 'Lưu baseline estimate' }}
+              </button>
+            </div>
+
+            <div class="form-grid">
+              <label class="wide switch-row">
+                <span>Dùng planning baseline đã xác nhận</span>
+                <input v-model="baselineSettingsForm.usePlanningBaseline" type="checkbox" />
+              </label>
+              <label>
+                <span>Base hours mặc định</span>
+                <input v-model.number="baselineSettingsForm.defaultBaseHours" type="number" min="0.5" max="40" step="0.5" />
+              </label>
+              <label>
+                <span>Hours per story point</span>
+                <input v-model.number="baselineSettingsForm.hoursPerStoryPoint" type="number" min="0.5" max="16" step="0.5" />
+              </label>
+              <label>
+                <span>Estimate nhỏ nhất</span>
+                <input v-model.number="baselineSettingsForm.minimumSuggestedHours" type="number" min="0.1" max="24" step="0.1" />
+              </label>
+              <label>
+                <span>Estimate lớn nhất</span>
+                <input v-model.number="baselineSettingsForm.maximumSuggestedHours" type="number" min="1" max="200" step="0.5" />
+              </label>
+            </div>
+
+            <div class="two-column-grid">
+              <div class="helper-panel">
+                <div class="section-split">
+                  <h3>Role multiplier</h3>
+                </div>
+                <div class="multiplier-grid">
+                  <label v-for="roleKey in Object.keys(baselineSettingsForm.roleHourMultipliers)" :key="`base-mul-${roleKey}`">
+                    <span>{{ roleKey }}</span>
+                    <input v-model.number="baselineSettingsForm.roleHourMultipliers[roleKey]" type="number" min="0.3" max="3" step="0.05" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="helper-panel">
+                <div class="section-split">
+                  <h3>Base hours theo role</h3>
+                </div>
+                <div class="multiplier-grid">
+                  <label v-for="roleKey in Object.keys(baselineSettingsForm.roleBaseHours)" :key="`base-role-${roleKey}`">
+                    <span>{{ roleKey }}</span>
+                    <input v-model.number="baselineSettingsForm.roleBaseHours[roleKey]" type="number" min="0.5" max="40" step="0.5" />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="helper-panel">
+              <div class="section-split">
+                <h3>Planning baseline gần nhất</h3>
+                <p v-if="operationalDashboard.baselineHealth?.planningBaseline">Đã xác nhận và có thể dùng để hiệu chỉnh estimate mặc định.</p>
+                <p v-else>Project chưa xác nhận planning baseline.</p>
+              </div>
+              <div v-if="operationalDashboard.baselineHealth?.planningBaseline" class="meta-strip compact">
+                <span>Committed SP: {{ operationalDashboard.baselineHealth.planningBaseline.committedStoryPoints }}</span>
+                <span>Completed SP: {{ operationalDashboard.baselineHealth.planningBaseline.completedStoryPoints }}</span>
+                <span>Estimated hours: {{ operationalDashboard.baselineHealth.planningBaseline.estimatedHours }}</span>
+                <span>Actual hours: {{ operationalDashboard.baselineHealth.planningBaseline.actualHours }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="activeTab === 'dashboard'" class="settings-card">
+            <div class="card-head">
+              <div>
+                <h2>Dashboard vận hành</h2>
+                <p>Xem nhanh tình trạng tải công việc, điểm project, milestone, baseline và điểm nghẽn chính.</p>
+              </div>
+              <button class="secondary-btn" type="button" @click="loadManagementData">Reload dashboard</button>
+            </div>
+
+            <div class="metric-grid">
+              <div class="metric-card">
+                <span>Total tasks</span>
+                <strong>{{ operationalDashboard.overview?.totalTasks || 0 }}</strong>
+              </div>
+              <div class="metric-card">
+                <span>Completed</span>
+                <strong>{{ operationalDashboard.overview?.completedTasks || 0 }}</strong>
+              </div>
+              <div class="metric-card">
+                <span>Overdue</span>
+                <strong>{{ operationalDashboard.overview?.overdueTasks || 0 }}</strong>
+              </div>
+              <div class="metric-card">
+                <span>Over capacity</span>
+                <strong>{{ operationalDashboard.overview?.overCapacityMembers || 0 }}</strong>
+              </div>
+              <div class="metric-card">
+                <span>Active milestones</span>
+                <strong>{{ operationalDashboard.overview?.activeMilestones || 0 }}</strong>
+              </div>
+            </div>
+
+            <div class="two-column-grid">
+              <div class="helper-panel">
+                <div class="section-split">
+                  <h3>Top contributors</h3>
+                </div>
+                <div v-if="!operationalDashboard.topContributors?.length" class="empty-state">Chưa có leaderboard project.</div>
+                <div v-else class="stack-list compact-list">
+                  <div v-for="member in operationalDashboard.topContributors" :key="`dash-points-${member.userId}`" class="stack-row">
+                    <div class="row-main">
+                      <strong>{{ member.userName }}</strong>
+                      <p>{{ member.projectRole || 'Member' }}</p>
+                    </div>
+                    <div class="row-actions">
+                      <strong>{{ member.totalPoints }} pts</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="helper-panel">
+                <div class="section-split">
+                  <h3>Capacity snapshot</h3>
+                </div>
+                <div v-if="!operationalDashboard.capacityHealth?.rows?.length" class="empty-state">Chưa có dữ liệu capacity.</div>
+                <div v-else class="stack-list compact-list">
+                  <div v-for="row in operationalDashboard.capacityHealth.rows" :key="`dash-load-${row.userId}`" class="stack-row">
+                    <div class="row-main">
+                      <strong>{{ row.userName }}</strong>
+                      <p>{{ row.projectRole || 'Member' }} · {{ row.estimatedHours }}h / {{ row.allowedHours }}h · {{ row.activeTaskCount }} task</p>
+                    </div>
+                    <div class="row-actions">
+                      <strong>{{ row.state }}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="helper-panel">
+              <div class="section-split">
+                <h3>Milestone snapshot</h3>
+              </div>
+              <div v-if="!operationalDashboard.milestones?.length" class="empty-state">Chưa có milestone để theo dõi.</div>
+              <div v-else class="stack-list">
+                <div v-for="milestone in operationalDashboard.milestones" :key="`dash-ms-${milestone.id}`" class="stack-row">
+                  <div class="row-main">
+                    <strong>{{ milestone.name }}</strong>
+                    <p>{{ milestone.releaseVersion || 'No release' }} · {{ milestone.taskCount }} task · {{ milestone.completedTaskCount }} done · {{ milestone.overdueTaskCount }} overdue</p>
+                  </div>
+                  <div class="row-actions">
+                    <strong>{{ milestone.status }}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div v-else-if="activeTab === 'members'" class="settings-card">
             <div class="card-head">
               <div>
@@ -600,6 +1120,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import axiosClient from '@/api/axiosClient'
 import { broadcastAdminRealtime, subscribeAdminRealtime } from '@/utils/adminRealtime'
+import { signalRService } from '@/api/signalrService'
 
 const route = useRoute()
 const router = useRouter()
@@ -607,6 +1128,13 @@ const projectId = route.params.id
 
 const tabs = [
   { key: 'general', label: 'General', caption: 'metadata' },
+  { key: 'execution', label: 'Execution Rules', caption: 'visibility + estimate' },
+  { key: 'points', label: 'Project Points', caption: 'score + manual adjust' },
+  { key: 'rewardRules', label: 'Reward Rules', caption: 'bonus + penalty' },
+  { key: 'milestones', label: 'Milestones', caption: 'release tracking' },
+  { key: 'capacity', label: 'Capacity', caption: 'workload threshold' },
+  { key: 'baseline', label: 'Estimate Baseline', caption: 'first-time estimate' },
+  { key: 'dashboard', label: 'Ops Dashboard', caption: 'execution health' },
   { key: 'members', label: 'Members & Roles', caption: 'access' },
   { key: 'states', label: 'States', caption: 'workflow' },
   { key: 'labels', label: 'Labels', caption: 'classification' },
@@ -616,11 +1144,17 @@ const tabs = [
   { key: 'danger', label: 'Danger Zone', caption: 'destructive actions' }
 ]
 
-const projectRoleOptions = ['PROJECT_MANAGER', 'PROJECT_LEAD', 'PM', 'PO', 'Developer', 'Member', 'Guest', 'Stakeholder']
+const projectRoleOptions = ref([])
 
 const activeTab = ref('general')
 const loading = ref(false)
 const savingGeneral = ref(false)
+const savingExecutionRules = ref(false)
+const savingRewardRules = ref(false)
+const savingCapacityRules = ref(false)
+const savingBaselineSettings = ref(false)
+const savingPointAdjustment = ref(false)
+const savingMilestone = ref(false)
 const savingInvite = ref(false)
 const savingState = ref(false)
 const savingLabel = ref(false)
@@ -637,6 +1171,21 @@ const modules = ref([])
 const sprints = ref([])
 const integrations = ref([])
 const integrationAnalysis = ref(null)
+const pointManagement = ref({
+  totalProjectPoints: 0,
+  totalManualAdjustments: 0,
+  leaderboard: [],
+  history: []
+})
+const milestones = ref([])
+const operationalDashboard = ref({
+  overview: {},
+  rewardHealth: {},
+  capacityHealth: { rows: [] },
+  baselineHealth: {},
+  milestones: [],
+  topContributors: []
+})
 const activeModules = computed(() => modules.value.filter(module => module.status !== 'Disabled'))
 const disabledModules = computed(() => modules.value.filter(module => module.status === 'Disabled'))
 
@@ -645,6 +1194,104 @@ const generalForm = ref({
   description: '',
   startDate: '',
   endDate: ''
+})
+
+const executionRulesForm = ref({
+  enableRoleBasedTaskVisibility: false,
+  managerAlwaysSeeAllTasks: true,
+  defaultTaskVisibilityMode: 'project',
+  defaultBaseHours: 4,
+  hoursPerStoryPoint: 2,
+  estimateBaselineMode: 'role_then_project',
+  roleHourMultipliers: {
+    dev: 1,
+    developer: 1,
+    qa: 0.75,
+    designer: 0.9,
+    devops: 1.15,
+    pm: 0.9,
+    po: 0.8,
+    sm: 0.8
+  }
+})
+
+const rewardRulesForm = ref({
+  basePointMultiplier: 1,
+  earlyBonusPercent: 10,
+  accuracyBonusPercent: 5,
+  latePenaltyPercent: 10,
+  collaborationBonusPoints: 2,
+  manualAdjustmentLimit: 200
+})
+
+const capacityRulesForm = ref({
+  defaultWeeklyHours: 40,
+  nearLimitPercent: 80,
+  overLimitPercent: 100,
+  maxActiveTasksPerMember: 8,
+  roleWeeklyHours: {
+    pm: 40,
+    po: 32,
+    sm: 32,
+    project_lead: 40,
+    developer: 40,
+    qa: 36,
+    designer: 32,
+    devops: 36,
+    admin: 40,
+    accountant: 32
+  },
+  roleActiveTaskLimits: {
+    pm: 10,
+    po: 10,
+    sm: 10,
+    project_lead: 8,
+    developer: 7,
+    qa: 7,
+    designer: 6,
+    devops: 6,
+    admin: 10,
+    accountant: 6
+  }
+})
+
+const baselineSettingsForm = ref({
+  usePlanningBaseline: true,
+  defaultBaseHours: 4,
+  hoursPerStoryPoint: 2,
+  minimumSuggestedHours: 0.5,
+  maximumSuggestedHours: 80,
+  roleHourMultipliers: {
+    pm: 0.9,
+    po: 0.8,
+    sm: 0.8,
+    project_lead: 1.05,
+    developer: 1,
+    qa: 0.75,
+    designer: 0.9,
+    devops: 1.15,
+    admin: 1,
+    accountant: 0.8
+  },
+  roleBaseHours: {
+    pm: 3.5,
+    po: 3,
+    sm: 3,
+    project_lead: 4.5,
+    developer: 4,
+    qa: 3,
+    designer: 3.5,
+    devops: 4.5,
+    admin: 3.5,
+    accountant: 3
+  }
+})
+
+const pointAdjustmentForm = ref({
+  userId: null,
+  amount: 0,
+  reason: '',
+  adjustmentType: 'Manual'
 })
 
 const inviteForm = ref({
@@ -678,6 +1325,16 @@ const newCycle = ref({
   description: '',
   startDate: '',
   endDate: ''
+})
+
+const newMilestone = ref({
+  name: '',
+  description: '',
+  releaseVersion: '',
+  startDate: '',
+  targetDate: '',
+  status: 'Planned',
+  linkedSprintIds: []
 })
 
 const httpsPlaceholders = {
@@ -716,6 +1373,22 @@ const normalizeIntegration = (integration) => ({
   notes: integration.notes || '',
   updatedAt: integration.updatedAt || ''
 })
+
+const preferredInviteRole = computed(() => {
+  if (projectRoleOptions.value.includes('Developer')) return 'Developer'
+  if (projectRoleOptions.value.includes('QA')) return 'QA'
+  return projectRoleOptions.value[0] || 'Developer'
+})
+
+const assignProjectRoleOptions = (items = []) => {
+  const nextOptions = items
+    .map(item => item?.value || item?.name || item?.label)
+    .filter(Boolean)
+
+  if (nextOptions.length) {
+    projectRoleOptions.value = [...new Set(nextOptions)]
+  }
+}
 
 const buildIntegrationRepoUrl = (integration) => {
   const projectKey = integration.projectKey?.trim() || ''
@@ -761,24 +1434,34 @@ const normalizeModuleStatus = (status) => {
 }
 
 const notifyProjectSettingsRealtime = (type = 'project-settings-updated') => {
-  broadcastAdminRealtime(type, { projectId })
+  const payload = { projectId, source: 'project-settings' }
+  broadcastAdminRealtime(type, payload)
+  signalRService.sendProjectEvent(`${projectId}`, type, payload)
 }
 
 const loadProjectSettings = async () => {
   loading.value = true
   try {
-    const [settingsRes, labelsRes, modulesRes, cyclesRes, statusesRes, integrationsRes] = await Promise.all([
+    const [settingsRes, labelsRes, modulesRes, cyclesRes, statusesRes, integrationsRes, executionRulesRes, rewardRulesRes, capacityRulesRes, baselineSettingsRes, milestonesRes, pointsRes, dashboardRes] = await Promise.all([
       axiosClient.get(`/projects/${projectId}/settings`),
       axiosClient.get(`/projects/${projectId}/labels`),
       axiosClient.get(`/projects/${projectId}/modules`, { params: { page: 1, pageSize: 50, includeDisabled: true } }),
       axiosClient.get(`/projects/${projectId}/sprints`),
       axiosClient.get(`/projects/${projectId}/task-statuses`),
-      axiosClient.get(`/projects/${projectId}/integrations`)
+      axiosClient.get(`/projects/${projectId}/integrations`),
+      axiosClient.get(`/projects/${projectId}/execution-rules`),
+      axiosClient.get(`/projects/${projectId}/management/reward-rules`),
+      axiosClient.get(`/projects/${projectId}/management/capacity-rules`),
+      axiosClient.get(`/projects/${projectId}/management/baseline-settings`),
+      axiosClient.get(`/projects/${projectId}/management/milestones`),
+      axiosClient.get(`/projects/${projectId}/management/points`),
+      axiosClient.get(`/projects/${projectId}/management/operational-dashboard`)
     ])
 
     const settings = settingsRes.data?.data || {}
     project.value = settings.project || {}
     members.value = settings.members || []
+    assignProjectRoleOptions(settings.roleOptions || [])
     labels.value = (labelsRes.data?.data || []).map(label => ({
       ...label,
       colorCode: label.colorCode || label.color || '#3b82f6'
@@ -811,11 +1494,113 @@ const loadProjectSettings = async () => {
       startDate: normalizeDateInput(project.value.startDate),
       endDate: normalizeDateInput(project.value.endDate)
     }
+
+    const rules = executionRulesRes.data?.data || {}
+    executionRulesForm.value = {
+      enableRoleBasedTaskVisibility: Boolean(rules.enableRoleBasedTaskVisibility),
+      managerAlwaysSeeAllTasks: rules.managerAlwaysSeeAllTasks !== false,
+      defaultTaskVisibilityMode: rules.defaultTaskVisibilityMode || 'project',
+      defaultBaseHours: Number(rules.defaultBaseHours ?? 4),
+      hoursPerStoryPoint: Number(rules.hoursPerStoryPoint ?? 2),
+      estimateBaselineMode: rules.estimateBaselineMode || 'role_then_project',
+      roleHourMultipliers: {
+        dev: Number(rules.roleHourMultipliers?.dev ?? 1),
+        developer: Number(rules.roleHourMultipliers?.developer ?? 1),
+        qa: Number(rules.roleHourMultipliers?.qa ?? 0.75),
+        designer: Number(rules.roleHourMultipliers?.designer ?? 0.9),
+        devops: Number(rules.roleHourMultipliers?.devops ?? 1.15),
+        pm: Number(rules.roleHourMultipliers?.pm ?? 0.9),
+        po: Number(rules.roleHourMultipliers?.po ?? 0.8),
+        sm: Number(rules.roleHourMultipliers?.sm ?? 0.8)
+      }
+    }
+
+    const rewardRules = rewardRulesRes.data?.data || {}
+    rewardRulesForm.value = {
+      basePointMultiplier: Number(rewardRules.basePointMultiplier ?? 1),
+      earlyBonusPercent: Number(rewardRules.earlyBonusPercent ?? 10),
+      accuracyBonusPercent: Number(rewardRules.accuracyBonusPercent ?? 5),
+      latePenaltyPercent: Number(rewardRules.latePenaltyPercent ?? 10),
+      collaborationBonusPoints: Number(rewardRules.collaborationBonusPoints ?? 2),
+      manualAdjustmentLimit: Number(rewardRules.manualAdjustmentLimit ?? 200)
+    }
+
+    const capacityRules = capacityRulesRes.data?.data || {}
+    capacityRulesForm.value = {
+      defaultWeeklyHours: Number(capacityRules.defaultWeeklyHours ?? 40),
+      nearLimitPercent: Number(capacityRules.nearLimitPercent ?? 80),
+      overLimitPercent: Number(capacityRules.overLimitPercent ?? 100),
+      maxActiveTasksPerMember: Number(capacityRules.maxActiveTasksPerMember ?? 8),
+      roleWeeklyHours: { ...(capacityRules.roleWeeklyHours || {}) },
+      roleActiveTaskLimits: { ...(capacityRules.roleActiveTaskLimits || {}) }
+    }
+
+    const baselineSettings = baselineSettingsRes.data?.data || {}
+    baselineSettingsForm.value = {
+      usePlanningBaseline: baselineSettings.usePlanningBaseline !== false,
+      defaultBaseHours: Number(baselineSettings.defaultBaseHours ?? 4),
+      hoursPerStoryPoint: Number(baselineSettings.hoursPerStoryPoint ?? 2),
+      minimumSuggestedHours: Number(baselineSettings.minimumSuggestedHours ?? 0.5),
+      maximumSuggestedHours: Number(baselineSettings.maximumSuggestedHours ?? 80),
+      roleHourMultipliers: { ...(baselineSettings.roleHourMultipliers || {}) },
+      roleBaseHours: { ...(baselineSettings.roleBaseHours || {}) }
+    }
+
+    milestones.value = (milestonesRes.data?.data || []).map(milestone => ({
+      ...milestone,
+      startDate: normalizeDateInput(milestone.startDate),
+      targetDate: normalizeDateInput(milestone.targetDate),
+      linkedSprintIds: [...(milestone.linkedSprintIds || [])]
+    }))
+
+    pointManagement.value = pointsRes.data?.data || pointManagement.value
+    operationalDashboard.value = dashboardRes.data?.data || operationalDashboard.value
+
+    if (!projectRoleOptions.value.includes(inviteForm.value.role)) {
+      inviteForm.value.role = preferredInviteRole.value
+    }
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not load project settings')
     router.replace(`/space/${projectId}`)
   } finally {
     loading.value = false
+  }
+}
+
+const loadManagementData = async () => {
+  try {
+    const [rewardRulesRes, capacityRulesRes, baselineSettingsRes, milestonesRes, pointsRes, dashboardRes] = await Promise.all([
+      axiosClient.get(`/projects/${projectId}/management/reward-rules`),
+      axiosClient.get(`/projects/${projectId}/management/capacity-rules`),
+      axiosClient.get(`/projects/${projectId}/management/baseline-settings`),
+      axiosClient.get(`/projects/${projectId}/management/milestones`),
+      axiosClient.get(`/projects/${projectId}/management/points`),
+      axiosClient.get(`/projects/${projectId}/management/operational-dashboard`)
+    ])
+
+    rewardRulesForm.value = { ...(rewardRulesRes.data?.data || rewardRulesForm.value) }
+    capacityRulesForm.value = {
+      ...(capacityRulesForm.value || {}),
+      ...(capacityRulesRes.data?.data || {}),
+      roleWeeklyHours: { ...(capacityRulesRes.data?.data?.roleWeeklyHours || capacityRulesForm.value.roleWeeklyHours || {}) },
+      roleActiveTaskLimits: { ...(capacityRulesRes.data?.data?.roleActiveTaskLimits || capacityRulesForm.value.roleActiveTaskLimits || {}) }
+    }
+    baselineSettingsForm.value = {
+      ...(baselineSettingsForm.value || {}),
+      ...(baselineSettingsRes.data?.data || {}),
+      roleHourMultipliers: { ...(baselineSettingsRes.data?.data?.roleHourMultipliers || baselineSettingsForm.value.roleHourMultipliers || {}) },
+      roleBaseHours: { ...(baselineSettingsRes.data?.data?.roleBaseHours || baselineSettingsForm.value.roleBaseHours || {}) }
+    }
+    milestones.value = (milestonesRes.data?.data || []).map(milestone => ({
+      ...milestone,
+      startDate: normalizeDateInput(milestone.startDate),
+      targetDate: normalizeDateInput(milestone.targetDate),
+      linkedSprintIds: [...(milestone.linkedSprintIds || [])]
+    }))
+    pointManagement.value = pointsRes.data?.data || pointManagement.value
+    operationalDashboard.value = dashboardRes.data?.data || operationalDashboard.value
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || 'Could not load project management data')
   }
 }
 
@@ -864,6 +1649,206 @@ const saveGeneral = async () => {
   }
 }
 
+const saveExecutionRules = async () => {
+  savingExecutionRules.value = true
+  try {
+    await axiosClient.put(`/projects/${projectId}/execution-rules`, {
+      rules: {
+        enableRoleBasedTaskVisibility: Boolean(executionRulesForm.value.enableRoleBasedTaskVisibility),
+        managerAlwaysSeeAllTasks: Boolean(executionRulesForm.value.managerAlwaysSeeAllTasks),
+        defaultTaskVisibilityMode: executionRulesForm.value.defaultTaskVisibilityMode || 'project',
+        defaultBaseHours: Number(executionRulesForm.value.defaultBaseHours || 4),
+        hoursPerStoryPoint: Number(executionRulesForm.value.hoursPerStoryPoint || 2),
+        estimateBaselineMode: executionRulesForm.value.estimateBaselineMode || 'role_then_project',
+        roleHourMultipliers: {
+          dev: Number(executionRulesForm.value.roleHourMultipliers.dev || 1),
+          developer: Number(executionRulesForm.value.roleHourMultipliers.developer || 1),
+          qa: Number(executionRulesForm.value.roleHourMultipliers.qa || 0.75),
+          designer: Number(executionRulesForm.value.roleHourMultipliers.designer || 0.9),
+          devops: Number(executionRulesForm.value.roleHourMultipliers.devops || 1.15),
+          pm: Number(executionRulesForm.value.roleHourMultipliers.pm || 0.9),
+          po: Number(executionRulesForm.value.roleHourMultipliers.po || 0.8),
+          sm: Number(executionRulesForm.value.roleHourMultipliers.sm || 0.8)
+        }
+      }
+    })
+    ElMessage.success('Project execution rules updated')
+    notifyProjectSettingsRealtime()
+    await loadProjectSettings()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || 'Could not save execution rules')
+  } finally {
+    savingExecutionRules.value = false
+  }
+}
+
+const saveRewardRules = async () => {
+  savingRewardRules.value = true
+  try {
+    await axiosClient.put(`/projects/${projectId}/management/reward-rules`, {
+      rules: {
+        basePointMultiplier: Number(rewardRulesForm.value.basePointMultiplier || 1),
+        earlyBonusPercent: Number(rewardRulesForm.value.earlyBonusPercent || 0),
+        accuracyBonusPercent: Number(rewardRulesForm.value.accuracyBonusPercent || 0),
+        latePenaltyPercent: Number(rewardRulesForm.value.latePenaltyPercent || 0),
+        collaborationBonusPoints: Number(rewardRulesForm.value.collaborationBonusPoints || 0),
+        manualAdjustmentLimit: Number(rewardRulesForm.value.manualAdjustmentLimit || 200)
+      }
+    })
+    ElMessage.success('Reward rules updated')
+    notifyProjectSettingsRealtime()
+    await loadManagementData()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || 'Could not save reward rules')
+  } finally {
+    savingRewardRules.value = false
+  }
+}
+
+const saveCapacityRules = async () => {
+  savingCapacityRules.value = true
+  try {
+    await axiosClient.put(`/projects/${projectId}/management/capacity-rules`, {
+      rules: {
+        defaultWeeklyHours: Number(capacityRulesForm.value.defaultWeeklyHours || 40),
+        nearLimitPercent: Number(capacityRulesForm.value.nearLimitPercent || 80),
+        overLimitPercent: Number(capacityRulesForm.value.overLimitPercent || 100),
+        maxActiveTasksPerMember: Number(capacityRulesForm.value.maxActiveTasksPerMember || 8),
+        roleWeeklyHours: { ...(capacityRulesForm.value.roleWeeklyHours || {}) },
+        roleActiveTaskLimits: { ...(capacityRulesForm.value.roleActiveTaskLimits || {}) }
+      }
+    })
+    ElMessage.success('Capacity rules updated')
+    notifyProjectSettingsRealtime()
+    await loadManagementData()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || 'Could not save capacity rules')
+  } finally {
+    savingCapacityRules.value = false
+  }
+}
+
+const saveBaselineSettings = async () => {
+  savingBaselineSettings.value = true
+  try {
+    await axiosClient.put(`/projects/${projectId}/management/baseline-settings`, {
+      rules: {
+        usePlanningBaseline: Boolean(baselineSettingsForm.value.usePlanningBaseline),
+        defaultBaseHours: Number(baselineSettingsForm.value.defaultBaseHours || 4),
+        hoursPerStoryPoint: Number(baselineSettingsForm.value.hoursPerStoryPoint || 2),
+        minimumSuggestedHours: Number(baselineSettingsForm.value.minimumSuggestedHours || 0.5),
+        maximumSuggestedHours: Number(baselineSettingsForm.value.maximumSuggestedHours || 80),
+        roleHourMultipliers: { ...(baselineSettingsForm.value.roleHourMultipliers || {}) },
+        roleBaseHours: { ...(baselineSettingsForm.value.roleBaseHours || {}) }
+      }
+    })
+    ElMessage.success('Baseline settings updated')
+    notifyProjectSettingsRealtime()
+    await loadProjectSettings()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || 'Could not save baseline settings')
+  } finally {
+    savingBaselineSettings.value = false
+  }
+}
+
+const createPointAdjustment = async () => {
+  if (!pointAdjustmentForm.value.userId || !pointAdjustmentForm.value.amount || !pointAdjustmentForm.value.reason.trim()) {
+    ElMessage.warning('Member, amount, and reason are required')
+    return
+  }
+
+  savingPointAdjustment.value = true
+  try {
+    await axiosClient.post(`/projects/${projectId}/management/points/adjustments`, {
+      userId: pointAdjustmentForm.value.userId,
+      amount: Number(pointAdjustmentForm.value.amount),
+      reason: pointAdjustmentForm.value.reason.trim(),
+      adjustmentType: pointAdjustmentForm.value.adjustmentType
+    })
+    pointAdjustmentForm.value = {
+      userId: null,
+      amount: 0,
+      reason: '',
+      adjustmentType: 'Manual'
+    }
+    ElMessage.success('Point adjustment created')
+    notifyProjectSettingsRealtime()
+    await loadManagementData()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || 'Could not create point adjustment')
+  } finally {
+    savingPointAdjustment.value = false
+  }
+}
+
+const createMilestone = async () => {
+  if (!newMilestone.value.name.trim()) {
+    ElMessage.warning('Milestone name is required')
+    return
+  }
+
+  savingMilestone.value = true
+  try {
+    await axiosClient.post(`/projects/${projectId}/management/milestones`, {
+      milestone: {
+        ...newMilestone.value,
+        name: newMilestone.value.name.trim(),
+        description: newMilestone.value.description?.trim() || null,
+        releaseVersion: newMilestone.value.releaseVersion?.trim() || null
+      }
+    })
+    newMilestone.value = {
+      name: '',
+      description: '',
+      releaseVersion: '',
+      startDate: '',
+      targetDate: '',
+      status: 'Planned',
+      linkedSprintIds: []
+    }
+    ElMessage.success('Milestone created')
+    notifyProjectSettingsRealtime()
+    await loadManagementData()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || 'Could not create milestone')
+  } finally {
+    savingMilestone.value = false
+  }
+}
+
+const saveMilestone = async (milestone) => {
+  try {
+    await axiosClient.put(`/projects/${projectId}/management/milestones/${milestone.id}`, {
+      milestone: {
+        ...milestone,
+        name: milestone.name?.trim(),
+        description: milestone.description?.trim() || null,
+        releaseVersion: milestone.releaseVersion?.trim() || null
+      }
+    })
+    ElMessage.success('Milestone updated')
+    notifyProjectSettingsRealtime()
+    await loadManagementData()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || 'Could not update milestone')
+  }
+}
+
+const deleteMilestone = async (milestone) => {
+  try {
+    await ElMessageBox.confirm(`Delete milestone "${milestone.name}"?`, 'Delete milestone', { type: 'warning' })
+    await axiosClient.delete(`/projects/${projectId}/management/milestones/${milestone.id}`)
+    ElMessage.success('Milestone deleted')
+    notifyProjectSettingsRealtime()
+    await loadManagementData()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.response?.data?.message || 'Could not delete milestone')
+    }
+  }
+}
+
 const inviteMember = async () => {
   if (!inviteForm.value.email.trim()) {
     ElMessage.warning('Member email is required')
@@ -877,7 +1862,7 @@ const inviteMember = async () => {
       role: inviteForm.value.role
     })
     inviteForm.value.email = ''
-    inviteForm.value.role = 'Developer'
+    inviteForm.value.role = preferredInviteRole.value
     ElMessage.success('Member invited successfully')
     await loadProjectSettings()
     notifyProjectSettingsRealtime()
@@ -1382,9 +2367,20 @@ const goToCyclesWorkspace = () => {
 }
 
 let unsubscribeAdminRealtime = null
+let projectRealtimeHandler = null
 
 onMounted(async () => {
   await loadProjectSettings()
+  await signalRService.startConnection(`${projectId}`)
+  if (projectRealtimeHandler) {
+    signalRService.off('ProjectRealtimeEvent', projectRealtimeHandler)
+  }
+  projectRealtimeHandler = async (event) => {
+    if (!event?.type) return
+    if (event?.projectId && `${event.projectId}` !== `${projectId}`) return
+    broadcastAdminRealtime(event.type, event.payload || { projectId })
+  }
+  signalRService.on('ProjectRealtimeEvent', projectRealtimeHandler)
   unsubscribeAdminRealtime = subscribeAdminRealtime(async ({ type, payload }) => {
     if (payload?.projectId && `${payload.projectId}` !== `${projectId}`) {
       return
@@ -1410,6 +2406,9 @@ onMounted(async () => {
 
 onUnmounted(() => {
   unsubscribeAdminRealtime?.()
+  if (projectRealtimeHandler) {
+    signalRService.off('ProjectRealtimeEvent', projectRealtimeHandler)
+  }
 })
 </script>
 
@@ -1455,6 +2454,18 @@ onUnmounted(() => {
 .row-main p {
   margin: 4px 0 0;
   color: #a1a1aa;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.multiplier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
 }
 
 .settings-shell {
@@ -1712,6 +2723,54 @@ input:disabled {
   color: #e4e4e7;
 }
 
+.metric-grid,
+.two-column-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.metric-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.two-column-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.metric-card {
+  padding: 16px;
+  border: 1px solid #27272a;
+  border-radius: 10px;
+  background: #0f1115;
+}
+
+.metric-card span {
+  display: block;
+  color: #94a3b8;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.metric-card strong {
+  font-size: 26px;
+}
+
+.compact-list .stack-row {
+  padding: 12px 16px;
+}
+
+.vertical-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.negative-chip {
+  color: #fca5a5;
+}
+
 .empty-state {
   padding: 18px;
   border-radius: 10px;
@@ -1753,7 +2812,9 @@ input:disabled {
   .label-grid,
   .module-grid,
   .cycle-grid,
-  .form-grid {
+  .form-grid,
+  .metric-grid,
+  .two-column-grid {
     grid-template-columns: 1fr;
   }
 }

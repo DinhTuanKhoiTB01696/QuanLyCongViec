@@ -13,6 +13,8 @@ const normalizeDateOnly = (value) => {
   return `${year}-${month}-${day}`
 }
 
+import { normalizeProjectRole } from '@/utils/permissions'
+
 const normalizeTaskRecord = (task = {}, fallbackProjectId = null) => {
   const parentId = task.parentTaskId || task.parentId || task.ParentTaskId || task.ParentId || null
   const id = task.id || task.Id || null
@@ -57,6 +59,17 @@ const normalizeTaskRecord = (task = {}, fallbackProjectId = null) => {
     moduleId: task.moduleId || task.ModuleId || null,
     totalEstimatedHours: task.totalEstimatedHours ?? task.TotalEstimatedHours ?? 0,
     totalActualHours: task.totalActualHours ?? task.TotalActualHours ?? 0,
+      visibilityMode: `${task.visibilityMode || task.VisibilityMode || 'project'}`
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '_'),
+      visibleToRoles: (Array.isArray(task.visibleToRoles)
+        ? task.visibleToRoles
+        : Array.isArray(task.VisibleToRoles)
+          ? task.VisibleToRoles
+          : [])
+        .map(role => normalizeProjectRole(role))
+        .filter(Boolean),
     storyPoints: task.storyPoints ?? task.StoryPoints ?? 0,
     plannedStartDate: normalizeDateOnly(task.plannedStartDate || task.PlannedStartDate || null),
     plannedEndDate: normalizeDateOnly(task.plannedEndDate || task.PlannedEndDate || null),
