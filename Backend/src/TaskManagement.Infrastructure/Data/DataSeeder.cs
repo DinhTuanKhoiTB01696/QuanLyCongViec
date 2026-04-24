@@ -80,6 +80,34 @@ namespace TaskManagement.Infrastructure.Data
                 await context.SaveChangesAsync();
             }
 
+            var devAdmin = await context.Users.FirstOrDefaultAsync(u => u.Email == "dev@sprinta.local");
+            if (devAdmin == null)
+            {
+                devAdmin = new User
+                {
+                    Id = Guid.NewGuid(),
+                    FullName = "Dev Admin",
+                    Email = "dev@sprinta.local",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("dev123"),
+                    IsActive = true,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+                context.Users.Add(devAdmin);
+                await context.SaveChangesAsync();
+
+                var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
+                if (adminRole != null)
+                {
+                    context.UserRoles.Add(new UserRole
+                    {
+                        UserId = devAdmin.Id,
+                        RoleId = adminRole.Id
+                    });
+                    await context.SaveChangesAsync();
+                }
+            }
+
             var workspaceWasCreated = false;
             var workspace = await context.Workspaces
                 .IgnoreQueryFilters()
@@ -124,6 +152,20 @@ namespace TaskManagement.Infrastructure.Data
                     WorkspaceId = workspace.Id,
                     UserId = testUser.Id,
                     WorkspaceRole = "MEMBER",
+                    JoinedAt = now,
+                    IsActive = true
+                });
+            }
+
+            var devAdminWorkspaceMember = await context.WorkspaceMembers
+                .FirstOrDefaultAsync(m => m.WorkspaceId == workspace.Id && m.UserId == devAdmin.Id);
+            if (devAdminWorkspaceMember == null)
+            {
+                context.WorkspaceMembers.Add(new WorkspaceMember
+                {
+                    WorkspaceId = workspace.Id,
+                    UserId = devAdmin.Id,
+                    WorkspaceRole = "OWNER",
                     JoinedAt = now,
                     IsActive = true
                 });
@@ -197,6 +239,20 @@ namespace TaskManagement.Infrastructure.Data
                     ProjectId = project.Id,
                     UserId = testUser.Id,
                     ProjectRole = "PM",
+                    JoinedAt = now,
+                    Status = true
+                });
+            }
+
+            var devAdminProjectMember = await context.ProjectMembers
+                .FirstOrDefaultAsync(m => m.ProjectId == project.Id && m.UserId == devAdmin.Id);
+            if (devAdminProjectMember == null)
+            {
+                context.ProjectMembers.Add(new ProjectMember
+                {
+                    ProjectId = project.Id,
+                    UserId = devAdmin.Id,
+                    ProjectRole = "Admin",
                     JoinedAt = now,
                     Status = true
                 });

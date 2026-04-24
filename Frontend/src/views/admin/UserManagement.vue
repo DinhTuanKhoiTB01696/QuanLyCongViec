@@ -5,10 +5,6 @@
         <div class="header-copy">
           <div class="breadcrumb">{{ t('ADMIN / USER DIRECTORY', 'QUẢN TRỊ / DANH BẠ NGƯỜI DÙNG') }}</div>
           <h1 class="text-hero">{{ t('Users', 'Người dùng') }}</h1>
-          <p class="text-desc">
-            {{ t('Manage accounts, invitations, and access permissions for members in the organization.', 'Quản lý tài khoản, lời mời và quyền truy cập của thành viên trong tổ chức.') }}
-            <a href="#" @click.prevent="openAppAccessHint">{{ t('Go to app access settings', 'Đi tới cài đặt quyền truy cập ứng dụng') }}</a>
-          </p>
         </div>
 
         <div class="page-actions">
@@ -53,21 +49,24 @@
           </div>
         </div>
 
-        <div class="admin-config-grid">
-          <section class="admin-subcard">
-            <div class="subcard-header">
-              <div>
-                <h3 class="text-section">{{ t('Departments', 'Phòng ban') }}</h3>
-                <p class="text-desc">{{ t('Create and maintain departments used across user and project access.', 'Tạo và quản lý phòng ban dùng cho người dùng và phân quyền dự án.') }}</p>
+        <el-tabs v-model="activeTab" class="custom-tabs admin-tabs" style="margin-top: 24px;">
+          <el-tab-pane :label="t('Departments', 'Phòng ban')" name="departments">
+              <section class="admin-subcard">
+              <div class="subcard-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <h3 class="text-section">{{ t('Departments', 'Phòng ban') }}</h3>
+                  <p class="text-desc">{{ t('Create and maintain departments used across user and project access.', 'Tạo và quản lý phòng ban dùng cho người dùng và phân quyền dự án.') }}</p>
+                </div>
+                <div class="table-search" v-if="!selectedDepartmentView" style="margin-top: 0;">
+                  <div class="search-input-wrapper">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input v-model="departmentSearchQuery" type="text" :placeholder="t('Search departments', 'Tìm kiếm phòng ban...')" class="search-input" />
+                  </div>
+                </div>
               </div>
-              <button type="button" class="primary-btn" @click="createDepartmentFromDraft">
-                <i class="fa-solid fa-plus"></i>
-                {{ t('Add department', 'Thêm phòng ban') }}
-              </button>
-            </div>
 
-            <div class="department-form">
-              <input v-model="departmentDraft.name" type="text" :placeholder="t('Department name', 'Tên phòng ban')" />
+            <div v-if="!selectedDepartmentView" class="department-form row-form">
+              <input v-model="departmentDraft.name" type="text" :placeholder="t('Enter name to add department', 'Nhập tên để thêm phòng ban')" style="flex: 1;" />
               <label class="inline-check">
                 <input v-model="departmentDraft.isActive" type="checkbox" />
                 <span>{{ t('Active', 'Hoạt động') }}</span>
@@ -76,15 +75,19 @@
                 <input v-model="departmentDraft.require2FA" type="checkbox" />
                 <span>{{ t('Require 2FA', 'Bắt buộc 2FA') }}</span>
               </label>
+              <button type="button" class="primary-btn" @click="createDepartmentFromDraft">
+                <i class="fa-solid fa-plus"></i>
+                {{ t('Add department', 'Thêm phòng ban') }}
+              </button>
             </div>
 
-            <div v-if="departments.length" class="department-list">
-              <div v-for="department in departments" :key="department.id" class="department-item">
+            <div v-if="!selectedDepartmentView && filteredDepartments.length" class="department-list grid-list">
+              <div v-for="department in paginatedDepartments" :key="department.id" class="department-item" style="cursor: pointer;" @click="selectedDepartmentView = department.id; departmentPage = 1">
                 <div class="department-copy">
                   <strong>{{ department.name }}</strong>
                   <span>{{ department.memberCount || 0 }} {{ t('members', 'thành viên') }}</span>
                 </div>
-                <div class="department-actions">
+                <div class="department-actions" @click.stop>
                   <label class="inline-check">
                     <input :checked="department.isActive" type="checkbox" @change="toggleDepartmentState(department, 'isActive', $event.target.checked)" />
                     <span>{{ t('Active', 'Hoạt động') }}</span>
@@ -98,47 +101,136 @@
                 </div>
               </div>
             </div>
-            <div v-else class="table-state compact-state">
-              <span>{{ t('No departments yet.', 'Chưa có phòng ban nào.') }}</span>
+
+            <div v-else-if="selectedDepartmentView" class="assignment-list grid-list" style="display: flex; flex-direction: column; gap: 16px;">
+              <div class="view-header" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; margin-bottom: 4px;">
+                <strong>{{ t('Department', 'Phòng ban') }}: {{ activeDepartmentName }}</strong>
+                <div style="display: flex; gap: 16px; align-items: center;">
+                  <div class="table-search" style="margin-top: 0; min-width: 250px;">
+                    <div class="search-input-wrapper">
+                      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                      <input v-model="departmentMemberSearchQuery" type="text" :placeholder="t('Search by name or email', 'Tìm theo tên hoặc email...')" class="search-input" />
+                    </div>
+                  </div>
+                  <el-select v-model="memberToAdd" filterable :placeholder="t('Add member', 'Thêm nhân sự')" @change="handleAddMemberToDepartment" style="width: 200px;" popper-class="admin-project-dropdown">
+                    <el-option v-for="user in usersNotInActiveDepartment" :key="user.id" :label="getDisplayName(user)" :value="user.id">
+                      <span>{{ getDisplayName(user) }} ({{ user.email }})</span>
+                    </el-option>
+                  </el-select>
+                  <button type="button" class="accent-back-btn" @click="selectedDepartmentView = null; departmentPage = 1">
+                    <i class="fa-solid fa-arrow-left"></i> {{ t('Back', 'Quay lại') }}
+                  </button>
+                </div>
+              </div>
+              
+              <div v-for="member in paginatedDepartmentMembers" :key="member.id" class="assignment-item" style="grid-column: 1 / -1;">
+                <div class="assignment-copy" style="display: flex; align-items: center; gap: 16px;">
+                  <div class="user-avatar" :style="{ backgroundColor: getAvatarColor(getDisplayName(member)), width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 'bold' }">
+                    {{ getInitials(getDisplayName(member)) }}
+                  </div>
+                  <div>
+                    <strong>{{ getDisplayName(member) }}</strong>
+                    <span style="display: block; font-size: 13px; color: var(--color-text-muted);">{{ member.email }}</span>
+                  </div>
+                </div>
+                <button type="button" class="plain-action danger-action" @click="handleRemoveMemberFromDepartment(member)">{{ t('Remove', 'Xóa') }}</button>
+              </div>
+              
+              <div v-if="!paginatedDepartmentMembers.length" style="grid-column: 1 / -1; text-align: center; color: var(--color-text-muted); margin-top: 16px;">
+                {{ t('No members found.', 'Không tìm thấy nhân sự nào.') }}
+              </div>
+            </div>
+
+            <div v-if="!selectedDepartmentView && filteredDepartments.length" class="pagination-controls">
+              <el-pagination layout="prev, pager, next, jumper" :total="filteredDepartments.length" :page-size="10" v-model:current-page="departmentPage" />
+            </div>
+            <div v-else-if="selectedDepartmentView && activeDepartmentMembers.length" class="pagination-controls">
+              <el-pagination layout="prev, pager, next, jumper" :total="activeDepartmentMembers.length" :page-size="10" v-model:current-page="departmentPage" />
+            </div>
+            <div v-else-if="!selectedDepartmentView" class="table-state compact-state">
+              <span>{{ t('No departments found.', 'Không có phòng ban nào.') }}</span>
             </div>
           </section>
+          </el-tab-pane>
 
-          <section class="admin-subcard">
-            <div class="subcard-header">
-              <div>
-                <h3>{{ t('Project role mapping', 'Phân vai trò theo dự án') }}</h3>
-                <p>{{ t('Assign a role for each department inside a project.', 'Gán vai trò của từng phòng ban trong từng dự án.') }}</p>
+          <el-tab-pane :label="t('Project role mapping', 'Phân vai trò theo dự án')" name="project-roles">
+              <section class="admin-subcard">
+              <div class="subcard-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <h3>{{ t('Project role mapping', 'Phân vai trò theo dự án') }}</h3>
+                  <p>{{ t('Assign a role for each department inside a project.', 'Gán vai trò của từng phòng ban trong từng dự án.') }}</p>
+                </div>
+                <div class="table-search" v-if="!selectedProjectView" style="margin-top: 0;">
+                  <div class="search-input-wrapper">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input v-model="projectRoleSearchQuery" type="text" :placeholder="t('Search projects', 'Tìm kiếm dự án...')" class="search-input" />
+                  </div>
+                </div>
               </div>
+
+            <div class="assignment-grid row-form">
+              <el-select v-model="departmentRoleDraft.projectIds" multiple collapse-tags clearable :placeholder="t('Project', 'Dự án')" popper-class="admin-project-dropdown" style="flex: 1;">
+                <el-option v-for="project in availableProjects" :key="project.id" :label="project.name" :value="project.id"></el-option>
+              </el-select>
+              <el-select v-model="departmentRoleDraft.departmentIds" multiple collapse-tags clearable :placeholder="t('Department', 'Phòng ban')" popper-class="admin-project-dropdown" style="flex: 1;">
+                <el-option v-for="department in departments" :key="department.id" :label="department.name" :value="department.id"></el-option>
+              </el-select>
+              <input v-model="departmentRoleDraft.roleName" type="text" :placeholder="t('Role name', 'Tên vai trò')" style="flex: 1;" />
               <button type="button" class="primary-btn" @click="saveDepartmentProjectRole">
                 <i class="fa-solid fa-floppy-disk"></i>
                 {{ t('Save mapping', 'Lưu mapping') }}
               </button>
             </div>
 
-            <div class="assignment-grid">
-              <el-select v-model="departmentRoleDraft.projectId" clearable filterable :placeholder="t('Project', 'Dự án')" popper-class="admin-project-dropdown">
-                <el-option v-for="project in availableProjects" :key="project.id" :label="project.name" :value="project.id"></el-option>
-              </el-select>
-              <el-select v-model="departmentRoleDraft.departmentId" clearable filterable :placeholder="t('Department', 'Phòng ban')" popper-class="admin-project-dropdown">
-                <el-option v-for="department in departments" :key="department.id" :label="department.name" :value="department.id"></el-option>
-              </el-select>
-              <input v-model="departmentRoleDraft.roleName" type="text" :placeholder="t('Role name', 'Tên vai trò')" />
-            </div>
-
-            <div v-if="projectRoleAssignments.length" class="assignment-list">
-              <div v-for="assignment in projectRoleAssignments" :key="`${assignment.projectId}-${assignment.departmentId}-${assignment.roleName}`" class="assignment-item">
+            <div v-if="!selectedProjectView && groupedProjectRoles.length" class="assignment-list grid-list">
+              <div v-for="group in paginatedGroupedProjects" :key="group.projectId" class="assignment-item">
                 <div class="assignment-copy">
-                  <strong>{{ assignment.projectName }}</strong>
-                  <span>{{ assignment.departmentName }} - {{ assignment.roleName }}</span>
+                  <strong>{{ group.projectName }}</strong>
+                  <span>{{ group.assignments.length }} {{ t('mappings', 'phân quyền') }}</span>
                 </div>
-                <button type="button" class="plain-action danger-action" @click="removeDepartmentProjectRole(assignment)">{{ t('Remove', 'Xóa') }}</button>
+                <button type="button" class="plain-action" @click="selectedProjectView = group.projectId; projectRolePage = 1">{{ t('View details', 'Xem chi tiết') }}</button>
               </div>
             </div>
-            <div v-else class="table-state compact-state">
+            <div v-else-if="selectedProjectView" class="assignment-list grid-list" style="display: flex; flex-direction: column; gap: 16px;">
+              <div class="view-header" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; margin-bottom: 4px;">
+                <strong>{{ t('Project', 'Dự án') }}: {{ activeProjectName }}</strong>
+                <div style="display: flex; gap: 16px; align-items: center;">
+                  <div class="table-search" style="margin-top: 0;">
+                    <div class="search-input-wrapper">
+                      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                      <input v-model="projectDepartmentSearchQuery" type="text" :placeholder="t('Search departments', 'Tìm phòng ban...')" class="search-input" />
+                    </div>
+                  </div>
+                  <button type="button" class="accent-back-btn" @click="selectedProjectView = null; projectRolePage = 1">
+                    <i class="fa-solid fa-arrow-left"></i> {{ t('Back', 'Quay lại') }}
+                  </button>
+                </div>
+              </div>
+              <div v-for="assignment in paginatedAssignmentsInProject" :key="`${assignment.projectId}-${assignment.departmentId}-${assignment.roleName}`" class="assignment-item" style="cursor: pointer; grid-column: 1 / -1;" @click="viewDepartmentMembersFromProject(assignment.departmentId)">
+                <div class="assignment-copy">
+                  <strong>{{ assignment.departmentName }}</strong>
+                  <span>{{ t('Role', 'Vai trò') }}: {{ assignment.roleName }}</span>
+                </div>
+                <button type="button" class="plain-action danger-action" @click.stop="removeDepartmentProjectRole(assignment)">{{ t('Remove', 'Xóa') }}</button>
+              </div>
+              <div v-if="!paginatedAssignmentsInProject.length" style="grid-column: 1 / -1; text-align: center; color: var(--color-text-muted); margin-top: 16px;">
+                {{ t('No mappings found.', 'Không có phân quyền nào.') }}
+              </div>
+            </div>
+            <div v-else-if="!selectedProjectView" class="table-state compact-state" style="flex: 1;">
               <span>{{ t('No project role mappings yet.', 'Chưa có mapping vai trò theo dự án.') }}</span>
             </div>
+
+            <div v-if="!selectedProjectView && groupedProjectRoles.length" class="pagination-controls">
+              <el-pagination layout="prev, pager, next, jumper" :total="groupedProjectRoles.length" :page-size="10" v-model:current-page="projectRolePage" />
+            </div>
+            <div v-else-if="selectedProjectView && activeProjectAssignments.length" class="pagination-controls">
+              <el-pagination layout="prev, pager, next, jumper" :total="activeProjectAssignments.length" :page-size="10" v-model:current-page="projectRolePage" />
+            </div>
           </section>
-          <section class="admin-subcard">
+          </el-tab-pane>
+
+          <section class="admin-subcard" v-if="false">
             <div class="subcard-header">
               <div>
                 <h3>{{ t('System roles', 'Vai trò hệ thống') }}</h3>
@@ -235,9 +327,9 @@
               <span>{{ t('No system roles loaded yet.', 'Chưa tải được vai trò hệ thống.') }}</span>
             </div>
           </section>
-        </div>
 
-        <section class="filters-row" aria-label="User filters">
+          <el-tab-pane :label="t('Members list', 'Danh sách thành viên')" name="members">
+            <section class="filters-row" aria-label="User filters" style="margin-top: 16px;">
           <div class="table-search">
             <i class="fa-solid fa-magnifying-glass"></i>
             <input
@@ -324,6 +416,42 @@
             </div>
           </div>
 
+          <div class="filter-wrap" @click.stop>
+            <el-select
+              v-model="memberListProjectFilter"
+              clearable
+              filterable
+              :placeholder="t('Project', 'Dự án')"
+              class="custom-filter-select"
+              popper-class="admin-project-dropdown"
+            >
+              <el-option
+                v-for="project in availableProjects"
+                :key="project.id"
+                :label="project.name"
+                :value="project.name"
+              ></el-option>
+            </el-select>
+          </div>
+
+          <div class="filter-wrap" @click.stop>
+            <el-select
+              v-model="memberListDepartmentFilter"
+              clearable
+              filterable
+              :placeholder="t('Department', 'Phòng ban')"
+              class="custom-filter-select"
+              popper-class="admin-project-dropdown"
+            >
+              <el-option
+                v-for="dept in departments"
+                :key="dept.id"
+                :label="dept.name"
+                :value="dept.name"
+              ></el-option>
+            </el-select>
+          </div>
+
           <button v-if="hasActiveFilters" type="button" class="clear-filters-btn" @click="clearFilters">
             {{ t('Clear filters', 'Xóa bộ lọc') }}
           </button>
@@ -403,6 +531,8 @@
             </tbody>
           </table>
         </section>
+          </el-tab-pane>
+        </el-tabs>
       </section>
     </div>
 
@@ -646,11 +776,170 @@ import { useLocale } from '@/composables/useLocale'
 import { onUnmounted } from 'vue'
 
 const { t, locale: currentLocale } = useLocale()
+const activeTab = ref('departments')
 const nowTime = ref(Date.now())
-let timeInterval = null
 
 const adminUserStore = useAdminUserStore()
 const { users, loading, departments, projectRoleAssignments, availableProjects, roles, permissions } = storeToRefs(adminUserStore)
+
+const departmentSearchQuery = ref('')
+const selectedDepartmentView = ref(null)
+const departmentMemberSearchQuery = ref('')
+const memberToAdd = ref(null)
+
+const projectRoleSearchQuery = ref('')
+const projectDepartmentSearchQuery = ref('')
+
+const memberListProjectFilter = ref('')
+const memberListDepartmentFilter = ref('')
+
+const filteredDepartments = computed(() => {
+  if (!departmentSearchQuery.value) return departments.value
+  const q = departmentSearchQuery.value.toLowerCase()
+  return departments.value.filter(d => d.name.toLowerCase().includes(q))
+})
+
+const departmentPage = ref(1)
+const departmentPageSize = 10
+const paginatedDepartments = computed(() => {
+  const start = (departmentPage.value - 1) * departmentPageSize
+  return filteredDepartments.value.slice(start, start + departmentPageSize)
+})
+
+const activeDepartmentName = computed(() => {
+  if (!selectedDepartmentView.value) return ''
+  const dept = departments.value.find(d => d.id === selectedDepartmentView.value)
+  return dept ? dept.name : ''
+})
+
+const activeDepartmentMembers = computed(() => {
+  if (!selectedDepartmentView.value) return []
+  const deptName = activeDepartmentName.value
+  if (!deptName) return []
+  let members = users.value.filter(user => (user.departments || []).includes(deptName))
+  
+  if (departmentMemberSearchQuery.value) {
+    const q = departmentMemberSearchQuery.value.toLowerCase()
+    members = members.filter(user => 
+      getDisplayName(user).toLowerCase().includes(q) || 
+      (user.email || '').toLowerCase().includes(q)
+    )
+  }
+  return members
+})
+
+const paginatedDepartmentMembers = computed(() => {
+  const start = (departmentPage.value - 1) * departmentPageSize
+  return activeDepartmentMembers.value.slice(start, start + departmentPageSize)
+})
+
+const usersNotInActiveDepartment = computed(() => {
+  if (!selectedDepartmentView.value) return []
+  const deptName = activeDepartmentName.value
+  return users.value.filter(user => !(user.departments || []).includes(deptName))
+})
+
+const handleAddMemberToDepartment = async (userId) => {
+  if (!userId || !selectedDepartmentView.value) return
+  try {
+    await adminUserStore.addDepartmentMember(selectedDepartmentView.value, userId)
+    ElMessage.success(t('Added member to department', 'Đã thêm nhân sự vào phòng ban'))
+    memberToAdd.value = null
+  } catch (err) {
+    ElMessage.error(t('Failed to add member', 'Không thể thêm nhân sự'))
+  }
+}
+
+const handleRemoveMemberFromDepartment = async (user) => {
+  try {
+    await adminUserStore.removeDepartmentMember(selectedDepartmentView.value, user.id)
+    ElMessage.success(t('Removed member from department', 'Đã xóa nhân sự khỏi phòng ban'))
+  } catch (err) {
+    ElMessage.error(t('Failed to remove member', 'Không thể xóa nhân sự'))
+  }
+}
+
+const projectRolePage = ref(1)
+const projectRolePageSize = 10
+const selectedProjectView = ref(null)
+
+const groupedProjectRoles = computed(() => {
+  const map = new Map()
+  for (const assignment of projectRoleAssignments.value) {
+    if (!map.has(assignment.projectId)) {
+      map.set(assignment.projectId, {
+        projectId: assignment.projectId,
+        projectName: assignment.projectName,
+        assignments: []
+      })
+    }
+    map.get(assignment.projectId).assignments.push(assignment)
+  }
+  return Array.from(map.values())
+})
+
+const activeProjectName = computed(() => {
+  if (!selectedProjectView.value) return ''
+  const proj = groupedProjectRoles.value.find(p => p.projectId === selectedProjectView.value)
+  return proj ? proj.projectName : ''
+})
+
+const activeProjectAssignments = computed(() => {
+  if (!selectedProjectView.value) return []
+  const proj = groupedProjectRoles.value.find(p => p.projectId === selectedProjectView.value)
+  return proj ? proj.assignments : []
+})
+
+const filteredGroupedProjectRoles = computed(() => {
+  let groups = groupedProjectRoles.value
+  if (projectRoleSearchQuery.value) {
+    const q = projectRoleSearchQuery.value.toLowerCase()
+    groups = groups.filter(g => g.projectName.toLowerCase().includes(q) || g.projectId.toLowerCase().includes(q))
+  }
+  return groups
+})
+
+const filteredActiveProjectAssignments = computed(() => {
+  let assignments = activeProjectAssignments.value
+  if (projectDepartmentSearchQuery.value) {
+    const q = projectDepartmentSearchQuery.value.toLowerCase()
+    assignments = assignments.filter(a => a.departmentName.toLowerCase().includes(q))
+  }
+  return assignments
+})
+
+const paginatedGroupedProjects = computed(() => {
+  const start = (projectRolePage.value - 1) * projectRolePageSize
+  return filteredGroupedProjectRoles.value.slice(start, start + projectRolePageSize)
+})
+
+const paginatedAssignmentsInProject = computed(() => {
+  const start = (projectRolePage.value - 1) * projectRolePageSize
+  return filteredActiveProjectAssignments.value.slice(start, start + projectRolePageSize)
+})
+
+const viewDepartmentMembersFromProject = (departmentId) => {
+  activeTab.value = 'departments'
+  selectedDepartmentView.value = departmentId
+  departmentPage.value = 1
+}
+
+watch([departments, departmentSearchQuery, selectedDepartmentView, departmentMemberSearchQuery], () => {
+  const source = selectedDepartmentView.value ? activeDepartmentMembers.value : filteredDepartments.value
+  const maxPage = Math.ceil(source.length / departmentPageSize) || 1
+  if (departmentPage.value > maxPage) departmentPage.value = maxPage
+})
+
+watch([projectRoleAssignments, projectRoleSearchQuery, projectDepartmentSearchQuery], () => {
+  const source = selectedProjectView.value ? filteredActiveProjectAssignments.value : filteredGroupedProjectRoles.value
+  const maxPage = Math.ceil(source.length / projectRolePageSize) || 1
+  if (projectRolePage.value > maxPage) projectRolePage.value = maxPage
+  if (selectedProjectView.value && source.length === 0 && !projectDepartmentSearchQuery.value) {
+    selectedProjectView.value = null
+    projectRolePage.value = 1
+  }
+}, { deep: true })
+let timeInterval = null
 
 const fallbackOrganization = {
   organizationName: 'Global Organization',
@@ -670,8 +959,8 @@ const departmentDraft = ref({
   require2FA: false
 })
 const departmentRoleDraft = ref({
-  projectId: null,
-  departmentId: null,
+  projectIds: [],
+  departmentIds: [],
   roleName: ''
 })
 const roleDraft = ref({
@@ -813,8 +1102,10 @@ const filteredUsers = computed(() => {
     const matchesRole = !roleFilterValues.value.length || roleFilterValues.value.some(role => roles.includes(role))
     const matchesApp = !appFilterValues.value.length || appFilterValues.value.some(app => apps.includes(app))
     const matchesStatus = !statusFilterValues.value.length || statusFilterValues.value.includes(status)
+    const matchesProject = !memberListProjectFilter.value || (user.projects && user.projects.includes(memberListProjectFilter.value))
+    const matchesDepartment = !memberListDepartmentFilter.value || (user.departments && user.departments.includes(memberListDepartmentFilter.value))
 
-    return matchesSearch && matchesRole && matchesApp && matchesStatus
+    return matchesSearch && matchesRole && matchesApp && matchesStatus && matchesProject && matchesDepartment
   })
 })
 
@@ -862,7 +1153,7 @@ const canSendInvite = computed(() =>
 )
 
 const hasActiveFilters = computed(() =>
-  roleFilterValues.value.length > 0 || appFilterValues.value.length > 0 || statusFilterValues.value.length > 0
+  roleFilterValues.value.length > 0 || appFilterValues.value.length > 0 || statusFilterValues.value.length > 0 || memberListProjectFilter.value || memberListDepartmentFilter.value
 )
 
 let searchTimeout = null
@@ -1033,6 +1324,8 @@ const clearFilters = () => {
   roleFilterValues.value = []
   appFilterValues.value = []
   statusFilterValues.value = []
+  memberListProjectFilter.value = ''
+  memberListDepartmentFilter.value = ''
   filterSearch.value = { role: '', apps: '', status: '' }
   openFilterMenu.value = null
 }
@@ -1281,17 +1574,24 @@ const removeDepartment = (department) => {
 }
 
 const saveDepartmentProjectRole = async () => {
-  if (!departmentRoleDraft.value.projectId || !departmentRoleDraft.value.departmentId || !departmentRoleDraft.value.roleName.trim()) {
+  if (!departmentRoleDraft.value.projectIds.length || !departmentRoleDraft.value.departmentIds.length || !departmentRoleDraft.value.roleName.trim()) {
     ElMessage.warning(t('Select project, department, and role.', 'Vui lòng chọn dự án, phòng ban và vai trò.'))
     return
   }
 
   try {
-    await adminUserStore.saveProjectRoleAssignment({
-      projectId: departmentRoleDraft.value.projectId,
-      departmentId: departmentRoleDraft.value.departmentId,
-      roleName: departmentRoleDraft.value.roleName.trim()
-    })
+    const promises = []
+    for (const pId of departmentRoleDraft.value.projectIds) {
+      for (const dId of departmentRoleDraft.value.departmentIds) {
+        promises.push(adminUserStore.saveProjectRoleAssignment({
+          projectId: pId,
+          departmentId: dId,
+          roleName: departmentRoleDraft.value.roleName.trim()
+        }))
+      }
+    }
+    await Promise.all(promises)
+    
     departmentRoleDraft.value.roleName = ''
     ElMessage.success(t('Project role mapping saved.', 'Đã lưu mapping vai trò dự án.'))
   } catch (error) {
@@ -2273,7 +2573,7 @@ onUnmounted(() => {
 
 .invite-copy h2 {
   margin: 0;
-  color: var(--color-text-primary);
+  color: #172b4d;
   font-size: 25px;
   font-weight: 800;
 }
@@ -2281,7 +2581,7 @@ onUnmounted(() => {
 .invite-copy p {
   max-width: 860px;
   margin: 8px 0 0;
-  color: var(--color-text-primary);
+  color: #172b4d;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -2294,7 +2594,7 @@ onUnmounted(() => {
 .field-label {
   display: block;
   margin-bottom: 7px;
-  color: var(--color-text-secondary);
+  color: #42526e;
   font-size: 12px;
   font-weight: 800;
 }
@@ -2324,7 +2624,8 @@ onUnmounted(() => {
   flex: 1 1 220px;
   border: 0;
   outline: 0;
-  color: var(--color-text-primary);
+  color: #172b4d;
+  background: transparent;
   font-size: 14px;
 }
 
@@ -2768,6 +3069,112 @@ onUnmounted(() => {
     width: min(100% - 28px, 920px);
     margin-top: 76px;
   }
+}
+
+.admin-subcard {
+  min-height: 580px;
+  display: flex;
+  flex-direction: column;
+}
+
+.row-form {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.grid-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-content: start;
+  flex: 1;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+/* Pagination Dark Mode Styling */
+.pagination-controls :deep(.el-pagination) {
+  --el-pagination-bg-color: transparent !important;
+  --el-pagination-text-color: var(--color-text-primary, #e4e6ea) !important;
+  --el-pagination-button-color: var(--color-text-primary, #e4e6ea) !important;
+  --el-pagination-button-disabled-color: var(--color-text-muted, #8590a2) !important;
+  --el-pagination-button-disabled-bg-color: transparent !important;
+  --el-pagination-hover-color: #3b82f6 !important;
+}
+
+.pagination-controls :deep(.el-pager li) {
+  background: transparent !important;
+  color: var(--color-text-primary, #e4e6ea) !important;
+}
+
+.pagination-controls :deep(.el-pager li.is-active) {
+  color: #3b82f6 !important;
+  font-weight: bold;
+}
+
+.pagination-controls :deep(.el-pagination button) {
+  background: transparent !important;
+  color: var(--color-text-primary, #e4e6ea) !important;
+}
+
+.pagination-controls :deep(.el-pagination button:disabled) {
+  color: var(--color-text-muted, #8590a2) !important;
+}
+
+/* Jumper styling if present */
+.pagination-controls :deep(.el-pagination__jump) {
+  color: var(--color-text-primary, #e4e6ea) !important;
+  margin-left: 16px;
+}
+
+/* Hide the texts "Go to" and "page" around the input */
+.pagination-controls :deep(.el-pagination__goto),
+.pagination-controls :deep(.el-pagination__classifier) {
+  display: none !important;
+}
+
+/* Style the jumper input */
+.pagination-controls :deep(.el-pagination__jump .el-input__wrapper) {
+  background-color: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: none !important;
+  padding: 0 8px;
+  width: 50px;
+}
+
+.pagination-controls :deep(.el-pagination__jump .el-input__inner) {
+  color: #fff !important;
+  text-align: center;
+}
+
+.accent-back-btn {
+  background: #3b82f620 !important;
+  color: #3b82f6 !important;
+  border: 1px solid #3b82f650 !important;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 6px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.accent-back-btn:hover {
+  background: #3b82f630 !important;
+}
+
+/* Fix Element Plus select text highlighting on click */
+.el-select :deep(.el-input__inner::selection) {
+  background: transparent !important;
+  color: inherit;
 }
 </style>
 

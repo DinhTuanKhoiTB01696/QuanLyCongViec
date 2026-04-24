@@ -109,6 +109,18 @@ export const useAdminUserStore = defineStore('adminUsers', () => {
     return fetchDepartments();
   };
 
+  const addDepartmentMember = async (departmentId, userId) => {
+    await axiosClient.post(`/admin/users/departments/${departmentId}/members/${userId}`);
+    await fetchUsers(); // Refresh users list so the frontend can see the updated departments property
+    return true;
+  };
+
+  const removeDepartmentMember = async (departmentId, userId) => {
+    await axiosClient.delete(`/admin/users/departments/${departmentId}/members/${userId}`);
+    await fetchUsers(); // Refresh users list
+    return true;
+  };
+
   const fetchProjectRoleAssignments = async () => {
     try {
       const res = await axiosClient.get('/admin/users/project-role-assignments');
@@ -194,6 +206,8 @@ export const useAdminUserStore = defineStore('adminUsers', () => {
     createDepartment,
     updateDepartment,
     deleteDepartment,
+    addDepartmentMember,
+    removeDepartmentMember,
     fetchProjectRoleAssignments,
     saveProjectRoleAssignment,
     deleteProjectRoleAssignment,

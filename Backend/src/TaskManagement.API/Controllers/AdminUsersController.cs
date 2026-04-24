@@ -51,15 +51,16 @@ namespace TaskManagement.API.Controllers
                     .ThenInclude(ur => ur.Role)
                     .Include(u => u.DepartmentMemberships)
                     .ThenInclude(dm => dm.Department)
+                    .Include(u => u.ProjectMemberships)
+                    .ThenInclude(pm => pm.Project)
                     .Where(u => !u.IsDeleted)
                     .AsQueryable();
 
                 if (!string.IsNullOrWhiteSpace(search))
                 {
-                    var keyword = search.Trim().ToLower();
                     query = query.Where(u =>
-                        u.FullName.ToLower().Contains(keyword) ||
-                        u.Email.ToLower().Contains(keyword));
+                        u.Email.Contains(search) ||
+                        (u.FullName != null && u.FullName.Contains(search)));
                 }
 
                 var users = await query
@@ -77,6 +78,7 @@ namespace TaskManagement.API.Controllers
                         avatar = u.AvatarUrl,
                         roles = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
                         departments = u.DepartmentMemberships.Select(dm => dm.Department.Name).ToList(),
+                        projects = u.ProjectMemberships.Select(pm => pm.Project.Name).ToList(),
                         createdAt = u.CreatedAt
                     })
                     .ToListAsync();
@@ -709,6 +711,56 @@ namespace TaskManagement.API.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { statusCode = 200, message = "Department removed successfully." });
+        }
+
+        [HttpPost("departments/{departmentId}/members/{userId}")]
+        public async Task<IActionResult> AddDepartmentMember(Guid departmentId, Guid userId)
+        {
+            var department = await _context.Departments.FirstOrDefaultAsync(d => d.Id == departmentId && !d.IsDeleted);
+            if (department == null)
+            {
+                return NotFound(new { statusCode = 404, message = "Department not found." });
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
+            if (user == null)
+            {
+                return NotFound(new { statusCode = 404, message = "User not found." });
+            }
+
+            var existingMembership = await _context.DepartmentMembers
+                .FirstOrDefaultAsync(dm => dm.DepartmentId == departmentId && dm.UserId == userId);
+            
+            if (existingMembership != null)
+            {
+                return Conflict(new { statusCode = 409, message = "User is already in this department." });
+            }
+
+            _context.DepartmentMembers.Add(new TaskManagement.Domain.Entities.DepartmentMember
+            {
+                DepartmentId = departmentId,
+                UserId = userId
+            });
+
+            await _context.SaveChangesAsync();
+            return Ok(new { statusCode = 200, message = "User added to department." });
+        }
+
+        [HttpDelete("departments/{departmentId}/members/{userId}")]
+        public async Task<IActionResult> RemoveDepartmentMember(Guid departmentId, Guid userId)
+        {
+            var existingMembership = await _context.DepartmentMembers
+                .FirstOrDefaultAsync(dm => dm.DepartmentId == departmentId && dm.UserId == userId);
+            
+            if (existingMembership == null)
+            {
+                return NotFound(new { statusCode = 404, message = "Membership not found." });
+            }
+
+            _context.DepartmentMembers.Remove(existingMembership);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "User removed from department." });
         }
 
         [HttpGet("project-role-assignments")]
