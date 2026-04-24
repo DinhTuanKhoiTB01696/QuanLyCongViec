@@ -137,13 +137,13 @@ namespace TaskManagement.Infrastructure.Services
                     ActiveMemberCount = p.ProjectMembers.Count(m => m.Status == true),
                     NetworkType = p.NetworkType,
                     LeadUserId = p.ProjectMembers
-                        .Where(pm => pm.Status && (pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PROJECT_MANAGER"))
-                        .OrderBy(pm => pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
+                        .Where(pm => pm.Status && (pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PM" || pm.ProjectRole == "PROJECT_MANAGER"))
+                        .OrderBy(pm => pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
                         .Select(pm => (Guid?)pm.UserId)
                         .FirstOrDefault(),
                     LeadName = p.ProjectMembers
-                        .Where(pm => pm.Status && (pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PROJECT_MANAGER"))
-                        .OrderBy(pm => pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
+                        .Where(pm => pm.Status && (pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PM" || pm.ProjectRole == "PROJECT_MANAGER"))
+                        .OrderBy(pm => pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
                         .Select(pm => pm.User.FullName)
                         .FirstOrDefault(),
                     Cover = p.NavigationConfig,
@@ -209,13 +209,13 @@ namespace TaskManagement.Infrastructure.Services
                     ActiveMemberCount = p.ProjectMembers.Count(m => m.Status == true),
                     NetworkType = p.NetworkType,
                     LeadUserId = p.ProjectMembers
-                        .Where(pm => pm.Status && (pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PROJECT_MANAGER"))
-                        .OrderBy(pm => pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
+                        .Where(pm => pm.Status && (pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PM" || pm.ProjectRole == "PROJECT_MANAGER"))
+                        .OrderBy(pm => pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
                         .Select(pm => (Guid?)pm.UserId)
                         .FirstOrDefault(),
                     LeadName = p.ProjectMembers
-                        .Where(pm => pm.Status && (pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PROJECT_MANAGER"))
-                        .OrderBy(pm => pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
+                        .Where(pm => pm.Status && (pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PM" || pm.ProjectRole == "PROJECT_MANAGER"))
+                        .OrderBy(pm => pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
                         .Select(pm => pm.User.FullName)
                         .FirstOrDefault(),
                     Cover = p.NavigationConfig,
@@ -315,13 +315,13 @@ namespace TaskManagement.Infrastructure.Services
                     ActiveMemberCount = p.ProjectMembers.Count(m => m.Status == true),
                     NetworkType = p.NetworkType,
                     LeadUserId = p.ProjectMembers
-                        .Where(pm => pm.Status && (pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PROJECT_MANAGER"))
-                        .OrderBy(pm => pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
+                        .Where(pm => pm.Status && (pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PM" || pm.ProjectRole == "PROJECT_MANAGER"))
+                        .OrderBy(pm => pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
                         .Select(pm => (Guid?)pm.UserId)
                         .FirstOrDefault(),
                     LeadName = p.ProjectMembers
-                        .Where(pm => pm.Status && (pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PROJECT_MANAGER"))
-                        .OrderBy(pm => pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
+                        .Where(pm => pm.Status && (pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PM" || pm.ProjectRole == "PROJECT_MANAGER"))
+                        .OrderBy(pm => pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
                         .Select(pm => pm.User.FullName)
                         .FirstOrDefault(),
                     Cover = p.NavigationConfig,
@@ -472,12 +472,12 @@ namespace TaskManagement.Infrastructure.Services
                 );
             }
 
-            // Add the creator as the PROJECT_MANAGER
+            // Add the creator as the PM
             var projectMember = new TaskManagement.Domain.Entities.ProjectMember
             {
                 ProjectId = project.Id,
                 UserId = creatorId,
-                ProjectRole = "PROJECT_MANAGER",
+                ProjectRole = "PM",
                 JoinedAt = DateTime.UtcNow,
                 Status = true
             };
@@ -489,14 +489,14 @@ namespace TaskManagement.Infrastructure.Services
                 {
                     ProjectId = project.Id,
                     UserId = leadUserId.Value,
-                    ProjectRole = "PROJECT_LEAD",
+                    ProjectRole = "Project Lead",
                     JoinedAt = DateTime.UtcNow,
                     Status = true
                 });
             }
             else if (leadUserId.HasValue)
             {
-                projectMember.ProjectRole = "PROJECT_LEAD";
+                projectMember.ProjectRole = "Project Lead";
             }
             
             // Add System Audit Log

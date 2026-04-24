@@ -6,6 +6,7 @@ using System.Text.Json;
 using TaskManagement.API.Filters;
 using TaskManagement.Application.DTOs.Common;
 using TaskManagement.Application.DTOs.Project;
+using TaskManagement.Application.Common;
 using TaskManagement.Application.Interfaces;
 using TaskManagement.Infrastructure.Data;
 
@@ -41,6 +42,26 @@ namespace TaskManagement.API.Controllers
         {
             public List<ProjectIntegrationSetting> Items { get; set; } = new();
         }
+
+        public sealed class UpdateProjectExecutionRulesRequest
+        {
+            public ProjectExecutionRulesDto Rules { get; set; } = new();
+        }
+
+        private static readonly string[] HiddenProjectRoleOptionNames =
+        {
+            "superadmin",
+            "system_admin",
+            "system admin",
+            "organization_admin",
+            "organization admin",
+            "accessadmin",
+            "access admin",
+            "member",
+            "guest",
+            "stakeholder",
+            "user"
+        };
 
         private static Dictionary<string, object?> ParseNavigationConfig(string? raw)
         {
@@ -80,6 +101,79 @@ namespace TaskManagement.API.Controllers
             var config = ParseNavigationConfig(raw);
             config["favorite"] = favorite;
             return JsonSerializer.Serialize(config);
+        }
+
+        private static ProjectExecutionRulesDto ReadExecutionRules(string? raw)
+        {
+            var config = ParseNavigationConfig(raw);
+            if (!config.TryGetValue("executionRules", out var value) || value == null)
+            {
+                return ProjectExecutionRuleHelper.NormalizeExecutionRules(null);
+            }
+
+            try
+            {
+                if (value is JsonElement json)
+                {
+                    return ProjectExecutionRuleHelper.NormalizeExecutionRules(
+                        json.Deserialize<ProjectExecutionRulesDto>());
+                }
+
+                if (value is ProjectExecutionRulesDto typed)
+                {
+                    return ProjectExecutionRuleHelper.NormalizeExecutionRules(typed);
+                }
+
+                return ProjectExecutionRuleHelper.NormalizeExecutionRules(
+                    JsonSerializer.Deserialize<ProjectExecutionRulesDto>(JsonSerializer.Serialize(value)));
+            }
+            catch
+            {
+                return ProjectExecutionRuleHelper.NormalizeExecutionRules(null);
+            }
+        }
+
+        private static string MergeExecutionRulesIntoNavigationConfig(string? raw, ProjectExecutionRulesDto rules)
+        {
+            var config = ParseNavigationConfig(raw);
+            config["executionRules"] = ProjectExecutionRuleHelper.NormalizeExecutionRules(rules);
+            return JsonSerializer.Serialize(config);
+        }
+
+        private async Task<List<object>> BuildProjectRoleOptionsAsync()
+        {
+            var preferredOrder = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["PM"] = 0,
+                ["PO"] = 1,
+                ["SM"] = 2,
+                ["Project Lead"] = 3,
+                ["Admin"] = 4,
+                ["Developer"] = 5,
+                ["QA"] = 6,
+                ["Accountant"] = 7
+            };
+
+            var roleOptions = await _context.Roles
+                .AsNoTracking()
+                .Select(role => new
+                {
+                    role.Name,
+                    role.Description
+                })
+                .ToListAsync();
+
+            return roleOptions
+                .Where(role => !HiddenProjectRoleOptionNames.Contains(ProjectExecutionRuleHelper.NormalizeProjectRole(role.Name)))
+                .OrderBy(role => preferredOrder.TryGetValue(role.Name, out var rank) ? rank : int.MaxValue)
+                .ThenBy(role => role.Name)
+                .Select(role => (object)new
+                {
+                    value = role.Name,
+                    label = role.Name,
+                    description = role.Description
+                })
+                .ToList();
         }
 
         /// <summary>
@@ -236,7 +330,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpGet("{projectId:guid}/settings")]
-        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,Admin")]
+        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,SM,Admin")]
         public async Task<IActionResult> GetSettingsOverview(Guid projectId)
         {
             var project = await _projectService.GetByIdAsync(projectId);
@@ -247,6 +341,7 @@ namespace TaskManagement.API.Controllers
             var rawProject = await _context.Projects
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == projectId);
+            var roleOptions = await BuildProjectRoleOptionsAsync();
 
             return Ok(ApiResponse<object>.Success(new
             {
@@ -271,14 +366,69 @@ namespace TaskManagement.API.Controllers
                     project.CreatedAt,
                     project.UpdatedAt,
                     IsFavorite = ReadFavoriteFlag(rawProject?.NavigationConfig),
-                    IsArchived = rawProject?.IsArchived ?? false
+                    IsArchived = rawProject?.IsArchived ?? false,
+                    ExecutionRules = ReadExecutionRules(rawProject?.NavigationConfig)
                 },
-                members
+                members,
+                roleOptions
             }));
         }
 
+        [HttpGet("{projectId:guid}/execution-rules")]
+        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,SM,Admin")]
+        public async Task<IActionResult> GetExecutionRules(Guid projectId)
+        {
+            var project = await _context.Projects
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Id == projectId && !item.IsDeleted);
+
+            if (project == null)
+            {
+                return NotFound(ApiResponse<object>.Error("Project not found.", 404));
+            }
+
+            return Ok(ApiResponse<ProjectExecutionRulesDto>.Success(
+                ReadExecutionRules(project.NavigationConfig)));
+        }
+
+        [HttpGet("{projectId:guid}/role-options")]
+        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,SM,Admin")]
+        public async Task<IActionResult> GetProjectRoleOptions(Guid projectId)
+        {
+            var projectExists = await _context.Projects
+                .AsNoTracking()
+                .AnyAsync(item => item.Id == projectId && !item.IsDeleted);
+
+            if (!projectExists)
+            {
+                return NotFound(ApiResponse<object>.Error("Project not found.", 404));
+            }
+
+            return Ok(ApiResponse<object>.Success(await BuildProjectRoleOptionsAsync()));
+        }
+
+        [HttpPut("{projectId:guid}/execution-rules")]
+        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,SM,Admin")]
+        public async Task<IActionResult> UpdateExecutionRules(Guid projectId, [FromBody] UpdateProjectExecutionRulesRequest request)
+        {
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(item => item.Id == projectId && !item.IsDeleted);
+
+            if (project == null)
+            {
+                return NotFound(ApiResponse<object>.Error("Project not found.", 404));
+            }
+
+            var normalizedRules = ProjectExecutionRuleHelper.NormalizeExecutionRules(request?.Rules);
+            project.NavigationConfig = MergeExecutionRulesIntoNavigationConfig(project.NavigationConfig, normalizedRules);
+            project.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(ApiResponse<ProjectExecutionRulesDto>.Success(normalizedRules, "Project execution rules updated."));
+        }
+
         [HttpGet("{projectId:guid}/integrations")]
-        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,Admin")]
+        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,SM,Admin")]
         public async Task<IActionResult> GetProjectIntegrations(Guid projectId)
         {
             var projectExists = await _context.Projects
@@ -331,7 +481,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPut("{projectId:guid}/integrations")]
-        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,Admin")]
+        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,SM,Admin")]
         public async Task<IActionResult> UpdateProjectIntegrations(Guid projectId, [FromBody] UpdateProjectIntegrationsRequest request)
         {
             var projectExists = await _context.Projects
@@ -504,7 +654,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPut("{projectId:guid}")]
-        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,Admin")]
+        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,SM,Admin")]
         public async Task<IActionResult> Update(Guid projectId, [FromBody] UpdateProjectDto dto)
         {
             try
@@ -522,7 +672,7 @@ namespace TaskManagement.API.Controllers
         /// 5.1 Archive: Vô hiệu hóa dự án
         /// </summary>
         [HttpPut("{projectId:guid}/archive")]
-        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,Admin")]
+        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,SM,Admin")]
         public async Task<IActionResult> Archive(Guid projectId)
         {
             try
@@ -537,7 +687,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPut("{projectId:guid}/restore")]
-        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,Admin")]
+        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,SM,Admin")]
         public async Task<IActionResult> Restore(Guid projectId)
         {
             try
@@ -555,7 +705,7 @@ namespace TaskManagement.API.Controllers
         /// 5.1 Soft Delete
         /// </summary>
         [HttpDelete("{projectId:guid}")]
-        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,Admin")]
+        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,SM,Admin")]
         public async Task<IActionResult> SoftDelete(Guid projectId)
         {
             try

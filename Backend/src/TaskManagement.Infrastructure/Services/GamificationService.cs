@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using TaskManagement.Application.Common;
 using TaskManagement.Application.Interfaces;
 using TaskManagement.Domain.Entities;
 using TaskManagement.Infrastructure.Data;
@@ -15,6 +16,7 @@ namespace TaskManagement.Infrastructure.Services
         private const string EarlyBonusType = "EarlyBonusReward";
         private const string AccuracyBonusType = "EstimateAccuracyBonus";
         private const string LatePenaltyType = "LatePenalty";
+        private const string CollaborationBonusType = "CollaborationBonus";
         private readonly ApplicationDbContext _context;
 
         public GamificationService(ApplicationDbContext context)
@@ -41,12 +43,18 @@ namespace TaskManagement.Infrastructure.Services
                     var task = await _context.WorkTasks
                         .AsNoTracking()
                         .Include(t => t.TaskAssignments)
+                        .Include(t => t.Project)
                         .FirstOrDefaultAsync(t => t.Id == workTaskId && !t.IsDeleted);
 
                     if (task == null)
                     {
                         throw new ArgumentException("Task khong ton tai.");
                     }
+
+                    var rewardRules = ProjectManagementHelper.NormalizeRewardRules(
+                        ProjectManagementHelper.ReadSection<TaskManagement.Application.DTOs.Project.ProjectRewardRulesDto>(
+                            task.Project?.NavigationConfig,
+                            "rewardRules"));
 
                     if (await HasChildTasksAsync(workTaskId))
                     {
@@ -79,10 +87,10 @@ namespace TaskManagement.Infrastructure.Services
     
                     if (!wasDone && isDone)
                     {
-                        var points = CalculateBaseRewardPoints(task);
+                        var points = CalculateBaseRewardPoints(task, rewardRules);
                         if (IsOverdue(task.DueDate))
                         {
-                            await AddLatePenaltyIfNeededAsync(wallet, targetUserId, task, points, "task");
+                            await AddLatePenaltyIfNeededAsync(wallet, targetUserId, task, points, "task", rewardRules);
                             await _context.SaveChangesAsync();
                             await transaction.CommitAsync();
                             return;
@@ -109,7 +117,7 @@ namespace TaskManagement.Infrastructure.Services
                                 CreatedAt = DateTime.UtcNow
                             });
 
-                            var earlyBonus = CalculateEarlyBonus(points, task.DueDate);
+                            var earlyBonus = CalculateEarlyBonus(points, task.DueDate, rewardRules);
                             if (earlyBonus > 0)
                             {
                                 wallet.TotalPoints += earlyBonus;
@@ -127,7 +135,7 @@ namespace TaskManagement.Infrastructure.Services
                                 });
                             }
 
-                            var accuracyBonus = CalculateAccuracyBonus(points, task.TotalEstimatedHours, task.TotalActualHours);
+                            var accuracyBonus = CalculateAccuracyBonus(points, task.TotalEstimatedHours, task.TotalActualHours, rewardRules);
                             if (accuracyBonus > 0)
                             {
                                 wallet.TotalPoints += accuracyBonus;
@@ -144,7 +152,7 @@ namespace TaskManagement.Infrastructure.Services
                                 });
                             }
 
-                            var latePenalty = CalculateLatePenalty(points, task.DueDate);
+                            var latePenalty = CalculateLatePenalty(points, task.DueDate, rewardRules);
                             if (latePenalty < 0)
                             {
                                 wallet.TotalPoints = Math.Max(0, wallet.TotalPoints + latePenalty);
@@ -224,12 +232,18 @@ namespace TaskManagement.Infrastructure.Services
                     var task = await _context.WorkTasks
                         .AsNoTracking()
                         .Include(t => t.TaskAssignments)
+                        .Include(t => t.Project)
                         .FirstOrDefaultAsync(t => t.Id == workTaskId && !t.IsDeleted);
 
                     if (task == null)
                     {
                         throw new ArgumentException("Task khong ton tai.");
                     }
+
+                    var rewardRules = ProjectManagementHelper.NormalizeRewardRules(
+                        ProjectManagementHelper.ReadSection<TaskManagement.Application.DTOs.Project.ProjectRewardRulesDto>(
+                            task.Project?.NavigationConfig,
+                            "rewardRules"));
 
                     if (await HasChildTasksAsync(workTaskId))
                     {
@@ -244,14 +258,14 @@ namespace TaskManagement.Infrastructure.Services
                     }
 
                     var wallet = await GetOrCreateWalletAsync(assigneeUserId);
-                    var basePoints = CalculateBaseRewardPoints(task);
+                    var basePoints = CalculateBaseRewardPoints(task, rewardRules);
                     var activeAssignments = task.TaskAssignments.Where(ta => ta.Status).ToList();
                     var share = CalculateAssignmentShare(task, assignment, activeAssignments);
                     var points = Math.Max(1, (int)Math.Round(basePoints * share, MidpointRounding.AwayFromZero));
 
                     if (IsOverdue(task.DueDate))
                     {
-                        await AddLatePenaltyIfNeededAsync(wallet, assigneeUserId, task, points, "phan viec");
+                        await AddLatePenaltyIfNeededAsync(wallet, assigneeUserId, task, points, "phan viec", rewardRules);
                         await _context.SaveChangesAsync();
                         await transaction.CommitAsync();
                         return;
@@ -280,7 +294,7 @@ namespace TaskManagement.Infrastructure.Services
                         CreatedAt = DateTime.UtcNow
                     });
 
-                    var earlyBonus = CalculateEarlyBonus(points, task.DueDate);
+                    var earlyBonus = CalculateEarlyBonus(points, task.DueDate, rewardRules);
                     if (earlyBonus > 0)
                     {
                         wallet.TotalPoints += earlyBonus;
@@ -296,7 +310,7 @@ namespace TaskManagement.Infrastructure.Services
                         });
                     }
 
-                    var accuracyBonus = CalculateAccuracyBonus(points, assignment.EstimatedHours, assignment.TotalActualHours);
+                    var accuracyBonus = CalculateAccuracyBonus(points, assignment.EstimatedHours, assignment.TotalActualHours, rewardRules);
                     if (accuracyBonus > 0)
                     {
                         wallet.TotalPoints += accuracyBonus;
@@ -312,7 +326,7 @@ namespace TaskManagement.Infrastructure.Services
                         });
                     }
 
-                    var latePenalty = CalculateLatePenalty(points, task.DueDate);
+                    var latePenalty = CalculateLatePenalty(points, task.DueDate, rewardRules);
                     if (latePenalty < 0)
                     {
                         wallet.TotalPoints = Math.Max(0, wallet.TotalPoints + latePenalty);
@@ -333,6 +347,22 @@ namespace TaskManagement.Infrastructure.Services
                         wallet.Level = CalculateLevel(wallet.TotalPoints);
                     }
 
+                    if (activeAssignments.Count > 1 && rewardRules.CollaborationBonusPoints > 0)
+                    {
+                        wallet.TotalPoints += rewardRules.CollaborationBonusPoints;
+                        wallet.Level = CalculateLevel(wallet.TotalPoints);
+                        _context.PointTransactions.Add(new PointTransaction
+                        {
+                            Id = Guid.NewGuid(),
+                            UserWalletUserId = assigneeUserId,
+                            WorkTaskId = workTaskId,
+                            Amount = rewardRules.CollaborationBonusPoints,
+                            TransactionType = CollaborationBonusType,
+                            Reason = $"Thuong cong tac nhieu assignee cho task {task.SequenceId ?? task.Id.ToString()}",
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
+
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                 }
@@ -348,6 +378,7 @@ namespace TaskManagement.Infrastructure.Services
         {
             var task = await _context.WorkTasks
                 .Include(t => t.TaskAssignments)
+                .Include(t => t.Project)
                 .FirstOrDefaultAsync(t => t.Id == workTaskId && !t.IsDeleted);
 
             if (task == null || !IsOverdue(task.DueDate) || await HasChildTasksAsync(workTaskId))
@@ -355,16 +386,21 @@ namespace TaskManagement.Infrastructure.Services
                 return;
             }
 
+            var rewardRules = ProjectManagementHelper.NormalizeRewardRules(
+                ProjectManagementHelper.ReadSection<TaskManagement.Application.DTOs.Project.ProjectRewardRulesDto>(
+                    task.Project?.NavigationConfig,
+                    "rewardRules"));
+
             var activeAssignments = task.TaskAssignments.Where(assignment => assignment.Status).ToList();
             if (activeAssignments.Any())
             {
-                var basePoints = CalculateBaseRewardPoints(task);
+                var basePoints = CalculateBaseRewardPoints(task, rewardRules);
                 foreach (var assignment in activeAssignments)
                 {
                     var wallet = await GetOrCreateWalletAsync(assignment.UserId);
                     var share = CalculateAssignmentShare(task, assignment, activeAssignments);
                     var userPoints = Math.Max(1, (int)Math.Round(basePoints * share, MidpointRounding.AwayFromZero));
-                    await AddLatePenaltyIfNeededAsync(wallet, assignment.UserId, task, userPoints, "phan viec");
+                    await AddLatePenaltyIfNeededAsync(wallet, assignment.UserId, task, userPoints, "phan viec", rewardRules);
                 }
 
                 await _context.SaveChangesAsync();
@@ -373,7 +409,7 @@ namespace TaskManagement.Infrastructure.Services
 
             var targetUserId = task.AssignedUserId ?? task.ReporterId;
             var targetWallet = await GetOrCreateWalletAsync(targetUserId);
-            await AddLatePenaltyIfNeededAsync(targetWallet, targetUserId, task, CalculateBaseRewardPoints(task), "task");
+            await AddLatePenaltyIfNeededAsync(targetWallet, targetUserId, task, CalculateBaseRewardPoints(task, rewardRules), "task", rewardRules);
             await _context.SaveChangesAsync();
         }
 
@@ -403,7 +439,7 @@ namespace TaskManagement.Infrastructure.Services
                 .AnyAsync(task => task.ParentTaskId == workTaskId && !task.IsDeleted);
         }
 
-        private async Task AddLatePenaltyIfNeededAsync(UserWallet wallet, Guid userId, TaskManagement.Domain.Entities.WorkTask task, int basePoints, string scopeLabel)
+        private async Task AddLatePenaltyIfNeededAsync(UserWallet wallet, Guid userId, TaskManagement.Domain.Entities.WorkTask task, int basePoints, string scopeLabel, TaskManagement.Application.DTOs.Project.ProjectRewardRulesDto rewardRules)
         {
             var alreadyPenalized = await _context.PointTransactions.AnyAsync(pt =>
                 pt.UserWalletUserId == userId &&
@@ -415,7 +451,7 @@ namespace TaskManagement.Infrastructure.Services
                 return;
             }
 
-            var latePenalty = await CalculateLatePenaltyAsync(userId, task.Id, basePoints, task.DueDate);
+            var latePenalty = await CalculateLatePenaltyAsync(userId, task.Id, basePoints, task.DueDate, rewardRules);
             if (latePenalty >= 0)
             {
                 return;
@@ -492,11 +528,11 @@ namespace TaskManagement.Infrastructure.Services
             return 1.0 / Math.Max(activeAssignments.Count, 1);
         }
 
-        private static int CalculateBaseRewardPoints(TaskManagement.Domain.Entities.WorkTask task)
+        private static int CalculateBaseRewardPoints(TaskManagement.Domain.Entities.WorkTask task, TaskManagement.Application.DTOs.Project.ProjectRewardRulesDto rewardRules)
         {
             var difficulty = Math.Max(1, (int)Math.Round(task.StoryPoints <= 0 ? Math.Max(1, task.TotalEstimatedHours / 4.0) : task.StoryPoints, MidpointRounding.AwayFromZero));
             var standardDuration = CalculateStandardDurationDays(task.TotalEstimatedHours, task.PlannedStartDate, task.PlannedEndDate, task.DueDate);
-            return difficulty * standardDuration;
+            return Math.Max(1, (int)Math.Round(difficulty * standardDuration * rewardRules.BasePointMultiplier, MidpointRounding.AwayFromZero));
         }
 
         private static int CalculateStandardDurationDays(double estimatedHours, DateTime? plannedStartDate, DateTime? plannedEndDate, DateTime? dueDate)
@@ -515,17 +551,17 @@ namespace TaskManagement.Infrastructure.Services
             return 1;
         }
 
-        private static int CalculateEarlyBonus(int basePoints, DateTime? dueDate)
+        private static int CalculateEarlyBonus(int basePoints, DateTime? dueDate, TaskManagement.Application.DTOs.Project.ProjectRewardRulesDto rewardRules)
         {
             if (dueDate.HasValue && DateTime.Now.Date <= dueDate.Value.Date)
             {
-                return Math.Max(1, (int)Math.Round(basePoints * 0.1, MidpointRounding.AwayFromZero));
+                return Math.Max(1, (int)Math.Round(basePoints * (rewardRules.EarlyBonusPercent / 100d), MidpointRounding.AwayFromZero));
             }
 
             return 0;
         }
 
-        private static int CalculateAccuracyBonus(int basePoints, double estimatedHours, double actualHours)
+        private static int CalculateAccuracyBonus(int basePoints, double estimatedHours, double actualHours, TaskManagement.Application.DTOs.Project.ProjectRewardRulesDto rewardRules)
         {
             if (estimatedHours <= 0 || actualHours <= 0)
             {
@@ -535,17 +571,17 @@ namespace TaskManagement.Infrastructure.Services
             var ratio = actualHours / Math.Max(estimatedHours, 0.5);
             if (ratio >= 0.85 && ratio <= 1.15)
             {
-                return Math.Max(1, (int)Math.Round(basePoints * 0.05, MidpointRounding.AwayFromZero));
+                return Math.Max(1, (int)Math.Round(basePoints * (rewardRules.AccuracyBonusPercent / 100d), MidpointRounding.AwayFromZero));
             }
 
             return 0;
         }
 
-        private static int CalculateLatePenalty(int basePoints, DateTime? dueDate)
+        private static int CalculateLatePenalty(int basePoints, DateTime? dueDate, TaskManagement.Application.DTOs.Project.ProjectRewardRulesDto rewardRules)
         {
             if (IsOverdue(dueDate))
             {
-                return -Math.Max(1, (int)Math.Round(basePoints * 0.1, MidpointRounding.AwayFromZero));
+                return -Math.Max(1, (int)Math.Round(basePoints * (rewardRules.LatePenaltyPercent / 100d), MidpointRounding.AwayFromZero));
             }
 
             return 0;
@@ -556,14 +592,14 @@ namespace TaskManagement.Infrastructure.Services
             return dueDate.HasValue && DateTime.Now.Date > dueDate.Value.Date;
         }
 
-        private async Task<int> CalculateLatePenaltyAsync(Guid userId, Guid workTaskId, int basePoints, DateTime? dueDate)
+        private async Task<int> CalculateLatePenaltyAsync(Guid userId, Guid workTaskId, int basePoints, DateTime? dueDate, TaskManagement.Application.DTOs.Project.ProjectRewardRulesDto rewardRules)
         {
             if (!IsOverdue(dueDate))
             {
                 return 0;
             }
 
-            var minimumPenalty = Math.Max(1, (int)Math.Round(basePoints * 0.1, MidpointRounding.AwayFromZero));
+            var minimumPenalty = Math.Max(1, (int)Math.Round(basePoints * (rewardRules.LatePenaltyPercent / 100d), MidpointRounding.AwayFromZero));
             var existingPositiveRewards = await _context.PointTransactions
                 .Where(pt =>
                     pt.UserWalletUserId == userId &&

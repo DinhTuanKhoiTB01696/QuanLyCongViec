@@ -11,6 +11,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using TaskManagement.API.Filters;
+using TaskManagement.Application.Common;
 using TaskManagement.API.Hubs;
 using TaskManagement.Application.DTOs.WorkTask;
 using TaskManagement.Application.Interfaces;
@@ -27,6 +28,7 @@ namespace TaskManagement.API.Controllers
         private readonly IHubContext<KanbanHub> _kanbanHub;
         private static readonly string[] ManagerRoles = { "PM", "PO", "SM", "PROJECT_MANAGER", "SCRUM_MASTER" };
         private static readonly string[] BaselineManagerRoles = { "PM", "PO", "SM", "PA", "PROJECT_MANAGER", "SCRUM_MASTER", "PROJECT_ADMIN" };
+        private const string TaskVisibilitySettingGroup = "TaskVisibility";
 
         public WorkTasksController(IWorkTaskService workTaskService, IHubContext<KanbanHub> kanbanHub)
         {
@@ -183,6 +185,15 @@ namespace TaskManagement.API.Controllers
             if (task != null)
             {
                 task.StatusName = NormalizeStatusName(task.StatusName);
+                var visibilitySetting = await context.SystemSettings
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(item => item.SettingGroup == TaskVisibilitySettingGroup && item.Key == task.Id.ToString());
+                if (visibilitySetting != null)
+                {
+                    var visibility = ProjectExecutionRuleHelper.ParseTaskVisibility(visibilitySetting.Value);
+                    task.VisibilityMode = visibility.Mode;
+                    task.VisibleToRoles = visibility.Roles;
+                }
             }
 
             return task;
@@ -204,6 +215,49 @@ namespace TaskManagement.API.Controllers
             {
                 return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             }
+        }
+
+        private static async Task<TaskVisibilityDto> LoadTaskVisibilityAsync(ApplicationDbContext context, Guid taskId)
+        {
+            var setting = await context.SystemSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.SettingGroup == TaskVisibilitySettingGroup && item.Key == taskId.ToString());
+
+            return setting == null
+                ? ProjectExecutionRuleHelper.NormalizeTaskVisibility(new TaskVisibilityDto())
+                : ProjectExecutionRuleHelper.ParseTaskVisibility(setting.Value);
+        }
+
+        private static async Task SaveTaskVisibilityAsync(
+            ApplicationDbContext context,
+            Guid taskId,
+            string? requestedMode,
+            IEnumerable<string>? requestedRoles)
+        {
+            var visibility = ProjectExecutionRuleHelper.NormalizeTaskVisibility(new TaskVisibilityDto
+            {
+                Mode = requestedMode ?? "project",
+                Roles = requestedRoles?.ToList() ?? new List<string>()
+            });
+
+            var setting = await context.SystemSettings
+                .FirstOrDefaultAsync(item => item.SettingGroup == TaskVisibilitySettingGroup && item.Key == taskId.ToString());
+
+            if (setting == null)
+            {
+                setting = new TaskManagement.Domain.Entities.SystemSetting
+                {
+                    Id = Guid.NewGuid(),
+                    SettingGroup = TaskVisibilitySettingGroup,
+                    Key = taskId.ToString(),
+                    Description = "Task visibility configuration"
+                };
+                context.SystemSettings.Add(setting);
+            }
+
+            setting.Value = ProjectExecutionRuleHelper.BuildTaskVisibilityPayload(visibility);
+            setting.LastModifiedAt = DateTime.UtcNow;
+            await context.SaveChangesAsync();
         }
 
         private static bool HasSystemAdminAccess(ClaimsPrincipal user)
@@ -1197,10 +1251,36 @@ namespace TaskManagement.API.Controllers
                     }
                 }
 
+                string? visibilityModeToSave = null;
+                List<string>? visibleRolesToSave = null;
+                if (updates.TryGetProperty("visibilityMode", out var visibilityModeProp))
+                {
+                    visibilityModeToSave = visibilityModeProp.ValueKind == JsonValueKind.Null
+                        ? "project"
+                        : visibilityModeProp.GetString();
+                }
+                if (updates.TryGetProperty("visibleToRoles", out var visibleRolesProp) && visibleRolesProp.ValueKind == JsonValueKind.Array)
+                {
+                    visibleRolesToSave = visibleRolesProp.EnumerateArray()
+                        .Select(item => item.GetString())
+                        .Where(item => !string.IsNullOrWhiteSpace(item))
+                        .Cast<string>()
+                        .ToList();
+                }
+
                 task.UpdatedAt = DateTime.UtcNow;
                 try
                 {
                     await context.SaveChangesAsync();
+                    if (visibilityModeToSave != null || visibleRolesToSave != null)
+                    {
+                        var existingVisibility = await LoadTaskVisibilityAsync(context, task.Id);
+                        await SaveTaskVisibilityAsync(
+                            context,
+                            task.Id,
+                            visibilityModeToSave ?? existingVisibility.Mode,
+                            visibleRolesToSave ?? existingVisibility.Roles);
+                    }
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -1528,59 +1608,16 @@ namespace TaskManagement.API.Controllers
         public async Task<IActionResult> GetSubtasks(Guid projectId, Guid parentId, [FromServices] ApplicationDbContext context)
         {
             await EnsureDefaultTaskStatusesAsync(context, projectId);
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId))
+            {
+                return Unauthorized(new { statusCode = 401, message = "Vui long dang nhap." });
+            }
 
-            var subtasks = await context.WorkTasks
-                .Where(wt => wt.ProjectId == projectId && wt.ParentTaskId == parentId && !wt.IsDeleted)
-                .Include(wt => wt.TaskStatus)
-                .Include(wt => wt.AssignedUser)
-                .Include(wt => wt.TaskAssignments)
-                    .ThenInclude(ta => ta.User)
-                .OrderBy(wt => wt.SortOrder)
-                .Select(wt => new
-                {
-                    wt.Id,
-                    wt.ProjectId,
-                    wt.ParentTaskId,
-                    wt.Title,
-                    wt.Description,
-                    wt.Priority,
-                    wt.SortOrder,
-                    wt.SequenceId,
-                    wt.TaskTypeId,
-                    StatusName = wt.TaskStatus != null ? NormalizeStatusName(wt.TaskStatus.Name) : "BACKLOG",
-                    wt.AssignedUserId,
-                    AssigneeIds = wt.TaskAssignments
-                        .Where(ta => ta.Status)
-                        .Select(ta => ta.UserId)
-                        .ToList(),
-                    Assignees = wt.TaskAssignments
-                        .Where(ta => ta.Status)
-                        .Select(ta => new TaskAssigneeDto
-                        {
-                            UserId = ta.UserId,
-                            FullName = ta.User.FullName,
-                            Email = ta.User.Email,
-                            ProgressPercent = ta.ProgressPercent,
-                            ContributionWeight = ta.ContributionWeight,
-                            EstimatedHours = ta.EstimatedHours,
-                            TotalActualHours = ta.TotalActualHours,
-                            IsBlocked = ta.BlockedByUserId.HasValue,
-                            BlockedByUserId = ta.BlockedByUserId,
-                            BlockReason = ta.BlockReason
-                        })
-                        .ToList(),
-                    AssigneeName = wt.AssignedUser != null ? (wt.AssignedUser.FullName ?? wt.AssignedUser.Email) : null,
-                    AssigneeAvatar = wt.AssignedUser != null ? wt.AssignedUser.AvatarUrl : null,
-                    wt.PlannedStartDate,
-                    wt.PlannedEndDate,
-                    wt.DueDate,
-                    wt.StoryPoints,
-                    wt.TotalEstimatedHours,
-                    wt.TotalActualHours,
-                    wt.RowVersion,
-                    wt.CreatedAt,
-                    wt.UpdatedAt
-                }).ToListAsync();
+            var subtasks = (await _workTaskService.GetByProjectAsync(projectId, userId))
+                .Where(task => task.ParentTaskId == parentId)
+                .OrderBy(task => task.SortOrder)
+                .ToList();
 
             return Ok(new { statusCode = 200, data = subtasks });
         }

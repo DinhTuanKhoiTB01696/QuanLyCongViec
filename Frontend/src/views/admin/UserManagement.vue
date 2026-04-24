@@ -551,11 +551,12 @@
             </el-select>
 
             <el-select v-model="inviteForm.projectRole" class="project-role-select" popper-class="admin-project-dropdown">
-              <el-option label="Developer" value="DEV"></el-option>
-              <el-option label="Project Manager" value="PM"></el-option>
-              <el-option label="Product Owner" value="PO"></el-option>
-              <el-option label="QA" value="QA"></el-option>
-              <el-option label="Guest" value="Guest"></el-option>
+              <el-option
+                v-for="role in projectRoleOptions"
+                :key="role"
+                :label="role"
+                :value="role"
+              ></el-option>
             </el-select>
           </div>
           <p class="hint">{{ t('If a project is selected, the invited user will be added to it after accepting.', 'Nếu chọn dự án, người được mời sẽ được thêm vào sau khi chấp nhận.') }}</p>
@@ -705,7 +706,7 @@ const exportAdditionalData = ref([])
 
 const inviteForm = ref({
   projectId: null,
-  projectRole: 'DEV',
+  projectRole: 'Developer',
   message: '',
   apps: {
     goals: 'User',
@@ -798,6 +799,47 @@ const organizationHandle = computed(() => makeOrganizationHandle(organizationPro
 const activeUsersCount = computed(() => users.value.filter(user => getStatusMeta(user).value === 'active').length)
 
 const adminUsersCount = computed(() => users.value.filter(user => isOrganizationAdmin(user)).length)
+
+const projectRoleOptions = computed(() => {
+  const preferredOrder = ['PM', 'PO', 'SM', 'Project Lead', 'Admin', 'Developer', 'QA', 'Accountant']
+  const normalizedHidden = new Set([
+    'system admin',
+    'superadmin',
+    'super admin',
+    'organization admin',
+    'accessadmin',
+    'access admin',
+    'user',
+    'member',
+    'guest'
+  ])
+
+  const options = roles.value
+    .map(role => String(role?.name || '').trim())
+    .filter(Boolean)
+    .filter(role => !normalizedHidden.has(role.toLowerCase()))
+
+  const uniqueOptions = [...new Set(options)]
+
+  return uniqueOptions.sort((left, right) => {
+    const leftIndex = preferredOrder.findIndex(item => item.toLowerCase() === left.toLowerCase())
+    const rightIndex = preferredOrder.findIndex(item => item.toLowerCase() === right.toLowerCase())
+    const normalizedLeftIndex = leftIndex === -1 ? Number.MAX_SAFE_INTEGER : leftIndex
+    const normalizedRightIndex = rightIndex === -1 ? Number.MAX_SAFE_INTEGER : rightIndex
+
+    if (normalizedLeftIndex !== normalizedRightIndex) {
+      return normalizedLeftIndex - normalizedRightIndex
+    }
+
+    return left.localeCompare(right)
+  })
+})
+
+const preferredProjectRole = computed(() => {
+  if (projectRoleOptions.value.includes('Developer')) return 'Developer'
+  if (projectRoleOptions.value.includes('QA')) return 'QA'
+  return projectRoleOptions.value[0] || 'Developer'
+})
 
 const filteredUsers = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
@@ -968,7 +1010,7 @@ const getRoleKeys = (user) => {
 const getUserApps = (user) => {
   const roles = getNormalizedRoles(user)
   if (isOrganizationAdmin(user)) return ['Goals', 'Jira Administration', 'Jira', 'Projects']
-  if (roles.some(role => ['developer', 'dev', 'pm', 'po', 'qa'].includes(role))) return ['Jira', 'Projects']
+  if (roles.some(role => ['developer', 'dev', 'pm', 'po', 'qa', 'sm', 'project lead', 'accountant'].includes(role))) return ['Jira', 'Projects']
   return ['Projects']
 }
 
@@ -1058,7 +1100,7 @@ const resetInviteForm = () => {
   showPersonalMessage.value = false
   inviteForm.value = {
     projectId: null,
-    projectRole: 'DEV',
+    projectRole: preferredProjectRole.value,
     message: '',
     apps: {
       goals: 'User',
@@ -1195,7 +1237,7 @@ const resolveSystemRole = () => {
 const resolveUserSystemRole = (user) => {
   const roles = getNormalizedRoles(user)
   if (roles.some(role => role.includes('admin'))) return 'Admin'
-  if (roles.some(role => ['developer', 'dev', 'pm', 'po', 'qa'].includes(role))) return 'Developer'
+  if (roles.some(role => ['developer', 'dev', 'pm', 'po', 'qa', 'sm', 'project lead', 'accountant'].includes(role))) return 'Developer'
   return 'Member'
 }
 
@@ -1406,6 +1448,13 @@ watch(() => roleAssignment.value.userId, (userId) => {
     .map(role => role.id)
 })
 
+watch(projectRoleOptions, (options) => {
+  if (!options.length) return
+  if (!options.includes(inviteForm.value.projectRole)) {
+    inviteForm.value.projectRole = preferredProjectRole.value
+  }
+}, { immediate: true })
+
 const submitInvite = async () => {
   addDraftEmails()
 
@@ -1444,7 +1493,7 @@ const resendInvite = async (user) => {
       email: user.email,
       role: resolveUserSystemRole(user),
       projectId: null,
-      projectRole: 'DEV',
+      projectRole: preferredProjectRole.value,
       inviteMessage: ''
     })
     ElMessage.success(t(`Resent invitation to ${user.email}.`, `Đã gửi lại lời mời đến ${user.email}.`))

@@ -277,6 +277,7 @@ import { useProjectStore } from '@/store/useProjectStore'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 import { useSprintStore } from '@/store/useSprintStore'
 import { broadcastAdminRealtime } from '@/utils/adminRealtime'
+import { signalRService } from '@/api/signalrService'
 import { hasSystemAdminAccess, normalizeProjectRole } from '@/utils/permissions'
 import { getScopedCurrentProjectId } from '@/utils/projectContext'
 
@@ -578,7 +579,7 @@ const createBacklogItems = async (mode) => {
         projectStore.fetchProjectDetails(currentProjectId.value, { force: true }).catch(() => null),
         projectStore.fetchAllProjects(true).catch(() => [])
       ])
-      broadcastAdminRealtime('project-settings-updated', { projectId: currentProjectId.value, source: 'ai-repo-create' })
+      notifyProjectRealtime('project-settings-updated', { source: 'ai-repo-create' })
     }
 
     ElMessage.success(response.data?.message || `Da tao ${created.length} work items`)
@@ -640,7 +641,7 @@ const createReviewedBacklogItems = async () => {
         projectStore.fetchAllProjects(true).catch(() => []),
         sprintStore.fetchSprints(currentProjectId.value, { force: true }).catch(() => [])
       ])
-      broadcastAdminRealtime('project-settings-updated', { projectId: currentProjectId.value, source: 'ai-operational-review' })
+      notifyProjectRealtime('project-settings-updated', { source: 'ai-operational-review' })
     }
 
     ElMessage.success(response.data?.message || `Da tao ${created.length} work items`)
@@ -661,10 +662,20 @@ const parseRepo = (url) => {
   }
 }
 
+const notifyProjectRealtime = (type, payload = {}) => {
+  const projectId = currentProjectId.value
+  if (!projectId || !type) return
+
+  const message = { projectId, source: 'ai-page', ...payload }
+  broadcastAdminRealtime(type, message)
+  signalRService.sendProjectEvent(`${projectId}`, type, message)
+}
+
 onMounted(() => {
   projectStore.fetchAllProjects().catch(() => [])
   if (currentProjectId.value) {
     sprintStore.fetchSprints(currentProjectId.value).catch(() => [])
+    signalRService.startConnection(`${currentProjectId.value}`)
   }
   const saved = localStorage.getItem('sidebarPreferences')
   if (saved) {
@@ -704,6 +715,7 @@ watch(currentProjectId, (projectId) => {
   }
 
   sprintStore.fetchSprints(projectId, { force: true }).catch(() => [])
+  signalRService.startConnection(`${projectId}`)
 })
 
 watch(repoAnalysis, () => {

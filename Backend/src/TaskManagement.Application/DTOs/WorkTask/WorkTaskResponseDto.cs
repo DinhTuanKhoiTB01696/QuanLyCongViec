@@ -56,5 +56,7 @@ namespace TaskManagement.Application.DTOs.WorkTask
         public string? SequenceId { get; set; }
 
         public bool IsSubscribed { get; set; }
+        public string VisibilityMode { get; set; } = "project";
+        public List<string> VisibleToRoles { get; set; } = new();
     }
 }

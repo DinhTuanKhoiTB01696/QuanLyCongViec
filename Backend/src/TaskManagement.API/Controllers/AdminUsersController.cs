@@ -876,10 +876,21 @@ namespace TaskManagement.API.Controllers
         {
             if (string.IsNullOrWhiteSpace(role) || role.Equals("None", StringComparison.OrdinalIgnoreCase))
             {
-                return "DEV";
+                return "Developer";
             }
 
-            return role.Trim();
+            return role.Trim() switch
+            {
+                "DEV" => "Developer",
+                "dev" => "Developer",
+                "PROJECT_MANAGER" => "PM",
+                "project_manager" => "PM",
+                "PROJECT_LEAD" => "Project Lead",
+                "project_lead" => "Project Lead",
+                "SCRUM_MASTER" => "SM",
+                "scrum_master" => "SM",
+                _ => role.Trim()
+            };
         }
 
         private static string BuildNameFromEmail(string email)

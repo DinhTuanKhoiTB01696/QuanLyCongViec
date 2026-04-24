@@ -35,5 +35,7 @@ namespace TaskManagement.Application.DTOs.WorkTask
         public Guid? ModuleId { get; set; }
         public List<Guid>? LabelIds { get; set; }
         public double TotalEstimatedHours { get; set; }
+        public string? VisibilityMode { get; set; }
+        public List<string>? VisibleToRoles { get; set; }
     }
 }
