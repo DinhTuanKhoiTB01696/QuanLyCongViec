@@ -146,7 +146,14 @@ const avatarColor = computed(() => {
 const fetchProfile = async () => {
   try {
     const response = await axiosClient.get('/users/me')
-    profileData.value = response.data?.data
+    const storedUser = getStoredUser()
+    const profile = response.data?.data || {}
+
+    profileData.value = {
+      ...storedUser,
+      ...profile,
+      systemRoles: Array.isArray(profile.systemRoles) ? profile.systemRoles : storedUser.systemRoles
+    }
   } catch (error) {
     console.error('Failed to fetch user profile in dropdown', error)
   }
