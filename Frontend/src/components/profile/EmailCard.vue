@@ -27,7 +27,7 @@
             {{ t('Used for account security, log in, and billing.', 'Sử dụng để bảo mật tài khoản, đăng nhập và thanh toán.') }}
           </p>
           <p class="email-added-date" v-else>
-            {{ t('Added on', 'Đã thêm ngày') }} 12/04/2026
+            {{ t('Added on', 'Đã thêm ngày') }} {{ formatDate(item.addedAt) }}
           </p>
         </div>
 
@@ -104,6 +104,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useLocale } from '@/composables/useLocale'
 import { ElMessage } from 'element-plus'
+import axiosClient from '@/api/axiosClient'
 
 const { t } = useLocale()
 
@@ -117,55 +118,24 @@ const props = defineProps({
 const emails = ref([])
 const showAddDialog = ref(false)
 const newEmailInput = ref('')
+const isLoading = ref(false)
 
-const savedEmailsKey = computed(() => `profile_emails_${props.profileData.email || 'guest'}`)
-
-// Load emails
-const loadEmails = () => {
-  const local = localStorage.getItem(savedEmailsKey.value)
-  if (local) {
-    try {
-      emails.value = JSON.parse(local)
-      // Ensure props email is in the list
-      const hasMain = emails.value.some(e => e.email.toLowerCase() === props.profileData.email.toLowerCase())
-      if (!hasMain && props.profileData.email) {
-        emails.value.unshift({
-          email: props.profileData.email,
-          isPrimary: true,
-          isVerified: true
-        })
-      }
-    } catch (e) {
-      initDefaults()
+const loadEmails = async () => {
+  if (isLoading.value) return
+  isLoading.value = true
+  try {
+    const res = await axiosClient.get('/users/emails')
+    if (res.data && res.data.statusCode === 200) {
+      emails.value = res.data.data
+    } else if (res.data && res.data.data) {
+      emails.value = res.data.data
     }
-  } else {
-    initDefaults()
+  } catch (error) {
+    console.error('Failed to load emails:', error)
+    ElMessage.error(t('Failed to load email addresses.', 'Không thể tải danh sách email.'))
+  } finally {
+    isLoading.value = false
   }
-}
-
-const initDefaults = () => {
-  emails.value = [
-    {
-      email: props.profileData.email || 'user@example.com',
-      isPrimary: true,
-      isVerified: true
-    },
-    {
-      email: 'nguyen.kiet.dev@gmail.com',
-      isPrimary: false,
-      isVerified: true
-    },
-    {
-      email: 'secondary.kiet@work.com',
-      isPrimary: false,
-      isVerified: false
-    }
-  ]
-  saveToLocal()
-}
-
-const saveToLocal = () => {
-  localStorage.setItem(savedEmailsKey.value, JSON.stringify(emails.value))
 }
 
 watch(() => props.profileData.email, (newVal) => {
@@ -180,48 +150,91 @@ onMounted(() => {
   }
 })
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  try {
+    return new Date(dateStr).toLocaleDateString()
+  } catch (e) {
+    return dateStr
+  }
+}
+
 const isValidEmail = computed(() => {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   return re.test(newEmailInput.value)
 })
 
-const handleAddEmail = () => {
+const handleAddEmail = async () => {
   if (!isValidEmail.value) return
-  const duplicate = emails.value.some(e => e.email.toLowerCase() === newEmailInput.value.toLowerCase().trim())
+  const trimmed = newEmailInput.value.trim()
+  const duplicate = emails.value.some(e => e.email.toLowerCase() === trimmed.toLowerCase())
   if (duplicate) {
     ElMessage.warning(t('This email is already added.', 'Email này đã được thêm.'))
     return
   }
 
-  emails.value.push({
-    email: newEmailInput.value.trim(),
-    isPrimary: false,
-    isVerified: false
-  })
-  saveToLocal()
-  ElMessage.success(t('Email address added. Please check inbox to verify.', 'Đã thêm địa chỉ email. Vui lòng kiểm tra hộp thư để xác minh.'))
-  newEmailInput.value = ''
-  showAddDialog.value = false
+  try {
+    const res = await axiosClient.post('/users/emails', { email: trimmed })
+    if (res.data && res.data.data) {
+      emails.value = res.data.data
+    } else {
+      await loadEmails()
+    }
+    ElMessage.success(t('Email address added. Please verify ownership.', 'Đã thêm địa chỉ email. Vui lòng xác thực quyền sở hữu.'))
+    newEmailInput.value = ''
+    showAddDialog.value = false
+  } catch (error) {
+    const msg = error.response?.data?.message || t('Failed to add email address.', 'Không thể thêm địa chỉ email.')
+    ElMessage.error(msg)
+  }
 }
 
-const makePrimary = (index) => {
-  emails.value.forEach((e, i) => {
-    e.isPrimary = (i === index)
-  })
-  saveToLocal()
-  ElMessage.success(t('Primary email updated successfully.', 'Đã cập nhật email chính thành công.'))
+const makePrimary = async (index) => {
+  const emailItem = emails.value[index]
+  try {
+    const res = await axiosClient.put('/users/emails/primary', { email: emailItem.email })
+    if (res.data && res.data.data) {
+      emails.value = res.data.data
+    } else {
+      await loadEmails()
+    }
+    ElMessage.success(t('Primary email updated successfully.', 'Đã cập nhật email chính thành công.'))
+  } catch (error) {
+    const msg = error.response?.data?.message || t('Failed to set primary email.', 'Không thể đặt email chính.')
+    ElMessage.error(msg)
+  }
 }
 
-const verifyEmail = (index) => {
-  emails.value[index].isVerified = true
-  saveToLocal()
-  ElMessage.success(t('Email verified successfully (mock).', 'Đã xác minh email thành công (mock).'))
+const verifyEmail = async (index) => {
+  const emailItem = emails.value[index]
+  try {
+    const res = await axiosClient.put('/users/emails/verify', { email: emailItem.email })
+    if (res.data && res.data.data) {
+      emails.value = res.data.data
+    } else {
+      await loadEmails()
+    }
+    ElMessage.success(t('Email verified successfully.', 'Đã xác minh email thành công.'))
+  } catch (error) {
+    const msg = error.response?.data?.message || t('Failed to verify email.', 'Không thể xác minh email.')
+    ElMessage.error(msg)
+  }
 }
 
-const removeEmail = (index) => {
-  emails.value.splice(index, 1)
-  saveToLocal()
-  ElMessage.success(t('Email address removed.', 'Đã xóa địa chỉ email.'))
+const removeEmail = async (index) => {
+  const emailItem = emails.value[index]
+  try {
+    const res = await axiosClient.delete(`/users/emails/${encodeURIComponent(emailItem.email)}`)
+    if (res.data && res.data.data) {
+      emails.value = res.data.data
+    } else {
+      await loadEmails()
+    }
+    ElMessage.success(t('Email address removed.', 'Đã xóa địa chỉ email.'))
+  } catch (error) {
+    const msg = error.response?.data?.message || t('Failed to remove email.', 'Không thể xóa email.')
+    ElMessage.error(msg)
+  }
 }
 </script>
 

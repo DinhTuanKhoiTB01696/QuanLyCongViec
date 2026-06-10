@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Text.Json;
 using TaskManagement.Application.DTOs.Auth;
 using TaskManagement.Application.Interfaces;
+using TaskManagement.Domain.Entities;
 using TaskManagement.Infrastructure.Data;
 
 namespace TaskManagement.API.Controllers
@@ -110,6 +112,7 @@ namespace TaskManagement.API.Controllers
                 };
                 Response.Cookies.Append("refreshToken", result.refreshToken!, cookieOptions);
 
+                await RecordLoginActivityAsync(result.response!.Id, "Password");
                 return Ok(new { statusCode = 200, message = "Success", data = result.response });
             }
             catch (UnauthorizedAccessException ex)
@@ -249,6 +252,7 @@ namespace TaskManagement.API.Controllers
                 };
                 Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
 
+                await RecordLoginActivityAsync(response.Id, "Password+2FA");
                 return Ok(new { statusCode = 200, message = "Success", data = response });
             }
             catch (UnauthorizedAccessException ex)
@@ -273,6 +277,7 @@ namespace TaskManagement.API.Controllers
                 };
                 Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
 
+                await RecordLoginActivityAsync(response.Id, "Google SSO");
                 return Ok(new { statusCode = 200, message = "Success", data = response });
             }
             catch (Exception ex)
@@ -298,6 +303,7 @@ namespace TaskManagement.API.Controllers
                 };
                 Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
 
+                await RecordLoginActivityAsync(response.Id, "GitHub SSO");
                 return Ok(new { statusCode = 200, message = "Success", data = response });
             }
             catch (Exception ex)
@@ -476,6 +482,9 @@ namespace TaskManagement.API.Controllers
                     UserId = user.Id,
                     Token = refreshToken,
                     DeviceId = "DevMode",
+                    UserAgent = Request.Headers["User-Agent"].FirstOrDefault(),
+                    IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    CreatedAt = DateTime.UtcNow,
                     ExpiryTime = DateTime.UtcNow.AddDays(7),
                     IsRevoked = false
                 });
@@ -528,6 +537,51 @@ namespace TaskManagement.API.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Log login activity to SystemAuditLogs and update the latest RefreshToken with session metadata.
+        /// </summary>
+        private async Task RecordLoginActivityAsync(Guid userId, string loginMethod)
+        {
+            try
+            {
+                var userAgent = Request.Headers["User-Agent"].FirstOrDefault() ?? "Unknown";
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+
+                // Update the most recent refresh token for this user with session metadata
+                var latestToken = await _context.RefreshTokens
+                    .Where(rt => rt.UserId == userId && !rt.IsRevoked)
+                    .OrderByDescending(rt => rt.ExpiryTime)
+                    .FirstOrDefaultAsync();
+
+                if (latestToken != null)
+                {
+                    latestToken.UserAgent = userAgent;
+                    latestToken.IpAddress = ipAddress;
+                    latestToken.CreatedAt = DateTime.UtcNow;
+                }
+
+                // Write a login audit log entry
+                _context.SystemAuditLogs.Add(new SystemAuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    Action = "Login",
+                    Resource = "Auth",
+                    Status = "Success",
+                    IPAddress = ipAddress,
+                    Details = JsonSerializer.Serialize(new { method = loginMethod, userAgent }),
+                    CreatedAt = DateTime.UtcNow
+                });
+
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Fail silently - don't break the login flow for audit logging
+                Console.WriteLine($"Failed to record login activity: {ex.Message}");
             }
         }
     }

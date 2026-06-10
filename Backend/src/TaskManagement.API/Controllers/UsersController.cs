@@ -529,5 +529,340 @@ namespace TaskManagement.API.Controllers
 
             return Ok(new { statusCode = 200, message = "Cập nhật ảnh bìa thành công.", data = new { coverUrl = user.CoverUrl } });
         }
+
+        public class EmailItem
+        {
+            public string Email { get; set; } = string.Empty;
+            public bool IsPrimary { get; set; }
+            public bool IsVerified { get; set; }
+            public DateTime AddedAt { get; set; } = DateTime.UtcNow;
+        }
+
+        /// <summary>
+        /// GET /api/users/emails — Retrieve all email addresses associated with the current user
+        /// </summary>
+        [HttpGet("emails")]
+        public async Task<IActionResult> GetEmails()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "Không có quyền truy cập." });
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return NotFound(new { statusCode = 404, message = "Không tìm thấy người dùng." });
+
+            var settingKey = $"UserEmails_{userId}";
+            var setting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.Key == settingKey);
+
+            List<EmailItem> emailsList;
+            if (setting == null || string.IsNullOrEmpty(setting.Value))
+            {
+                emailsList = new List<EmailItem>
+                {
+                    new EmailItem
+                    {
+                        Email = user.Email,
+                        IsPrimary = true,
+                        IsVerified = true,
+                        AddedAt = DateTime.UtcNow
+                    }
+                };
+                // Store in DB
+                _context.SystemSettings.Add(new SystemSetting
+                {
+                    Id = Guid.NewGuid(),
+                    SettingGroup = "Profile",
+                    Key = settingKey,
+                    Value = JsonSerializer.Serialize(emailsList),
+                    LastModifiedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
+                emailsList = JsonSerializer.Deserialize<List<EmailItem>>(setting.Value) ?? new List<EmailItem>();
+                // Make sure primary email is synced with user's main email if missing
+                if (!emailsList.Any(e => e.Email.Equals(user.Email, StringComparison.OrdinalIgnoreCase)))
+                {
+                    emailsList.Insert(0, new EmailItem
+                    {
+                        Email = user.Email,
+                        IsPrimary = true,
+                        IsVerified = true,
+                        AddedAt = DateTime.UtcNow
+                    });
+                    setting.Value = JsonSerializer.Serialize(emailsList);
+                    setting.LastModifiedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            return Ok(new { statusCode = 200, data = emailsList });
+        }
+
+        public class AddEmailRequest
+        {
+            public string Email { get; set; } = string.Empty;
+        }
+
+        /// <summary>
+        /// POST /api/users/emails — Add a new email address
+        /// </summary>
+        [HttpPost("emails")]
+        public async Task<IActionResult> AddEmail([FromBody] AddEmailRequest request)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "Không có quyền truy cập." });
+
+            if (string.IsNullOrWhiteSpace(request.Email))
+                return BadRequest(new { statusCode = 400, message = "Email không được để trống." });
+
+            var settingKey = $"UserEmails_{userId}";
+            var setting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.Key == settingKey);
+
+            List<EmailItem> emailsList = new List<EmailItem>();
+            if (setting != null && !string.IsNullOrEmpty(setting.Value))
+            {
+                emailsList = JsonSerializer.Deserialize<List<EmailItem>>(setting.Value) ?? new List<EmailItem>();
+            }
+
+            if (emailsList.Any(e => e.Email.Equals(request.Email.Trim(), StringComparison.OrdinalIgnoreCase)))
+                return BadRequest(new { statusCode = 400, message = "Email này đã được thêm vào tài khoản của bạn." });
+
+            emailsList.Add(new EmailItem
+            {
+                Email = request.Email.Trim(),
+                IsPrimary = false,
+                IsVerified = false,
+                AddedAt = DateTime.UtcNow
+            });
+
+            if (setting == null)
+            {
+                _context.SystemSettings.Add(new SystemSetting
+                {
+                    Id = Guid.NewGuid(),
+                    SettingGroup = "Profile",
+                    Key = settingKey,
+                    Value = JsonSerializer.Serialize(emailsList),
+                    LastModifiedAt = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                setting.Value = JsonSerializer.Serialize(emailsList);
+                setting.LastModifiedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { statusCode = 200, message = "Thêm email thành công.", data = emailsList });
+        }
+
+        /// <summary>
+        /// PUT /api/users/emails/primary — Set primary email address
+        /// </summary>
+        [HttpPut("emails/primary")]
+        public async Task<IActionResult> MakeEmailPrimary([FromBody] AddEmailRequest request)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "Không có quyền truy cập." });
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return NotFound();
+
+            var settingKey = $"UserEmails_{userId}";
+            var setting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.Key == settingKey);
+            if (setting == null)
+                return BadRequest(new { statusCode = 400, message = "Không tìm thấy danh sách email." });
+
+            var emailsList = JsonSerializer.Deserialize<List<EmailItem>>(setting.Value) ?? new List<EmailItem>();
+            var target = emailsList.FirstOrDefault(e => e.Email.Equals(request.Email.Trim(), StringComparison.OrdinalIgnoreCase));
+
+            if (target == null)
+                return NotFound(new { statusCode = 404, message = "Email không có trong danh sách." });
+
+            if (!target.IsVerified)
+                return BadRequest(new { statusCode = 400, message = "Chỉ có thể đặt email đã xác minh làm email chính." });
+
+            foreach (var emailItem in emailsList)
+            {
+                emailItem.IsPrimary = (emailItem.Email.Equals(request.Email.Trim(), StringComparison.OrdinalIgnoreCase));
+            }
+
+            // Sync user's primary email field in core user table
+            user.Email = target.Email;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            setting.Value = JsonSerializer.Serialize(emailsList);
+            setting.LastModifiedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "Đã thay đổi email chính.", data = emailsList });
+        }
+
+        /// <summary>
+        /// PUT /api/users/emails/verify — Verify email address (simplified flow)
+        /// </summary>
+        [HttpPut("emails/verify")]
+        public async Task<IActionResult> VerifyEmail([FromBody] AddEmailRequest request)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "Không có quyền truy cập." });
+
+            var settingKey = $"UserEmails_{userId}";
+            var setting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.Key == settingKey);
+            if (setting == null)
+                return BadRequest(new { statusCode = 400, message = "Không tìm thấy danh sách email." });
+
+            var emailsList = JsonSerializer.Deserialize<List<EmailItem>>(setting.Value) ?? new List<EmailItem>();
+            var target = emailsList.FirstOrDefault(e => e.Email.Equals(request.Email.Trim(), StringComparison.OrdinalIgnoreCase));
+
+            if (target == null)
+                return NotFound(new { statusCode = 404, message = "Email không có trong danh sách." });
+
+            target.IsVerified = true;
+            setting.Value = JsonSerializer.Serialize(emailsList);
+            setting.LastModifiedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "Xác minh email thành công.", data = emailsList });
+        }
+
+        /// <summary>
+        /// DELETE /api/users/emails/{email} — Remove email address
+        /// </summary>
+        [HttpDelete("emails/{email}")]
+        public async Task<IActionResult> RemoveEmail(string email)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "Không có quyền truy cập." });
+
+            var settingKey = $"UserEmails_{userId}";
+            var setting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.Key == settingKey);
+            if (setting == null)
+                return BadRequest(new { statusCode = 400, message = "Không tìm thấy danh sách email." });
+
+            var emailsList = JsonSerializer.Deserialize<List<EmailItem>>(setting.Value) ?? new List<EmailItem>();
+            var target = emailsList.FirstOrDefault(e => e.Email.Equals(email.Trim(), StringComparison.OrdinalIgnoreCase));
+
+            if (target == null)
+                return NotFound(new { statusCode = 404, message = "Email không có trong danh sách." });
+
+            if (target.IsPrimary)
+                return BadRequest(new { statusCode = 400, message = "Không thể xóa email chính." });
+
+            emailsList.Remove(target);
+            setting.Value = JsonSerializer.Serialize(emailsList);
+            setting.LastModifiedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "Đã xóa email.", data = emailsList });
+        }
+
+        /// <summary>
+        /// GET /api/users/sessions — Retrieve active login sessions for the current user
+        /// </summary>
+        [HttpGet("sessions")]
+        public async Task<IActionResult> GetSessions()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "Không có quyền truy cập." });
+
+            var currentRefreshToken = Request.Cookies["refreshToken"];
+
+            var sessions = await _context.RefreshTokens
+                .Where(rt => rt.UserId == userId && !rt.IsRevoked && rt.ExpiryTime > DateTime.UtcNow)
+                .OrderByDescending(rt => rt.CreatedAt)
+                .Select(rt => new
+                {
+                    id = rt.Id,
+                    token = rt.Token, // to match current token
+                    device = rt.UserAgent, // raw UserAgent first, parsed on client
+                    ip = rt.IpAddress,
+                    createdAt = rt.CreatedAt,
+                    expiryTime = rt.ExpiryTime,
+                    isCurrent = rt.Token == currentRefreshToken
+                })
+                .ToListAsync();
+
+            return Ok(new { statusCode = 200, data = sessions });
+        }
+
+        /// <summary>
+        /// DELETE /api/users/sessions/{tokenId} — Terminate a specific session
+        /// </summary>
+        [HttpDelete("sessions/{tokenId}")]
+        public async Task<IActionResult> RevokeSession(Guid tokenId)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "Không có quyền truy cập." });
+
+            var session = await _context.RefreshTokens.FirstOrDefaultAsync(rt => rt.Id == tokenId && rt.UserId == userId);
+            if (session == null)
+                return NotFound(new { statusCode = 404, message = "Không tìm thấy phiên đăng nhập." });
+
+            session.IsRevoked = true;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { statusCode = 200, message = "Đã thu hồi phiên đăng nhập thành công." });
+        }
+
+        /// <summary>
+        /// DELETE /api/users/sessions/others — Terminate all sessions except the current one
+        /// </summary>
+        [HttpDelete("sessions/others")]
+        public async Task<IActionResult> RevokeOtherSessions()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "Không có quyền truy cập." });
+
+            var currentRefreshToken = Request.Cookies["refreshToken"];
+
+            var otherSessions = await _context.RefreshTokens
+                .Where(rt => rt.UserId == userId && rt.Token != currentRefreshToken && !rt.IsRevoked)
+                .ToListAsync();
+
+            foreach (var session in otherSessions)
+            {
+                session.IsRevoked = true;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { statusCode = 200, message = "Đã đăng xuất khỏi các thiết bị khác thành công." });
+        }
+
+        /// <summary>
+        /// GET /api/users/login-activity — Get recent login activities from SystemAuditLogs
+        /// </summary>
+        [HttpGet("login-activity")]
+        public async Task<IActionResult> GetLoginActivity()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "Không có quyền truy cập." });
+
+            var logs = await _context.SystemAuditLogs
+                .Where(l => l.UserId == userId && l.Action == "Login")
+                .OrderByDescending(l => l.CreatedAt)
+                .Take(10)
+                .Select(l => new
+                {
+                    id = l.Id,
+                    createdAt = l.CreatedAt,
+                    ipAddress = l.IPAddress,
+                    details = l.Details,
+                    status = l.Status
+                })
+                .ToListAsync();
+
+            return Ok(new { statusCode = 200, data = logs });
+        }
     }
 }

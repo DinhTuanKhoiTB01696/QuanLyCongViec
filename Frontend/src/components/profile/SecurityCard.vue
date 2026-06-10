@@ -333,9 +333,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useLocale } from '@/composables/useLocale'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import axiosClient from '@/api/axiosClient'
 
 const { t } = useLocale()
 
@@ -422,65 +423,106 @@ const emit = defineEmits([
   'check-password-strength'
 ])
 
-const mockActivities = ref([
-  {
-    time: '2 mins ago',
-    device: 'Chrome on Windows 11',
-    icon: 'fa-brands fa-chrome',
-    ip: '113.190.154.21',
-    location: 'Hanoi, Vietnam',
-    status: 'Current'
-  },
-  {
-    time: '2 hours ago',
-    device: 'Safari on iPhone 15',
-    icon: 'fa-brands fa-safari',
-    ip: '27.72.63.109',
-    location: 'Danang, Vietnam',
-    status: 'Success'
-  },
-  {
-    time: '2 days ago',
-    device: 'Firefox on macOS Sonoma',
-    icon: 'fa-brands fa-firefox',
-    ip: '14.226.8.54',
-    location: 'Ho Chi Minh, Vietnam',
-    status: 'Success'
-  }
-])
+const mockActivities = ref([])
+const mockSessions = ref([])
+const isLoading = ref(false)
 
-const mockSessions = ref([
-  {
-    id: 1,
-    device: 'Windows PC',
-    icon: 'fa-solid fa-desktop',
-    browser: 'Chrome 125.0',
-    ip: '113.190.154.21',
-    location: 'Hanoi, Vietnam',
-    time: t('Active now', 'Đang hoạt động'),
-    isCurrent: true
-  },
-  {
-    id: 2,
-    device: 'iPhone 15 Pro',
-    icon: 'fa-solid fa-mobile-screen-button',
-    browser: 'Safari Mobile 17.2',
-    ip: '27.72.63.109',
-    location: 'Danang, Vietnam',
-    time: '2 hours ago',
-    isCurrent: false
-  },
-  {
-    id: 3,
-    device: 'MacBook Air M2',
-    icon: 'fa-solid fa-laptop',
-    browser: 'Firefox 126.0',
-    ip: '14.226.8.54',
-    location: 'Ho Chi Minh, Vietnam',
-    time: '2 days ago',
-    isCurrent: false
+const parseUserAgent = (uaString) => {
+  if (!uaString) return { device: 'Unknown Device', browser: 'Unknown Browser', icon: 'fa-solid fa-desktop' }
+  const ua = uaString.toLowerCase()
+  
+  let device = 'Desktop PC'
+  let icon = 'fa-solid fa-desktop'
+  if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('android') || ua.includes('mobile')) {
+    device = ua.includes('iphone') ? 'iPhone' : ua.includes('ipad') ? 'iPad' : ua.includes('android') ? 'Android Device' : 'Mobile Device'
+    icon = 'fa-solid fa-mobile-screen-button'
+  } else if (ua.includes('macintosh') || ua.includes('mac os')) {
+    device = 'MacBook / Mac'
+    icon = 'fa-solid fa-laptop'
+  } else if (ua.includes('windows')) {
+    device = 'Windows PC'
+    icon = 'fa-solid fa-desktop'
+  } else if (ua.includes('linux')) {
+    device = 'Linux PC'
+    icon = 'fa-solid fa-desktop'
   }
-])
+
+  let browser = 'Unknown Browser'
+  if (ua.includes('firefox')) browser = 'Firefox'
+  else if (ua.includes('chrome') && !ua.includes('chromium')) browser = 'Chrome'
+  else if (ua.includes('safari') && !ua.includes('chrome')) browser = 'Safari'
+  else if (ua.includes('edge')) browser = 'Edge'
+  else if (ua.includes('opera')) browser = 'Opera'
+
+  return { device, browser, icon }
+}
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  try {
+    return new Date(dateStr).toLocaleString()
+  } catch (e) {
+    return dateStr
+  }
+}
+
+const loadSecurityData = async () => {
+  if (isLoading.value) return
+  isLoading.value = true
+  try {
+    const [sessionsRes, activitiesRes] = await Promise.all([
+      axiosClient.get('/users/sessions'),
+      axiosClient.get('/users/login-activity')
+    ])
+
+    if (sessionsRes.data && sessionsRes.data.data) {
+      mockSessions.value = sessionsRes.data.data.map(session => {
+        const parsed = parseUserAgent(session.device)
+        return {
+          id: session.id,
+          device: parsed.device,
+          icon: parsed.icon,
+          browser: parsed.browser,
+          ip: session.ip || 'Unknown',
+          location: 'Vietnam',
+          time: session.isCurrent ? t('Active now', 'Đang hoạt động') : formatDate(session.createdAt),
+          isCurrent: session.isCurrent
+        }
+      })
+    }
+
+    if (activitiesRes.data && activitiesRes.data.data) {
+      mockActivities.value = activitiesRes.data.data.map(act => {
+        let parsedUA = { device: 'Unknown Device', browser: 'Unknown Browser', icon: 'fa-solid fa-desktop' }
+        try {
+          if (act.details) {
+            const detailsObj = typeof act.details === 'string' ? JSON.parse(act.details) : act.details
+            parsedUA = parseUserAgent(detailsObj.userAgent)
+          }
+        } catch (e) {
+          console.error(e)
+        }
+
+        return {
+          time: formatDate(act.createdAt),
+          device: `${parsedUA.browser} on ${parsedUA.device}`,
+          icon: parsedUA.icon,
+          ip: act.ipAddress || 'Unknown',
+          location: 'Vietnam',
+          status: act.status
+        }
+      })
+    }
+  } catch (error) {
+    console.error('Failed to load security data:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  loadSecurityData()
+})
 
 const addPasskey = () => {
   ElMessage.success(t('Passkey enrollment triggered (mocked).', 'Yêu cầu đăng ký Passkey đã được kích hoạt (mock).'))
@@ -495,9 +537,14 @@ const toggleMfa = (val) => {
   emit('toggle-2fa', val)
 }
 
-const logoutSession = (id) => {
-  mockSessions.value = mockSessions.value.filter(s => s.id !== id)
-  ElMessage.success(t('Session terminated.', 'Đã đăng xuất phiên đăng nhập.'))
+const logoutSession = async (id) => {
+  try {
+    await axiosClient.delete(`/users/sessions/${id}`)
+    mockSessions.value = mockSessions.value.filter(s => s.id !== id)
+    ElMessage.success(t('Session terminated.', 'Đã đăng xuất phiên đăng nhập.'))
+  } catch (error) {
+    ElMessage.error(t('Failed to terminate session.', 'Không thể đăng xuất phiên đăng nhập.'))
+  }
 }
 
 const logoutAllOthers = () => {
@@ -509,9 +556,14 @@ const logoutAllOthers = () => {
       cancelButtonText: t('Cancel', 'Hủy'),
       type: 'warning'
     }
-  ).then(() => {
-    mockSessions.value = mockSessions.value.filter(s => s.isCurrent)
-    ElMessage.success(t('Successfully logged out of all other devices.', 'Đã đăng xuất thành công khỏi tất cả các thiết bị khác.'))
+  ).then(async () => {
+    try {
+      await axiosClient.delete('/users/sessions/others')
+      mockSessions.value = mockSessions.value.filter(s => s.isCurrent)
+      ElMessage.success(t('Successfully logged out of all other devices.', 'Đã đăng xuất thành công khỏi tất cả các thiết bị khác.'))
+    } catch (error) {
+      ElMessage.error(t('Failed to log out of other devices.', 'Không thể đăng xuất khỏi các thiết bị khác.'))
+    }
   }).catch(() => {})
 }
 </script>
