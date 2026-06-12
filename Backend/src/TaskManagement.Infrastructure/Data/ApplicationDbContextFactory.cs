@@ -10,8 +10,7 @@ namespace TaskManagement.Infrastructure.Data
         public ApplicationDbContext CreateDbContext(string[] args)
         {
             var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-            // Use dummy connection string for migration generation since it just needs the provider
-            optionsBuilder.UseSqlServer("Server=DESKTOP-V2KP2ES;Database=TaskManagementDB;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True");
+            optionsBuilder.UseSqlServer("Server=Quan;Database=TaskManagementDB;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True");
 
             return new ApplicationDbContext(optionsBuilder.Options, null, null);
         }

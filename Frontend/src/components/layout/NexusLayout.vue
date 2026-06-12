@@ -14,7 +14,7 @@
         @click="sidebarVisible = false"
       ></div>
 
-      <NexusSidebar :isVisible="sidebarVisible" @close-mobile="sidebarVisible = false" />
+      <NexusSidebar v-if="!hideSidebar" :isVisible="sidebarVisible" @close-mobile="sidebarVisible = false" />
 
       <main class="content-area">
         <div class="content-wrapper">
@@ -79,13 +79,20 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, defineProps } from 'vue'
 import { ElMessage } from 'element-plus'
 import axiosClient from '@/api/axiosClient'
 import CreateProjectModal from '../CreateProjectModal.vue'
 import CreateSpaceModal from '../CreateSpaceModal.vue'
 import NexusTopbar from './NexusTopbar.vue'
 import NexusSidebar from './NexusSidebar.vue'
+
+const props = defineProps({
+  hideSidebar: {
+    type: Boolean,
+    default: false
+  }
+})
 
 const sidebarVisible = ref(window.innerWidth > 1024)
 const aiVisible = ref(false)

@@ -716,6 +716,79 @@ namespace TaskManagement.API.Controllers
             }
         }
 
+        [HttpGet("deleted")]
+        public async Task<IActionResult> GetDeleted()
+        {
+            try
+            {
+                var projects = await _projectService.GetDeletedAsync();
+                var favoriteMap = await _context.Projects
+                    .IgnoreQueryFilters()
+                    .AsNoTracking()
+                    .Where(project => projects.Select(p => p.Id).Contains(project.Id))
+                    .ToDictionaryAsync(project => project.Id, project => ReadFavoriteFlag(project.NavigationConfig));
+
+                return Ok(ApiResponse<object>.Success(projects.Select(project => new
+                {
+                    project.Id,
+                    project.Name,
+                    project.Key,
+                    project.Description,
+                    project.StartDate,
+                    project.EndDate,
+                    project.Status,
+                    project.CreatorName,
+                    project.DepartmentId,
+                    project.DepartmentName,
+                    project.ActiveMemberCount,
+                    project.NetworkType,
+                    project.Cover,
+                    project.Icon,
+                    project.LeadUserId,
+                    project.LeadName,
+                    project.CreatedAt,
+                    project.UpdatedAt,
+                    project.IsMember,
+                    project.MyRole,
+                    IsFavorite = favoriteMap.TryGetValue(project.Id, out var favorite) && favorite
+                }).ToList()));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { statusCode = 500, message = ex.Message });
+            }
+        }
+
+        [HttpPut("{projectId:guid}/restore-deleted")]
+        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,SM,Admin")]
+        public async Task<IActionResult> RestoreDeleted(Guid projectId)
+        {
+            try
+            {
+                await _projectService.RestoreDeletedAsync(projectId);
+                return Ok(ApiResponse<object>.Success(null!, "Dự án đã được khôi phục."));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Error(ex.Message));
+            }
+        }
+
+        [HttpDelete("{projectId:guid}/permanent")]
+        [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,SM,Admin")]
+        public async Task<IActionResult> PermanentDelete(Guid projectId)
+        {
+            try
+            {
+                await _projectService.PermanentDeleteAsync(projectId);
+                return Ok(ApiResponse<object>.Success(null!, "Dự án đã được xóa vĩnh viễn."));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Error(ex.Message));
+            }
+        }
+
         /// <summary>
         /// 5.1 Soft Delete
         /// </summary>

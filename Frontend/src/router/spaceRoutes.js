@@ -5,6 +5,25 @@ export default [
     component: () => import('../views/ManageSpaces.vue')
   },
   {
+    path: '/spaces/trash',
+    name: 'GlobalTrashView',
+    component: () => import('../views/GlobalTrashView.vue')
+  },
+  {
+    path: '/spaces/categories',
+    name: 'SpaceCategories',
+    component: () => import('../views/SpaceCategories.vue')
+  },
+  {
+    path: '/spaces/archive',
+    name: 'GlobalArchivesView',
+    component: () => import('../views/GlobalArchivesView.vue')
+  },
+  {
+    path: '/archives',
+    redirect: '/spaces/archive'
+  },
+  {
     path: '/space/:id',
     name: 'SpaceSummaryRedirect',
     redirect: to => {

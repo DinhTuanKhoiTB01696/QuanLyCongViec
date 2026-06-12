@@ -1,12 +1,12 @@
 <template>
-  <NexusLayout>
-    <div class="manage-spaces-page">
+  <AdminLayout>
+    <div class="manage-spaces-page" style="padding: 0;">
       <!-- Plane Style Header -->
-      <header class="spaces-header">
-        <div class="sh-left">
-          <i class="fa-solid fa-briefcase"></i>
-          <h1>Projects</h1>
-        </div>
+          <header class="spaces-header">
+            <div class="sh-left">
+              <i class="fa-solid fa-briefcase"></i>
+              <h1>Projects</h1>
+            </div>
         
         <div class="sh-right">
           <div class="search-box">
@@ -166,22 +166,26 @@
       
       <CreateSpaceModal v-model:visible="isCreateModalVisible" @created="fetchSpaces" />
     </div>
-  </NexusLayout>
+  </AdminLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+import AdminLayout from '@/components/layout/AdminLayout.vue'
 import CreateSpaceModal from '@/components/CreateSpaceModal.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useProjectStore } from '@/store/useProjectStore'
 import { canAccessProjectSettings, getProjectSettingsDeniedMessage, getStoredUser } from '@/utils/permissions'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
-import { getProjectSettingsWindowName, openNamedAppWindow } from '@/utils/windowTabs'
+import { getProjectSettingsWindowName, openNamedAppWindow, PROJECT_ADMIN_WINDOW_NAME } from '@/utils/windowTabs'
 
 const router = useRouter()
+const handleSwitchSettings = (path) => {
+  router.push(path)
+}
+
 const projectStore = useProjectStore()
 const loading = ref(false)
 const spaces = ref([])
@@ -340,16 +344,115 @@ const filterLabel = computed(() => ({
 </script>
 
 <style scoped>
+.manage-spaces-layout {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+/* Jira Settings Sidebar */
+.jira-admin-sidebar {
+  width: 240px;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-bg);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.sidebar-header {
+  margin-bottom: 24px;
+}
+
+.back-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.back-link:hover {
+  color: var(--color-text-primary);
+}
+
+.sidebar-section {
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.section-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+.section-item.active {
+  background: #18181b;
+  border: 1px solid var(--color-border);
+}
+
+.sidebar-menu {
+  list-style: none;
+  padding: 0 0 0 12px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-left: 1px solid var(--color-border);
+}
+
+.menu-item {
+  display: block;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.menu-item:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+.menu-item.active {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+/* Right Content */
+.spaces-main-content {
+  flex: 1;
+  overflow-y: auto;
+  min-width: 0;
+}
+
 .manage-spaces-page {
   padding: 40px;
   width: 100%;
-  max-width: 1480px;
+  max-width: 1200px;
   margin: 0 auto;
   color: var(--color-text-primary);
   font-family: 'Inter', -apple-system, sans-serif;
-  height: calc(100vh - 66px);
-  display: flex;
-  flex-direction: column;
   min-height: 0;
 }
 
@@ -687,6 +790,65 @@ const filterLabel = computed(() => ({
   border-radius: 8px;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
+}
+
+.switch-trigger-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  cursor: pointer;
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.switch-trigger-btn:hover {
+  background: var(--color-surface-hover) !important;
+}
+
+.switch-trigger-btn i {
+  color: var(--color-text-secondary) !important;
+}
+
+.switch-trigger-btn span {
+  color: var(--color-text-primary) !important;
+}
+</style>
+
+<style>
+.el-popper.jira-switch-dropdown-popper {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  padding: 4px 0 !important;
+  z-index: 100002 !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
+}
+
+.jira-switch-dropdown-menu .el-dropdown-menu__item {
+  color: var(--color-text-primary) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 13px !important;
+  padding: 8px 16px !important;
+}
+
+.jira-switch-dropdown-menu .el-dropdown-menu__item:hover {
+  background-color: var(--color-surface-hover) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.jira-switch-dropdown-menu .el-dropdown-menu__item.is-disabled {
+  color: var(--color-accent) !important;
+  font-weight: 600 !important;
+  background: transparent !important;
+  cursor: default !important;
 }
 </style>
 
