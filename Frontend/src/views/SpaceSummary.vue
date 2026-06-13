@@ -24,15 +24,6 @@
         </div>
         
         <div class="sh-right">
-          <!-- View Toggles -->
-          <div class="view-toggles">
-            <button class="toggle-btn" :class="{ active: currentTab === 'list' }" @click="currentTab = 'list'" title="List view"><i class="fa-solid fa-bars"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'board' }" @click="currentTab = 'board'" title="Kanban view"><i class="fa-solid fa-table-columns"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'calendar' }" @click="currentTab = 'calendar'" title="Calendar view"><i class="fa-regular fa-calendar"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'spreadsheet' }" @click="currentTab = 'spreadsheet'" title="Spreadsheet view"><i class="fa-solid fa-table-cells"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'timeline' }" @click="currentTab = 'timeline'" title="Gantt chart view"><i class="fa-solid fa-chart-gantt"></i></button>
-          </div>
-
           <button class="plane-toolbar-btn" @click="showFilterPanel = !showFilterPanel" :class="{ active: showFilterPanel || activeTaskFilters.length }">
             <i class="fa-solid fa-filter"></i>
             <span v-if="activeTaskFilters.length" class="filter-count">{{ activeTaskFilters.length }}</span>
@@ -79,6 +70,20 @@
         </div>
       </header>
 
+      <!-- Jira-style tab bar (dựng theo ảnh Board.jpeg / Backlog1.jpeg) -->
+      <nav class="jira-tab-bar">
+        <button
+          v-for="tab in projectTabs"
+          :key="tab.key"
+          class="jira-tab"
+          :class="{ active: currentTab === tab.key }"
+          @click="currentTab = tab.key"
+        >
+          <i :class="tab.icon"></i> {{ tab.label }}
+        </button>
+        <button class="jira-tab add-tab" title="Add view"><i class="fa-solid fa-plus"></i></button>
+      </nav>
+
       <div class="work-filter-row" v-if="showFilterPanel || activeTaskFilters.length">
         <FilterBar
           v-model:filters="activeTaskFilters"
@@ -87,6 +92,33 @@
           @clear="clearTaskFilters"
         />
       </div>
+
+      <!-- Backlog tab -->
+      <BacklogTab
+        v-if="currentTab === 'backlog'"
+        :tasks="filteredTasksList"
+        :projectMembers="projectMembers"
+        :statusOptions="taskStatusOptions"
+        :selectedTaskId="selectedTask?.id || null"
+        @open-task="openTaskDetail"
+        @update-task="updateTask"
+        @create-task="(status) => openCreateTask(status)"
+      />
+
+      <!-- Reports tab -->
+      <ReportsTab
+        v-if="currentTab === 'reports'"
+        :tasks="visibleTopLevelTasks"
+        :projectMembers="projectMembers"
+        :statusOptions="taskStatusOptions"
+        @open-task="openTaskDetail"
+      />
+
+      <!-- Tabs chưa có ảnh chứng minh nội dung -> placeholder [CẦN XÁC NHẬN] -->
+      <ProjectTabPlaceholder v-if="currentTab === 'summary'" title="Summary" icon="fa-solid fa-globe" />
+      <ProjectTabPlaceholder v-if="currentTab === 'development'" title="Development" icon="fa-solid fa-code" />
+      <ProjectTabPlaceholder v-if="currentTab === 'forms'" title="Forms" icon="fa-solid fa-clipboard-list" />
+      <ProjectTabPlaceholder v-if="currentTab === 'docs'" title="Docs" icon="fa-regular fa-file-lines" />
 
       <!-- Other Tab Views -->
       <div v-if="currentTab === 'list'" class="list-wrapper" style="padding: 16px;">
@@ -463,6 +495,9 @@ import CalendarTab from '@/components/CalendarTab.vue'
 import TimelineTab from '@/components/TimelineTab.vue'
 import SpreadsheetTab from '@/components/SpreadsheetTab.vue'
 import FilterBar from '@/components/FilterBar.vue'
+import BacklogTab from '@/components/BacklogTab.vue'
+import ReportsTab from '@/components/ReportsTab.vue'
+import ProjectTabPlaceholder from '@/components/ProjectTabPlaceholder.vue'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore';
 import { useProjectStore } from '@/store/useProjectStore';
 
@@ -515,6 +550,21 @@ const inlineCreateColId = ref(null)
 const inlineTaskTitle = ref('')
 
 const currentTab = ref('board')
+// Tab bar kiểu Jira — thứ tự & nhãn theo ảnh Board.jpeg (ô đỏ).
+// Backlog/Reports = view mới; Board/List/Timeline/Calendar = đấu nối view có sẵn.
+// Summary/Development/Forms/Docs = chưa có ảnh -> placeholder [CẦN XÁC NHẬN].
+const projectTabs = [
+  { key: 'backlog', label: 'Backlog', icon: 'fa-solid fa-bars-staggered' },
+  { key: 'board', label: 'Board', icon: 'fa-solid fa-table-columns' },
+  { key: 'summary', label: 'Summary', icon: 'fa-solid fa-globe' },
+  { key: 'list', label: 'List', icon: 'fa-solid fa-list' },
+  { key: 'development', label: 'Development', icon: 'fa-solid fa-code' },
+  { key: 'forms', label: 'Forms', icon: 'fa-solid fa-clipboard-list' },
+  { key: 'timeline', label: 'Timeline', icon: 'fa-solid fa-chart-gantt' },
+  { key: 'docs', label: 'Docs', icon: 'fa-regular fa-file-lines' },
+  { key: 'reports', label: 'Reports', icon: 'fa-solid fa-chart-line' },
+  { key: 'calendar', label: 'Calendar', icon: 'fa-regular fa-calendar' }
+]
 const searchQuery = ref('')
 const activeFilters = ref({ assignee: null })
 const activeTaskFilters = ref([])
@@ -1863,6 +1913,44 @@ onUnmounted(() => {
   background: var(--color-border);
   color: var(--color-text-primary);
 }
+
+/* ── JIRA TAB BAR ── */
+.jira-tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.jira-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 12px 12px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.jira-tab i { font-size: 12px; color: var(--color-text-muted); }
+.jira-tab:hover { color: var(--color-text-primary); }
+.jira-tab:hover i { color: var(--color-text-primary); }
+.jira-tab.active {
+  color: #0c66e4;
+  border-bottom-color: #0c66e4;
+  font-weight: 600;
+}
+.jira-tab.active i { color: #0c66e4; }
+.jira-tab.add-tab { color: var(--color-text-muted); padding: 12px 10px 10px; }
+.backlog-wrapper, .reports-wrapper { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 
 .plane-toolbar-btn {
   background: transparent;
