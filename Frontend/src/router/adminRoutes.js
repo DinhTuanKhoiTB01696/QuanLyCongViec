@@ -8,7 +8,7 @@ const adminMeta = {
 export default [
   {
     path: '/admin',
-    redirect: '/admin/configuration',
+    redirect: '/admin/system/general-configuration',
     meta: { requiresSystemAdminAccess: true }
   },
   {
@@ -52,10 +52,20 @@ export default [
     meta: adminMeta
   },
   {
-    path: '/admin/instance/general',
-    name: 'AdminInstanceGeneral',
-    component: () => import('../views/admin/instance/GeneralSettings.vue'),
+    path: '/admin/system/general-configuration',
+    name: 'AdminSystemGeneralConfiguration',
+    component: () => import('../views/admin/system/GeneralConfiguration.vue'),
     meta: adminMeta
+  },
+  {
+    path: '/admin/system/info',
+    name: 'AdminSystemInfo',
+    component: () => import('../views/admin/system/SystemInfo.vue'),
+    meta: adminMeta
+  },
+  {
+    path: '/admin/instance/general',
+    redirect: '/admin/system/general-configuration'
   },
   {
     path: '/admin/instance/authentication',
@@ -76,7 +86,7 @@ export default [
   },
   {
     path: '/settings',
-    redirect: '/admin/configuration',
+    redirect: '/admin/system/general-configuration',
     meta: { requiresSystemAdminAccess: true }
   },
   {

@@ -1,5 +1,5 @@
 <template>
-  <el-dropdown v-if="canAccessAdmin || canAccessUserDirectory" trigger="click" popper-class="settings-dropdown-popper">
+  <el-dropdown trigger="click" popper-class="settings-dropdown-popper">
     <div class="settings-nav-icon setting-trigger">
       <i class="fa-solid fa-gear"></i>
     </div>
@@ -7,54 +7,59 @@
       <el-dropdown-menu class="jira-settings-menu">
         <div class="settings-content-wrapper">
           <div class="settings-list">
+            <!-- Personal Settings -->
+            <div class="settings-section-header">Personal Jira settings</div>
+            <div class="settings-menu-item" @click="handleCommand('/profile')">
+              <i class="fa-regular fa-user"></i>
+              <div class="item-info">
+                <span class="item-title">General settings</span>
+                <span class="item-desc">Manage language, time zone, and other personal preferences</span>
+              </div>
+            </div>
+            
+            <div class="settings-menu-item" @click="handleCommand('/your-work')">
+              <i class="fa-regular fa-bell"></i>
+              <div class="item-info">
+                <span class="item-title">Notification settings</span>
+                <span class="item-desc">Manage email and in-app notifications from Jira</span>
+              </div>
+            </div>
+
+            <div class="menu-divider"></div>
+
+            <!-- Jira Admin Settings -->
+            <div class="settings-section-header">Jira admin settings</div>
+            
             <div v-if="canAccessAdmin" class="settings-menu-item" @click="handleCommand('/admin/audit-log')">
-              <span class="item-text">Audit Log</span>
+              <i class="fa-solid fa-desktop"></i>
+              <div class="item-info">
+                <span class="item-title">System</span>
+                <span class="item-desc">Manage general configuration, security, audit logs, and more</span>
+              </div>
             </div>
 
             <div v-if="canAccessUserDirectory" class="settings-menu-item" @click="handleCommand('/admin/users')">
-              <span class="item-text">User Management</span>
+              <i class="fa-solid fa-users"></i>
+              <div class="item-info">
+                <span class="item-title">Jira apps</span>
+                <span class="item-desc">Manage access, settings, and integrations across Jira</span>
+              </div>
             </div>
 
-            <div v-if="canAccessUserDirectory" class="settings-menu-item" @click="handleCommand('/admin/roles')">
-              <span class="item-text">Role Management</span>
+            <div class="settings-menu-item" @click="handleCommand('/spaces')">
+              <i class="fa-solid fa-rocket"></i>
+              <div class="item-info">
+                <span class="item-title">Spaces</span>
+                <span class="item-desc">Manage space settings, categories, and more</span>
+              </div>
             </div>
-
-            <div v-if="canAccessAdmin" class="settings-menu-header">
-              <span class="item-text">Organization</span>
-            </div>
-
-            <div v-if="canAccessAdmin" class="settings-menu-item indented" @click="handleCommand('/admin/organization/profile')">
-              <span class="item-text">Profile</span>
-            </div>
-
-            <div v-if="canAccessAdmin" class="settings-menu-item indented" @click="handleCommand('/admin/organization/contact')">
-              <span class="item-text">Contact</span>
-            </div>
-
-            <div v-if="canAccessAdmin" class="menu-divider"></div>
 
             <div v-if="canAccessAdmin" class="settings-menu-item" @click="handleCommand('/admin/configuration')">
-              <span class="item-text">Configuration</span>
-            </div>
-
-            <div v-if="canAccessAdmin" class="settings-menu-header">
-              <span class="item-text">Instance</span>
-            </div>
-
-            <div v-if="canAccessAdmin" class="settings-menu-item indented" @click="handleCommand('/admin/instance/general')">
-              <span class="item-text">General settings</span>
-            </div>
-
-            <div v-if="canAccessAdmin" class="settings-menu-item indented" @click="handleCommand('/admin/instance/authentication')">
-              <span class="item-text">Authentication</span>
-            </div>
-
-            <div v-if="canAccessAdmin" class="settings-menu-item indented" @click="handleCommand('/admin/instance/email')">
-              <span class="item-text">Email / SMTP</span>
-            </div>
-
-            <div v-if="canAccessAdmin" class="settings-menu-item" @click="handleCommand('/admin/customization')">
-              <span class="item-text">Customization</span>
+              <i class="fa-regular fa-folder-open"></i>
+              <div class="item-info">
+                <span class="item-title">Work items</span>
+                <span class="item-desc">Configure work types, workflows, screens, fields, and more</span>
+              </div>
             </div>
           </div>
         </div>
@@ -76,63 +81,100 @@ const canAccessAdmin = computed(() => hasSystemAdminAccess(currentUser.value))
 const canAccessUserDirectory = computed(() => canAccessAdminUserDirectory(currentUser.value))
 
 const handleCommand = (path) => {
-  const canOpenPath = canAccessAdmin.value || (['/admin/users', '/admin/roles'].includes(path) && canAccessUserDirectory.value)
+  const canOpenPath = !path.startsWith('/admin') || canAccessAdmin.value || (['/admin/users', '/admin/roles'].includes(path) && canAccessUserDirectory.value)
   if (!canOpenPath) {
     ElMessage.warning('You do not have permission to access admin settings.')
     return
   }
 
-  const routeData = router.resolve({ path })
-  openNamedAppWindow(routeData.href, PROJECT_ADMIN_WINDOW_NAME)
+  router.push(path)
 }
 </script>
 
 <style scoped>
 .jira-settings-menu {
-  width: 240px !important;
-  background-color: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
+  width: 320px !important;
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
   border-radius: 8px !important;
-  padding: 8px 0 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  padding: 12px 0 !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3) !important;
 }
 
 .settings-list {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+}
+
+.settings-section-header {
+  padding: 8px 16px 4px 16px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .settings-menu-item {
-  padding: 10px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 16px;
   cursor: pointer;
-  color: #1e293b;
-  font-size: 14px;
-  font-weight: 400;
+  transition: background 0.2s;
 }
 
 .settings-menu-item:hover {
-  background-color: #f1f5f9;
+  background-color: var(--color-surface-hover);
 }
 
-.settings-menu-header {
-  padding: 10px 20px 4px 20px;
+.settings-menu-item i {
+  font-size: 16px;
   color: var(--color-text-muted);
-  font-size: 14px;
-  font-weight: 400;
+  margin-top: 2px;
 }
 
-.settings-menu-item.indented {
-  padding-left: 36px;
+.item-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.item-title {
+  color: var(--color-text-primary);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.item-desc {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.sub-links {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.sub-link {
+  color: var(--color-accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sub-link:hover {
+  text-decoration: underline;
 }
 
 .menu-divider {
   height: 1px;
-  background-color: #f1f5f9;
-  margin: 6px 0;
-}
-
-.item-text {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  background-color: var(--color-border);
+  margin: 8px 0;
 }
 
 .settings-nav-icon {
@@ -156,21 +198,3 @@ const handleCommand = (path) => {
   color: var(--color-text-primary);
 }
 </style>
-
-<style>
-.el-popper.settings-dropdown-popper {
-  background: var(--color-surface) !important;
-  border: 1px solid var(--color-border) !important;
-  padding: 0 !important;
-  z-index: 100001 !important;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important;
-}
-
-.el-popper.settings-dropdown-popper .el-popper__arrow::before {
-  background: var(--color-surface) !important;
-  border-color: var(--color-border) !important;
-}
-</style>
-
-
-
