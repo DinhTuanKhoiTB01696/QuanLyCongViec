@@ -38,6 +38,7 @@
       <div class="help-btn" @click="$emit('toggle-ai')">
          <i class="fa-solid fa-robot"></i>
       </div>
+      <SettingsDropdown />
       <UserDropdown class="nav-item" />
     </div>
   </header>
@@ -49,6 +50,7 @@ import { useRouter, useRoute } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
 import UserDropdown from '@/components/UserDropdown.vue'
 import NotificationsDropdown from '@/components/NotificationsDropdown.vue'
+import SettingsDropdown from '@/components/SettingsDropdown.vue'
 import { useProjectStore } from '@/store/useProjectStore'
 import { toggleTheme, currentTheme } from '@/utils/theme'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'

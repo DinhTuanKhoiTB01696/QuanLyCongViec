@@ -644,5 +644,166 @@ namespace TaskManagement.Infrastructure.Services
 
             return string.IsNullOrWhiteSpace(normalized) ? "PRJ" : normalized;
         }
+
+        public async Task<List<ProjectDiscoveryDto>> GetDeletedAsync()
+        {
+            var userIdString = _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdString, out var userId))
+            {
+                return new List<ProjectDiscoveryDto>();
+            }
+
+            var normalizedRoles = await _context.UserRoles
+                .AsNoTracking()
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.Role.Name.Trim().ToLower())
+                .ToListAsync();
+
+            var canAccessAllProjects = normalizedRoles.Any(role => FullAccessRoles.Contains(role));
+
+            var query = _context.Projects
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Include(p => p.Creator)
+                .Include(p => p.Department)
+                .Where(p => p.IsDeleted);
+
+            if (!canAccessAllProjects)
+            {
+                var assignedProjectIds = await _context.ProjectMembers
+                    .AsNoTracking()
+                    .Where(pm => pm.UserId == userId && pm.Status)
+                    .Select(pm => pm.ProjectId)
+                    .ToListAsync();
+
+                query = query.Where(p => assignedProjectIds.Contains(p.Id));
+            }
+
+            var projects = await query
+                .Select(p => new ProjectDiscoveryDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Key = p.Identifier,
+                    Description = p.Description,
+                    StartDate = p.StartDate,
+                    EndDate = p.EndDate,
+                    Status = p.Status,
+                    CreatorName = p.Creator.FullName,
+                    DepartmentId = p.DepartmentId,
+                    DepartmentName = p.Department != null ? p.Department.Name : null,
+                    ActiveMemberCount = p.ProjectMembers.Count(m => m.Status),
+                    NetworkType = p.NetworkType,
+                    LeadUserId = p.ProjectMembers
+                        .Where(pm => pm.Status && (pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PROJECT_MANAGER"))
+                        .OrderBy(pm => pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
+                        .Select(pm => (Guid?)pm.UserId)
+                        .FirstOrDefault(),
+                    LeadName = p.ProjectMembers
+                        .Where(pm => pm.Status && (pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PROJECT_MANAGER"))
+                        .OrderBy(pm => pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
+                        .Select(pm => pm.User.FullName)
+                        .FirstOrDefault(),
+                    Cover = p.NavigationConfig,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
+                    IsMember = canAccessAllProjects || p.ProjectMembers.Any(pm => pm.UserId == userId && pm.Status),
+                    MyRole = p.ProjectMembers
+                        .Where(pm => pm.UserId == userId && pm.Status)
+                        .Select(pm => pm.ProjectRole)
+                        .FirstOrDefault()
+                })
+                .ToListAsync();
+
+            ApplyProjectUiConfig(projects);
+            return projects;
+        }
+
+        public async Task RestoreDeletedAsync(Guid id)
+        {
+            var project = await _context.Projects.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == id);
+            if (project == null)
+                throw new ArgumentException("Dự án không tồn tại.");
+
+            project.IsDeleted = false;
+            project.Status = true;
+            project.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task PermanentDeleteAsync(Guid id)
+        {
+            var project = await _context.Projects.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == id);
+            if (project == null)
+                throw new ArgumentException("Dự án không tồn tại.");
+
+            var tasks = await _context.WorkTasks.IgnoreQueryFilters().Where(wt => wt.ProjectId == id).ToListAsync();
+            var taskIds = tasks.Select(t => t.Id).ToList();
+
+            if (taskIds.Any())
+            {
+                var assignments = await _context.TaskAssignments.Where(ta => taskIds.Contains(ta.WorkTaskId)).ToListAsync();
+                _context.TaskAssignments.RemoveRange(assignments);
+
+                var dependencies = await _context.TaskDependencies.Where(td => taskIds.Contains(td.PredecessorTaskId) || taskIds.Contains(td.PredecessorTaskId)).ToListAsync();
+                _context.TaskDependencies.RemoveRange(dependencies);
+
+                var comments = await _context.Comments.Where(c => taskIds.Contains(c.WorkTaskId)).ToListAsync();
+                _context.Comments.RemoveRange(comments);
+
+                var attachments = await _context.Attachments.Where(a => taskIds.Contains(a.WorkTaskId)).ToListAsync();
+                _context.Attachments.RemoveRange(attachments);
+
+                var auditLogs = await _context.AuditLogs.Where(al => taskIds.Contains(al.WorkTaskId)).ToListAsync();
+                _context.AuditLogs.RemoveRange(auditLogs);
+
+                var issueLabels = await _context.IssueLabels.Where(il => taskIds.Contains(il.WorkTaskId)).ToListAsync();
+                _context.IssueLabels.RemoveRange(issueLabels);
+
+                var issueModules = await _context.IssueModules.Where(im => taskIds.Contains(im.WorkTaskId)).ToListAsync();
+                _context.IssueModules.RemoveRange(issueModules);
+
+                var subscribers = await _context.TaskSubscribers.Where(ts => taskIds.Contains(ts.WorkTaskId)).ToListAsync();
+                _context.TaskSubscribers.RemoveRange(subscribers);
+
+                var timeLogs = await _context.TimeLogs.Where(tl => taskIds.Contains(tl.WorkTaskId)).ToListAsync();
+                _context.TimeLogs.RemoveRange(timeLogs);
+
+                var embeddings = await _context.TaskVectorEmbeddings.Where(tve => taskIds.Contains(tve.WorkTaskId)).ToListAsync();
+                _context.TaskVectorEmbeddings.RemoveRange(embeddings);
+
+                var drafts = await _context.TaskDrafts.Where(td => td.ProjectId == id).ToListAsync();
+                _context.TaskDrafts.RemoveRange(drafts);
+
+                _context.WorkTasks.RemoveRange(tasks);
+            }
+
+            var members = await _context.ProjectMembers.Where(pm => pm.ProjectId == id).ToListAsync();
+            _context.ProjectMembers.RemoveRange(members);
+
+            var sprints = await _context.Sprints.Where(s => s.ProjectId == id).ToListAsync();
+            _context.Sprints.RemoveRange(sprints);
+
+            var taskStatuses = await _context.TaskStatuses.Where(ts => ts.ProjectId == id).ToListAsync();
+            _context.TaskStatuses.RemoveRange(taskStatuses);
+
+            var taskTypes = await _context.TaskTypes.Where(tt => tt.ProjectId == id).ToListAsync();
+            _context.TaskTypes.RemoveRange(taskTypes);
+
+            var modules = await _context.Modules.Where(m => m.ProjectId == id).ToListAsync();
+            _context.Modules.RemoveRange(modules);
+
+            var views = await _context.ProjectViews.Where(pv => pv.ProjectId == id).ToListAsync();
+            _context.ProjectViews.RemoveRange(views);
+
+            var pages = await _context.Pages.Where(pg => pg.ProjectId == id).ToListAsync();
+            _context.Pages.RemoveRange(pages);
+
+            var intakes = await _context.Intakes.Where(i => i.ProjectId == id).ToListAsync();
+            _context.Intakes.RemoveRange(intakes);
+
+            _context.Projects.Remove(project);
+            await _context.SaveChangesAsync();
+        }
     }
 }

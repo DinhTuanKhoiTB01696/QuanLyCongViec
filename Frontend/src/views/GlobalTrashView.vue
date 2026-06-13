@@ -4,8 +4,8 @@
       <!-- Header -->
       <header class="spaces-header" style="margin-bottom: 16px;">
         <div class="sh-left">
-          <i class="fa-solid fa-box-archive"></i>
-          <h1>Archived spaces</h1>
+          <i class="fa-solid fa-trash-can"></i>
+          <h1>Trash</h1>
         </div>
       </header>
 
@@ -15,7 +15,7 @@
           <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; color: var(--color-text-muted); font-size: 13px;"></i>
           <input 
             type="text" 
-            placeholder="Search archived spaces" 
+            placeholder="Search spaces" 
             v-model="searchQuery" 
             style="background: transparent; border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 8px 12px 8px 32px; font-size: 13.5px; outline: none; width: 220px; border-radius: 4px;"
           />
@@ -30,7 +30,7 @@
 
       <section class="projects-scroll-panel">
         <div v-if="loading" class="loading-state" style="text-align: center; padding: 40px; color: var(--color-text-muted);">
-           <i class="fa-solid fa-spinner fa-spin"></i> Loading archives...
+           <i class="fa-solid fa-spinner fa-spin"></i> Loading trash...
         </div>
         <div v-else class="spaces-table-container">
           <table class="jira-table spaces-table" style="width: 100%; border-collapse: collapse; text-align: left;">
@@ -40,18 +40,19 @@
                 <th style="padding: 12px 16px; font-weight: 600;">Key</th>
                 <th style="padding: 12px 16px; font-weight: 600;">Type</th>
                 <th style="padding: 12px 16px; font-weight: 600;">Lead</th>
-                <th style="padding: 12px 16px; font-weight: 600; width: 150px; text-align: right;">Archived on</th>
+                <th style="padding: 12px 16px; font-weight: 600;">Marked for deletion</th>
+                <th style="padding: 12px 16px; font-weight: 600; width: 220px; text-align: right;">Deletion schedule</th>
               </tr>
             </thead>
             <tbody>
               <!-- Empty state row -->
               <tr v-if="filteredSpaces.length === 0">
-                <td colspan="5" style="padding: 60px 20px; text-align: center;">
+                <td colspan="6" style="padding: 60px 20px; text-align: center;">
                   <div class="empty-icon-wrap" style="width: 80px; height: 80px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
-                    <i class="fa-solid fa-box-archive empty-icon" style="margin-bottom: 0; font-size: 36px; color: var(--color-text-muted);"></i>
+                    <i class="fa-solid fa-trash-can empty-icon" style="margin-bottom: 0; font-size: 36px; color: var(--color-text-muted);"></i>
                   </div>
-                  <h3 class="empty-title" style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: var(--color-text-primary);">We couldn't find any spaces that match your search.</h3>
-                  <p style="margin: 0; font-size: 14px; color: var(--color-text-muted);">Archived projects are kept here for historical reference and can be restored anytime.</p>
+                  <h3 class="empty-title" style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: var(--color-text-primary);">No projects in trash</h3>
+                  <p style="margin: 0; font-size: 14px; color: var(--color-text-muted);">Deleted projects will appear here for temporary storage before permanent deletion.</p>
                 </td>
               </tr>
               <!-- Data rows -->
@@ -59,7 +60,7 @@
                 <td style="padding: 12px 16px;">
                   <div style="display: flex; align-items: center; gap: 12px;">
                     <div style="width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px; background: #27272a;">
-                      {{ space.icon || '📦' }}
+                      {{ space.icon || '🗑️' }}
                     </div>
                     <span style="font-weight: 500; color: var(--color-text-primary);">{{ space.name }}</span>
                   </div>
@@ -70,19 +71,22 @@
                 </td>
                 <td style="padding: 12px 16px;">
                   <div style="display: flex; align-items: center; gap: 8px;">
-                    <div style="width: 24px; height: 24px; border-radius: 50%; background: #10B981; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;">
+                    <div style="width: 24px; height: 24px; border-radius: 50%; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;">
                       {{ space.leadName?.charAt(0).toUpperCase() || 'T' }}
                     </div>
                     <span style="font-size: 13px;">{{ space.leadName }}</span>
                   </div>
                 </td>
+                <td style="padding: 12px 16px; font-size: 13px; color: var(--color-text-muted);">
+                  {{ new Date(space.originalRow?.updatedAt || Date.now()).toLocaleDateString() }}
+                </td>
                 <td style="padding: 12px 16px; text-align: right;">
-                  <div style="display: flex; justify-content: flex-end; gap: 8px; align-items: center;">
-                    <span style="font-size: 13px; color: var(--color-text-muted); margin-right: 12px;">
-                      {{ new Date(space.originalRow?.updatedAt || Date.now()).toLocaleDateString() }}
-                    </span>
-                    <button class="plane-btn-secondary outline-btn action-btn-text" type="button" @click="handleRestore(space)">
+                  <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                    <button class="plane-btn-secondary outline-btn action-btn-text" type="button" @click="restoreProject(space)">
                       <i class="fa-solid fa-rotate-left" style="margin-right: 4px;"></i> Restore
+                    </button>
+                    <button class="plane-btn-danger outline-btn action-btn-text" type="button" @click="confirmPermanentDelete(space)">
+                      <i class="fa-solid fa-trash-can" style="margin-right: 4px;"></i> Permanent delete
                     </button>
                   </div>
                 </td>
@@ -101,6 +105,7 @@ import { useRouter } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useProjectStore } from '@/store/useProjectStore'
 import { openNamedAppWindow, PROJECT_ADMIN_WINDOW_NAME } from '@/utils/windowTabs'
 
 const router = useRouter()
@@ -108,15 +113,17 @@ const handleSwitchSettings = (path) => {
   router.push(path)
 }
 
+const projectStore = useProjectStore()
+const loading = ref(false)
 const spaces = ref([])
 const searchQuery = ref('')
-const loading = ref(true)
 
-const fetchArchivedProjects = async () => {
+const fetchTrashSpaces = async () => {
   loading.value = true
   try {
-    const res = await axiosClient.get('/projects/archived')
-    const data = res.data.data || res.data || []
+    const response = await axiosClient.get('/projects/deleted')
+    const data = response.data.data || response.data || []
+    
     spaces.value = data.map(p => ({
       id: p.id,
       name: p.name,
@@ -127,28 +134,50 @@ const fetchArchivedProjects = async () => {
       originalRow: p
     }))
   } catch (error) {
-    console.error('Failed to fetch archived projects:', error)
-    ElMessage.error('Không thể tải danh sách dự án lưu trữ')
+    console.error('Fetch deleted spaces error:', error)
+    ElMessage.error('Failed to load trash list')
   } finally {
     loading.value = false
   }
 }
 
-const handleRestore = async (project) => {
+const restoreProject = async (space) => {
   try {
-    await ElMessageBox.confirm(`Bạn có chắc muốn khôi phục dự án "${project.name}"?`, 'Xác nhận', {
-      confirmButtonText: 'Khôi phục',
-      cancelButtonText: 'Hủy',
-      type: 'info'
-    })
+    await ElMessageBox.confirm(`Are you sure you want to restore project "${space.name}"?`, 'Restore Project', { type: 'info' })
+    await axiosClient.put(`/projects/${space.id}/restore-deleted`)
+    ElMessage.success('Project restored successfully')
+    fetchTrashSpaces()
+    projectStore.fetchAllProjects(true).catch(() => {})
+  } catch (err) {
+    if (err !== 'cancel') ElMessage.error('Failed to restore project')
+  }
+}
+
+const confirmPermanentDelete = async (space) => {
+  try {
+    await ElMessageBox.prompt(
+      `Warning: Permanent deletion is irreversible! All tasks, members, and data associated with "${space.name}" will be deleted. \n\nPlease type the project name "${space.name}" to confirm:`,
+      'Permanent Delete Project',
+      {
+        confirmButtonText: 'Delete Permanently',
+        confirmButtonClass: 'el-button--danger',
+        cancelButtonText: 'Cancel',
+        inputValidator: (val) => {
+          if (val !== space.name) {
+            return 'Project name does not match!'
+          }
+          return true
+        }
+      }
+    )
     
-    await axiosClient.put(`/projects/${project.id}/restore`)
-    ElMessage.success(`Đã khôi phục dự án ${project.name}`)
-    fetchArchivedProjects()
+    await axiosClient.delete(`/projects/${space.id}/permanent`)
+    ElMessage.success('Project permanently deleted')
+    fetchTrashSpaces()
   } catch (err) {
     if (err !== 'cancel') {
-      console.error('Restore failed:', err)
-      ElMessage.error('Lỗi khi khôi phục dự án')
+      console.error(err)
+      ElMessage.error('Failed to permanently delete project')
     }
   }
 }
@@ -160,7 +189,7 @@ const filteredSpaces = computed(() => {
 })
 
 onMounted(() => {
-  fetchArchivedProjects()
+  fetchTrashSpaces()
 })
 </script>
 
@@ -365,6 +394,24 @@ onMounted(() => {
 .plane-btn-secondary:hover {
   background: var(--color-border);
   color: var(--color-text-primary);
+}
+
+.plane-btn-danger {
+  background: transparent;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+.plane-btn-danger:hover {
+  background: #ef4444;
+  color: white;
 }
 
 .loading-state, .empty-state { text-align: center; margin-top: 60px; color: var(--color-text-muted); }
