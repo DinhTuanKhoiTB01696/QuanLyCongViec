@@ -114,11 +114,22 @@
         @open-task="openTaskDetail"
       />
 
-      <!-- Tabs chÆ°a cÃ³ áº£nh chá»©ng minh ná»™i dung -> placeholder [Cáº¦N XÃC NHáº¬N] -->
-      <ProjectTabPlaceholder v-if="currentTab === 'summary'" :title="t('projectTabs.summary')" icon="fa-solid fa-globe" />
-      <ProjectTabPlaceholder v-if="currentTab === 'development'" :title="t('projectTabs.development')" icon="fa-solid fa-code" />
-      <ProjectTabPlaceholder v-if="currentTab === 'forms'" :title="t('projectTabs.forms')" icon="fa-solid fa-clipboard-list" />
-      <ProjectTabPlaceholder v-if="currentTab === 'docs'" :title="t('projectTabs.docs')" icon="fa-regular fa-file-lines" />
+      <!-- Summary tab -->
+      <SummaryTab
+        v-if="currentTab === 'summary'"
+        :tasks="visibleTopLevelTasks"
+        :projectMembers="projectMembers"
+        :statusOptions="taskStatusOptions"
+        @view-work-items="currentTab = 'list'"
+      />
+
+      <!-- Auxiliary Jira-style tabs. Missing flows stay disabled inside each tab. -->
+      <DevelopmentTab
+        v-if="currentTab === 'development'"
+        :tasks="visibleTopLevelTasks"
+      />
+      <FormsTab v-if="currentTab === 'forms'" />
+      <DocsTab v-if="currentTab === 'docs'" />
 
       <!-- Other Tab Views -->
       <div v-if="currentTab === 'list'" class="list-wrapper" style="padding: 16px;">
@@ -497,7 +508,10 @@ import SpreadsheetTab from '@/components/SpreadsheetTab.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import BacklogTab from '@/components/BacklogTab.vue'
 import ReportsTab from '@/components/ReportsTab.vue'
-import ProjectTabPlaceholder from '@/components/ProjectTabPlaceholder.vue'
+import SummaryTab from '@/components/SummaryTab.vue'
+import DevelopmentTab from '@/components/DevelopmentTab.vue'
+import FormsTab from '@/components/FormsTab.vue'
+import DocsTab from '@/components/DocsTab.vue'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useI18n } from '@/composables/useI18n'
@@ -552,9 +566,7 @@ const inlineCreateColId = ref(null)
 const inlineTaskTitle = ref('')
 
 const currentTab = ref('board')
-// Tab bar kiá»ƒu Jira â€” thá»© tá»± & nhÃ£n theo áº£nh Board.jpeg (Ã´ Ä‘á»).
-// Backlog/Reports = view má»›i; Board/List/Timeline/Calendar = Ä‘áº¥u ná»‘i view cÃ³ sáºµn.
-// Summary/Development/Forms/Docs = chÆ°a cÃ³ áº£nh -> placeholder [Cáº¦N XÃC NHáº¬N].
+// Jira-style project tab order. Tabs with missing backend flows render disabled connect/empty states.
 const projectTabs = [
   { key: 'backlog', labelKey: 'projectTabs.backlog', icon: 'fa-solid fa-bars-staggered' },
   { key: 'board', labelKey: 'projectTabs.board', icon: 'fa-solid fa-table-columns' },
