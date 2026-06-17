@@ -18,21 +18,21 @@
         <el-dropdown-item command="profile">
           <div class="menu-item-inner">
             <i class="fa-regular fa-user"></i>
-            <span>Hồ sơ</span>
+            <span>{{ t('userMenu.profile') }}</span>
           </div>
         </el-dropdown-item>
 
         <el-dropdown-item v-if="canAccessAdmin" command="admin">
           <div class="menu-item-inner">
             <i class="fa-solid fa-shield-halved"></i>
-            <span>Project administration</span>
+            <span>{{ t('userMenu.projectAdministration') }}</span>
           </div>
         </el-dropdown-item>
 
         <div class="theme-trigger-item" @click.stop="toggleThemeSub">
           <div class="menu-item-inner">
             <i class="fa-solid fa-circle-half-stroke"></i>
-            <span>Theme</span>
+            <span>{{ t('userMenu.theme') }}</span>
             <i class="fa-solid fa-chevron-right arrow-icon" :class="{ rotated: themeSubVisible }"></i>
           </div>
 
@@ -47,7 +47,7 @@
                   <div class="p-header"></div>
                   <div class="p-body"><div class="p-sidebar"></div><div class="p-content"></div></div>
                 </div>
-                <span class="option-label">Light</span>
+                <span class="option-label">{{ t('userMenu.light') }}</span>
               </div>
 
               <div class="theme-option" :class="{ active: currentTheme === 'dark' }" @click.stop="selectTheme('dark')">
@@ -59,7 +59,7 @@
                   <div class="p-header"></div>
                   <div class="p-body"><div class="p-sidebar"></div><div class="p-content"></div></div>
                 </div>
-                <span class="option-label">Dark</span>
+                <span class="option-label">{{ t('userMenu.dark') }}</span>
               </div>
             </div>
           </transition>
@@ -80,7 +80,7 @@
         <el-dropdown-item command="logout" class="logout-item-wrapper">
           <div class="menu-item-inner logout-item">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
-            <span>Log out</span>
+            <span>{{ t('userMenu.logOut') }}</span>
           </div>
         </el-dropdown-item>
       </el-dropdown-menu>
@@ -96,14 +96,16 @@ import { getStoredUser, hasSystemAdminAccess } from '@/utils/permissions'
 import { clearAuthSession } from '@/utils/authSession'
 import { openNamedAppWindow, PROJECT_ADMIN_WINDOW_NAME } from '@/utils/windowTabs'
 import axiosClient from '@/api/axiosClient'
+import { useI18n } from '@/composables/useI18n'
 
 const router = useRouter()
+const { t } = useI18n()
 const themeSubVisible = ref(false)
 const profileData = ref(null)
 
 const currentUser = computed(() => profileData.value || getStoredUser())
 const canAccessAdmin = computed(() => hasSystemAdminAccess(currentUser.value))
-const userDisplayName = computed(() => currentUser.value?.fullName || currentUser.value?.name || currentUser.value?.publicName || currentUser.value?.email?.split('@')?.[0] || 'User')
+const userDisplayName = computed(() => currentUser.value?.fullName || currentUser.value?.name || currentUser.value?.publicName || currentUser.value?.email?.split('@')?.[0] || t('userMenu.userFallback'))
 const userEmail = computed(() => currentUser.value?.email || 'user@example.com')
 
 const getInitials = (name) => {

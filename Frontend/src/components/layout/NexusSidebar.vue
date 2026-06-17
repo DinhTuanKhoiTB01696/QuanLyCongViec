@@ -4,7 +4,7 @@
       <div class="sidebar-top-action">
         <button class="new-work-btn" @click="triggerCreateTask">
           <i class="fa-solid fa-pen-to-square"></i>
-          <span>New work item</span>
+          <span>{{ t('shell.newWorkItem') }}</span>
         </button>
       </div>
 
@@ -12,7 +12,7 @@
         <li class="nav-item">
           <router-link to="/dashboard" class="nav-link" :class="{ active: $route.path === '/dashboard' && !$route.query.tab }" exact>
             <i class="fa-solid fa-house"></i>
-            <span>For you</span>
+            <span>{{ t('shell.forYou') }}</span>
           </router-link>
         </li>
         <li class="nav-item">
@@ -28,7 +28,7 @@
             <template #reference>
               <div class="nav-link" :class="{ active: $route.path === '/dashboard' && $route.query.tab === 'viewed' }" style="cursor: pointer;">
                 <i class="fa-solid fa-clock-rotate-left"></i>
-                <span>Recent</span>
+                <span>{{ t('shell.recent') }}</span>
                 <i class="fa-solid fa-chevron-right" style="font-size:10px; margin-left:auto;"></i>
               </div>
             </template>
@@ -48,7 +48,7 @@
             <template #reference>
               <div class="nav-link" :class="{ active: $route.path === '/dashboard' && $route.query.tab === 'starred' }" style="cursor: pointer;">
                 <i class="fa-regular fa-star"></i>
-                <span>Starred</span>
+                <span>{{ t('shell.starred') }}</span>
                 <i class="fa-solid fa-chevron-right" style="font-size:10px; margin-left:auto;"></i>
               </div>
             </template>
@@ -58,36 +58,36 @@
         <li class="nav-item">
           <router-link to="/your-work" class="nav-link">
             <i class="fa-regular fa-user"></i>
-            <span>Your work</span>
+            <span>{{ t('shell.yourWork') }}</span>
           </router-link>
         </li>
         <li class="nav-item">
           <router-link to="/stickies" class="nav-link">
             <i class="fa-solid fa-note-sticky"></i>
-            <span>Stickies</span>
+            <span>{{ t('shell.stickies') }}</span>
           </router-link>
         </li>
         <li class="nav-item">
           <router-link to="/rewards" class="nav-link">
             <i class="fa-solid fa-trophy"></i>
-            <span>Rewards</span>
+            <span>{{ t('shell.rewards') }}</span>
           </router-link>
         </li>
       </ul>
 
       <!-- Workspace Division -->
-      <div class="nav-section-title">Workspace</div>
+      <div class="nav-section-title">{{ t('shell.workspace') }}</div>
       <ul class="nav-menu">
         <li class="nav-item">
           <router-link to="/spaces" class="nav-link">
             <i class="fa-solid fa-briefcase"></i>
-            <span>Projects</span>
+            <span>{{ t('shell.projects') }}</span>
           </router-link>
         </li>
         <li class="nav-item">
           <div class="nav-link" :class="{ 'dropdown-active': showMorePanel }" @click="showMorePanel = !showMorePanel">
             <i class="fa-solid fa-ellipsis"></i>
-            <span>{{ showMorePanel ? 'Hide' : 'More' }}</span>
+            <span>{{ showMorePanel ? t('shell.hide') : t('shell.more') }}</span>
           </div>
         </li>
       </ul>
@@ -99,21 +99,21 @@
             <li class="nav-item sub-item">
               <router-link to="/views" class="nav-link">
                 <i class="fa-solid fa-layer-group"></i>
-                <span>Views</span>
+                <span>{{ t('shell.views') }}</span>
                 <i class="fa-solid fa-thumbtack pin-icon"></i>
               </router-link>
             </li>
             <li class="nav-item sub-item">
               <router-link to="/analytics" class="nav-link">
                 <i class="fa-solid fa-chart-simple"></i>
-                <span>Analytics</span>
+                <span>{{ t('shell.analytics') }}</span>
                 <i class="fa-solid fa-thumbtack pin-icon"></i>
               </router-link>
             </li>
             <li class="nav-item sub-item">
               <router-link to="/archives" class="nav-link">
                 <i class="fa-solid fa-box-archive"></i>
-                <span>Archives</span>
+                <span>{{ t('shell.archives') }}</span>
                 <i class="fa-solid fa-thumbtack pin-icon"></i>
               </router-link>
             </li>
@@ -123,7 +123,7 @@
 
       <!-- Projects Division -->
       <div class="nav-section-title flex-between">
-        Projects
+        {{ t('shell.projects') }}
         <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
       </div>
       <ul class="nav-menu">
@@ -143,7 +143,7 @@
           <li v-for="child in project.children" v-show="project.expanded" :key="child.id" class="nav-item sub-item">
             <router-link :to="child.route" class="nav-link" active-class="active">
               <i :class="childIcon(child.key)"></i>
-              <span>{{ child.label }}</span>
+              <span>{{ sidebarChildLabel(child) }}</span>
             </router-link>
           </li>
         </template>
@@ -153,7 +153,7 @@
     <!-- Bottom Actions -->
     <div class="sidebar-bottom">
       <a href="#" class="community-link">
-        <i class="fa-regular fa-comment"></i> Community
+        <i class="fa-regular fa-comment"></i> {{ t('shell.community') }}
       </a>
     </div>
   </aside>
@@ -169,9 +169,11 @@ import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/projectContext'
 import RecentDropdown from '@/components/RecentDropdown.vue'
 import StarredDropdown from '@/components/StarredDropdown.vue'
+import { useI18n } from '@/composables/useI18n'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const showMorePanel = ref(false)
 const projectStore = useProjectStore()
 
@@ -293,6 +295,14 @@ const childIcon = (key) => ({
   'pages': 'fa-regular fa-file-lines'
 }[key] || 'fa-solid fa-chevron-right')
 
+const sidebarChildLabel = (child) => ({
+  'work-items': t('shell.workItems'),
+  'cycles': t('shell.cycles'),
+  'modules': t('shell.modules'),
+  'views': t('shell.views'),
+  'pages': t('shell.pages')
+}[child.key] || child.label)
+
 const projectIcon = (project) => project.icon || project.name?.charAt(0)?.toUpperCase() || 'P'
 const projectColor = (project) => {
   const colors = ['#579dff', '#c97cf4', '#00b8d9', '#22a06b', '#f5cd47']
@@ -305,7 +315,7 @@ const triggerCreateTask = async () => {
     : await projectStore.fetchAllProjects()
 
   if (!projects.length) {
-    ElMessage.warning('Create a project before creating a work item.')
+    ElMessage.warning(t('messages.createProjectFirst'))
     await router.push('/spaces')
     return
   }

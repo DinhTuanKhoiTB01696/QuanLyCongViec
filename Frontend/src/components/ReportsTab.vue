@@ -1,91 +1,95 @@
 <template>
-  <!--
-    Reports tab — dựng theo ảnh Report.jpeg.
-    Donut by status / type / assignee tính từ task thật.
-    [CẦN XÁC NHẬN] Công thức cycle time / lead time / completion trend không có trong ảnh
-    => dùng dữ liệu mock placeholder, không bịa logic tính toán.
-  -->
   <div class="reports-tab">
     <div class="reports-head">
-      <button class="more-reports-btn"><i class="fa-solid fa-chart-line"></i> More reports</button>
+      <button class="more-reports-btn" type="button" disabled :title="t('workItems.reports.moreReportsNeedsFlow')">
+        <i class="fa-solid fa-chart-line"></i> {{ t('workItems.reports.moreReports') }}
+      </button>
     </div>
 
-    <!-- Summary cards -->
     <div class="summary-cards">
       <div class="sum-card">
         <span class="sum-icon green"><i class="fa-solid fa-circle-check"></i></span>
-        <div class="sum-text"><span class="sum-val">{{ summary.completed }} work items</span><span class="sum-sub">completed in the last 7 days</span></div>
+        <div class="sum-text">
+          <span class="sum-val">{{ t('workItems.reports.workItemsCount', { count: summary.completed }) }}</span>
+          <span class="sum-sub">{{ t('workItems.reports.completedLast7Days') }}</span>
+        </div>
       </div>
       <div class="sum-card">
         <span class="sum-icon blue"><i class="fa-solid fa-pen"></i></span>
-        <div class="sum-text"><span class="sum-val">{{ summary.updated }} work items</span><span class="sum-sub">updated in the last 7 days</span></div>
+        <div class="sum-text">
+          <span class="sum-val">{{ t('workItems.reports.workItemsCount', { count: summary.updated }) }}</span>
+          <span class="sum-sub">{{ t('workItems.reports.updatedLast7Days') }}</span>
+        </div>
       </div>
       <div class="sum-card">
         <span class="sum-icon orange"><i class="fa-solid fa-plus"></i></span>
-        <div class="sum-text"><span class="sum-val">{{ summary.created }} work items</span><span class="sum-sub">created in the last 7 days</span></div>
+        <div class="sum-text">
+          <span class="sum-val">{{ t('workItems.reports.workItemsCount', { count: summary.created }) }}</span>
+          <span class="sum-sub">{{ t('workItems.reports.createdLast7Days') }}</span>
+        </div>
       </div>
       <div class="sum-card">
         <span class="sum-icon red"><i class="fa-regular fa-calendar"></i></span>
-        <div class="sum-text"><span class="sum-val">{{ summary.due }} work item</span><span class="sum-sub">due in the next 7 days</span></div>
+        <div class="sum-text">
+          <span class="sum-val">{{ t('workItems.reports.workItemsCount', { count: summary.due }) }}</span>
+          <span class="sum-sub">{{ t('workItems.reports.dueNext7Days') }}</span>
+        </div>
       </div>
     </div>
 
-    <!-- Donut row -->
     <div class="chart-row three">
       <div class="chart-card">
-        <h4>Work items by status</h4>
+        <h4>{{ t('workItems.reports.workItemsByStatus') }}</h4>
         <v-chart class="donut" :option="donut(statusData, totalTasks)" autoresize />
       </div>
       <div class="chart-card">
-        <h4>Work items by type</h4>
+        <h4>{{ t('workItems.reports.workItemsByType') }}</h4>
         <v-chart class="donut" :option="donut(typeData, totalTasks)" autoresize />
       </div>
       <div class="chart-card">
-        <h4>Work items by assignees</h4>
+        <h4>{{ t('workItems.reports.workItemsByAssignees') }}</h4>
         <v-chart class="donut" :option="donut(assigneeData, totalTasks)" autoresize />
       </div>
     </div>
 
-    <!-- trend / cycle -->
     <div class="chart-row two">
       <div class="chart-card">
-        <h4>Work item creation trend</h4>
+        <h4>{{ t('workItems.reports.workItemCreationTrend') }}</h4>
         <v-chart class="bar" :option="creationTrendOption" autoresize />
       </div>
       <div class="chart-card">
-        <h4>Work item cycle time</h4>
-        <v-chart class="line" :option="emptyLineOption('Average cycle time')" autoresize />
-        <span class="mock-note">[CẦN XÁC NHẬN] công thức cycle time chưa có trong ảnh</span>
+        <h4>{{ t('workItems.reports.workItemCycleTime') }}</h4>
+        <v-chart class="line" :option="emptyLineOption(t('workItems.reports.averageCycleTime'))" autoresize />
+        <span class="data-note">{{ t('workItems.reports.needCycleTimeData') }}</span>
       </div>
     </div>
 
     <div class="chart-row two">
       <div class="chart-card">
-        <h4>Work item lead time</h4>
-        <v-chart class="line" :option="leadTimeOption" autoresize />
-        <span class="mock-note">[CẦN XÁC NHẬN] công thức lead time chưa có trong ảnh</span>
+        <h4>{{ t('workItems.reports.workItemLeadTime') }}</h4>
+        <v-chart class="line" :option="emptyLineOption(t('workItems.reports.leadTime'))" autoresize />
+        <span class="data-note">{{ t('workItems.reports.needLeadTimeData') }}</span>
       </div>
       <div class="chart-card">
-        <h4>Work item completion trend</h4>
-        <v-chart class="line" :option="emptyLineOption('Completed')" autoresize />
-        <span class="mock-note">[CẦN XÁC NHẬN] công thức completion trend chưa có trong ảnh</span>
+        <h4>{{ t('workItems.reports.workItemCompletionTrend') }}</h4>
+        <v-chart class="line" :option="emptyLineOption(t('workItems.completed'))" autoresize />
+        <span class="data-note">{{ t('workItems.reports.needCompletionTrendData') }}</span>
       </div>
     </div>
 
-    <!-- Details table -->
     <div class="details-card">
-      <h4>Work item details</h4>
+      <h4>{{ t('workItems.reports.workItemDetails') }}</h4>
       <div class="details-search">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input v-model="tableSearch" type="text" placeholder="Search table" />
+        <input v-model="tableSearch" type="text" :placeholder="t('workItems.reports.searchTable')" />
       </div>
       <table class="details-table">
         <thead>
           <tr>
-            <th>Work item key</th>
-            <th>Work item type</th>
-            <th>Work item priority</th>
-            <th>Summary</th>
+            <th>{{ t('workItems.reports.workItemKey') }}</th>
+            <th>{{ t('workItems.reports.workItemType') }}</th>
+            <th>{{ t('workItems.reports.workItemPriority') }}</th>
+            <th>{{ t('workItems.reports.summary') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -95,7 +99,9 @@
             <td><i :class="row.priorityIcon"></i> {{ row.priority }}</td>
             <td>{{ row.summary }}</td>
           </tr>
-          <tr v-if="!pagedRows.length"><td colspan="4" class="empty-cell">No work items</td></tr>
+          <tr v-if="!pagedRows.length">
+            <td colspan="4" class="empty-cell">{{ t('workItems.reports.noWorkItems') }}</td>
+          </tr>
         </tbody>
       </table>
       <div class="table-footer">
@@ -104,7 +110,7 @@
           <span class="page-num">{{ page }}</span>
           <button :disabled="page >= totalPages" @click="page++"><i class="fa-solid fa-chevron-right"></i></button>
         </div>
-        <span class="showing">Showing items {{ rangeStart }}-{{ rangeEnd }} of {{ filteredRows.length }}</span>
+        <span class="showing">{{ t('workItems.reports.showingItems', { start: rangeStart, end: rangeEnd, total: filteredRows.length }) }}</span>
       </div>
     </div>
   </div>
@@ -117,6 +123,7 @@ import { CanvasRenderer } from 'echarts/renderers'
 import { PieChart, BarChart, LineChart } from 'echarts/charts'
 import { TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
+import { useI18n } from '@/composables/useI18n'
 
 use([CanvasRenderer, PieChart, BarChart, LineChart, TooltipComponent, LegendComponent, GridComponent])
 
@@ -127,6 +134,7 @@ const props = defineProps({
 })
 defineEmits(['open-task'])
 
+const { t } = useI18n()
 const tableSearch = ref('')
 const page = ref(1)
 const PAGE_SIZE = 10
@@ -134,59 +142,111 @@ const PAGE_SIZE = 10
 const totalTasks = computed(() => props.tasks.length)
 const normalizeStatus = (v) => `${v || 'BACKLOG'}`.toUpperCase().replace(/\s+/g, ' ').trim()
 
-const isSubtask = (t) => Boolean(t.parentTaskId || t.parentId || t.parentTaskTitle || t.parentTitle)
+const isSubtask = (task) => Boolean(task.parentTaskId || task.parentId || task.parentTaskTitle || task.parentTitle)
 
-const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); d.setHours(0,0,0,0); return d }
-const daysAhead = (n) => { const d = new Date(); d.setDate(d.getDate() + n); d.setHours(23,59,59,999); return d }
-const toDate = (v) => { if (!v) return null; const d = new Date(v); return Number.isNaN(d.getTime()) ? null : d }
+const daysAgo = (n) => {
+  const date = new Date()
+  date.setDate(date.getDate() - n)
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+const daysAhead = (n) => {
+  const date = new Date()
+  date.setDate(date.getDate() + n)
+  date.setHours(23, 59, 59, 999)
+  return date
+}
+const toDate = (value) => {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
 
 const summary = computed(() => {
-  const last7 = daysAgo(7); const next7 = daysAhead(7); const now = new Date()
-  let completed = 0, updated = 0, created = 0, due = 0
-  props.tasks.forEach(t => {
-    const c = toDate(t.createdAt); const u = toDate(t.updatedAt || t.createdAt); const dd = toDate(t.dueDate)
-    if (normalizeStatus(t.statusName) === 'DONE' && u && u >= last7) completed++
-    if (u && u >= last7) updated++
-    if (c && c >= last7) created++
-    if (dd && dd >= now && dd <= next7) due++
+  const last7 = daysAgo(7)
+  const next7 = daysAhead(7)
+  const now = new Date()
+  let completed = 0
+  let updated = 0
+  let created = 0
+  let due = 0
+
+  props.tasks.forEach((task) => {
+    const createdAt = toDate(task.createdAt)
+    const updatedAt = toDate(task.updatedAt || task.createdAt)
+    const dueDate = toDate(task.dueDate)
+    if (normalizeStatus(task.statusName) === 'DONE' && updatedAt && updatedAt >= last7) completed++
+    if (updatedAt && updatedAt >= last7) updated++
+    if (createdAt && createdAt >= last7) created++
+    if (dueDate && dueDate >= now && dueDate <= next7) due++
   })
+
   return { completed, updated, created, due }
 })
 
-const STATUS_COLORS = { 'TO DO': '#8993a4', 'BACKLOG': '#8993a4', 'IN PROGRESS': '#0c66e4', 'IN REVIEW': '#e56910', 'DONE': '#22a06b', 'CANCELLED': '#e2483d' }
+const STATUS_COLORS = {
+  'TO DO': '#8993a4',
+  BACKLOG: '#8993a4',
+  'IN PROGRESS': '#0c66e4',
+  'IN REVIEW': '#e56910',
+  DONE: '#22a06b',
+  CANCELLED: '#e2483d'
+}
+
 const statusData = computed(() => {
   const map = new Map()
-  props.tasks.forEach(t => { const s = normalizeStatus(t.statusName); map.set(s, (map.get(s) || 0) + 1) })
-  const labelOf = (s) => props.statusOptions.find(o => o.name === s)?.label || s
-  return Array.from(map.entries()).map(([s, count]) => ({ name: labelOf(s), value: count, color: STATUS_COLORS[s] || '#8993a4' }))
+  props.tasks.forEach((task) => {
+    const status = normalizeStatus(task.statusName)
+    map.set(status, (map.get(status) || 0) + 1)
+  })
+  const labelOf = (status) => props.statusOptions.find((option) => option.name === status)?.label || status
+  return Array.from(map.entries()).map(([status, count]) => ({
+    name: labelOf(status),
+    value: count,
+    color: STATUS_COLORS[status] || '#8993a4'
+  }))
 })
 
 const typeData = computed(() => {
-  let task = 0, sub = 0
-  props.tasks.forEach(t => { isSubtask(t) ? sub++ : task++ })
+  let taskCount = 0
+  let subtaskCount = 0
+  props.tasks.forEach((task) => {
+    isSubtask(task) ? subtaskCount++ : taskCount++
+  })
   return [
-    { name: 'Task', value: task, color: '#0c66e4' },
-    { name: 'Subtask', value: sub, color: '#6e5dc6' }
-  ].filter(d => d.value > 0)
+    { name: t('workItems.reports.task'), value: taskCount, color: '#0c66e4' },
+    { name: t('workItems.reports.subtask'), value: subtaskCount, color: '#6e5dc6' }
+  ].filter((item) => item.value > 0)
 })
 
 const AVATAR_COLORS = ['#22a06b', '#0c66e4', '#e2483d', '#e56910', '#6e5dc6']
-const getAssigneeIds = (t) => Array.from(new Set([
-  ...(Array.isArray(t.assigneeIds) ? t.assigneeIds : []),
-  ...(Array.isArray(t.assignees) ? t.assignees.map(a => a.userId || a.id).filter(Boolean) : []),
-  ...(t.assignedUserId ? [t.assignedUserId] : [])
+const getAssigneeIds = (task) => Array.from(new Set([
+  ...(Array.isArray(task.assigneeIds) ? task.assigneeIds : []),
+  ...(Array.isArray(task.assignees) ? task.assignees.map((assignee) => assignee.userId || assignee.id).filter(Boolean) : []),
+  ...(task.assignedUserId ? [task.assignedUserId] : [])
 ]))
+
 const assigneeData = computed(() => {
   const map = new Map()
-  props.tasks.forEach(t => {
-    const ids = getAssigneeIds(t)
-    if (!ids.length) { map.set('__none', (map.get('__none') || 0) + 1); return }
-    ids.forEach(id => map.set(id, (map.get(id) || 0) + 1))
+  props.tasks.forEach((task) => {
+    const ids = getAssigneeIds(task)
+    if (!ids.length) {
+      map.set('__none', (map.get('__none') || 0) + 1)
+      return
+    }
+    ids.forEach((id) => map.set(id, (map.get(id) || 0) + 1))
   })
-  return Array.from(map.entries()).map(([id, value], i) => {
-    if (id === '__none') return { name: 'Unassigned', value, color: '#8993a4' }
-    const m = props.projectMembers.find(x => (x.userId || x.id) === id)
-    return { name: m?.fullName || m?.name || m?.email || 'Assignee', value, color: AVATAR_COLORS[i % AVATAR_COLORS.length] }
+
+  return Array.from(map.entries()).map(([id, value], index) => {
+    if (id === '__none') {
+      return { name: t('workItems.reports.unassigned'), value, color: '#8993a4' }
+    }
+    const member = props.projectMembers.find((item) => (item.userId || item.id) === id)
+    return {
+      name: member?.fullName || member?.name || member?.email || t('workItems.assignee'),
+      value,
+      color: AVATAR_COLORS[index % AVATAR_COLORS.length]
+    }
   })
 })
 
@@ -194,34 +254,48 @@ const donut = (data, total) => ({
   tooltip: { trigger: 'item' },
   legend: { bottom: 0, left: 'center', textStyle: { color: 'var(--color-text-muted)', fontSize: 11 }, icon: 'circle' },
   series: [{
-    type: 'pie', radius: ['55%', '75%'], center: ['50%', '42%'], avoidLabelOverlap: false,
-    label: { show: true, position: 'center', formatter: `${total}\nTotal value`, color: 'var(--color-text-primary)', fontSize: 13, lineHeight: 18 },
+    type: 'pie',
+    radius: ['55%', '75%'],
+    center: ['50%', '42%'],
+    avoidLabelOverlap: false,
+    label: {
+      show: true,
+      position: 'center',
+      formatter: `${total}\n${t('workItems.reports.totalValue')}`,
+      color: 'var(--color-text-primary)',
+      fontSize: 13,
+      lineHeight: 18
+    },
     labelLine: { show: false },
-    data: data.map(d => ({ name: d.name, value: d.value, itemStyle: { color: d.color } }))
+    data: data.map((item) => ({ name: item.name, value: item.value, itemStyle: { color: item.color } }))
   }],
   backgroundColor: 'transparent'
 })
 
-// Creation trend: gom theo ngày tạo (dữ liệu thật), tách To Do / In Progress
 const creationTrendOption = computed(() => {
   const byDay = new Map()
-  props.tasks.forEach(t => {
-    const c = toDate(t.createdAt); if (!c) return
-    const key = c.toISOString().slice(0, 10)
+  props.tasks.forEach((task) => {
+    const createdAt = toDate(task.createdAt)
+    if (!createdAt) return
+    const key = createdAt.toISOString().slice(0, 10)
     if (!byDay.has(key)) byDay.set(key, { todo: 0, progress: 0 })
     const bucket = byDay.get(key)
-    normalizeStatus(t.statusName) === 'IN PROGRESS' ? bucket.progress++ : bucket.todo++
+    normalizeStatus(task.statusName) === 'IN PROGRESS' ? bucket.progress++ : bucket.todo++
   })
+
   const days = Array.from(byDay.keys()).sort()
+  const todoLabel = t('workItems.reports.toDo')
+  const inProgressLabel = t('workItems.reports.inProgress')
+
   return {
     tooltip: { trigger: 'axis' },
-    legend: { top: 0, left: 0, data: ['To Do', 'In Progress'], textStyle: { color: 'var(--color-text-muted)', fontSize: 11 }, icon: 'rect' },
+    legend: { top: 0, left: 0, data: [todoLabel, inProgressLabel], textStyle: { color: 'var(--color-text-muted)', fontSize: 11 }, icon: 'rect' },
     grid: { left: '3%', right: '4%', bottom: '8%', top: 32, containLabel: true },
     xAxis: { type: 'category', data: days, axisLabel: { color: 'var(--color-text-muted)' } },
     yAxis: { type: 'value', minInterval: 1, splitLine: { lineStyle: { color: 'var(--color-border)' } }, axisLabel: { color: 'var(--color-text-muted)' } },
     series: [
-      { name: 'To Do', type: 'bar', stack: 'c', data: days.map(d => byDay.get(d).todo), itemStyle: { color: '#0c66e4' } },
-      { name: 'In Progress', type: 'bar', stack: 'c', data: days.map(d => byDay.get(d).progress), itemStyle: { color: '#22a06b' } }
+      { name: todoLabel, type: 'bar', stack: 'c', data: days.map((day) => byDay.get(day).todo), itemStyle: { color: '#0c66e4' } },
+      { name: inProgressLabel, type: 'bar', stack: 'c', data: days.map((day) => byDay.get(day).progress), itemStyle: { color: '#22a06b' } }
     ],
     backgroundColor: 'transparent'
   }
@@ -236,44 +310,34 @@ const emptyLineOption = (name) => ({
   backgroundColor: 'transparent'
 })
 
-// Lead time: placeholder mock flat line
-const leadTimeOption = computed(() => ({
-  tooltip: { trigger: 'axis' },
-  legend: { top: 0, left: 0, data: ['Task', 'Subtask'], textStyle: { color: 'var(--color-text-muted)', fontSize: 11 }, icon: 'circle' },
-  grid: { left: '3%', right: '4%', bottom: '8%', top: 32, containLabel: true },
-  xAxis: { type: 'category', boundaryGap: false, data: ['2026-06-01', '2026-06-08'], axisLabel: { color: 'var(--color-text-muted)' } },
-  yAxis: { type: 'value', splitLine: { lineStyle: { color: 'var(--color-border)' } }, axisLabel: { color: 'var(--color-text-muted)' } },
-  series: [{ name: 'Task', type: 'line', data: [0, 0], itemStyle: { color: '#0c66e4' } }],
-  backgroundColor: 'transparent'
-}))
-
-// Details table
-const priorityMeta = (p) => {
-  if (p === 1) return { icon: 'fa-solid fa-angles-up', label: 'Highest' }
-  if (p === 2) return { icon: 'fa-solid fa-chevron-up', label: 'High' }
-  if (p === 3) return { icon: 'fa-solid fa-equals', label: 'Medium' }
-  if (p === 4) return { icon: 'fa-solid fa-chevron-down', label: 'Low' }
-  return { icon: 'fa-solid fa-minus', label: 'Medium' }
+const priorityMeta = (priority) => {
+  if (priority === 1) return { icon: 'fa-solid fa-angles-up', label: t('workItems.priority.urgent') }
+  if (priority === 2) return { icon: 'fa-solid fa-chevron-up', label: t('workItems.priority.high') }
+  if (priority === 3) return { icon: 'fa-solid fa-equals', label: t('workItems.priority.medium') }
+  if (priority === 4) return { icon: 'fa-solid fa-chevron-down', label: t('workItems.priority.low') }
+  return { icon: 'fa-solid fa-minus', label: t('workItems.priority.medium') }
 }
 
-const allRows = computed(() => props.tasks.map(t => {
-  const sub = isSubtask(t)
-  const pm = priorityMeta(t.priority)
+const allRows = computed(() => props.tasks.map((task) => {
+  const subtask = isSubtask(task)
+  const priority = priorityMeta(task.priority)
   return {
-    id: t.id, task: t,
-    key: t.sequenceId || t.id.substring(0, 8).toUpperCase(),
-    type: sub ? 'Subtask' : 'Task',
-    typeIcon: sub ? 'fa-solid fa-diagram-project' : 'fa-solid fa-square-check',
-    typeColor: sub ? '#6e5dc6' : '#0c66e4',
-    priority: pm.label, priorityIcon: pm.icon,
-    summary: t.title || ''
+    id: task.id,
+    task,
+    key: task.sequenceId || task.id.substring(0, 8).toUpperCase(),
+    type: subtask ? t('workItems.reports.subtask') : t('workItems.reports.task'),
+    typeIcon: subtask ? 'fa-solid fa-diagram-project' : 'fa-solid fa-square-check',
+    typeColor: subtask ? '#6e5dc6' : '#0c66e4',
+    priority: priority.label,
+    priorityIcon: priority.icon,
+    summary: task.title || ''
   }
 }))
 
 const filteredRows = computed(() => {
-  const q = tableSearch.value.trim().toLowerCase()
-  if (!q) return allRows.value
-  return allRows.value.filter(r => r.key.toLowerCase().includes(q) || r.summary.toLowerCase().includes(q))
+  const query = tableSearch.value.trim().toLowerCase()
+  if (!query) return allRows.value
+  return allRows.value.filter((row) => row.key.toLowerCase().includes(query) || row.summary.toLowerCase().includes(query))
 })
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredRows.value.length / PAGE_SIZE)))
 const pagedRows = computed(() => filteredRows.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE))
@@ -289,6 +353,7 @@ const rangeEnd = computed(() => Math.min(page.value * PAGE_SIZE, filteredRows.va
   padding: 6px 12px; border-radius: 4px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
 }
 .more-reports-btn:hover { background: var(--color-border); }
+.more-reports-btn:disabled { opacity: .55; cursor: not-allowed; }
 
 .summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px; }
 .sum-card { display: flex; align-items: center; gap: 12px; border: 1px solid var(--color-border); border-radius: 6px; padding: 14px 16px; background: var(--color-surface); }
@@ -305,7 +370,7 @@ const rangeEnd = computed(() => Math.min(page.value * PAGE_SIZE, filteredRows.va
 .chart-card h4 { margin: 0 0 8px; font-size: 14px; color: var(--color-text-primary); }
 .donut { height: 240px; }
 .bar, .line { height: 240px; }
-.mock-note { position: absolute; bottom: 8px; right: 12px; font-size: 10px; color: var(--color-text-muted); }
+.data-note { position: absolute; bottom: 8px; right: 12px; font-size: 10px; color: var(--color-text-muted); }
 
 .details-card { border: 1px solid var(--color-border); border-radius: 6px; padding: 16px; background: var(--color-surface); }
 .details-card h4 { margin: 0 0 12px; font-size: 14px; color: var(--color-text-primary); }

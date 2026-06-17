@@ -15,9 +15,9 @@
     <div class="nav-center" ref="searchWrapperRef">
       <div class="search-input-wrapper">
         <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        <input type="text" placeholder="Search work items..." v-model="searchQuery" @input="handleSearchInput" />
+        <input type="text" :placeholder="t('shell.searchPlaceholder')" v-model="searchQuery" @input="handleSearchInput" />
         <div v-if="showSearchDropdown" class="search-dropdown">
-          <div v-if="searching" class="search-state">Searching...</div>
+          <div v-if="searching" class="search-state">{{ t('shell.searching') }}</div>
           <template v-else-if="searchResults.length">
             <button v-for="result in searchResults" :key="result.id" type="button" class="search-result" @click="openSearchResult(result)">
               <strong>{{ result.sequenceId || result.title }}</strong>
@@ -25,7 +25,7 @@
               <small>{{ result.projectName }}</small>
             </button>
           </template>
-          <div v-else class="search-state">No work items found.</div>
+          <div v-else class="search-state">{{ t('shell.searchNoResults') }}</div>
         </div>
       </div>
     </div>
@@ -55,9 +55,11 @@ import { useProjectStore } from '@/store/useProjectStore'
 import { toggleTheme, currentTheme } from '@/utils/theme'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/projectContext'
+import { useI18n } from '@/composables/useI18n'
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 const projectStore = useProjectStore()
 const searchQuery = ref('')
 const searchResults = ref([])

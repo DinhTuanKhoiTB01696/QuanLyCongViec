@@ -23,11 +23,11 @@
             :title="m.label"
           >{{ m.initials }}</span>
         </div>
-        <button class="bt-btn"><i class="fa-solid fa-bars-staggered"></i> Filter</button>
+        <button class="bt-btn" type="button" disabled title="[CẦN FLOW] Bộ lọc Backlog nâng cao chưa hỗ trợ"><i class="fa-solid fa-bars-staggered"></i> Filter</button>
       </div>
       <div class="bt-right">
-        <button class="bt-icon" title="View settings"><i class="fa-solid fa-sliders"></i></button>
-        <button class="bt-icon" title="More"><i class="fa-solid fa-ellipsis"></i></button>
+        <button class="bt-icon" type="button" disabled title="[CẦN FLOW] Cài đặt hiển thị Backlog chưa hỗ trợ"><i class="fa-solid fa-sliders"></i></button>
+        <button class="bt-icon" type="button" disabled title="[CẦN FLOW] Menu Backlog chưa hỗ trợ"><i class="fa-solid fa-ellipsis"></i></button>
       </div>
     </div>
 
@@ -152,6 +152,13 @@ const assigneeAvatar = (task) => {
 }
 
 const normalizeStatus = (v) => `${v || 'BACKLOG'}`.toUpperCase().replace(/\s+/g, ' ').trim()
+const taskStatusValue = (task) => {
+  const status = task?.statusName ?? task?.status ?? task?.name
+  if (status && typeof status === 'object') {
+    return normalizeStatus(status.name || status.displayName || status.value)
+  }
+  return normalizeStatus(status)
+}
 const statusLabel = (v) => props.statusOptions.find(s => s.name === normalizeStatus(v))?.label || normalizeStatus(v)
 const statusCategory = (v) => {
   const s = normalizeStatus(v)
@@ -179,18 +186,18 @@ const matchesSearch = (task) => {
     `${task.sequenceId || ''}`.toLowerCase().includes(q)
 }
 
-const inSprint = (task) => Boolean(task.sprintId || task.sprintName)
+const isBacklogStatus = (task) => taskStatusValue(task) === 'BACKLOG'
 
 const buildCounts = (items) => {
   const counts = { todo: 0, progress: 0, done: 0 }
-  items.forEach(t => { counts[statusCategory(t.statusName)] += 1 })
+  items.forEach(t => { counts[statusCategory(taskStatusValue(t))] += 1 })
   return counts
 }
 
 const groups = computed(() => {
   const filtered = (props.tasks || []).filter(matchesSearch)
-  const board = filtered.filter(inSprint)
-  const backlog = filtered.filter(t => !inSprint(t))
+  const board = filtered.filter(task => !isBacklogStatus(task))
+  const backlog = filtered.filter(isBacklogStatus)
   return [
     { key: 'board', name: 'Board', items: board, counts: buildCounts(board), defaultStatus: 'TO DO' },
     { key: 'backlog', name: 'Backlog', items: backlog, counts: buildCounts(backlog), defaultStatus: 'BACKLOG' }
@@ -242,6 +249,13 @@ const toggleGroupSelection = (group) => {
   font-size: 13px; cursor: pointer; padding: 6px 10px; border-radius: 4px; display: flex; align-items: center; gap: 6px;
 }
 .bt-btn:hover, .bt-icon:hover { background: var(--color-border); }
+.bt-btn:disabled, .bt-icon:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.bt-btn:disabled:hover, .bt-icon:disabled:hover {
+  background: transparent;
+}
 
 .backlog-body { flex: 1; min-height: 0; overflow: auto; padding: 0 24px 24px; }
 .backlog-group { margin-bottom: 24px; }
