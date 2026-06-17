@@ -9,5 +9,10 @@ namespace TaskManagement.Application.DTOs.Department
         public string Name { get; set; } = string.Empty;
 
         public Guid? ManagerId { get; set; }
+        
+        [StringLength(1000)]
+        public string? Description { get; set; }
+        
+        public string? CoverImage { get; set; }
     }
 }

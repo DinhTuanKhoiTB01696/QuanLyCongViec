@@ -7,7 +7,7 @@
               <i class="fa-solid fa-briefcase"></i>
               <h1>Projects</h1>
             </div>
-        
+
         <div class="sh-right">
           <div class="search-box">
              <i class="fa-solid fa-magnifying-glass"></i>
@@ -65,22 +65,22 @@
                  <button class="card-icon-btn" type="button" :class="{ 'starred': space.starred }" @click="toggleStar(space)"><i :class="space.starred ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i></button>
                </div>
             </div>
-            
+
             <div class="card-body">
               <!-- Floating Project Icon -->
               <div class="floating-icon">
                 <span class="emoji">{{ space.icon || emojiList[index % emojiList.length] || '👇' }}</span>
               </div>
-              
+
               <div class="proj-title-row">
                  <h3>{{ space.name }}</h3>
                  <span class="proj-key">{{ space.key }}</span>
               </div>
-              
+
               <p class="proj-desc">
                 {{ space.originalRow?.description || 'Welcome to this Project! This project throws you into the driver\'s seat of work management. Through curated work items, you\'ll uncover key features...' }}
               </p>
-              
+
               <div class="card-footer" @click.stop>
                  <span class="visibility-pill" :class="space.networkType?.toLowerCase()">
                    <i :class="space.networkType === 'Private' ? 'fa-solid fa-lock' : 'fa-solid fa-globe'"></i>
@@ -102,7 +102,7 @@
             </div>
           </div>
         </div>
-        
+
         <div v-else class="spaces-table-container">
           <table class="jira-table spaces-table" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
@@ -163,7 +163,7 @@
         </div>
       </div>
       </section>
-      
+
       <CreateSpaceModal v-model:visible="isCreateModalVisible" @created="fetchSpaces" />
     </div>
   </AdminLayout>
@@ -265,7 +265,7 @@ const fetchSpaces = async () => {
   try {
     const response = await axiosClient.get('/projects/discovery')
     const data = response.data.data || response.data || []
-    
+
     // Transform data
     spaces.value = data.map(p => ({
       id: p.id,
@@ -851,7 +851,3 @@ const filterLabel = computed(() => ({
   cursor: default !important;
 }
 </style>
-
-
-
-

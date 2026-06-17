@@ -1,0 +1,1041 @@
+để biết ngay  bối cảnh  cộng  tác mà  không  phải tìm kiếm thủ công.  
+User Story: Là  người dùng,  tôi muốn mở  Teams  và  nhìn  thấy team  của  mình  cùng  các lời khen  gần  đây 
+lời khen  gần  đây. Đây là điểm vào  nhanh  trước khi đi sâu  vào  danh  sách  team.  
+Mục đích: Trang  mở  đầu để người dùng  thấy nhanh  team  mình  thuộc  về, các team  nổi bật gần  đây và  
+1.1 Teams / Dành cho bạn 
+PHASE 1 — TEAMS 
+cứng,  nút overflow  3 chấm,  icon  avatar  tròn, và  empty-state   illustration  trung  tâm.  
+Jira similarity: Các  dấu  hiệu nhận diện bắt buộc: tab ngang  dưới title, right rail chứa metadata   khóa  
+tab bar cao  khoảng   40–48px.  
+Khoảng  cách: Padding  card  12–16px;  spacing  giữa nhóm   khối 16–24px;  danh  sách/filter  row  8–12px;  
+caption/metadata    11–12px.  
+Typography:  Tiêu đề trang  dùng  cỡ  24–28px;  H2  khoảng   18–20px;  H3  14–16px;  body  12–14px;  
+thái  hover  chủ yếu  dùng  highlight  nền  và  icon  trạng thái. 
+Bo  góc / card: Card  và  modal  thiên về  bo  góc  nhỏ 8–12px,  viền mảnh   xám  rất nhạt, shadow   nhẹ; trạng 
+~1240–1280px;    detail  rail bên  phải ~280–320px.   
+Pixel-level tổng quát: Sidebar  khoảng   220–250px;   top bar cao  khoảng   52–56px;  vùng  nội dung  tối đa 
+để tạo cảm  giác  enterprise.  
+●  Canvas   nội dung:  nền  trắng, bố  cục thoáng,  dùng  card  viền mỏng,  khoảng   trắng lớn như Jira  Atlas 
+hình  còn  đổi nhãn  theo  ngữ cảnh  như “Mục tiêu  của  tôi”, “Đã lưu trữ”. 
+●  Sidebar  trái: điều hướng  theo  module   với Teams,  People,  Kudos,  Goals,  Projects;  ở một  số  màn  
+●  Header   toàn  cục:  search  bar ở phía  trên, nút Tạo,  icon  thông  báo,  icon  cài đặt và  avatar  người dùng.  
+3. Hệ thống UI dùng chung 
+archive,  popup  liên kết,  và  danh  sách  thẻ/ô. 
+●  Tài liệu thể hiện ngôn  ngữ Jira  Atlas rõ nhất ở: tab theo  ngữ cảnh,  right rail khóa  cứng,  trạng thái  
+trung  tâm,  và  một  detail  rail bên  phải ở các màn  hình  chi tiết. 
+●  Mẫu  điều hướng  lặp lại trên  toàn  bộ  site: sidebar  trái, top bar có  search/create,   khu  vực  nội dung  
+và  People  rồi liên kết với space  project.  
+●  Home   site là lớp quản lý site độc lập,  không  phải admin  console.  Nó  quản lý Teams,  Goals,  Projects  
+2. Mô hình sản phẩm tổng thể 
+nêu  trực tiếp sẽ  được đánh dấu  là suy ra. 
+●  Các  thông  số  pixel là ước lượng  reconstruction   hợp  lý từ  ảnh chụp trong  tài liệu; những  điểm không  
+hiện tại. 
+●  Nguồn  duy  nhất: file PDF  “Tổng  hợp  chức năng  tích  hợp”.  Không  suy luận từ  source  code  hay  dự  án  
+●  Tài liệu này  là bản  SPEC   giao  diện và  hành  vi sản  phẩm,  không  phải tài liệu code.  
+1. Phạm vi và nguyên tắc nguồn 
+ 
+Reverse-engineering     specification  dựa  duy  nhất trên  file “Tổng  hợp  chức năng  tích  hợp”  
+ 
+SPECIFICATION
+SPRINTA JIRA RECONSTRUCTION 
+----------------Page (0) Break----------------
+bằng  form,  mà  đưa ra shortcut,  card  ngắn, và  lối đi nhanh  vào  module   khác.  
+Giống Jira Atlas ở điểm nào: Cảm  giác  Jira  Atlas nằm  ở cách  hệ  thống không  tấn công  người dùng  
+thước theo  grid  3 cột.  
+Pixel-level: Sidebar  ~240px;  top search  ~560px   x 32px;  shortcut  card  cao  ~120–160px;   cards  team  kích  
+Card / Button: Card  bo  góc  nhỏ, viền xám  nhạt; button  primary  màu  xanh;  button  phụ dạng  text  link. 
+blue. 
+Typography:  Title lớn 24px;  subtitle/call-to-action  13–14px;  card  metadata   11–12px;  link dùng  màu  Jira  
+12px.  
+Khoảng  cách: Header   padding  12–16px;  khoảng   cách  giữa title và  khối nội dung  16px;  card  spacing  
+content  80–82%.  
+Tỷ lệ layout: Main  content  chiếm  gần  như toàn  bộ  chiều  ngang;  sidebar  trái khoảng   18–20%;  vùng  
+ 
+└─ Recent kudos feed 
+│  └─ View all teams / view all people 
+│  ├─ Team suggestions 
+├─ Shortcut block 
+├─ Section title: Dành cho bạn 
+Main 
+ 
+└─ Projects 
+├─ Goals 
+├─ Kudos 
+├─ People 
+├─ Teams 
+Sidebar 
+ 
+├─ Notification / Settings / Avatar 
+├─ Create button 
+├─ Search bar 
+Header 
+Layout Tree 
+●  Feed  lời khen  gần  đây: click vào  item  để mở  kudos  detail  hoặc profile liên quan  (suy  ra theo  pattern).  
+●  Cards  team  gần  đây: click vào  card  mở  team  detail. 
+●  Button  “Duyệt xem  tất cả  mọi  người”: click đi tới People  directory . 
+●  Button  “Duyệt xem  tất cả  đội ngũ” ở khối shortcut:  click đi tới trang  Nhóm.  
+Thành phần chức năng 
+●  Archived:  team  đã archive  không  nên  xuất hiện như thẻ bình  thường ở khối này. 
+●  ReadOnly:   chỉ xem,  không  có  tạo/sửa  ở màn  Dành  cho  bạn.  
+●  Error:  báo  lỗi tải danh  sách  và  cho  phép  tải lại. 
+●  Loading:   skeleton  cho  card  team  và  feed. 
+●  Empty:  nếu  không  có  membership    hoặc chưa có  kudos  thì hiển thị empty-state   theo  phong  cách  Jira. 
+●  Normal:  hiển thị danh  sách  team  của  tôi, team  gần  đây và  lời khen  gần  đây. 
+Trạng thái 
+xem  team  và  membership    hiện hành.  
+Quyền truy cập: Mọi  user  đã đăng nhập trong  site đều xem  được; dữ  liệu hiển thị được lọc theo  quyền  
+directory . Không  có  điều hướng  ra ngoài  site ở màn  này. 
+Điều hướng: Từ  sidebar  trái chọn Teams.  Từ  khối shortcut  trên  trang  đi đến Teams  list hoặc People  
+này  không  tạo dữ  liệu mới  mà  là chỉ số  truy  cập  nhanh.  
+Business  Flow: Hệ  thống tổng  hợp  membership,   starred  team  và  kudos  feed  theo  user  hiện tại; khối 
+trang  Nhóm   → bấm  “Duyệt xem  tất cả  mọi  người” để chuyển sang  People.  
+User Flow: Mở  Teams  → xem  khối Dành  cho  bạn  → bấm  “Duyệt xem  tất cả  đội ngũ” để chuyển sang  
+----------------Page (1) Break----------------
+ 
+   └─ Star / status icon 
+   ├─ Team type 
+   ├─ Team name 
+   ├─ Avatar/icon 
+└─ Team cards grid/list 
+├─ Summary count 
+├─ Search/filter row 
+├─ Tabs 
+├─ Page title: Nhóm 
+Main 
+ 
+└─ Teams module nav 
+Sidebar 
+ 
+└─ Utility icons 
+├─ Create 
+├─ Search 
+Header 
+Layout Tree 
+●  Button  Tạo  đội ngũ: mở  popup  tạo team  nhanh.  
+●  Card  team:  click mở  team  detail; click star  cập  nhật starred  state.  
+●  Sort  / view  toggle  grid-list ở góc  phải khu  danh  sách.  
+●  Filter chip  như Thành  viên, Đạt lại, Cờ  gắn  sao,  Loại đội ngũ, Mục  tiêu, Dự  án  (theo  ảnh tài liệu). 
+●  Search   “Tìm kiếm đội ngũ”: lọc theo  tên team.  
+●  Tabs  Tất cả  đội ngũ / Nhóm   của  bạn  / Lưu  trữ: đổi scope  dữ  liệu. 
+Thành phần chức năng 
+●  Archived:  card  xám,  không  cho  chỉnh sửa  trừ restore.  
+●  ReadOnly:   khi team  đã archive  hoặc user  không  có  quyền  edit. 
+●  Error:  lỗi truy  xuất danh  sách  hoặc lọc. 
+●  Loading:   skeleton  của  search  row, filter chips  và  card  grid. 
+●  Empty:  tab Lưu  trữ hoặc filter quá  chặt hiển thị empty-state   minh  họa  tìm kiếm không  có  kết quả. 
+●  Normal:  grid/list có  card  team,  filter chip, sort  control  và  pagination/virtual   scroll  nếu  cần.  
+Trạng thái 
+viên  và  thông  tin. 
+archive/delete.   Nếu  team  chuyển thành  group,  member   có  quyền  tương  đương để sửa/thêm/xóa    thành  
+Quyền truy cập: Admin/owner   team  có  quyền  quản lý thành  viên, settings,  liên kết project,  
+tạo nhanh.  Overflow   3 chấm mở  settings/archive/delete.    
+Điều hướng: Sidebar  → Teams.  Tab  ngang  đổi scope.  Card  team  mở  detail. Nút Tạo  đội ngũ mở  luồng 
+xem/restore.   
+Starred  team  được đẩy lên bộ  lọc/favorite.  Archived   team  được chuyển sang  trạng thái  xám  và  chỉ 
+Business  Flow: Danh  sách  team  được tạo từ  metadata   site; các tab chỉ khác  nhau  ở query  và  scope.  
+team  → mở  detail  → từ  detail  có  thể archive,  xóa,  thêm  người, hoặc thiết lập liên kết.  
+User Flow: Vào  tab Tất cả  đội ngũ / Nhóm   của  bạn  / Lưu  trữ → dùng  search/filter/sort  → chọn card  
+cần,  đánh dấu  sao,  archive  hoặc mở  chi tiết team.  
+User Story: Là  người dùng,  tôi muốn lọc và  duyệt  team  theo  phạm vi phù  hợp  để tìm đúng team  mình  
+của  Teams.  
+Mục đích: Trang  trung  tâm  để xem  toàn  bộ  team,  team  của  tôi và  team  đã lưu trữ. Đây là directory  chính  
+1.2 Teams / Danh sách Nhóm 
+Ghi chú reconstruction: Màn  này  là landing  logic cho  Teams,  không  phải dashboard   admin.  
+----------------Page (2) Break----------------
+ 
+└─ Overflow menu 
+├─ Add member button 
+├─ Team type badge 
+├─ Team title 
+├─ Team avatar 
+├─ Hover action: add cover / upload 
+├─ Cover image 
+Header area 
+Layout Tree 
+●  Link  text: mở  popup  nhập URL  và  display  text  cho  external  link. 
+●  Link  SprintA  / project  icon: mở  popup  nối team  với project.  
+●  Overflow   3 chấm:  Star  team,  Settings  nhóm,  Archive,  Xóa  nhóm.  
+●  Button  Thêm   người: mở  modal  thêm  thành  viên, có  search  by  name.  
+●  Tabs  Giới thiệu / Hoạt động / Phân  cấp  / Mục  Tiêu / DỰ  Án  / Khen  ngợi. 
+●  Avatar/icon  team  và  title ở góc  trái bên  dưới cover . 
+●  Cover/banner    ở đỉnh: hover  hiện nút thêm  ảnh bìa,  click mở  upload  ảnh. 
+Thành phần chức năng 
+●  Archived:  cover  và  card  chuyển xám,  các thao  tác edit  bị khóa,  chỉ còn  restore.  
+●  ReadOnly:   team  archive  hoặc quyền  thấp. 
+●  Error:  lỗi tải chi tiết team.  
+●  Loading:   cover  skeleton  + rail skeleton  + tab skeleton.  
+●  Empty:  chưa có  member  , chưa có  project  link hoặc chưa có  khen  ngợi. 
+●  Normal:  cover  màu,  tabs  hoạt động, right rail metadata   khóa  cứng,  member   list hiển thị. 
+Trạng thái 
+Group  member:   nếu  team  đổi thành  group  thì mọi  member   có  quyền  ngang  nhau  để sửa  và  thêm/xóa.  
+Quyền truy cập: Owner/admin    team:  đổi cover , avatar , settings,  member   list, link project,  archive/delete.   
+overflow  chứa settings/archive/delete.    
+Điều hướng: Click card  team  từ  list; tab đổi ngữ cảnh  trong  detail; breadcrumb    đội ngũ ở phía  trên; icon  
+chỉnh sửa.  
+membership    và  linkage  là quan  hệ  dữ  liệu; archive/delete   tác động đến trạng thái  toàn  site và  quyền  
+Business  Flow: Team  detail  là thực thể trung  tâm.  Cover/avatar/nội  dung  mô  tả là metadata;  
+hoàn  tất. 
+thêm  thành  viên, đánh dấu  sao,  archive,  xóa,  chỉnh settings,  nối project  hoặc link web  → quay  lại list khi 
+User Flow: Mở  một  team  từ  danh  sách  → xem  cover  và  header  → dùng  tab để chuyển ngữ cảnh  → 
+viên, nối team  với project/goal,  và  đọc activity/kudos   để điều phối công  việc. 
+User Story: Là  admin  hoặc thành  viên  có  quyền,  tôi muốn xem  và  chỉnh thông  tin team,  quản lý thành  
+ngợi. Đây là nơi gắn  team  vào  hệ  sinh  thái  site. 
+Mục đích: Trang  làm  việc sâu  của  một  team:  giới thiệu,  hoạt động, phân  cấp,  mục  tiêu, dự  án, và  khen  
+1.3 Team Detail / Trang chi tiết Nhóm 
+hóa  dữ  liệu, và  quyền  archive/restore   hiển thị rõ ràng.  
+Giống Jira Atlas ở điểm nào: Giống  Jira  Atlas ở cấu  trúc  directory  nhiều  scope,  filter chips  ngang,  card  
+Pixel-level: Search   bar full row  ~1000px;   chip  filter cao  28–32px;  card  grid  ~280–320px   rộng  mỗi  card. 
+secondary/button    nhỏ. 
+Card / Button: Team  card  radius  ~8px;  star  icon  nằm  góc  phải card; button  Tạo  đội ngũ là 
+Typography:  Title 20–22px;  tab label 13px;  card  title 13–14px;  metadata   11–12px.  
+Khoảng  cách: Tabs  cao  40–44px;  khoảng   giữa filter row  và  grid  12–16px;  card  padding  12px.  
+chiều  rộng  giảm. 
+Tỷ lệ layout: Content  vùng  chính  khoảng   78%;  filter row  1 dòng;  card  grid  3 cột ở desktop,  2 cột khi 
+----------------Page (3) Break----------------
+●  Mục  Tiêu:  nút Thêm   mục  tiêu  mở  popup  tìm kiếm + recent  goals  + quick  create  goal. 
+●  Phân  cấp:  chọn team  cha/child;  popup  edit  có  search,  xóa  parent,  thay  parent,  checkbox   multi-child.  
+●  Hoạt động: danh  sách  task/bug  do  dự  án  chỉ định cho  team,  tổng  hợp  từ  nhiều  space  project.  
+50  người/lần. 
+●  Giới thiệu:  click vào  text  để sửa  mô  tả team;  danh  sách  member;   dấu  cộng  để thêm  member   tối đa 
+Thành phần chức năng 
+●  Archived:  mọi  tab vẫn  xem  được nhưng  hành  vi write bị khóa.  
+●  ReadOnly:   nếu  team  archive  hoặc user  thấp quyền.  
+●  Error:  lỗi load  tab dữ  liệu. 
+●  Loading:   tab skeleton  riêng theo  khối. 
+●  Empty:  tab không  có  data  sẽ  hiện empty  placeholder   riêng.  
+●  Normal:  từng  tab có  nội dung  riêng.  
+Trạng thái 
+member  , edit  hierarchy , link project/goal   cần  quyền  phù  hợp.  
+Quyền truy cập: Member   có  thể xem;  quyền  edit  phụ thuộc  team  type  và  setting.  Các  hành  vi như thêm  
+đi đến module   liên quan.  
+Điều hướng: Không  điều hướng  sang  page  khác,  trừ các link task/project/goals   được mở  preview  hoặc 
+linking,  project  linking,  kudos  publishing.  Cùng  một  team  nhưng  dữ  liệu được lưu ở nhiều  bảng  quan  hệ. 
+Business  Flow: Các  tab là các quan  hệ  khác  nhau:  description,  activity  feed, hierarchy  tree, goal  
+phản ánh  sang  site-level  list khi cần.  
+User Flow: Chọn tab tương  ứng → thao  tác trong  tab → thay  đổi dữ  liệu ngay  trong  detail  → dữ  liệu 
+project  và  kudos  mà  không  rời khỏi team  detail. 
+User Story: Là  người quản lý team,  tôi muốn chuyển tab để xem  mô  tả, thành  viên, hierarchy , goal, 
+nối với Goals  và  Projects.  
+Mục đích: Mỗi  tab là một  ngữ cảnh  nghiệp vụ  riêng,  cho  phép  team  vừa  là đơn vị tổ chức vừa  là điểm 
+1.4 Team Tabs / Giới thiệu, Hoạt động, Phân cấp, Mục Tiêu, Dự Án, Khen ngợi 
+khóa  cứng,  và  overflow  menu   chứa archive/delete/settings.    
+Giống Jira Atlas ở điểm nào: Đây là phần giống Jira  Atlas nhất: cover  lớn,  tab dưới title, detail  rail 
+~40px;  member   card  ~240px   rộng.  
+Pixel-level: Cover  banner  ~220px   height;  team  avatar  32–40px  ở header;  right rail ~300px;  tab height  
+overflow  menu   dạng  dropdown   chuẩn  Jira. 
+Card / Button: Cover  bo  góc  phía  trên; panel  rail nền  trắng; button  add  member   dạng  primary  nhỏ; 
+Typography:  Title team  18–20px;  tab 13px;  rail label 11–12px;  link/action  dùng  blue  text. 
+8–10px.  
+Khoảng  cách: Khoảng   cách  giữa cover  và  tab bar ~12px;  padding  trong  rail 12–16px;  member   chip  
+cố  định theo  chiều  dọc.  
+Tỷ lệ layout: Cột nội dung  chính  khoảng   70–72%;  right rail 28–30%.  Cover  cao  khoảng   180–220px;   rail 
+ 
+   └─ Team type / metadata 
+   ├─ Child teams 
+   ├─ Parent team 
+   ├─ Linked URL 
+   ├─ Linked projects 
+└─ Right detail rail 
+│  └─ Member block / activity block 
+│  ├─ Current tab content 
+├─ Left content column 
+├─ Tabs bar 
+Body 
+----------------Page (4) Break----------------
+●  Archived:  các popup  chỉnh sửa  bị vô  hiệu hóa.  
+●  ReadOnly:   popup  chỉ xem,  không  có  submit.  
+●  Error:  lỗi tải dữ  liệu popup.  
+●  Loading:   danh  sách  recent/search   trong  popup  tải chậm.  
+●  Empty:  không  có  item  gần  đây → show  empty  list hoặc prompt  tạo mới.  
+●  Normal:  popup  hiển thị form/chọn  item. 
+Trạng thái 
+confirm  và  giải thích tác động. 
+Quyền truy cập: Hiển thị action  trong  popup  tùy theo  quyền;  actions  nguy  hiểm như delete/  archive  cần  
+điều hướng  trang,  chỉ trả dữ  liệu về  màn  hiện tại. 
+Điều hướng: Đóng popup  bằng  X,  click ngoài  vùng  mờ  hoặc phím  Esc;  các popup  nhỏ thường không  
+add  goal, link project,  external  link, archive/delete   confirm.  
+Business  Flow: Popup/modal   là lớp giao  diện tạm  thời cho  upload,  chọn team  cha/con,  thêm  member  , 
+tìm kiếm/chọn → xác nhận → dữ  liệu cập  nhật ngay  tại màn  hiện tại. 
+User Flow: Bấm  action  trong  team  detail  → popup  mở  ở vị trí gần  điểm click hoặc modal  phủ lớp mờ  → 
+làm  việc. 
+User Story: Khi chỉnh team,  tôi muốn popup  xuất hiện ngay  tại điểm thao  tác để tôi không  mất  ngữ cảnh  
+dùng  ở cùng  ngữ cảnh  và  giảm rủi ro thao  tác nhầm.  
+Mục đích: Tất cả  luồng thay  đổi dữ  liệu nhạy cảm  của  team  đều đi qua  popup/modals    để giữ người 
+1.5 Teams Overlay / Popup & Modal 
+đặc biệt là phân  cấp  parent/child   và  liên kết project/goal.  
+Giống Jira Atlas ở điểm nào: Kiến trúc  tab nhiều  ngữ cảnh  + right rail liên quan  là đặc trưng Jira  Atlas;  
+small  quick-create   popups   cao  ~280–360px.   
+Pixel-level: Member   add  popup  giới hạn  50  người/lần; parent/child   selector  modal  rộng  ~360–420px;   
+Card / Button: Popup  chọn team/goal/project   bo  góc  nhỏ, có  list scroll  và  CT A ở cuối. 
+Typography:  Tabs  13px;  body  12–14px;  rail metadata   11–12px;  emphasis   text  bold  vừa  phải. 
+Khoảng  cách: Editor  padding  12px;  block  giữa tab 16px;  item  list 8px;  hierarchical  rows  12px.  
+25–40%  rail. 
+Tỷ lệ layout: Tab  bar cao  40–44px;  vùng  content  thay  đổi theo  tab,  nhưng  thường là 60–75%  main  + 
+ 
+└─ Kudos feed/cards 
+├─ Project linkage list 
+├─ Goal picker 
+├─ Hierarchy editor 
+├─ Member cards 
+├─ Text description editor 
+Tab content examples 
+ 
+└─ Khen ngợi 
+├─ Dự Án 
+├─ Mục Tiêu 
+├─ Phân cấp 
+├─ Hoạt động 
+├─ Giới thiệu 
+Tabs bar 
+Layout Tree 
+●  Khen  ngợi: hiển thị kudos  của  team;  nút Give  kudos  mở  luồng gửi lời khen.  
+đây. 
+●  Dự  Án: nối team  với project  qua  flow  chọn project  trong  site; không  có  quick  create  project  ngay  tại 
+----------------Page (5) Break----------------
+●  Archived:  goal  chuyển sang  khu  riêng.  
+●  ReadOnly:   khi chỉ xem  archived  hoặc quyền  thấp. 
+●  Error:  lỗi tải goal  list. 
+●  Loading:   skeleton  list và  filter bar. 
+●  Empty:  không  có  goal  phù  hợp  filter. 
+●  Normal:  table/list  goal  đầy đủ cột.  
+Trạng thái 
+sách  site. 
+Quyền truy cập: Người dùng  có  quyền  tạo goal  mới  theo  site; xóa/archive  phụ thuộc  owner  và  chính  
+archived.  Click row/card  mở  goal  detail. 
+Điều hướng: Sidebar  → Goals.  Tabs  bên  trong  module   đổi giữa directory , following,  status  updates,   
+create  quick  flow  tạo record  mới  và  add  vào  directory . 
+Business  Flow: Danh  sách  goal  lấy từ  kho  goal  site-level; filter theo  owner , status,  following,  archived;  
+click Tạo  để mở  quick  create  popup  → submit  để goal  xuất hiện ngay  trong  list. 
+User Flow: Vào  Goals  → mở  Thư mục  mục  tiêu  → search/filter/sort  → click goal  để xem  detail  hoặc 
+không  cần  đi vào  flow  dài.  
+User Story: Là  người dùng,  tôi muốn duyệt  mục  tiêu  theo  danh  sách  và  tạo nhanh  một  goal  mới  mà  
+Mục đích: Directory  chính  của  Goals,  nơi xem  toàn  bộ  goal, lọc, sắp  xếp  và  tạo goal  nhanh.  
+2.1 Goals / Thư mục mục tiêu 
+PHASE 2 — GOALS 
+nguyên   cách  làm  đó để người dùng  không  bị rời trang.  
+Giống Jira Atlas ở điểm nào: Jira  Atlas dùng  popup  rất nhiều  cho  edit  inline  và  liên kết;  spec  này  giữ 
+Pixel-level: Popup  nhỏ thường có  shadow   rõ hơn  card; radius  8–10px;  overlay  nền  mờ  xám  40–60%.  
+cảnh  báo.  
+Card / Button: Nút primary  xanh,  secondary   trắng, danger  đỏ/đậm; action  destructive  luôn  kèm  text  
+Typography:  Title popup  14–16px;  field label 12px;  helper  text  11–12px.  
+Khoảng  cách: Padding  popup  12–16px;  list item  8–10px;  footer  buttons  cách  nhau  8px.  
+chính  khoảng   70%  + footer  30%.  
+Tỷ lệ layout: Popup  nhỏ thường 360–420px   rộng;  modal  xác nhận 420–560px;   upload  modal  có  vùng  
+ 
+└─ Close / cancel action 
+├─ CTA area 
+├─ Recent results / selectable list 
+├─ Search or form field 
+├─ Title 
+Popup 
+ 
+└─ Team action button / overflow / plus icon 
+Trigger 
+Layout Tree 
+●  Add  link popup:  nhập URL  + display  text. 
+●  Add  member   popup:  search  name,  multi-select,  giới hạn  số  lượng. 
+●  Create  quick  team  popup:  từ  selectors  parent/child/goal.   
+●  Unlink  project  popup:  cảnh  báo  ngắt liên kết khỏi space  project.  
+●  Delete  confirm  popup:  giải thích thiệt hại nếu  xóa  team.  
+●  Upload   image  popup:  chọn file ảnh từ  máy , dùng  cho  cover/avatar  . 
+Thành phần chức năng 
+----------------Page (6) Break----------------
+●  Row/card   goal  đang follow . 
+●  Search/filter  giống directory . 
+Thành phần chức năng 
+●  Archived:  goal  archived  có  thể bị loại khỏi view  mặc  định hoặc chuyển sang  filter riêng.  
+●  ReadOnly:   chủ yếu  là read-only . 
+●  Error:  lỗi lấy follow  set.  
+●  Loading:   skeleton  rows.  
+●  Empty:  chưa follow  goal  nào.  
+●  Normal:  hiển thị list goal  đang theo  dõi.  
+Trạng thái 
+riêng tùy filter. 
+Quyền truy cập: Chỉ hiện mục  tiêu  người dùng  được phép  xem;  goal  archive/done   có  thể được gom  
+Điều hướng: Từ  Goals  directory  hoặc goal  detail  có  thể chuyển sang  tab này. 
+chip  và  cột ngắn. 
+Business  Flow: Query  là follow  set của  user  hiện tại; focus  là đọc nhanh,  giảm nhiễu  bằng  các status  
+hơn.  
+User Flow: Chọn tab Đang theo  dõi → list chỉ hiện goal  đã follow  → mở  goal  detail  khi cần  kiểm tra sâu  
+User Story: Là  người theo  dõi,  tôi muốn xem  các goal  mình  follow  ở một  chỗ để nắm  tiến độ nhanh.  
+phải vào  từng  goal. 
+Mục đích: Trang  xem  nhanh  các mục  tiêu  mà  người dùng  đang theo  dõi để cập  nhật tình  hình  mà  không  
+2.2 Goals / Đang theo dõi 
+column   tuning  thay  vì form  dài.  
+Giống Jira Atlas ở điểm nào: Giống  Jira  Atlas ở chỗ goal  directory  ưu tiên  scan,  search,  filter, và  
+bảng.  
+Pixel-level: List view  rộng  gần  full canvas;  row  height  44–56px;  column   chooser  nằm  gần  góc  phải của  
+Card / Button: Button  tạo là primary  xanh;  popup  tạo mới  bo  góc  nhỏ và  chỉ chứa vài trường trọng yếu.  
+Typography:  Goal  title 13–14px;  columns  12px;  sort  label 11–12px.  
+mode.  
+Khoảng  cách: Filter row  8–12px;  cột table 32–44px  height;  row  spacing  0 hoặc 8px  theo  table/card  
+Teams  vì goal  có  nhiều  cột hơn.  
+Tỷ lệ layout: Danh  sách  chiếm  phần lớn chiều  rộng;  filter row  một  hàng;  table có  thể full-width  hơn  
+ 
+└─ Goal list table/cards 
+├─ Optional column chooser 
+├─ Search / filter row 
+├─ Page title: Thư mục mục tiêu 
+Main 
+ 
+└─ Utility icons 
+├─ Create 
+├─ Search 
+Header 
+Layout Tree 
+●  Tab  chuyển view:  following,  status  update,  archived.  
+●  Quick-create   popup  goal  xuất hiện gần  button  tạo.  
+●  Bảng/danh   sách  goal  với cột có  thể tùy chỉnh. 
+●  Filter bar dưới title hỗ  trợ tìm mục  tiêu. 
+●  Button  tạo mục  tiêu  ở bên  phải. 
+Thành phần chức năng 
+----------------Page (7) Break----------------
+●  Button  theo  dõi/hủy  theo  dõi.  
+●  Status  update  form:  chọn trạng thái, chọn ngày , viết báo  cáo,  bấm  đăng. 
+●  Cột phải: mục  tiêu  của  bạn,  mục  tiêu  mới,  mục  tiêu  đã hoàn  tất. 
+●  Audit  log chế độ lọc: tất cả, goal  hoàn  thành,  goal  chưa hoàn  thành.  
+●  Timeline  cập  nhật tháng  với nút chuyển tháng  trước/sau. 
+đã hoàn  tất. 
+●  Bộ  đếm trạng thái  tháng:  đúng tiến độ, có  rủi ro, không  đúng tiến độ, không  có  bản  cập  nhật, đã hủy, 
+Thành phần chức năng 
+●  Archived:  goal  archived  chuyển sang  log/đọc בלבד. 
+●  ReadOnly:   người xem  không  có  quyền  update.  
+●  Error:  lỗi truy  xuất monthly  data. 
+●  Loading:   skeleton  dashboard   + log.  
+●  Empty:  chưa có  update  thì vẫn  có  timeline  nhưng  dashboard   số  liệu = 0. 
+●  Normal:  có  dashboard   thống kê  tháng,  log cập  nhật và  cột goal  bên  phải. 
+Trạng thái 
+đọc theo  permission   của  goal. 
+Quyền truy cập: Owner  và  người có  quyền  update  được đăng status;  followers  chỉ xem;  audit log thì 
+liệu. 
+Điều hướng: Chỉ từ  Goals  module.  Khi bấm  đổi trạng thái  từ  goal  detail  cũng  bị đẩy về  tab này  theo  tài 
+snapshot,  icon  reactions  và  watch/unwatch    event  vào  audit log.  
+Business  Flow: Mỗi  goal  có  chu  kỳ  update  theo  tháng;  hệ  thống tạo monthly  reminder  , lưu status  
+audit log → chọn goal  bên  phải → cập  nhật status/ghi  chú  nếu  là owner . 
+User Flow: Vào  tab Cập  nhập trạng thái  → xem  dashboard   tháng  → chuyển tháng  bằng  mũi  tên → đọc 
+cần  họp;  là người theo  dõi,  tôi muốn xem  timeline  và  lịch sử  cập  nhật. 
+User Story: Là  owner  goal, tôi muốn đăng monthly  update  để người theo  dõi hiểu tình  hình  mà  không  
+Mục đích: Trang  theo  dõi tiến độ goal  theo  tháng,  monthly  updates,   và  audit log của  mọi  cập  nhật. 
+2.3 Goals / Cập nhập trạng thái 
+quan  tâm,  không  phải để chỉnh sửa.  
+Giống Jira Atlas ở điểm nào: Đúng tinh  thần Jira  Atlas:  follow  view  là để nhìn  nhanh  trạng thái  đang 
+Pixel-level: Layout  gần  full width,  card/row  thấp gọn  để quét  nhanh.  
+Card / Button: Không  cần  CT A dày  đặc; focus  là xem  nhanh.  
+Typography:  Label  ngắn, trạng thái  ưu tiên  màu  sắc hơn  chữ dài.  
+Khoảng  cách: Dưới tabs  và  filter có  khoảng   12–16px;  mỗi  row  cách  nhau  0–8px.  
+Tỷ lệ layout: Giống  directory  nhưng  số  cột ít hơn,  ưu tiên  trạng thái  và  owner  hơn  metadata   phụ. 
+ 
+└─ Following goals list 
+├─ Filter row 
+├─ Tabs 
+Main 
+ 
+└─ Create 
+├─ Search 
+Header 
+Layout Tree 
+●  Click goal  mở  goal  detail. 
+●  Follow/Unfollow   state thể hiện bằng  icon  hoặc chip. 
+----------------Page (8) Break----------------
+Khoảng  cách: Filter row  12px;  empty  state giữa trang;  card/list item  8–12px.  
+Tỷ lệ layout: Gần  full-width  list, giống thư mục  nhưng  mật  độ thấp hơn.  
+ 
+└─ Archived goal list 
+├─ Search/filter row 
+├─ Title 
+Main 
+Layout Tree 
+●  Action  restore  / view  history  / delete  hard  (nếu có  quyền).  
+●  Danh  sách  archived  goals.  
+●  Search/filter  bar tương  tự  directory . 
+Thành phần chức năng 
+●  Archived:  chính  là trạng thái  nội tại của  mục  tiêu. 
+●  ReadOnly:   xem  בלבד. 
+●  Error:  lỗi query  archived.  
+●  Loading:   skeleton  list. 
+●  Empty:  chưa có  goal  archived.  
+●  Normal:  list archived  goals.  
+Trạng thái 
+Quyền truy cập: Chỉ người có  quyền  archive/restore   hoặc view  archived  mới  thấy và  thao  tác.  
+Điều hướng: Từ  directory  hoặc detail  có  thể archive  → chuyển vào  tab này. 
+audit/history/recovery   . 
+Business  Flow: Archived   goal  không  còn  nằm  trong  directory  chính;  dữ  liệu vẫn  giữ để 
+quyền.  
+User Flow: Chọn tab Đã lưu trữ → lọc mục  tiêu  → mở  goal  archived  để xem  lịch sử  hoặc restore  theo  
+User Story: Là  người quản lý, tôi muốn tìm lại goal  cũ, xem  lịch sử  hoặc khôi  phục nếu  cần.  
+Mục đích: Kho  lưu trữ cho  goal  đã hoàn  tất, bị hủy, hoặc không  còn  sử  dụng.  
+2.4 Goals / Đã lưu trữ 
+audit log,  follow/unfollow , và  right rail theo  dõi.  
+Giống Jira Atlas ở điểm nào: Đây là một  trong  những  dấu  hiệu Jira  Atlas mạnh   nhất: monthly  update,  
+Pixel-level: Dashboard   tháng  là strip ngắn; log list dọc  dài;  right rail cố  định ~300px.  
+Card / Button: Counters   dạng  mini-card  bo  nhẹ; status  dropdown   màu  chip; nút đăng kiểu primary . 
+Typography:  Dashboard   number   18–22px;  label 11–12px;  log timestamp   11px;  section  title 14–16px.  
+Khoảng  cách: Counter  cards  12px;  log item  8–12px;  status  update  form  padding  16px.  
+Tỷ lệ layout: Phần trên  20%;  audit log 50–60%;  right rail 25–30%.  
+ 
+└─ Completed goals 
+├─ New goals 
+├─ My goals 
+Right rail 
+ 
+└─ Goal status filter tabs 
+├─ Audit log list 
+Middle 
+ 
+└─ Monthly summary 
+├─ Status counters 
+├─ Month selector 
+Top dashboard 
+Layout Tree 
+----------------Page (9) Break----------------
+   ├─ Followers / share 
+   ├─ Owner 
+   ├─ Progress 
+└─ Right rail 
+│  └─ Updates form + update list 
+│  ├─ Activity / comments / history 
+│  ├─ Key results / sub-goal cards 
+│  ├─ Overview editor 
+├─ Main content column 
+Body 
+ 
+├─ Share / follow / lock actions 
+├─ Status chip 
+├─ Goal title / breadcrumb 
+Header 
+Layout Tree 
+click task  đi tới space.  
+●  SprintA  tab:  link task  bằng  URL,  hover  xem  preview , copy  link, related  links,  creator/status/estimate,    
+●  Follow/unfollow   button.  
+●  Lock  status  control:  đổi trạng thái  khóa  cứng,  click từ  mọi  tab sẽ  đưa tới Updates.   
+●  Updates  tab:  status  dropdown,   update  date, report  text, submit  button,  list of old updates.   
+●  Activity  tabs: comment   và  history. 
+●  Overview   tab:  description  editor , key results  cards,  sub-goal   area,  activity  block.  
+●  Right  rail khóa  cứng:  progress,  owner , followers,  share,  main  goal, sub  goals,  team,  due  date. 
+Thành phần chức năng 
+●  Archived:  chuyển sang  trạng thái  xem  בלבד. 
+●  ReadOnly:   follower  hoặc goal  locked.  
+●  Error:  lỗi chi tiết. 
+●  Loading:   coverless/skeleton    load. 
+●  Empty:  chưa có  sub-goal,  chưa có  update,  chưa có  linked  task/project.  
+●  Normal:  goal  detail  đầy đủ với right rail và  tabs. 
+Trạng thái 
+share  vào  goal; action  khóa  cứng  ở rail. 
+Quyền truy cập: Owner  edit/update;   followers  xem,  share  và  được notification;  người khác  có  thể được 
+Comments/History    , Updates,   SprintA,  Projects,  Lessons,   Risks,  Decisions.   
+Điều hướng: Click goal  từ  list/following/status  page.  Tab  trong  detail  chuyển qua  Overview  , 
+projects,  due  date, history  log và  follow  status.  
+Business  Flow: Goal  là entity  trung  tâm  có  owner , followers,  primary/sub   goals,  linked  tasks,  linked  
+trạng thái  → mở  SprintA  để nối task  → vào  Projects/lessons    nếu  cần.  
+User Flow: Mở  goal  → đọc overview   → chỉnh description  → thêm  goal  phụ → vào  Updates  để đăng 
+với task  project,  và  biết người liên quan.  
+User Story: Là  owner  hoặc follower , tôi muốn theo  dõi tiến độ goal, tạo mục  tiêu  con,  xem  lịch sử, nối 
+lessons/risks/decisions.    
+Mục đích: Màn  hình  sâu  nhất của  Goals:  mô  tả, sub-goal,  update,  activity , SprintA  link, project  link, 
+2.5 Goal Detail / Chi tiết Goal 
+phục. 
+Giống Jira Atlas ở điểm nào: Giống  Recycle  Bin/Archive/History   của  Jira, nhấn mạnh   read-only  và  hồi 
+Pixel-level: Empty-state   illustration  trung  tâm  chiếm  ~220–260px   width.  
+Card / Button: Archived   item  nên  xám  hơn,  ít CT A hơn.  
+Typography:  Giữ phong  cách  directory , không  thêm  UI  nặng.  
+----------------Page (10) Break----------------
+ 
+└─ Footer action buttons 
+├─ Quick create CTA 
+├─ Recent items / selectable list 
+├─ Search input 
+Popup 
+ 
+└─ Goal action button / plus / link 
+Trigger 
+Layout Tree 
+●  Status  update  popup  / sheet  khi đổi trạng thái. 
+●  Add  task/link  popup  với preview  và  related  links.  
+●  Add  project  popup.  
+●  Add  sub-goal   popup.  
+●  Quick-create   goal  popup.  
+Thành phần chức năng 
+●  Archived:  popup  thao  tác bị khóa.  
+●  ReadOnly:   popup  chỉ xem.  
+●  Error:  popup  báo  lỗi tải dữ  liệu. 
+●  Loading:   list recent/goals/tasks    tải skeleton.  
+●  Empty:  recent  list trống, chỉ còn  quick  create.  
+●  Normal:  popup  có  search  list và  CT A.  
+Trạng thái 
+invitation/share.  
+Quyền truy cập: Owner  mới  có  quyền  tạo/update/link;   follower  chỉ nhận read-only  popup  hoặc 
+module   tương  ứng. 
+Điều hướng: Không  rời detail  khi thao  tác;  các popup  chọn item  có  thể mở  preview  hoặc dẫn  sang  
+state lưu audit log;  popup  share  notify  người được chia  sẻ. 
+Business  Flow: Popup  tạo mới  sinh  goal  record;  popup  link task/project  tạo quan  hệ; popup  update  
+quick  create  nếu  không  có  → xác nhận. 
+User Flow: Bấm  Thêm   mục  tiêu  / dấu  cộng  / thêm  dự  án  / link task  → popup  mở  → search  chọn → 
+không  rời khỏi màn  hình. 
+User Story: Là  người dùng,  tôi muốn chọn goal, tạo goal  nhanh,  hoặc nối task/project  qua  popup  mà  
+nhanh.  
+Mục đích: Các  popup  của  Goals  giữ cho  người dùng  ở lại ngữ cảnh  goal  detail  và  cho  phép  tạo/chọn 
+2.6 Goals / Popup & Modal 
+cứng,  inner tabs  và  activity  log dài.  
+Giống Jira Atlas ở điểm nào: Goal  detail  là template   Jira  Atlas kinh  điển: top action  row, right rail khóa  
+Pixel-level: Right  rail ~300px;  key result  card  ~260–320px;   update  form  rộng  theo  cột chính.  
+chip/dropdown.    
+Card / Button: Sub-goal   card  bo  8px;  buttons  follow/update   primary;  lock  control  biểu hiện như 
+Typography:  Goal  title 18–20px;  section  heading  14–16px;  body  12–14px;  metadata   11–12px.  
+Khoảng  cách: Section  spacing  16px;  card  padding  12–16px;  update  log item  8–12px.  
+rail cố  định. 
+Tỷ lệ layout: Main  68–72%;  right rail 28–32%.  Goal  overview   card  rộng,  updates  form  chiếm  giữa trang,  
+ 
+   └─ Related project/task links 
+   ├─ Due date 
+   ├─ Team 
+   ├─ Primary goal / sub-goals 
+----------------Page (11) Break----------------
+pattern  với goals  để người dùng  không  học  lại một  UI  mới.  
+Giống Jira Atlas ở điểm nào: Sự  giống Jira  Atlas thể hiện ở việc project  directory  share  cùng  hệ  
+Pixel-level: Layout  full width  với list row  44–56px.  
+Card / Button: Button  tạo nhỏ, đồng phong  cách  với Goals  nhưng  nội dung  và  metadata   khác.  
+Typography:  Dùng  cùng  hệ  typographic   với Goals  để đảm bảo  cảm  giác  nhất quán.  
+Khoảng  cách: Khoảng   12px  giữa search/filter  và  list. 
+Tỷ lệ layout: Gần  giống Goals:  content  rộng,  list ưu tiên  hơn  chi tiết. 
+ 
+└─ Project list 
+├─ Search/filter row 
+├─ Title: Dự án 
+Main 
+Layout Tree 
+●  List/table  dự  án. 
+●  Sort/cột tùy chỉnh. 
+●  Filter/search  bar giống Goals.  
+●  Button  tạo dự  án  ở bên  phải. 
+Thành phần chức năng 
+●  Archived:  project  vào  kho  lưu trữ. 
+●  ReadOnly:   archived  hoặc quyền  thấp. 
+●  Error:  lỗi query . 
+●  Loading:   skeleton.  
+●  Empty:  không  có  project.  
+●  Normal:  danh  sách  project.  
+Trạng thái 
+bởi quyền.  
+Quyền truy cập: Tùy  quyền  project  owner/contributor  . Các  action  liên kết team/task/project   bị giới hạn  
+Điều hướng: Sidebar  → Projects.  Tabs/filters  đổi scope  tương  tự  Goals.  
+URL  và  due  date. 
+Business  Flow: Project  list là kho  site-level; project  gắn  team,  contributors,  goals,  linked  task, external  
+User Flow: Chọn Projects  → vào  thư mục  dự  án  → search/filter/sort  → mở  project  detail  hoặc archived.  
+xem  liên kết với team,  task, link và  thời hạn.  
+User Story: Là  người dùng,  tôi muốn xem  danh  sách  project,  lọc theo  trạng thái, và  mở  project  detail  để 
+của  home   site. 
+Mục đích: Directory  của  Projects,  tương  tự  Goals  nhưng  nội dung  project  là đơn vị công  việc dài hơi 
+3.1 Projects / Thư mục dự án 
+PHASE 3 — PROJECTS 
+mô  tả quick  add  và  related  link. 
+Giống Jira Atlas ở điểm nào: Jira  Atlas dùng  popup  dạng  intent  cụ  thể và  rất ít bước,  đúng với tài liệu 
+Pixel-level: Popup  nhỏ thường nằm  ngay  phía  trên  hoặc dưới trigger;  shadow   rõ; radius  8px.  
+Card / Button: Primary  button  xanh,  destructive  nếu  có  thì đỏ, secondary   text  link. 
+Typography:  Nhẹ, ngắn, hành  động nhanh.  
+Khoảng  cách: Field spacing  8–12px;  footer  buttons  8px;  list item  8px.  
+Tỷ lệ layout: Popup  360–480px;   modal  update  có  thể rộng  hơn  560–720px.   
+----------------Page (12) Break----------------
+Typography:  Project  intro dùng  heading  đậm hơn  body  để giống editorial spec.  
+Khoảng  cách: Section  spacing  16px;  rail item  8–12px;  input/selector   12px.  
+gọn  như goal. 
+Tỷ lệ layout: Main  68–72%;  right rail 28–32%;  intro sections  xếp  dọc,  không  dùng  tổng  quan  kiểu rút 
+ 
+   └─ Due date 
+   ├─ External link 
+   ├─ Related tasks 
+   ├─ Related goals 
+   ├─ Team 
+   ├─ Contributors 
+   ├─ Owner 
+└─ Right rail 
+│  └─ Comments / notes 
+│  ├─ Success criteria 
+│  ├─ Reason for execution 
+│  ├─ Project overview 
+├─ Main intro column 
+Body 
+ 
+└─ Actions 
+├─ Status 
+├─ Project title 
+Header 
+Layout Tree 
+●  Due  date  picker:  chọn ngày  chốt dự  án. 
+●  Add  task  link: liên kết nhiều  task  bằng  URL  của  task. 
+●  Add  goal  liên quan:  bấm  dấu  cộng  để nối mục  tiêu  đóng góp.  
+●  Add  contributor:  chọn team  hoặc người đã đóng góp.  
+●  Right  rail: owner , contributors,  team,  followed  work,  link, due  date. 
+●  Intro content  thay  vì tổng  quan  ngắn: mô  tả dự  án, lý do  thực hiện, cách  biết thành  công,  nhận xét.  
+Thành phần chức năng 
+●  Archived:  project  chỉ xem.  
+●  ReadOnly:   khi archive  hoặc không  có  quyền  edit. 
+●  Error:  lỗi tải project.  
+●  Loading:   skeleton.  
+●  Empty:  chưa có  contributor , chưa có  goal/task  link. 
+●  Normal:  đầy đủ intro sections  và  rail. 
+Trạng thái 
+có  thể được thêm  bởi owner . 
+Quyền truy cập: Owner  có  quyền  sửa  nội dung  intro, link, contributors   và  due  date. Contributor  xem  và  
+Điều hướng: Click project  từ  list. Header  , tabs  và  right rail giữ pattern  Jira  Atlas tương  tự  goal  detail. 
+reference;   dữ  liệu này  tạo thành  bức  tranh  triển khai  của  space  project.  
+Business  Flow: Project  detail  quản lý quan  hệ  chặt giữa team,  contributor , goal, tasks  và  external  
+→ set due  date  → theo  dõi comments/history   . 
+User Flow: Mở  project  → đọc intro sections  → chỉnh contributor/team   → add  goal  liên quan  → link task  
+task, và  quản lý link ngoài  để cộng  tác cùng  site. 
+User Story: Là  owner  project,  tôi muốn mô  tả mục  tiêu  dự  án, chỉ định contributor/team,   nối goal  và  
+công  kỳ  vọng,  nhận xét,  contributors,  linked  goals,  linked  tasks  và  due  date. 
+Mục đích: Trang  chi tiết dự  án  là nơi mô  tả dự  án  thật chi tiết hơn  Goal,  gồm  introduction,  lý do, thành  
+3.2 Project Detail / Chi tiết Dự án 
+----------------Page (13) Break----------------
+từ  rail. 
+Giống Jira Atlas ở điểm nào: Popup  pattern  đồng nhất với Jira  Atlas,  đặc biệt là chọn contributor/team   
+Pixel-level: Popover  có  shadow   nhẹ, border  mảnh   và  scroll  bar rõ. 
+Card / Button: CT A xanh;  delete/unlink  nếu  có  là action  nhẹ màu  xám  trước, danger  khi xác nhận. 
+Typography:  Giống  Goals  popup  để giữ consistency . 
+Khoảng  cách: List item  8px;  footer  8px;  field padding  12px.  
+Tỷ lệ layout: Dropdown   popover  320–420px;   modal  480–640px.   
+ 
+└─ Footer buttons 
+├─ Scroll area 
+├─ Selectable list 
+├─ Search input 
+Popup 
+ 
+└─ Add contributor / plus / link action 
+Trigger 
+Layout Tree 
+●  Edit  link popup  cho  external  URL.  
+●  Add  task  link popup  (nhiều task).  
+●  Chọn goal  liên quan  popup.  
+●  Chọn team  đã đóng góp  popup.  
+●  Thêm   người đóng góp  popup.  
+Thành phần chức năng 
+●  Archived:  không  chỉnh sửa.  
+●  ReadOnly:   không  submit  được. 
+●  Error:  lỗi dữ  liệu. 
+●  Loading:   list loading.  
+●  Empty:  chưa có  recent  item. 
+●  Normal:  danh  sách  search/select.   
+Trạng thái 
+Quyền truy cập: Owner/contributor    có  quyền  khác  nhau,  nhưng  dữ  liệu nhạy cảm  vẫn  cần  confirm.  
+Điều hướng: Không  rời project  detail; click item  trong  popup  có  thể mở  preview . 
+số  trường như external  link. 
+Business  Flow: Popup  sinh  relationship  giữa project  và  team/user/goal/task/url;    action  overwrite  chỉ một  
+→ xác nhận → dữ  liệu cập  nhật trên  rail. 
+User Flow: Bấm  dấu  cộng  / thêm  người / link / edit  liên kết → popup  mở  → search  danh  sách  → chọn 
+nhanh.  
+User Story: Tôi muốn tìm người đóng góp,  chọn goal  liên quan  hoặc thêm  task  bằng  popup  để thao  tác 
+ngoài.  
+Mục đích: Popup  của  Projects  tập trung  vào  chọn contributor , chọn goal  liên quan,  nối task  và  chỉnh link 
+3.3 Projects / Popup & Modal 
+dài,  contributor  context,  link task/project  rất rõ. 
+Giống Jira Atlas ở điểm nào: Project  detail  vẫn  là Jira  Atlas nhưng  nhấn mạnh   narrative  hơn  goal: intro 
+Pixel-level: Right  rail ~300px;  contributor  dropdown   cao  ~280–360px;   linked  task  chip  nhỏ gọn.  
+dạng  picker  nhỏ. 
+Card / Button: Contributor  picker  là dropdown/popover;    linked  tasks  hiển thị dạng  chip/row;  due  date  
+----------------Page (14) Break----------------
+thường xuyên.  
+Mục đích: Trang  cá  nhân  để xem  giới thiệu,  email,  team  membership,   recent  activity  và  workspace   
+4.2 Profile / Tổng quan 
+vào  profile.  
+Giống Jira Atlas ở điểm nào: Rất giống Jira  Atlas people  directory:  list nhẹ, search  rõ, avatar  là cổng  
+Pixel-level: Row  list dày, avatar  tròn  24–32px.  
+Card / Button: Nút thêm  người dùng  là primary;  row  item  click toàn  bộ. 
+Typography:  Tên  người dùng  13–14px;  metadata   11–12px.  
+Khoảng  cách: Search/filter  12px;  row  height  48–56px;  avatar/name   cluster  8px.  
+Tỷ lệ layout: Danh  sách  chiếm  gần  full-width, thông  tin ngắn gọn  hơn  Goals/Projects.   
+ 
+└─ People list / sort control 
+├─ Search/filter row 
+├─ Add user button 
+├─ Title: Mọi người 
+Main 
+Layout Tree 
+●  Danh  sách  member  . 
+●  Avatar click mở  profile.  
+●  Sort  control  cho  danh  sách.  
+●  Bộ  lọc. 
+●  Thanh  tìm kiếm. 
+●  Button  thêm  người dùng  ở bên  phải. 
+Thành phần chức năng 
+thị mờ  (suy  ra). 
+●  Archived:  không  áp  dụng  mạnh   như team/goal/project,    nhưng  tài khoản  ngưng  hoạt động nên  hiển 
+●  ReadOnly:   user  không  có  quyền  thêm.  
+●  Error:  lỗi load  people.  
+●  Loading:   skeleton  list. 
+●  Empty:  site chưa có  member   hoặc filter rỗng.  
+●  Normal:  danh  sách  member   đầy đủ. 
+Trạng thái 
+user  trong  site. 
+Quyền truy cập: Quyền  thêm  người dùng  phụ thuộc  role  quản trị site; xem  directory  thường mở  cho  
+flow . 
+Điều hướng: Sidebar  → People.  Avatar click đi tới profile.  Nút thêm  người dùng  mở  popup/tạo  user  
+contributor  và  profile enrichment.   
+Business  Flow: Directory  tập trung  metadata   user  trong  site, là đầu vào  cho  team  membership,   project  
+nếu  có  quyền.  
+User Flow: Vào  People  → search/filter/sort  → bấm  avatar  user  để mở  profile → có  thể thêm  người dùng  
+góp  và  ngữ cảnh  làm  việc. 
+User Story: Là  người dùng,  tôi muốn tìm người theo  tên,  lọc/sort, và  mở  profile của  họ  để xem  đóng 
+danh  sách.  
+Mục đích: Trang  quản lý người dùng  của  site để phục vụ  làm  dự  án, tìm kiếm thành  viên  và  sắp  xếp  
+4.1 People / Directory 
+PHASE 4 — PEOPLE 
+----------------Page (15) Break----------------
+hữu  ích và  preview  có  giới hạn.  
+Giống Jira Atlas ở điểm nào: Profile ở đây vẫn  theo  tư  duy  Jira  Atlas:  ít trang  trí, tập trung  metadata   
+X mục  khác”. 
+Pixel-level: Recent   work  list max  6 item; team  preview  max  4 team;  thêm  line count  như “Hiển thị thêm  
+Card / Button: Preview  blocks  bo  nhỏ; plus  action  icon  chỉ chiếm  không  gian  hẹp.  
+Typography:  Name   20px;  section  title 14–16px;  metadata   11–12px.  
+Khoảng  cách: Bio area  12–16px;  list item  8px;  preview  blocks  12px.  
+Tỷ lệ layout: Main  65–70%;  right rail 30–35%.  
+ 
+   └─ Additional metadata 
+   ├─ Team preview 
+   ├─ Email 
+└─ Right rail 
+│  └─ Frequent workspace 
+│  ├─ Team membership preview 
+│  ├─ Recent work list 
+│  ├─ Bio editor 
+├─ Main column 
+Body 
+ 
+└─ Quick action 
+├─ Basic status 
+├─ Name 
+├─ Avatar 
+Header / profile top 
+Layout Tree 
+●  Nút dấu  cộng  để thêm  chức danh  / phòng  ban  / vị trí. 
+●  Khối workspace   thường xuyên.  
+●  Khối team  membership,   tối đa 4 team  trong  preview , có  link hiển thị thêm.  
+●  Khối email  ở cột phải. 
+●  Danh  sách  công  việc gần  đây, giới hạn  6 task, có  nút hiển thị thêm.  
+●  Khu  giới thiệu bản  thân  (editable).  
+Thành phần chức năng 
+●  Archived:  tài khoản  ngưng  hoạt động (suy  ra) hiển thị mờ  hoặc hạn  chế. 
+●  ReadOnly:   xem  profile người khác.  
+●  Error:  lỗi load  profile.  
+●  Loading:   skeleton  overview  . 
+●  Empty:  chưa có  bio hay  chưa có  recent  work.  
+●  Normal:  overview   với bio,  recent  work,  email,  team  list, frequent  workspace.   
+Trạng thái 
+Quyền truy cập: Chủ profile có  thể chỉnh thông  tin; người khác  xem  theo  mức  hiển thị của  site. 
+Điều hướng: Từ  People  directory  hoặc từ  avatar  trong  comment/kudos/team/project.      
+team/project/goal/kudos    để hỗ  trợ cộng  tác.  
+Business  Flow: Profile là tập hợp  thông  tin cá  nhân  + hành  vi sử  dụng  site + liên kết 
+thêm  task/team/workspace.     
+User Flow: Click avatar  → mở  profile → xem  tab Tổng  quan  → chỉnh bio nếu  được → mở  More  để xem  
+nào  và  gần  đây đã xem  task  nào.  
+User Story: Là  người dùng,  tôi muốn mở  profile của  mình  hoặc người khác  để thấy họ  làm  gì, ở team  
+----------------Page (16) Break----------------
+Điều hướng: Popup  ở ngay  profile;  không  rời màn  hình. 
+Business  Flow: Đây là metadata   profile,  ảnh hưởng  đến hiển thị hồ  sơ  và  khả năng  tìm kiếm trong  site. 
+tin xuất hiện bên  dưới. 
+User Flow: Bấm  dấu  cộng  trên  profile → popup  mở  → điền chức danh,  phòng  ban,  vị trí → lưu → thông  
+User Story: Là  chủ profile,  tôi muốn nhập vai trò và  nơi làm  việc để người khác  hiểu bối cảnh  của  tôi. 
+Mục đích: Popup  nhỏ để enrich  profile với thông  tin chức danh,  phòng  ban  và  vị trí. 
+4.4 Profile / Popup thêm chức danh - phòng ban - vị trí 
+kudos  và  ownership   views.  
+Giống Jira Atlas ở điểm nào: Mẫu  tab,  filter và  card  view  là đúng phong  cách  Jira  Atlas,  nhất là social  
+Pixel-level: Card  view  theo  lưới 2–3  cột;  mục  tiêu/project  chia  hai bucket  hiện tại/hoàn  tất. 
+Card / Button: Toggle  list/card nằm  gần  filter; reaction  icon  nhỏ dưới kudos  card. 
+Typography:  Label  trạng thái  12px;  card  title 13–14px.  
+Khoảng  cách: Card  spacing  12px;  card  padding  12px.  
+Tỷ lệ layout: Filter row  nhỏ; list/card chiếm  toàn  bộ  main  area.  
+ 
+└─ Content grid 
+├─ List / card toggle 
+├─ Filter row 
+Tab content 
+ 
+└─ Khen ngợi 
+├─ Project 
+├─ Mục tiêu 
+├─ Tổng quan 
+Tabs 
+Layout Tree 
+●  Khen  ngợi: Đã nhận / Đã trao, card  có  avatar , image  minh  hoạ, lời khen  và  icon  reaction.  
+●  Project:  Dự  án  của  bạn  / đã hoàn  thành,  đóng góp/đang  theo  dõi,  card  view . 
+●  Mục  tiêu: Current/Done,   search  filter, đóng góp/đang  theo  dõi,  card  view . 
+Thành phần chức năng 
+●  Archived:  items  archived  có  thể nằm  trong  nhóm   riêng hoặc ẩn. 
+●  ReadOnly:   phổ biến cho  profile khác.  
+●  Error:  lỗi tải tab.  
+●  Loading:   skeleton.  
+●  Empty:  chưa có  item  tương  ứng. 
+●  Normal:  list/tab view . 
+Trạng thái 
+social. 
+Quyền truy cập: Người khác  có  thể xem  theo  permission;  tab kudos  có  thể mở  hơn  vì lời khen  có  tính  
+Điều hướng: Tabs  trong  profile;  từ  Goals/Projects/Kudos     detail  cũng  có  thể quay  về  profile owner . 
+received,  sent. 
+Business  Flow: Các  tab này  là trích xuất liên kết giữa user  và  entities: owned,   followed,  contributed,   
+User Flow: Chuyển  tab Mục  tiêu  / Project  / Khen  ngợi → dùng  filter/sort/card  view  → mở  item  nếu  cần.  
+nhận/đã trao  để tự  đánh giá đóng góp.  
+User Story: Là  người dùng,  tôi muốn xem  mục  tiêu  mình  sở  hữu,  dự  án  mình  tạo,  và  lời khen  đã 
+và  kudos.  
+Mục đích: Các  tab profile cho  phép  người dùng  xem  đóng góp  và  quan  hệ  của  mình  với goals,  projects  
+4.3 Profile / Mục tiêu, Dự án, Khen ngợi 
+----------------Page (17) Break----------------
+●  Archived:  không  cập  nhật mới.  
+●  ReadOnly:   chỉ xem.  
+●  Error:  lỗi thống kê. 
+●  Loading:   skeleton.  
+●  Empty:  số  đếm = 0. 
+●  Normal:  counts  và  log đầy đủ. 
+Trạng thái 
+Quyền truy cập: Ai xem  goal  thì xem  dashboard;   quyền  update  vẫn  do  owner . 
+detail  của  Jira  Atlas.  
+Điều hướng: Chỉ nằm  trong  module   Goals,  nhưng  hành  vi tương  tự  dashboard   summary   ở các trang  
+giữa owner  và  follower . 
+Business  Flow: Dashboard   tổng  hợp  snapshot   theo  tháng  từ  monthly  updates  và  audit log,  làm  cầu  nối 
+đọc thống kê  và  audit log.  
+User Flow: Mở  tab status  updates  → xem  dashboard   tháng  ở đầu trang  → dùng  mũi  tên đổi tháng  → 
+tiến độ, rủi ro hay  chưa cập  nhật. 
+User Story: Là  người theo  dõi hoặc owner , tôi muốn nhìn  dashboard   tháng  để biết ngay  số  goal  đúng 
+log,  và  summary   của  các goal  trong  site. 
+Mục đích: Dashboard   ở đây chủ yếu  xuất hiện trong  module   Goals  Status  Update:  thống kê  tháng,  audit 
+5.1 Dashboard / Bảng thống kê tháng 
+CÁC MÀN HÌNH CHUNG / CROSS-CUTTING 
+Giống Jira Atlas ở điểm nào: Các  popup  nhỏ trực tiếp trên  điểm thao  tác là một  pattern  rất Jira  Atlas.  
+Pixel-level: Popup  gọn,  không  quá  cao;  dùng  ngay  trên  profile.  
+Card / Button: Button  lưu primary  nhỏ. 
+Typography:  Label  12px;  input 13px.  
+Khoảng  cách: Field gap  8px;  footer  8px;  padding  12px.  
+Tỷ lệ layout: Popup  nhỏ ~360px   rộng;  3 field xếp  dọc.  
+ 
+└─ Footer: Save / Cancel 
+├─ Field 3: Vị trí 
+├─ Field 2: Phòng ban 
+├─ Field 1: Chức danh 
+├─ Title 
+Popup 
+Layout Tree 
+●  Close  icon. 
+●  CT A lưu.  
+●  3 input fields: chức danh,  phòng  ban,  vị trí. 
+Thành phần chức năng 
+●  Archived:  không  áp  dụng.  
+●  ReadOnly:   xem  בלבד. 
+●  Error:  lỗi save.  
+●  Loading:   hiếm, nếu  load  preset.  
+●  Empty:  form  trống. 
+●  Normal:  form  3 trường. 
+Trạng thái 
+Quyền truy cập: Chủ profile hoặc người có  quyền  chỉnh hồ  sơ  mới  sửa  được. 
+----------------Page (18) Break----------------
+●  Overflow   action  menu.  
+●  Create  button.  
+●  View toggle  list/grid. 
+●  Sort  control.  
+●  Filter chips.  
+●  Search   bar. 
+Thành phần chức năng 
+●  Archived   
+●  ReadOnly   
+●  Error 
+●  Loading  
+●  Empty  
+●  Normal   
+Trạng thái 
+Quyền truy cập: Theo  module   cụ  thể. 
+Điều hướng: Toàn  bộ  module   site-level  dùng  directory  pattern  trước khi vào  detail. 
+Business  Flow: Directory  chỉ là lớp presentation   của  entity  list; state,  filter và  sort  cùng  một  model.  
+User Flow: Từ  sidebar  vào  module   → title + search/filter/sort  → list/grid → click item  mở  detail. 
+học  lại UI. 
+User Story: Tôi muốn dùng  cùng  một  pattern  để học  một  lần và  đi sang  module   khác  mà  không  phải 
+People.  
+Mục đích: Directory  pattern  là kiểu màn  hình  danh  sách  chuẩn  dùng  cho  Teams,  Goals,  Projects  và  
+5.2 Directory Pattern 
+hơn  là biểu đồ nặng.  
+Giống Jira Atlas ở điểm nào: Đặc trưng Jira  Atlas:  dashboard   rất ngắn, ưu tiên  trạng thái  và  lịch sử  
+log.  
+Pixel-level: Đây là dashboard   hẹp,  không  phải dashboard   BI; chiều  cao  vừa  phải để nhường chỗ cho  
+Card / Button: Counter  card  nhỏ, status  chip  màu  rõ. 
+Typography:  KPI  số  18–22px;  label 11–12px.  
+Khoảng  cách: Counter  gap  12px;  list row  8px.  
+Tỷ lệ layout: Top  summary   20%;  log 50%;  related  sidebar  30%.  
+ 
+└─ Related goal sidebar 
+├─ Audit log 
+Bottom 
+ 
+└─ KPI snapshot 
+├─ Status counts 
+├─ Month selector 
+Top summary 
+Layout Tree 
+●  Filter tab theo  completed   / incomplete.  
+●  Audit  log list. 
+●  Month  switcher . 
+●  Counter  cards  theo  trạng thái. 
+Thành phần chức năng 
+----------------Page (19) Break----------------
+ 
+└─ Footer actions 
+├─ Help text 
+├─ Form or search list 
+├─ Title 
+Overlay 
+ 
+└─ Button / icon / link 
+Trigger 
+Layout Tree 
+●  Link/unlink  dialog.  
+●  Upload   file dialog.  
+●  Confirm  delete  dialog.  
+●  Quick  create  sheet.  
+●  Search-popover   . 
+Thành phần chức năng 
+●  Archived   
+●  ReadOnly   
+●  Error 
+●  Loading  
+●  Empty  
+●  Normal   
+Trạng thái 
+Quyền truy cập: Nhiều  popup  chỉ hiện khi có  quyền.  Destructive  action  luôn  yêu  cầu  confirm.  
+Điều hướng: Đóng bằng  X / click ngoài  / Esc;  action  success  ở lại màn  hình  nền.  
+confirm.  
+Business  Flow: Popup/modal   tạo ra record  mới  hoặc quan  hệ  mới;  destructive  modal  luôn  yêu  cầu  
+User Flow: Bấm  action  → overlay  mở  → nhập/chọn → submit  → overlay  đóng và  data  cập  nhật tức thì. 
+User Story: Tôi muốn thao  tác trong  một  lớp overlay  nhỏ thay  vì chuyển trang  liên tục.  
+Mục đích: Mẫu  overlay  dùng  cho  mọi  hành  động nhanh:  create,  edit, link, upload,  share,  archive,  delete.  
+5.3 Popup / Modal Pattern 
+goal, project,  people.  
+Giống Jira Atlas ở điểm nào: Đây là signature  của  Jira  Atlas:  directory  pattern  thống nhất giữa team,  
+Pixel-level: Cùng  một  grid  system  cho  mọi  directory  để tạo cảm  giác  product  suite thống nhất. 
+Card / Button: Card/list  item  là đơn vị chính.  
+Typography:  Title 20px;  filter label 12px.  
+Khoảng  cách: Nhịp 12px  rất đều, dùng  khoảng   trắng lớn.  
+Tỷ lệ layout: Directory  là core  layout:  content  75–80%,  sidebar  20–25%.  
+ 
+└─ Entity list/grid 
+├─ Sort / view toggle 
+├─ Filter row 
+├─ Title 
+Content 
+ 
+└─ Utility icons 
+├─ Create 
+├─ Search 
+Header 
+Layout Tree 
+----------------Page (20) Break----------------
+empty-state   minh  họa,  right rail metadata,  và  modal/popup   tinh  gọn.  
+●  Những  điểm bắt buộc giữ lại để giống Jira  Atlas:  header  tối giản, sidebar  trái, card/list sạch,  
+enterprise.  
+●  Các  màn  hình  Teams,  Goals,  Projects  và  People  dùng  cùng  một  ngôn  ngữ UI  để tạo cảm  giác  suite 
+theo  ngữ cảnh,  và  popup/linking   flows.  
+●  Trọng  tâm  của  SPEC   là: site-level  management,    directory  pattern,  detail  rail khóa  cứng,  tab nội bộ  
+6. Kết luận reconstruction 
+model.  
+Giống Jira Atlas ở điểm nào: Nếu  dựng  đúng, người dùng  sẽ  nhận ra ngay  đây là Jira-style  interaction  
+Pixel-level: Overlay  mờ;  card  nổi;  shadow   mềm.  
+Card / Button: Primary  / secondary   / danger  theo  chuẩn  Jira. 
+Typography:  Ngắn gọn,  hành  động rõ ràng.  
+Khoảng  cách: Padding  12–16px;  footer  8px.  
+Tỷ lệ layout: Popup  360–480px;   modal  480–720px   tùy nhiệm  vụ. 
+----------------Page (21) Break----------------

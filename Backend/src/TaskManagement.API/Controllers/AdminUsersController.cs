@@ -91,6 +91,82 @@ namespace TaskManagement.API.Controllers
             }
         }
 
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetUserById(Guid id)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                    .Include(u => u.DepartmentMemberships)
+                    .ThenInclude(dm => dm.Department)
+                    .Include(u => u.ProjectMemberships)
+                    .ThenInclude(pm => pm.Project)
+                    .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+
+                if (user == null)
+                {
+                    return NotFound(new { statusCode = 404, message = "User not found." });
+                }
+
+                // Fetch Linked Goals
+                var linkedGoals = await _context.Goals
+                    .Where(g => g.OwnerId == id && !g.IsArchived)
+                    .Select(g => new { id = g.Id, title = g.Title, status = g.Status })
+                    .ToListAsync();
+
+                // Get Kudos (From point transactions with type Kudos)
+                var kudos = await _context.PointTransactions
+                    .Where(pt => pt.UserWalletUserId == id && pt.TransactionType == "Kudos")
+                    .OrderByDescending(pt => pt.CreatedAt)
+                    .Select(pt => new { 
+                        id = pt.Id, 
+                        message = pt.Reason, 
+                        sender = "System", // In a real app we'd link to the sender user
+                        date = pt.CreatedAt.ToString("MMM dd, yyyy")
+                    })
+                    .Take(10)
+                    .ToListAsync();
+                    
+                // History (from AuditLogs)
+                var history = await _context.AuditLogs
+                    .Where(al => al.UserId == id)
+                    .OrderByDescending(al => al.CreatedAt)
+                    .Select(al => new {
+                        id = al.Id,
+                        action = "Changed " + al.FieldChanged,
+                        time = al.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                    })
+                    .Take(10)
+                    .ToListAsync();
+
+                var userData = new
+                {
+                    id = user.Id,
+                    fullName = string.IsNullOrEmpty(user.FullName) ? user.Email.Split('@')[0] : user.FullName,
+                    email = user.Email,
+                    isActive = user.IsActive,
+                    status = user.IsActive ? "Active" : "Invited",
+                    avatar = user.AvatarUrl,
+                    bio = "Passionate team member.",
+                    position = user.UserRoles.Select(ur => ur.Role.Name).FirstOrDefault() ?? "Member",
+                    department = user.DepartmentMemberships.Select(dm => dm.Department.Name).FirstOrDefault() ?? "N/A",
+                    team = user.ProjectMemberships.Select(pm => pm.Project.Name).FirstOrDefault() ?? "N/A",
+                    linkedProjects = user.ProjectMemberships.Select(pm => new { id = pm.ProjectId, title = pm.Project.Name, status = "Active" }).ToList(),
+                    linkedGoals = linkedGoals,
+                    kudos = kudos,
+                    history = history
+                };
+
+                return Ok(new { statusCode = 200, message = "Success", data = userData });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { statusCode = 500, message = ex.Message });
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateUser([FromBody] AddUserRequestDto request)
         {

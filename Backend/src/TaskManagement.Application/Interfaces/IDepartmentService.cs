@@ -11,5 +11,12 @@ namespace TaskManagement.Application.Interfaces
         Task ArchiveAsync(Guid id);
         Task RestoreAsync(Guid id);
         Task SoftDeleteAsync(Guid id);
+        
+        // Members
+        Task AddMembersAsync(Guid departmentId, List<Guid> userIds);
+        Task RemoveMemberAsync(Guid departmentId, Guid userId);
+
+        // Hierarchy
+        Task UpdateHierarchyAsync(Guid departmentId, Guid? parentId);
     }
 }

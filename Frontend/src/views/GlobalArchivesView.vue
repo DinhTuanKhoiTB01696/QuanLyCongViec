@@ -13,10 +13,10 @@
       <div class="jira-filter-bar" style="display: flex; gap: 12px; margin-bottom: 20px;">
         <div class="search-box" style="position: relative; display: flex; align-items: center;">
           <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; color: var(--color-text-muted); font-size: 13px;"></i>
-          <input 
-            type="text" 
-            placeholder="Search archived spaces" 
-            v-model="searchQuery" 
+          <input
+            type="text"
+            placeholder="Search archived spaces"
+            v-model="searchQuery"
             style="background: transparent; border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 8px 12px 8px 32px; font-size: 13.5px; outline: none; width: 220px; border-radius: 4px;"
           />
         </div>
@@ -141,7 +141,7 @@ const handleRestore = async (project) => {
       cancelButtonText: 'Hủy',
       type: 'info'
     })
-    
+
     await axiosClient.put(`/projects/${project.id}/restore`)
     ElMessage.success(`Đã khôi phục dự án ${project.name}`)
     fetchArchivedProjects()

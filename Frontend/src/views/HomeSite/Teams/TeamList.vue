@@ -1,0 +1,332 @@
+<template>
+  <div class="team-list-container">
+    <div class="section-header" style="margin-bottom: 16px;">
+      <h2 style="font-size: 16px; color: #172B4D; font-weight: 500;">Tất cả các đội ngũ</h2>
+    </div>
+    <div class="list-controls">
+      <div class="search-box-wrapper">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" v-model="searchQuery" placeholder="Tìm kiếm các đội ngũ" class="search-input" />
+      </div>
+      <div class="view-toggle">
+        <button class="toggle-btn" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'" title="Chế độ lưới">
+          <i class="fa-solid fa-table-cells-large"></i>
+        </button>
+        <button class="toggle-btn" :class="{ active: viewMode === 'table' }" @click="viewMode = 'table'" title="Chế độ danh sách">
+          <i class="fa-solid fa-list"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Grid View -->
+    <div v-if="viewMode === 'grid'" class="team-cards-grid">
+      <div class="team-card" v-for="team in filteredTeams" :key="team.id" @click="goToTeam(team.id)">
+        <div class="team-card-cover" :style="{ backgroundColor: '#0052cc' }"></div>
+        <div class="team-card-content">
+          <div class="team-avatar">{{ team.avatarText }}</div>
+          <h3 class="team-name-card">{{ team.name }}</h3>
+          <p class="team-meta">{{ team.memberCount }} thành viên</p>
+        </div>
+      </div>
+      <div v-if="filteredTeams.length === 0" class="empty-state-grid">
+        Không tìm thấy đội ngũ nào.
+      </div>
+    </div>
+
+    <!-- Table View -->
+    <table v-if="viewMode === 'table'" class="jira-table">
+      <thead>
+        <tr>
+          <th class="col-team">Đội ngũ</th>
+          <th class="col-members">Thành viên</th>
+          <th class="col-children">Đội ngũ con <i class="fa-solid fa-arrow-down sort-icon"></i></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="team in filteredTeams" :key="team.id" @click="goToTeam(team.id)">
+          <td>
+            <div class="team-cell">
+              <div class="team-avatar-small">{{ team.avatarText }}</div>
+              <span class="team-name">{{ team.name }}</span>
+            </div>
+          </td>
+          <td>{{ team.memberCount }}</td>
+          <td>{{ team.childrenCount || 0 }}</td>
+        </tr>
+      </tbody>
+      <tbody v-if="filteredTeams.length === 0">
+        <tr>
+          <td colspan="3" class="empty-table-state">
+            Không tìm thấy đội ngũ nào.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useTeamStore } from '@/store/useTeamStore'
+
+const router = useRouter()
+const teamStore = useTeamStore()
+
+const searchQuery = ref('')
+const viewMode = ref('grid')
+
+onMounted(() => {
+  teamStore.fetchAllTeams()
+})
+
+const filteredTeams = computed(() => {
+  let list = teamStore.allTeams || []
+
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    list = list.filter(t => t.name.toLowerCase().includes(q))
+  }
+
+  return list.map(t => ({
+    ...t,
+    avatarText: t.name ? t.name.substring(0, 2).toUpperCase() : 'T',
+    memberCount: t.members?.length || 0,
+    childrenCount: t.children?.length || 0
+  }))
+})
+
+const goToTeam = (id) => {
+  router.push(`/home/teams/${id}`)
+}
+</script>
+
+<style scoped>
+.team-list-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.list-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.search-box-wrapper {
+  position: relative;
+  width: 250px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #5E6C84;
+  font-size: 14px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px 8px 44px;
+  border: 2px solid #DFE1E6;
+  border-radius: 3px;
+  font-size: 14px;
+  color: #172B4D;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+  box-sizing: border-box;
+}
+
+.search-input:hover {
+  background-color: #FAFBFC;
+}
+
+.search-input:focus {
+  background-color: #FFFFFF;
+  border-color: #4C9AFF;
+}
+
+/* View Toggle */
+.view-toggle {
+  display: flex;
+  border: 1px solid #DFE1E6;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.toggle-btn {
+  background: #FAFBFC;
+  border: none;
+  padding: 8px 12px;
+  color: #5E6C84;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.toggle-btn:hover {
+  background-color: #EBECF0;
+}
+
+.toggle-btn.active {
+  background-color: #DEEBFF;
+  color: #0052CC;
+}
+
+/* Grid View Styles */
+.team-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 24px;
+}
+
+.team-card {
+  background-color: #FFFFFF;
+  border: 1px solid #DFE1E6;
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.team-card:hover {
+  box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+  transform: translateY(-2px);
+}
+
+.team-card-cover {
+  height: 64px;
+}
+
+.team-card-content {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: -24px;
+}
+
+.team-avatar {
+  width: 48px;
+  height: 48px;
+  background-color: #00875A;
+  color: white;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  border: 2px solid #FFFFFF;
+  margin-bottom: 12px;
+}
+
+.team-name-card {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #172B4D;
+  text-align: center;
+}
+
+.team-meta {
+  margin: 0;
+  font-size: 12px;
+  color: #5E6C84;
+}
+
+.empty-state-grid {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
+  color: #5E6C84;
+}
+
+/* Jira Table Styles */
+.jira-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.jira-table th {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5E6C84;
+  border-bottom: 2px solid #DFE1E6;
+}
+
+.jira-table th:hover {
+  background-color: #FAFBFC;
+  cursor: pointer;
+}
+
+.sort-icon {
+  margin-left: 4px;
+  font-size: 12px;
+  color: #5E6C84;
+}
+
+.col-team {
+  width: 50%;
+}
+
+.col-members {
+  width: 25%;
+}
+
+.col-children {
+  width: 25%;
+}
+
+.jira-table td {
+  padding: 12px;
+  font-size: 14px;
+  color: #172B4D;
+  border-bottom: 1px solid #DFE1E6;
+  cursor: pointer;
+}
+
+.jira-table tbody tr:hover td {
+  background-color: #FAFBFC;
+}
+
+.team-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.team-avatar-small {
+  width: 24px;
+  height: 24px;
+  background-color: #00875A;
+  color: white;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.team-name {
+  font-weight: 500;
+  color: #0052CC;
+}
+
+.team-name:hover {
+  text-decoration: underline;
+}
+
+.empty-table-state {
+  text-align: center;
+  padding: 40px !important;
+  color: #5E6C84 !important;
+}
+</style>

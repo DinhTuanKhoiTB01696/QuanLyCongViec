@@ -15,6 +15,13 @@ namespace TaskManagement.Domain.Entities
         public bool IsDeleted { get; set; } = false;
         public bool Require2FA { get; set; } = false;
 
+        public Guid? ParentId { get; set; }
+        public Department? Parent { get; set; }
+        public ICollection<Department> Children { get; set; } = new List<Department>();
+        
+        public string? Description { get; set; }
+        public string? CoverImage { get; set; }
+
         public User? Manager { get; set; }
         public ICollection<DepartmentMember> DepartmentMembers { get; set; } = new List<DepartmentMember>();
         public ICollection<Project> Projects { get; set; } = new List<Project>();

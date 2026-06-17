@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using TaskManagement.Application.DTOs.Common;
 using TaskManagement.Application.DTOs.Department;
@@ -12,10 +13,12 @@ namespace TaskManagement.API.Controllers
     public class DepartmentsController : ControllerBase
     {
         private readonly IDepartmentService _departmentService;
+        private readonly TaskManagement.Infrastructure.Data.ApplicationDbContext _context;
 
-        public DepartmentsController(IDepartmentService departmentService)
+        public DepartmentsController(IDepartmentService departmentService, TaskManagement.Infrastructure.Data.ApplicationDbContext context)
         {
             _departmentService = departmentService;
+            _context = context;
         }
 
         [HttpGet]
@@ -33,6 +36,74 @@ namespace TaskManagement.API.Controllers
                 return NotFound(ApiResponse<object>.Error("Phòng ban không tồn tại.", 404));
 
             return Ok(ApiResponse<DepartmentResponseDto>.Success(department));
+        }
+
+        [HttpGet("{id}/full")]
+        public async Task<IActionResult> GetFullById(Guid id)
+        {
+            var department = await _departmentService.GetByIdAsync(id);
+            if (department == null)
+                return NotFound(ApiResponse<object>.Error("Phòng ban không tồn tại.", 404));
+
+            var members = await _context.DepartmentMembers
+                .Where(dm => dm.DepartmentId == id)
+                .Select(dm => new { 
+                    id = dm.UserId, 
+                    name = dm.User.FullName ?? dm.User.Email, 
+                    email = dm.User.Email,
+                    avatar = dm.User.AvatarUrl ?? (dm.User.FullName != null ? dm.User.FullName.Substring(0, 2).ToUpper() : "U"),
+                    role = "Member"
+                })
+                .ToListAsync();
+
+            var goals = await _context.Goals
+                .Where(g => g.DepartmentId == id && !g.IsArchived)
+                .Select(g => new { id = g.Id, title = g.Title, status = g.Status })
+                .ToListAsync();
+
+            var projects = await _context.ProjectDepartmentRoles
+                .Where(pdr => pdr.DepartmentId == id)
+                .Select(pdr => new { id = pdr.ProjectId, name = pdr.Project.Name, status = "Active" })
+                .ToListAsync();
+
+            var parent = department.ParentId.HasValue ? await _context.Departments
+                .Where(d => d.Id == department.ParentId.Value)
+                .Select(d => new { id = d.Id, name = d.Name })
+                .FirstOrDefaultAsync() : null;
+
+            var children = await _context.Departments
+                .Where(d => d.ParentId == id && !d.IsDeleted)
+                .Select(d => new { id = d.Id, name = d.Name })
+                .ToListAsync();
+
+            var kudos = await _context.Kudos
+                .Include(k => k.Sender)
+                .Where(k => k.DepartmentId == id)
+                .OrderByDescending(k => k.CreatedAt)
+                .Select(k => new {
+                    id = k.Id,
+                    message = k.Message,
+                    sender = k.Sender.FullName ?? k.Sender.Email,
+                    icon = k.Icon ?? "🌟",
+                    createdAt = k.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(new {
+                statusCode = 200,
+                data = new {
+                    id = department.Id,
+                    name = department.Name,
+                    isArchived = !department.IsActive,
+                    description = department.Description ?? "Phòng ban / Đội nhóm trong hệ thống",
+                    coverImage = department.CoverImage ?? "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200&q=80",
+                    members = members,
+                    hierarchy = new { parent = parent, children = children },
+                    goals = goals,
+                    projects = projects,
+                    kudos = kudos
+                }
+            });
         }
 
         [HttpPost]
@@ -108,6 +179,48 @@ namespace TaskManagement.API.Controllers
             {
                 await _departmentService.SoftDeleteAsync(id);
                 return Ok(ApiResponse<object>.Success(null!, "Phòng ban đã được xóa."));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Error(ex.Message));
+            }
+        }
+
+        [HttpPost("{id}/members")]
+        public async Task<IActionResult> AddMembers(Guid id, [FromBody] List<Guid> userIds)
+        {
+            try
+            {
+                await _departmentService.AddMembersAsync(id, userIds);
+                return Ok(ApiResponse<object>.Success(null!, "Thêm thành viên thành công."));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Error(ex.Message));
+            }
+        }
+
+        [HttpDelete("{id}/members/{userId}")]
+        public async Task<IActionResult> RemoveMember(Guid id, Guid userId)
+        {
+            try
+            {
+                await _departmentService.RemoveMemberAsync(id, userId);
+                return Ok(ApiResponse<object>.Success(null!, "Xóa thành viên thành công."));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Error(ex.Message));
+            }
+        }
+
+        [HttpPut("{id}/hierarchy")]
+        public async Task<IActionResult> UpdateHierarchy(Guid id, [FromBody] Guid? parentId)
+        {
+            try
+            {
+                await _departmentService.UpdateHierarchyAsync(id, parentId);
+                return Ok(ApiResponse<object>.Success(null!, "Cập nhật sơ đồ phân cấp thành công."));
             }
             catch (ArgumentException ex)
             {

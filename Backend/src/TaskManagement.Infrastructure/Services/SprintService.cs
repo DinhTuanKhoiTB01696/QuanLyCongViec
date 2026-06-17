@@ -227,6 +227,11 @@ namespace TaskManagement.Infrastructure.Services
 
                 // Đóng sprint
                 sprint.Status = false;
+                var today = DateTime.UtcNow.Date;
+                if (sprint.EndDate.Date >= today)
+                {
+                    sprint.EndDate = today.AddDays(-1);
+                }
 
                 await _context.SaveChangesAsync();
                 await SyncProjectSprintStatusesAsync(sprint.ProjectId);

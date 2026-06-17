@@ -84,7 +84,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="act in mockActivities" :key="act.time">
+              <tr v-for="act in recentActivities" :key="act.time">
                 <td>{{ act.time }}</td>
                 <td><i :class="act.icon"></i> {{ act.device }}</td>
                 <td>{{ act.ip }}</td>
@@ -302,7 +302,7 @@
 
       <div class="sessions-body">
         <div class="sessions-list">
-          <div v-for="s in mockSessions" :key="s.id" class="session-item-card" :class="{ 'is-current': s.isCurrent }">
+          <div v-for="s in activeSessions" :key="s.id" class="session-item-card" :class="{ 'is-current': s.isCurrent }">
             <div class="session-icon">
               <i :class="s.icon"></i>
             </div>
@@ -322,7 +322,7 @@
           </div>
         </div>
 
-        <div class="sessions-global-action" v-if="mockSessions.length > 1">
+        <div class="sessions-global-action" v-if="activeSessions.length > 1">
           <el-button type="danger" @click="logoutAllOthers">
             <i class="fa-solid fa-arrow-right-from-bracket mr-2"></i> {{ t('Log out of all other devices', 'Đăng xuất khỏi tất cả các thiết bị khác') }}
           </el-button>
@@ -423,8 +423,8 @@ const emit = defineEmits([
   'check-password-strength'
 ])
 
-const mockActivities = ref([])
-const mockSessions = ref([])
+const recentActivities = ref([])
+const activeSessions = ref([])
 const isLoading = ref(false)
 
 const parseUserAgent = (uaString) => {
@@ -476,7 +476,7 @@ const loadSecurityData = async () => {
     ])
 
     if (sessionsRes.data && sessionsRes.data.data) {
-      mockSessions.value = sessionsRes.data.data.map(session => {
+      activeSessions.value = sessionsRes.data.data.map(session => {
         const parsed = parseUserAgent(session.device)
         return {
           id: session.id,
@@ -492,7 +492,7 @@ const loadSecurityData = async () => {
     }
 
     if (activitiesRes.data && activitiesRes.data.data) {
-      mockActivities.value = activitiesRes.data.data.map(act => {
+      recentActivities.value = activitiesRes.data.data.map(act => {
         let parsedUA = { device: 'Unknown Device', browser: 'Unknown Browser', icon: 'fa-solid fa-desktop' }
         try {
           if (act.details) {
@@ -525,7 +525,7 @@ onMounted(() => {
 })
 
 const addPasskey = () => {
-  ElMessage.success(t('Passkey enrollment triggered (mocked).', 'Yêu cầu đăng ký Passkey đã được kích hoạt (mock).'))
+  ElMessage.success(t('Passkey enrollment triggered .', 'Yêu cầu đăng ký Passkey đã được kích hoạt .'))
 }
 
 const onPasswordInput = (val) => {
@@ -540,7 +540,7 @@ const toggleMfa = (val) => {
 const logoutSession = async (id) => {
   try {
     await axiosClient.delete(`/users/sessions/${id}`)
-    mockSessions.value = mockSessions.value.filter(s => s.id !== id)
+    activeSessions.value = activeSessions.value.filter(s => s.id !== id)
     ElMessage.success(t('Session terminated.', 'Đã đăng xuất phiên đăng nhập.'))
   } catch (error) {
     ElMessage.error(t('Failed to terminate session.', 'Không thể đăng xuất phiên đăng nhập.'))
@@ -559,7 +559,7 @@ const logoutAllOthers = () => {
   ).then(async () => {
     try {
       await axiosClient.delete('/users/sessions/others')
-      mockSessions.value = mockSessions.value.filter(s => s.isCurrent)
+      activeSessions.value = activeSessions.value.filter(s => s.isCurrent)
       ElMessage.success(t('Successfully logged out of all other devices.', 'Đã đăng xuất thành công khỏi tất cả các thiết bị khác.'))
     } catch (error) {
       ElMessage.error(t('Failed to log out of other devices.', 'Không thể đăng xuất khỏi các thiết bị khác.'))

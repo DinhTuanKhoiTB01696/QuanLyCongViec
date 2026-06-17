@@ -252,11 +252,20 @@ namespace TaskManagement.Infrastructure.Migrations
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    Require2FA = table.Column<bool>(type: "bit", nullable: false)
+                    Require2FA = table.Column<bool>(type: "bit", nullable: false),
+                    ParentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CoverImage = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Departments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Departments_Departments_ParentId",
+                        column: x => x.ParentId,
+                        principalTable: "Departments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Departments_Users_ManagerId",
                         column: x => x.ManagerId,
@@ -334,6 +343,9 @@ namespace TaskManagement.Infrastructure.Migrations
                     UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Token = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     DeviceId = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    UserAgent = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IpAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ExpiryTime = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IsRevoked = table.Column<bool>(type: "bit", nullable: false)
                 },
@@ -513,6 +525,86 @@ namespace TaskManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Kudos",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SenderId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ReceiverId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    DepartmentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    Message = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Icon = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Kudos", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Kudos_Departments_DepartmentId",
+                        column: x => x.DepartmentId,
+                        principalTable: "Departments",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Kudos_Users_ReceiverId",
+                        column: x => x.ReceiverId,
+                        principalTable: "Users",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Kudos_Users_SenderId",
+                        column: x => x.SenderId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Goals",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DueDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Progress = table.Column<int>(type: "int", nullable: false),
+                    IsArchived = table.Column<bool>(type: "bit", nullable: false),
+                    OwnerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    DepartmentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    WorkspaceId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ParentGoalId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Goals", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Goals_Departments_DepartmentId",
+                        column: x => x.DepartmentId,
+                        principalTable: "Departments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_Goals_Goals_ParentGoalId",
+                        column: x => x.ParentGoalId,
+                        principalTable: "Goals",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Goals_Users_OwnerId",
+                        column: x => x.OwnerId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Goals_Workspaces_WorkspaceId",
+                        column: x => x.WorkspaceId,
+                        principalTable: "Workspaces",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Projects",
                 columns: table => new
                 {
@@ -565,6 +657,34 @@ namespace TaskManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "StarredItems",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    WorkspaceId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ItemType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ItemId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StarredItems", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_StarredItems_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_StarredItems_Workspaces_WorkspaceId",
+                        column: x => x.WorkspaceId,
+                        principalTable: "Workspaces",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "WorkspaceMembers",
                 columns: table => new
                 {
@@ -587,6 +707,117 @@ namespace TaskManagement.Infrastructure.Migrations
                         name: "FK_WorkspaceMembers_Workspaces_WorkspaceId",
                         column: x => x.WorkspaceId,
                         principalTable: "Workspaces",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GoalDecisions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    GoalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Text = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DecisionDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GoalDecisions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_GoalDecisions_Goals_GoalId",
+                        column: x => x.GoalId,
+                        principalTable: "Goals",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GoalDecisions_Users_CreatorId",
+                        column: x => x.CreatorId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GoalLessons",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    GoalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Text = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GoalLessons", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_GoalLessons_Goals_GoalId",
+                        column: x => x.GoalId,
+                        principalTable: "Goals",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GoalLessons_Users_CreatorId",
+                        column: x => x.CreatorId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GoalRisks",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    GoalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Text = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Severity = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GoalRisks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_GoalRisks_Goals_GoalId",
+                        column: x => x.GoalId,
+                        principalTable: "Goals",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GoalRisks_Users_CreatorId",
+                        column: x => x.CreatorId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GoalUpdates",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    GoalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GoalUpdates", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_GoalUpdates_Goals_GoalId",
+                        column: x => x.GoalId,
+                        principalTable: "Goals",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GoalUpdates_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -716,6 +947,35 @@ namespace TaskManagement.Infrastructure.Migrations
                         principalTable: "Projects",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProjectLinks",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ProjectId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    LinkedType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LinkedId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    TrackedUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProjectLinks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ProjectLinks_Projects_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "Projects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProjectLinks_Users_CreatorId",
+                        column: x => x.CreatorId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1387,6 +1647,71 @@ namespace TaskManagement.Infrastructure.Migrations
                 column: "ManagerId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Departments_ParentId",
+                table: "Departments",
+                column: "ParentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GoalDecisions_CreatorId",
+                table: "GoalDecisions",
+                column: "CreatorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GoalDecisions_GoalId",
+                table: "GoalDecisions",
+                column: "GoalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GoalLessons_CreatorId",
+                table: "GoalLessons",
+                column: "CreatorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GoalLessons_GoalId",
+                table: "GoalLessons",
+                column: "GoalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GoalRisks_CreatorId",
+                table: "GoalRisks",
+                column: "CreatorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GoalRisks_GoalId",
+                table: "GoalRisks",
+                column: "GoalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Goals_DepartmentId",
+                table: "Goals",
+                column: "DepartmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Goals_OwnerId",
+                table: "Goals",
+                column: "OwnerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Goals_ParentGoalId",
+                table: "Goals",
+                column: "ParentGoalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Goals_WorkspaceId",
+                table: "Goals",
+                column: "WorkspaceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GoalUpdates_GoalId",
+                table: "GoalUpdates",
+                column: "GoalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GoalUpdates_UserId",
+                table: "GoalUpdates",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Intakes_CreatedIssueId",
                 table: "Intakes",
                 column: "CreatedIssueId");
@@ -1415,6 +1740,21 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "IX_IssueModules_ModuleId",
                 table: "IssueModules",
                 column: "ModuleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Kudos_DepartmentId",
+                table: "Kudos",
+                column: "DepartmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Kudos_ReceiverId",
+                table: "Kudos",
+                column: "ReceiverId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Kudos_SenderId",
+                table: "Kudos",
+                column: "SenderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Labels_ProjectId",
@@ -1493,6 +1833,16 @@ namespace TaskManagement.Infrastructure.Migrations
                 column: "DepartmentId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ProjectLinks_CreatorId",
+                table: "ProjectLinks",
+                column: "CreatorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProjectLinks_ProjectId",
+                table: "ProjectLinks",
+                column: "ProjectId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ProjectMembers_UserId",
                 table: "ProjectMembers",
                 column: "UserId");
@@ -1542,6 +1892,16 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "IX_Sprints_ProjectId",
                 table: "Sprints",
                 column: "ProjectId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StarredItems_UserId",
+                table: "StarredItems",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StarredItems_WorkspaceId",
+                table: "StarredItems",
+                column: "WorkspaceId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_StickyNotes_UserId",
@@ -1709,6 +2069,18 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "DepartmentMembers");
 
             migrationBuilder.DropTable(
+                name: "GoalDecisions");
+
+            migrationBuilder.DropTable(
+                name: "GoalLessons");
+
+            migrationBuilder.DropTable(
+                name: "GoalRisks");
+
+            migrationBuilder.DropTable(
+                name: "GoalUpdates");
+
+            migrationBuilder.DropTable(
                 name: "Intakes");
 
             migrationBuilder.DropTable(
@@ -1716,6 +2088,9 @@ namespace TaskManagement.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "IssueModules");
+
+            migrationBuilder.DropTable(
+                name: "Kudos");
 
             migrationBuilder.DropTable(
                 name: "Notifications");
@@ -1733,6 +2108,9 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "ProjectDepartmentRoles");
 
             migrationBuilder.DropTable(
+                name: "ProjectLinks");
+
+            migrationBuilder.DropTable(
                 name: "ProjectMembers");
 
             migrationBuilder.DropTable(
@@ -1743,6 +2121,9 @@ namespace TaskManagement.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "RolePermissions");
+
+            migrationBuilder.DropTable(
+                name: "StarredItems");
 
             migrationBuilder.DropTable(
                 name: "StickyNotes");
@@ -1782,6 +2163,9 @@ namespace TaskManagement.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Comments");
+
+            migrationBuilder.DropTable(
+                name: "Goals");
 
             migrationBuilder.DropTable(
                 name: "Labels");

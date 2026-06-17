@@ -288,9 +288,11 @@ const toggleProject = (projectId) => {
 }
 
 const childIcon = (key) => ({
+  'dashboard': 'fa-solid fa-chart-line',
   'work-items': 'fa-solid fa-layer-group',
   'cycles': 'fa-solid fa-arrows-spin',
   'modules': 'fa-solid fa-table-cells-large',
+  'reports': 'fa-solid fa-chart-pie',
   'views': 'fa-solid fa-list-ul',
   'pages': 'fa-regular fa-file-lines'
 }[key] || 'fa-solid fa-chevron-right')

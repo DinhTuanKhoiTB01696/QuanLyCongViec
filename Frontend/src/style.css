@@ -60,17 +60,17 @@
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
   --transition-speed: 0.25s;
 
-  /* RADIUS SYSTEM (MODERN & SOFT) */
-  --radius-button: 10px;
-  --radius-input: 8px;
-  --radius-label: 8px;
-  --radius-card: 14px;
-  --radius-small: 6px;
+  /* RADIUS SYSTEM (ATLASSIAN STRICT) */
+  --radius-button: 3px;
+  --radius-input: 3px;
+  --radius-label: 3px;
+  --radius-card: 3px;
+  --radius-small: 2px;
 
   /* ELEMENT PLUS OVERRIDES */
-  --el-border-radius-base: 10px;
-  --el-border-radius-small: 8px;
-  --el-border-radius-round: 20px;
+  --el-border-radius-base: 3px;
+  --el-border-radius-small: 2px;
+  --el-border-radius-round: 16px;
   --el-border-radius-circle: 100%;
 
   --accent-color: var(--color-accent);
@@ -194,13 +194,23 @@ input, select, textarea,
 .el-input__wrapper {
   background-color: var(--input-bg) !important;
   color: var(--text-primary) !important;
-  border: 1px solid var(--border-color) !important;
+  border: 2px solid var(--border-color) !important;
   border-radius: var(--radius-input) !important;
-  padding: 4px 12px !important;
+  padding: 4px 8px !important;
   height: 34px !important;
   outline: none;
-  font-size: 13px !important;
+  font-size: 14px !important;
   box-shadow: none !important;
+  transition: border-color 0.2s;
+}
+
+/* Fix for search inputs overlapping magnifying glass due to global padding !important */
+input.search-input,
+input.plane-search-input,
+input.nexus-search-input,
+.search-box input,
+.search-input-wrapper input {
+  padding-left: 36px !important;
 }
 
 .el-textarea__inner {
@@ -210,8 +220,7 @@ input, select, textarea,
 
 input:focus, select:focus, textarea:focus,
 .el-input.is-focus .el-input__wrapper {
-  border-color: var(--color-accent) !important;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 20%, transparent) !important;
+  border-color: #4c9aff !important;
 }
 
 ::placeholder {
@@ -229,42 +238,39 @@ label, .el-form-item__label, .field-label {
   letter-spacing: 0.02em;
 }
 
-/* Button Refinement - Sharp & Professional */
+/* Button Refinement - Atlassian Sharp & Professional */
 .btn-primary, .primary-btn, .el-button--primary, .nexus-btn-primary {
   background-color: var(--color-accent) !important;
   color: #ffffff !important;
   border: none !important;
-  padding: 8px 16px !important;
-  height: 36px !important;
+  padding: 6px 12px !important;
+  height: 32px !important;
   border-radius: var(--radius-button) !important;
   font-weight: 500 !important;
-  font-size: 13px !important;
+  font-size: 14px !important;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .btn-primary:hover, .primary-btn:hover, .el-button--primary:hover, .nexus-btn-primary:hover {
   background-color: var(--color-accent-hover) !important;
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-accent) 25%, transparent) !important;
-  transform: translateY(-1px);
 }
 
 .btn-secondary, .secondary-btn, .el-button--default, .nexus-btn-outlined, .filter-btn.outlined {
-  background-color: transparent !important;
+  background-color: rgba(9, 30, 66, 0.04) !important;
   color: var(--color-text-secondary) !important;
-  border: 1px solid var(--color-border) !important;
-  padding: 8px 16px !important;
-  height: 36px !important;
+  border: none !important;
+  padding: 6px 12px !important;
+  height: 32px !important;
   border-radius: var(--radius-button) !important;
   font-weight: 500 !important;
-  font-size: 13px !important;
+  font-size: 14px !important;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -272,8 +278,7 @@ label, .el-form-item__label, .field-label {
 }
 
 .btn-secondary:hover, .secondary-btn:hover, .nexus-btn-outlined:hover, .filter-btn.outlined:hover {
-  background-color: var(--color-surface-hover) !important;
-  border-color: var(--color-border-hover) !important;
+  background-color: rgba(9, 30, 66, 0.08) !important;
   color: var(--color-text-primary) !important;
 }
 

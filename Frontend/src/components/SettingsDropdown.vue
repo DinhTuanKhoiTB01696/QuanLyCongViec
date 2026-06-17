@@ -16,7 +16,7 @@
                 <span class="item-desc">Manage language, time zone, and other personal preferences</span>
               </div>
             </div>
-            
+
             <div class="settings-menu-item" @click="handleCommand('/your-work')">
               <i class="fa-regular fa-bell"></i>
               <div class="item-info">
@@ -29,7 +29,7 @@
 
             <!-- Jira Admin Settings -->
             <div class="settings-section-header">Jira admin settings</div>
-            
+
             <div v-if="canAccessAdmin" class="settings-menu-item" @click="handleCommand('/admin/audit-log')">
               <i class="fa-solid fa-desktop"></i>
               <div class="item-info">
@@ -133,6 +133,10 @@ const handleCommand = (path) => {
   font-size: 16px;
   color: var(--color-text-muted);
   margin-top: 2px;
+}
+
+.settings-menu-item.indented {
+  padding-left: 44px;
 }
 
 .item-info {

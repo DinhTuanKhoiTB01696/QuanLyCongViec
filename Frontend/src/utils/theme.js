@@ -5,7 +5,7 @@ const EXCLUDED_ROUTES = ['/', '/login', '/register', '/AcceptInvite']
 const getInitialTheme = () => {
   const savedTheme = localStorage.getItem('theme')
   if (savedTheme) return savedTheme
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  return 'light' // Force light theme as default for Atlassian Jira style
 }
 
 export const currentTheme = ref(getInitialTheme())

@@ -69,7 +69,7 @@
               </select>
               <span class="field-help">{{ t('Toggle visibility of the contact administrators link/form to logged out users.', 'Toggle visibility of the contact administrators link/form to logged out users.') }}</span>
             </div>
-            
+
             <div class="field">
               <span class="field-label">{{ t('Support URL', 'Support URL') }}</span>
               <input v-model="settings.supportUrl" type="text" placeholder="https://status.example.com" />
@@ -95,7 +95,7 @@
                 <span class="toggle-desc">{{ t('Let anyone register an account and start creating project boards.', 'Let anyone register an account and start creating project boards.') }}</span>
               </div>
             </label>
-            
+
             <label class="toggle-row">
               <input v-model="settings.requireInviteApproval" type="checkbox" />
               <div class="toggle-content">

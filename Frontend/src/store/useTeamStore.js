@@ -1,0 +1,145 @@
+import { defineStore } from 'pinia'
+import axiosClient from '@/api/axiosClient'
+
+export const useTeamStore = defineStore('team', {
+  state: () => ({
+    currentTeam: null,
+    members: [],
+    hierarchy: { parent: null, children: [] },
+    goals: [],
+    projects: [],
+    kudos: [],
+    isLoading: false,
+    error: null,
+    isEmpty: false,
+    isSuccess: false,
+    allTeams: []
+  }),
+  actions: {
+    async fetchAllTeams() {
+      this.isLoading = true
+      try {
+        const response = await axiosClient.get('/departments')
+        this.allTeams = response.data?.data || response.data || []
+      } catch (err) {
+        this.error = err.message || 'Failed to fetch teams'
+      } finally {
+        this.isLoading = false
+      }
+    },
+    async fetchTeamDetail(id) {
+      this.isLoading = true
+      this.error = null
+      try {
+        const response = await axiosClient.get(`/departments/${id}/full`)
+        const team = response.data?.data || response.data
+        this.currentTeam = {
+          id: team.id,
+          name: team.name,
+          avatarText: team.name ? team.name.substring(0, 2).toUpperCase() : 'T',
+          coverImage: team.coverImage || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200&q=80',
+          status: team.isArchived ? 'Archived' : 'Active',
+          isStarred: false,
+          description: team.description || 'Department details.'
+        }
+        
+        this.members = team.members || []
+        this.hierarchy = team.hierarchy || { parent: null, children: [] }
+        this.goals = team.goals || []
+        this.projects = team.projects || []
+        this.kudos = team.kudos || []
+        
+        this.isSuccess = true
+      } catch (err) {
+        this.error = err.message || 'Failed to fetch team detail'
+      } finally {
+        this.isLoading = false
+      }
+    },
+    async toggleArchive() {
+      if (!this.currentTeam) return
+      try {
+        await axiosClient.put(`/departments/${this.currentTeam.id}/archive`)
+        this.currentTeam.status = 'Archived'
+      } catch (err) {
+        console.error('Failed to archive team', err)
+      }
+    },
+    async toggleStar() {
+      if (this.currentTeam) {
+        this.currentTeam.isStarred = !this.currentTeam.isStarred
+      }
+    },
+    async addMembers(userIds) {
+      if (!this.currentTeam) return
+      try {
+        await axiosClient.post(`/departments/${this.currentTeam.id}/members`, userIds)
+        await this.fetchTeamDetail(this.currentTeam.id) // Reload members
+      } catch (err) {
+        console.error('Failed to add members', err)
+        throw err
+      }
+    },
+    async removeMember(userId) {
+      if (!this.currentTeam) return
+      try {
+        await axiosClient.delete(`/departments/${this.currentTeam.id}/members/${userId}`)
+        await this.fetchTeamDetail(this.currentTeam.id) // Reload members
+      } catch (err) {
+        console.error('Failed to remove member', err)
+        throw err
+      }
+    },
+    async updateHierarchy(parentId) {
+      if (!this.currentTeam) return
+      try {
+        await axiosClient.put(`/departments/${this.currentTeam.id}/hierarchy`, parentId)
+        await this.fetchTeamDetail(this.currentTeam.id) // Reload hierarchy
+      } catch (err) {
+        console.error('Failed to update hierarchy', err)
+        throw err
+      }
+    },
+    async updateTeam(data) {
+      if (!this.currentTeam) return
+      try {
+        await axiosClient.put(`/departments/${this.currentTeam.id}`, data)
+        await this.fetchTeamDetail(this.currentTeam.id) // Reload data
+      } catch (err) {
+        console.error('Failed to update team', err)
+        throw err
+      }
+    },
+    async deleteTeam() {
+      if (!this.currentTeam) return
+      try {
+        await axiosClient.delete(`/departments/${this.currentTeam.id}`)
+        this.currentTeam = null
+      } catch (err) {
+        console.error('Failed to delete team', err)
+        throw err
+      }
+    },
+    async createTeam(data) {
+      try {
+        const response = await axiosClient.post('/departments', data)
+        await this.fetchAllTeams()
+        return response.data?.data || response.data
+      } catch (err) {
+        console.error('Failed to create team', err)
+        throw err
+      }
+    },
+    async sendKudos(data) {
+      try {
+        await axiosClient.post('/kudos', data)
+        if (this.currentTeam && this.currentTeam.id === data.departmentId) {
+          await this.fetchTeamDetail(this.currentTeam.id)
+        }
+      } catch (err) {
+        console.error('Failed to send kudos', err)
+        throw err
+      }
+    }
+  }
+})

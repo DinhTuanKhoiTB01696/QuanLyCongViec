@@ -9,11 +9,13 @@ import spaceRoutes from './spaceRoutes'
 import aiRoutes from './aiRoutes'
 import logRoutes from './logRoutes'
 import adminRoutes from './adminRoutes'
+import siteRoutes from './siteRoutes'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     ...homeRoutes,
+    ...siteRoutes,
     ...authRoutes,
     ...dashboardRoutes,
     ...spaceRoutes,

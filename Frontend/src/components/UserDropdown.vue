@@ -1,7 +1,11 @@
 <template>
   <el-dropdown trigger="click" popper-class="user-dropdown-popper" @command="handleCommand" :teleported="true">
-    <div class="user-avatar-trigger" :style="avatarStyle">
-      {{ avatarUrl ? '' : userInitial }}
+    <div class="user-avatar-trigger" :class="{ 'has-text': true }">
+      <div class="avatar-circle" :style="avatarStyle">
+        {{ avatarUrl ? '' : userInitial }}
+      </div>
+      <span class="user-trigger-text">{{ userEmailPrefix }}</span>
+      <i class="fa-solid fa-chevron-down trigger-arrow"></i>
     </div>
     <template #dropdown>
       <el-dropdown-menu class="jira-user-menu">
@@ -18,48 +22,40 @@
         <el-dropdown-item command="profile">
           <div class="menu-item-inner">
             <i class="fa-regular fa-user"></i>
-            <span>{{ t('userMenu.profile') }}</span>
+            <span>{{ t('My profile') }}</span>
           </div>
         </el-dropdown-item>
 
-        <el-dropdown-item v-if="canAccessAdmin" command="admin">
+        <el-dropdown-item command="settings">
           <div class="menu-item-inner">
-            <i class="fa-solid fa-shield-halved"></i>
-            <span>{{ t('userMenu.projectAdministration') }}</span>
+            <i class="fa-solid fa-gear"></i>
+            <span>{{ t('Account settings') }}</span>
           </div>
         </el-dropdown-item>
 
-        <div class="theme-trigger-item" @click.stop="toggleThemeSub">
+        <div class="theme-trigger-item" @click.stop="toggleLangSub">
           <div class="menu-item-inner">
-            <i class="fa-solid fa-circle-half-stroke"></i>
-            <span>{{ t('userMenu.theme') }}</span>
-            <i class="fa-solid fa-chevron-right arrow-icon" :class="{ rotated: themeSubVisible }"></i>
+            <i class="fa-solid fa-globe"></i>
+            <span>{{ t('Language') }}</span>
+            <span class="ms-auto text-xs text-gray-500">{{ i18nStore.locale.toUpperCase() }}</span>
+            <i class="fa-solid fa-chevron-right arrow-icon" :class="{ rotated: langSubVisible }"></i>
           </div>
 
           <transition name="el-zoom-in-top">
-            <div v-if="themeSubVisible" class="theme-expanded-menu">
-              <div class="theme-option" :class="{ active: currentTheme === 'light' }" @click.stop="selectTheme('light')">
+            <div v-if="langSubVisible" class="theme-expanded-menu">
+              <div class="theme-option" :class="{ active: i18nStore.locale === 'en' }" @click.stop="selectLang('en')">
                 <div class="radio-indicator">
-                  <i v-if="currentTheme === 'light'" class="fa-solid fa-circle-dot"></i>
+                  <i v-if="i18nStore.locale === 'en'" class="fa-solid fa-circle-dot"></i>
                   <i v-else class="fa-regular fa-circle"></i>
                 </div>
-                <div class="theme-preview-box light">
-                  <div class="p-header"></div>
-                  <div class="p-body"><div class="p-sidebar"></div><div class="p-content"></div></div>
-                </div>
-                <span class="option-label">{{ t('userMenu.light') }}</span>
+                <span class="option-label">English (US) 🇺🇸</span>
               </div>
-
-              <div class="theme-option" :class="{ active: currentTheme === 'dark' }" @click.stop="selectTheme('dark')">
+              <div class="theme-option" :class="{ active: i18nStore.locale === 'vi' }" @click.stop="selectLang('vi')">
                 <div class="radio-indicator">
-                  <i v-if="currentTheme === 'dark'" class="fa-solid fa-circle-dot"></i>
+                  <i v-if="i18nStore.locale === 'vi'" class="fa-solid fa-circle-dot"></i>
                   <i v-else class="fa-regular fa-circle"></i>
                 </div>
-                <div class="theme-preview-box dark">
-                  <div class="p-header"></div>
-                  <div class="p-body"><div class="p-sidebar"></div><div class="p-content"></div></div>
-                </div>
-                <span class="option-label">{{ t('userMenu.dark') }}</span>
+                <span class="option-label">Tiếng Việt 🇻🇳</span>
               </div>
             </div>
           </transition>
@@ -67,20 +63,10 @@
 
         <div class="menu-divider"></div>
 
-        <!-- BUG-HOST-015: Hidden as it's not supported yet -->
-        <!-- 
-        <el-dropdown-item command="switch">
-          <div class="menu-item-inner">
-            <i class="fa-solid fa-users-viewfinder"></i>
-            <span>Switch account</span>
-          </div>
-        </el-dropdown-item>
-        -->
-
         <el-dropdown-item command="logout" class="logout-item-wrapper">
           <div class="menu-item-inner logout-item">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
-            <span>{{ t('userMenu.logOut') }}</span>
+            <span>{{ t('Sign out') }}</span>
           </div>
         </el-dropdown-item>
       </el-dropdown-menu>
@@ -91,22 +77,22 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { currentTheme, toggleTheme } from '@/utils/theme'
-import { getStoredUser, hasSystemAdminAccess } from '@/utils/permissions'
+import { getStoredUser } from '@/utils/permissions'
 import { clearAuthSession } from '@/utils/authSession'
-import { openNamedAppWindow, PROJECT_ADMIN_WINDOW_NAME } from '@/utils/windowTabs'
 import axiosClient from '@/api/axiosClient'
-import { useI18n } from '@/composables/useI18n'
+import { useI18nStore } from '@/store/useI18nStore'
 
 const router = useRouter()
-const { t } = useI18n()
-const themeSubVisible = ref(false)
+const langSubVisible = ref(false)
 const profileData = ref(null)
 
+const i18nStore = useI18nStore()
+const t = i18nStore.t
+
 const currentUser = computed(() => profileData.value || getStoredUser())
-const canAccessAdmin = computed(() => hasSystemAdminAccess(currentUser.value))
-const userDisplayName = computed(() => currentUser.value?.fullName || currentUser.value?.name || currentUser.value?.publicName || currentUser.value?.email?.split('@')?.[0] || t('userMenu.userFallback'))
+const userDisplayName = computed(() => currentUser.value?.fullName || currentUser.value?.name || currentUser.value?.publicName || currentUser.value?.email?.split('@')?.[0] || 'User')
 const userEmail = computed(() => currentUser.value?.email || 'user@example.com')
+const userEmailPrefix = computed(() => userEmail.value.split('@')[0])
 
 const getInitials = (name) => {
   if (!name) return '?'
@@ -169,16 +155,13 @@ onUnmounted(() => {
   window.removeEventListener('user-avatar-updated', handleAvatarUpdate)
 })
 
-const toggleThemeSub = () => {
-  themeSubVisible.value = !themeSubVisible.value
+const toggleLangSub = () => {
+  langSubVisible.value = !langSubVisible.value
 }
 
 const handleCommand = async (cmd) => {
-  if (cmd === 'profile') {
+  if (cmd === 'profile' || cmd === 'settings') {
     router.push('/profile')
-  } else if (cmd === 'admin') {
-    const routeData = router.resolve('/admin')
-    openNamedAppWindow(routeData.href, PROJECT_ADMIN_WINDOW_NAME)
   } else if (cmd === 'logout') {
     try {
       await axiosClient.post('/auth/logout')
@@ -190,14 +173,12 @@ const handleCommand = async (cmd) => {
     }
   }
 
-  if (cmd !== 'theme') {
-    themeSubVisible.value = false
-  }
+  langSubVisible.value = false
 }
 
-const selectTheme = (theme) => {
-  toggleTheme(theme)
-  themeSubVisible.value = false
+const selectLang = (lang) => {
+  i18nStore.setLocale(lang)
+  langSubVisible.value = false
 }
 </script>
 
@@ -278,11 +259,32 @@ const selectTheme = (theme) => {
 .dark .p-content { background: #0f172a; }
 
 .user-avatar-trigger {
-  width: 30px; height: 30px;
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+  padding: 4px 6px; border-radius: 24px; transition: background-color 0.2s;
+}
+.user-avatar-trigger:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.avatar-circle {
+  width: 28px; height: 28px;
   color: #fff; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 11px; cursor: pointer;
+  font-weight: 700; font-size: 11px;
   border: 1px solid rgba(255,255,255,0.1);
+}
+.user-trigger-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #DEEBFF;
+}
+.user-avatar-trigger:hover .user-trigger-text,
+.user-avatar-trigger:hover .trigger-arrow {
+  color: #FFFFFF;
+}
+.trigger-arrow {
+  font-size: 10px;
+  color: #DEEBFF;
+  margin-left: 2px;
 }
 </style>
 

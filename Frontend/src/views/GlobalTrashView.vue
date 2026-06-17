@@ -13,10 +13,10 @@
       <div class="jira-filter-bar" style="display: flex; gap: 12px; margin-bottom: 20px;">
         <div class="search-box" style="position: relative; display: flex; align-items: center;">
           <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; color: var(--color-text-muted); font-size: 13px;"></i>
-          <input 
-            type="text" 
-            placeholder="Search spaces" 
-            v-model="searchQuery" 
+          <input
+            type="text"
+            placeholder="Search spaces"
+            v-model="searchQuery"
             style="background: transparent; border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 8px 12px 8px 32px; font-size: 13.5px; outline: none; width: 220px; border-radius: 4px;"
           />
         </div>
@@ -123,7 +123,7 @@ const fetchTrashSpaces = async () => {
   try {
     const response = await axiosClient.get('/projects/deleted')
     const data = response.data.data || response.data || []
-    
+
     spaces.value = data.map(p => ({
       id: p.id,
       name: p.name,
@@ -170,7 +170,7 @@ const confirmPermanentDelete = async (space) => {
         }
       }
     )
-    
+
     await axiosClient.delete(`/projects/${space.id}/permanent`)
     ElMessage.success('Project permanently deleted')
     fetchTrashSpaces()

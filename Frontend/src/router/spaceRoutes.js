@@ -27,7 +27,7 @@ export default [
     path: '/space/:id',
     name: 'SpaceSummaryRedirect',
     redirect: to => {
-      return `/space/${to.params.id}/work-items`
+      return `/space/${to.params.id}/dashboard`
     }
   },
   {
@@ -64,6 +64,16 @@ export default [
     path: '/space/:id/pages',
     name: 'PagesView',
     component: () => import('../views/PagesView.vue')
+  },
+  {
+    path: '/space/:id/reports',
+    name: 'ReportsView',
+    component: () => import('../views/ReportsView.vue')
+  },
+  {
+    path: '/space/:id/dashboard',
+    name: 'SpaceDashboard',
+    component: () => import('../views/SpaceDashboard.vue')
   },
   {
     path: '/space/:id/settings',

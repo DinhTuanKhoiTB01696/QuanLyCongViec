@@ -54,10 +54,11 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<Notification> Notifications { get; set; }
 
-        // Group 5: Gamification
+        // Group 5: Gamification & Recognition
         public DbSet<PerformanceReview> PerformanceReviews { get; set; }
         public DbSet<UserWallet> UserWallets { get; set; }
         public DbSet<PointTransaction> PointTransactions { get; set; }
+        public DbSet<Kudo> Kudos { get; set; }
 
         // Group 6: AI Integration
         public DbSet<AIPromptTemplate> AIPromptTemplates { get; set; }
@@ -82,6 +83,17 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<TaskDraft> TaskDrafts { get; set; }
         public DbSet<ProjectView> ProjectViews { get; set; }
         public DbSet<TaskSubscriber> TaskSubscribers { get; set; }
+
+        // Group 8: Goals & Strategy
+        public DbSet<Goal> Goals { get; set; }
+        public DbSet<GoalUpdate> GoalUpdates { get; set; }
+        public DbSet<GoalLesson> GoalLessons { get; set; }
+        public DbSet<GoalRisk> GoalRisks { get; set; }
+        public DbSet<GoalDecision> GoalDecisions { get; set; }
+
+        // Group 9: Links & Favorites
+        public DbSet<StarredItem> StarredItems { get; set; }
+        public DbSet<ProjectLink> ProjectLinks { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -177,6 +189,13 @@ namespace TaskManagement.Infrastructure.Data
                 .WithMany(u => u.ManagedDepartments)
                 .HasForeignKey(d => d.ManagerId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // Department Hierarchy
+            modelBuilder.Entity<Department>()
+                .HasOne(d => d.Parent)
+                .WithMany(p => p.Children)
+                .HasForeignKey(d => d.ParentId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<DepartmentMember>()
                 .HasOne(dm => dm.Department)
@@ -598,6 +617,84 @@ namespace TaskManagement.Infrastructure.Data
                 .WithMany()
                 .HasForeignKey(pg => pg.UpdatedById)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            // =============================================
+            // 11. Goals & Strategy Relationships
+            // =============================================
+            modelBuilder.Entity<Goal>()
+                .HasOne(g => g.Owner)
+                .WithMany()
+                .HasForeignKey(g => g.OwnerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Goal>()
+                .HasOne(g => g.Department)
+                .WithMany()
+                .HasForeignKey(g => g.DepartmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Goal>()
+                .HasOne(g => g.Workspace)
+                .WithMany()
+                .HasForeignKey(g => g.WorkspaceId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Goal>()
+                .HasOne(g => g.ParentGoal)
+                .WithMany(g => g.SubGoals)
+                .HasForeignKey(g => g.ParentGoalId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<GoalUpdate>()
+                .HasOne(gu => gu.Goal)
+                .WithMany(g => g.Updates)
+                .HasForeignKey(gu => gu.GoalId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<GoalLesson>()
+                .HasOne(gl => gl.Goal)
+                .WithMany(g => g.Lessons)
+                .HasForeignKey(gl => gl.GoalId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<GoalRisk>()
+                .HasOne(gr => gr.Goal)
+                .WithMany(g => g.Risks)
+                .HasForeignKey(gr => gr.GoalId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<GoalDecision>()
+                .HasOne(gd => gd.Goal)
+                .WithMany(g => g.Decisions)
+                .HasForeignKey(gd => gd.GoalId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // =============================================
+            // 12. Links & Favorites Relationships
+            // =============================================
+            modelBuilder.Entity<StarredItem>()
+                .HasOne(si => si.User)
+                .WithMany()
+                .HasForeignKey(si => si.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<StarredItem>()
+                .HasOne(si => si.Workspace)
+                .WithMany()
+                .HasForeignKey(si => si.WorkspaceId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ProjectLink>()
+                .HasOne(pl => pl.Project)
+                .WithMany()
+                .HasForeignKey(pl => pl.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProjectLink>()
+                .HasOne(pl => pl.Creator)
+                .WithMany()
+                .HasForeignKey(pl => pl.CreatorId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // =============================================
             // 11. Applying custom configurations

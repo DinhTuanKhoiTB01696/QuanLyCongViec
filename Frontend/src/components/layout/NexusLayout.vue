@@ -1,6 +1,6 @@
 <template>
   <div class="dashboard-layout">
-    <NexusTopbar
+    <AppTopBar
       :sidebarVisible="sidebarVisible"
       @toggle-sidebar="toggleSidebar"
       @toggle-ai="toggleAI"
@@ -84,7 +84,7 @@ import { ElMessage } from 'element-plus'
 import axiosClient from '@/api/axiosClient'
 import CreateProjectModal from '../CreateProjectModal.vue'
 import CreateSpaceModal from '../CreateSpaceModal.vue'
-import NexusTopbar from './NexusTopbar.vue'
+import AppTopBar from './AppTopBar.vue'
 import NexusSidebar from './NexusSidebar.vue'
 
 const props = defineProps({

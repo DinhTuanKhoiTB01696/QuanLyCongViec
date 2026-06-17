@@ -63,6 +63,12 @@ namespace TaskManagement.API.Extensions
             services.AddScoped<IDepartmentService, DepartmentService>();
             services.AddScoped<IProjectService, ProjectService>();
             services.AddScoped<ISprintService, SprintService>();
+            
+            // Phase 1: SprintA Alignment Entities
+            services.AddScoped<IGoalService, GoalService>();
+            services.AddScoped<IProjectLinkService, ProjectLinkService>();
+            services.AddScoped<IStarredItemService, StarredItemService>();
+            
             return services;
         }
 

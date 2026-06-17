@@ -28,6 +28,9 @@ namespace TaskManagement.Infrastructure.Services
                     ManagerName = d.Manager != null ? d.Manager.FullName : null,
                     IsActive = d.IsActive,
                     MemberCount = d.DepartmentMembers.Count(),
+                    ParentId = d.ParentId,
+                    Description = d.Description,
+                    CoverImage = d.CoverImage,
                     CreatedAt = d.CreatedAt
                 })
                 .ToListAsync();
@@ -46,6 +49,9 @@ namespace TaskManagement.Infrastructure.Services
                     ManagerName = d.Manager != null ? d.Manager.FullName : null,
                     IsActive = d.IsActive,
                     MemberCount = d.DepartmentMembers.Count(),
+                    ParentId = d.ParentId,
+                    Description = d.Description,
+                    CoverImage = d.CoverImage,
                     CreatedAt = d.CreatedAt
                 })
                 .FirstOrDefaultAsync();
@@ -93,6 +99,8 @@ namespace TaskManagement.Infrastructure.Services
 
             department.Name = dto.Name;
             department.ManagerId = dto.ManagerId;
+            department.Description = dto.Description;
+            department.CoverImage = dto.CoverImage;
 
             await _context.SaveChangesAsync();
 
@@ -135,6 +143,62 @@ namespace TaskManagement.Infrastructure.Services
                 throw new ArgumentException("Phòng ban không tồn tại.");
 
             department.IsDeleted = true;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task AddMembersAsync(Guid departmentId, List<Guid> userIds)
+        {
+            var department = await _context.Departments.FirstOrDefaultAsync(d => d.Id == departmentId);
+            if (department == null) throw new ArgumentException("Phòng ban không tồn tại.");
+
+            var existingMembers = await _context.DepartmentMembers
+                .Where(dm => dm.DepartmentId == departmentId)
+                .Select(dm => dm.UserId)
+                .ToListAsync();
+
+            var newMembers = userIds.Except(existingMembers).ToList();
+            if (!newMembers.Any()) return;
+
+            var validUsers = await _context.Users.Where(u => newMembers.Contains(u.Id) && !u.IsDeleted).Select(u => u.Id).ToListAsync();
+
+            foreach (var userId in validUsers)
+            {
+                _context.DepartmentMembers.Add(new DepartmentMember
+                {
+                    DepartmentId = departmentId,
+                    UserId = userId,
+                    JoinedAt = DateTime.UtcNow
+                });
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task RemoveMemberAsync(Guid departmentId, Guid userId)
+        {
+            var member = await _context.DepartmentMembers
+                .FirstOrDefaultAsync(dm => dm.DepartmentId == departmentId && dm.UserId == userId);
+            
+            if (member == null) return;
+
+            _context.DepartmentMembers.Remove(member);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateHierarchyAsync(Guid departmentId, Guid? parentId)
+        {
+            var department = await _context.Departments.FirstOrDefaultAsync(d => d.Id == departmentId);
+            if (department == null) throw new ArgumentException("Phòng ban không tồn tại.");
+
+            if (parentId.HasValue)
+            {
+                if (parentId.Value == departmentId) throw new ArgumentException("Phòng ban không thể là cha của chính nó.");
+                
+                var parentExists = await _context.Departments.AnyAsync(d => d.Id == parentId.Value && !d.IsDeleted);
+                if (!parentExists) throw new ArgumentException("Phòng ban cha không tồn tại.");
+            }
+
+            department.ParentId = parentId;
             await _context.SaveChangesAsync();
         }
     }

@@ -57,7 +57,7 @@
             {{ t('Audit Log', 'Audit Log') }}
           </router-link>
         </li>
-        
+
         <li class="menu-heading">{{ t('SECURITY', 'SECURITY') }}</li>
         <li>
           <router-link to="/admin/security/2fa" class="menu-item" :class="{ active: $route.path === '/admin/security/2fa' }">
@@ -484,4 +484,3 @@ const handleCategorySwitch = (path) => {
   cursor: default !important;
 }
 </style>
-

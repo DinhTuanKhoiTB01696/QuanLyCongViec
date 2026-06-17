@@ -38,6 +38,12 @@ const upsertProject = (projects = [], rawProject) => {
 
 const defaultProjectNodes = (projectId) => ([
   {
+    id: `${projectId}-dashboard`,
+    key: 'dashboard',
+    label: 'Dashboard',
+    route: `/space/${projectId}/dashboard`
+  },
+  {
     id: `${projectId}-work-items`,
     key: 'work-items',
     label: 'Work items',
@@ -54,6 +60,12 @@ const defaultProjectNodes = (projectId) => ([
     key: 'modules',
     label: 'Modules',
     route: `/space/${projectId}/modules`
+  },
+  {
+    id: `${projectId}-reports`,
+    key: 'reports',
+    label: 'Reports',
+    route: `/space/${projectId}/reports`
   },
   {
     id: `${projectId}-views`,

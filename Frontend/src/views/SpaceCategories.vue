@@ -45,27 +45,27 @@
       <!-- Add New Category Form -->
       <div class="add-category-section">
         <h3 class="section-title">{{ t('Add New Space Category', 'Add New Space Category') }}</h3>
-        
+
         <form @submit.prevent="addCategory" class="jira-form">
           <div class="form-group">
             <label for="cat-name" class="form-label">{{ t('Name', 'Name') }}</label>
-            <input 
-              v-model="newCategory.name" 
-              type="text" 
-              id="cat-name" 
-              required 
-              placeholder="e.g., Development, Marketing" 
+            <input
+              v-model="newCategory.name"
+              type="text"
+              id="cat-name"
+              required
+              placeholder="e.g., Development, Marketing"
               class="jira-input"
             />
           </div>
 
           <div class="form-group">
             <label for="cat-desc" class="form-label">{{ t('Description', 'Description') }}</label>
-            <input 
-              v-model="newCategory.description" 
-              type="text" 
-              id="cat-desc" 
-              placeholder="Provide a brief description..." 
+            <input
+              v-model="newCategory.description"
+              type="text"
+              id="cat-desc"
+              placeholder="Provide a brief description..."
               class="jira-input"
             />
           </div>
@@ -215,7 +215,7 @@ onMounted(loadCategories)
   text-align: left;
 }
 
-.space-categories-table th, 
+.space-categories-table th,
 .space-categories-table td {
   padding: 12px 16px;
   font-size: 13px;

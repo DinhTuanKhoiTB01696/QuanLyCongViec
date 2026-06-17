@@ -22,7 +22,7 @@
               <span class="m-val success-text">Active & Healthy</span>
             </div>
           </div>
-          
+
           <div class="metric-card">
             <div class="m-icon bg-purple"><i class="fa-solid fa-database"></i></div>
             <div class="m-content">
@@ -91,7 +91,7 @@
           <!-- System Properties -->
           <section class="settings-card">
             <h2 class="text-section"><i class="fa-solid fa-circle-info" style="margin-right: 8px; color: var(--color-accent);"></i>{{ t('System properties', 'System properties') }}</h2>
-            
+
             <div class="properties-table-wrap">
               <table class="jira-table properties-table">
                 <tbody>

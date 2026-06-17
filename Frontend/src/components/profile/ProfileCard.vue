@@ -319,9 +319,8 @@ const onAvatarFileChange = (event) => {
 }
 
 const removeAvatar = () => {
-  // Mock removal of avatar
-  props.profileData.avatarUrl = ''
-  ElMessage.success(t('Profile photo removed (mocked). Save profile to complete.', 'Đã gỡ bỏ ảnh đại diện (mock). Lưu hồ sơ để hoàn tất.'))
+  // TODO: Implement actual avatar removal API
+  ElMessage.warning(t('Avatar removal pending backend API implementation.', 'Tính năng gỡ ảnh đại diện đang chờ tích hợp API backend.'))
 }
 
 const onSubmit = () => {

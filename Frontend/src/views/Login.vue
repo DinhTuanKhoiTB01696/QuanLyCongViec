@@ -110,10 +110,7 @@ const requires2FA = ref(false)
 const otpCode = ref('')
 
 const getSafeRedirect = () => {
-  const redirect = router.currentRoute.value.query.redirect
-  return typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
-    ? redirect
-    : '/dashboard'
+  return '/site-selection'
 }
 
 const handleLogin = async () => {

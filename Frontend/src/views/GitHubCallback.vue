@@ -41,7 +41,7 @@ onMounted(async () => {
     saveAuthSession(res.data.data)
 
     ElMessage.success('Đăng nhập bằng GitHub thành công!')
-    router.push('/dashboard')
+    router.push('/site-selection')
   } catch (error) {
     console.error('GitHub login error:', error)
     errorMsg.value = error.response?.data?.message || 'Không thể đăng nhập bằng GitHub.'
