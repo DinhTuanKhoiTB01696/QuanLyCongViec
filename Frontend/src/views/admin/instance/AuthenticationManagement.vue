@@ -3,7 +3,7 @@
     <div class="admin-page">
       <div class="page-header">
         <div class="breadcrumb">
-          <i class="fa-solid fa-lock"></i>
+          <Lock class="w-4 h-4 inline-block" />
           <span>Admin / Instance / Authentication</span>
         </div>
         <h1 class="text-hero">Authentication management</h1>
@@ -116,6 +116,7 @@
 </template>
 
 <script setup>
+import { Lock } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import AdminLayout from '@/components/layout/AdminLayout.vue'

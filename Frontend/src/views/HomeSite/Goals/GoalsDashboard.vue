@@ -7,7 +7,7 @@
           <button class="primary-btn" @click="openCreateModal">Tạo mục tiêu</button>
         </div>
       </div>
-      
+
       <div class="tabs-nav">
         <button class="tab-btn" :class="{ active: currentTab === 'all' }" @click="currentTab = 'all'">Thư mục mục tiêu</button>
         <button class="tab-btn" :class="{ active: currentTab === 'following' }" @click="currentTab = 'following'">Đang theo dõi</button>
@@ -30,7 +30,7 @@
             </div>
             <div class="empty-banner-illustration">
               <div class="mock-illustration">
-                <i class="fa-solid fa-bullseye"></i>
+                <Target class="w-4 h-4"></Target>
               </div>
             </div>
           </div>
@@ -39,16 +39,108 @@
 
       <!-- Tab: Tất cả mục tiêu & Đã lưu trữ -->
       <div v-else class="tab-all-archived">
-        <div class="list-controls">
-          <div class="search-box-wrapper">
-            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <div class="list-controls" style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="search-box-wrapper" style="width: 100%;">
+            <Search class="w-4 h-4 search-icon"></Search>
             <input type="text" v-model="searchQuery" placeholder="Tìm kiếm" class="search-input" />
           </div>
-          <div class="filter-actions">
-            <button class="filter-btn" v-if="currentTab === 'following'" style="background-color: #E6FCFF; color: #0052CC; border: 1px solid #4C9AFF;">Đang theo dõi <i class="fa-solid fa-xmark"></i></button>
-            <button class="filter-btn">Trạng thái <i class="fa-solid fa-chevron-down"></i></button>
-            <button class="filter-btn">Chủ sở hữu <i class="fa-solid fa-chevron-down"></i></button>
-            <button class="filter-btn">Nhãn <i class="fa-solid fa-chevron-down"></i></button>
+          <div class="filter-chips" style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <button class="filter-chip" v-if="currentTab === 'following'" style="background-color: #E6FCFF; color: #0052CC; border: 1px solid #4C9AFF; cursor: default;">
+              Đang theo dõi <X class="w-4 h-4" style="cursor: pointer;" @click="currentTab = 'all'"></X>
+            </button>
+
+            <el-dropdown trigger="click" @command="val => selectedProject = val">
+              <button class="filter-chip" :class="{ 'active-filter': selectedProject }">
+                <Rocket class="w-4 h-4"></Rocket> {{ selectedProject || 'Dự án' }}
+              </button>
+              <template #dropdown>
+                <el-dropdown-menu class="filter-dropdown-menu">
+                  <el-dropdown-item command="">Tất cả</el-dropdown-item>
+                  <el-dropdown-item v-if="uniqueProjects.length === 0" disabled>Không có thông tin</el-dropdown-item>
+                  <el-dropdown-item v-for="item in uniqueProjects" :key="item" :command="item">{{ item }}</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+
+            <el-dropdown trigger="click" @command="val => selectedTeam = val">
+              <button class="filter-chip" :class="{ 'active-filter': selectedTeam }">
+                <Users class="w-4 h-4"></Users> {{ selectedTeam || 'Nhóm' }}
+              </button>
+              <template #dropdown>
+                <el-dropdown-menu class="filter-dropdown-menu">
+                  <el-dropdown-item command="">Tất cả</el-dropdown-item>
+                  <el-dropdown-item v-if="uniqueTeams.length === 0" disabled>Không có thông tin</el-dropdown-item>
+                  <el-dropdown-item v-for="item in uniqueTeams" :key="item" :command="item">{{ item }}</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+
+            <el-dropdown trigger="click" @command="val => selectedProgress = val">
+              <button class="filter-chip" :class="{ 'active-filter': selectedProgress }">
+                <Activity class="w-4 h-4"></Activity> {{ selectedProgress || 'Tiến độ' }}
+              </button>
+              <template #dropdown>
+                <el-dropdown-menu class="filter-dropdown-menu">
+                  <el-dropdown-item command="">Tất cả</el-dropdown-item>
+                  <el-dropdown-item command="0%">Chưa bắt đầu (0%)</el-dropdown-item>
+                  <el-dropdown-item command="1-99%">Đang thực hiện (1-99%)</el-dropdown-item>
+                  <el-dropdown-item command="100%">Hoàn thành (100%)</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+
+            <el-dropdown trigger="click" @command="val => selectedOwner = val">
+              <button class="filter-chip" :class="{ 'active-filter': selectedOwner }">
+                <User class="w-4 h-4"></User> {{ selectedOwner || 'Chủ sở hữu' }}
+              </button>
+              <template #dropdown>
+                <el-dropdown-menu class="filter-dropdown-menu">
+                  <el-dropdown-item command="">Tất cả</el-dropdown-item>
+                  <el-dropdown-item v-if="uniqueOwners.length === 0" disabled>Không có thông tin</el-dropdown-item>
+                  <el-dropdown-item v-for="item in uniqueOwners" :key="item" :command="item">{{ item }}</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+
+            <el-dropdown trigger="click" @command="val => selectedStatus = val">
+              <button class="filter-chip" :class="{ 'active-filter': selectedStatus }">
+                <CheckCircle class="w-4 h-4"></CheckCircle> {{ selectedStatus || 'Trạng thái' }}
+              </button>
+              <template #dropdown>
+                <el-dropdown-menu class="filter-dropdown-menu">
+                  <el-dropdown-item command="">Tất cả</el-dropdown-item>
+                  <el-dropdown-item v-if="uniqueStatuses.length === 0" disabled>Không có thông tin</el-dropdown-item>
+                  <el-dropdown-item v-for="item in uniqueStatuses" :key="item" :command="item">{{ item }}</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+
+            <el-dropdown trigger="click" @command="val => selectedStartDate = val">
+              <button class="filter-chip" :class="{ 'active-filter': selectedStartDate }">
+                <Calendar class="w-4 h-4"></Calendar> {{ selectedStartDate || 'Ngày bắt đầu' }}
+              </button>
+              <template #dropdown>
+                <el-dropdown-menu class="filter-dropdown-menu">
+                  <el-dropdown-item command="">Tất cả</el-dropdown-item>
+                  <el-dropdown-item command="Tuần này">Tuần này</el-dropdown-item>
+                  <el-dropdown-item command="Tháng này">Tháng này</el-dropdown-item>
+                  <el-dropdown-item command="Quý này">Quý này</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+
+            <el-dropdown trigger="click" @command="val => selectedEndDate = val">
+              <button class="filter-chip" :class="{ 'active-filter': selectedEndDate }">
+                <CalendarDays class="w-4 h-4"></CalendarDays> {{ selectedEndDate || 'Ngày kết thúc' }}
+              </button>
+              <template #dropdown>
+                <el-dropdown-menu class="filter-dropdown-menu">
+                  <el-dropdown-item command="">Tất cả</el-dropdown-item>
+                  <el-dropdown-item v-if="uniqueEndDates.length === 0" disabled>Không có thông tin</el-dropdown-item>
+                  <el-dropdown-item v-for="item in uniqueEndDates" :key="item" :command="item">{{ item }}</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </div>
 
@@ -68,7 +160,7 @@
               <tr v-for="goal in filteredGoals" :key="goal.id" @click="goToGoal(goal.id)">
                 <td>
                   <div class="goal-title-cell">
-                    <span class="goal-icon"><i class="fa-solid fa-bullseye"></i></span>
+                    <span class="goal-icon"><Target class="w-4 h-4"></Target></span>
                     <span class="goal-title">{{ goal.title }}</span>
                   </div>
                 </td>
@@ -95,143 +187,118 @@
                 </td>
                 <td>
                   <div class="owner-cell">
-                    <div class="owner-avatar">{{ goal.owner ? goal.owner.substring(0, 1).toUpperCase() : 'U' }}</div>
-                    <span class="owner-name">{{ goal.owner || 'Chưa gán' }}</span>
+                    <UserAvatar :user="goal.owner" size="sm" />
+                    <span class="owner-name">{{ goal.owner?.fullName || goal.owner?.email || 'Chưa gán' }}</span>
                   </div>
                 </td>
               </tr>
             </tbody>
           </table>
-          
+
           <div class="empty-state" v-else>
             <div class="empty-icon-wrapper">
-              <i class="fa-solid fa-bullseye"></i>
+              <Target class="w-4 h-4"></Target>
             </div>
             <h3>Không tìm thấy mục tiêu nào</h3>
             <p>Không có mục tiêu nào khớp với bộ lọc của bạn.</p>
           </div>
         </div>
-        
+
         <div class="loading-state" v-else>
           <div class="loader-spinner"></div>
         </div>
       </div>
     </div>
 
-    <!-- Create Goal Modal -->
-    <div class="modal-overlay" v-if="isCreateModalOpen" @click.self="isCreateModalOpen = false">
-      <div class="modal-content" style="width: 500px; padding: 0;">
-        <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
-          <h2 style="display: flex; align-items: center; gap: 8px;">
-             <i class="fa-solid fa-bullseye" style="color: #6B778C;"></i> Tạo mục tiêu
-          </h2>
-        </div>
-        <div class="modal-body" style="padding-top: 12px;">
-          <p style="font-size: 11px; color: #6B778C; margin: 0 0 16px 0;">Các trường bắt buộc được đánh dấu sao <span class="required">*</span></p>
-          
-          <div class="form-group">
-            <label>Tên <span class="required">*</span></label>
-            <input type="text" v-model="newGoal.title" @blur="isTitleTouched = true" :class="{'error-input': isTitleTouched && !newGoal.title}" />
-            <div v-if="isTitleTouched && !newGoal.title" style="color: #DE350B; font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
-               <i class="fa-solid fa-circle-exclamation"></i> Bạn phải đặt tên mục tiêu
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label>Loại <span class="required">*</span></label>
-            <div style="position: relative;">
-               <select v-model="newGoal.type" class="jira-select" style="appearance: none; background: #FAFBFC; padding-left: 32px;">
-                 <option value="Objective">Objective</option>
-                 <option value="Key Result">Key Result</option>
-               </select>
-               <i class="fa-solid fa-bullseye" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #6B778C; font-size: 14px;"></i>
-               <i class="fa-solid fa-chevron-down" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #6B778C; font-size: 12px; pointer-events: none;"></i>
-            </div>
-          </div>
-          
-          <div class="form-group" style="position: relative;">
-            <label>Ngày mục tiêu</label>
-            <div class="date-input-wrapper" @click="isDateDropdownOpen = !isDateDropdownOpen" style="position: relative; border: 2px solid #DFE1E6; border-radius: 3px; padding: 8px 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: white;">
-               <span :style="{ color: newGoal.date ? '#172B4D' : '#6B778C' }">{{ newGoal.date || 'Chọn ngày' }}</span>
-               <i class="fa-regular fa-calendar" style="color: #6B778C;"></i>
-            </div>
-            
-            <!-- Custom Date Dropdown -->
-            <div v-if="isDateDropdownOpen" class="dropdown-menu" style="position: absolute; top: 100%; left: 0; margin-top: 4px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 280px; z-index: 100; padding: 16px;">
-               <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #DFE1E6;">
-                 <button style="flex: 1; padding: 4px 0 8px; background: none; border: none; font-size: 12px; font-weight: 500; color: #5E6C84; cursor: pointer;">Ngày</button>
-                 <button style="flex: 1; padding: 4px 0 8px; background: none; border: none; border-bottom: 2px solid #0052CC; font-size: 12px; font-weight: 600; color: #0052CC; cursor: pointer; margin-bottom: -2px;">Tháng</button>
-                 <button style="flex: 1; padding: 4px 0 8px; background: none; border: none; font-size: 12px; font-weight: 500; color: #5E6C84; cursor: pointer;">Quý</button>
-               </div>
-               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                 <i class="fa-solid fa-chevron-left" style="cursor: pointer; color: #6B778C; font-size: 12px;"></i>
-                 <span style="font-weight: 600; font-size: 14px; color: #172B4D;">2026</span>
-                 <i class="fa-solid fa-chevron-right" style="cursor: pointer; color: #6B778C; font-size: 12px;"></i>
-               </div>
-               <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
-                 <div v-for="month in ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']" :key="month" @click="selectDate(month + ' 2026')" style="text-align: center; padding: 8px 0; font-size: 13px; color: #172B4D; cursor: pointer; border-radius: 3px;" :style="{ background: month === 'Jun' ? '#E6FCFF' : 'transparent', color: month === 'Jun' ? '#0052CC' : '#172B4D', fontWeight: month === 'Jun' ? '600' : '400' }" onmouseover="this.style.background='#FAFBFC'" onmouseout="if(this.innerText !== 'Jun') this.style.background='transparent'">
-                    {{ month }}
-                 </div>
-               </div>
-            </div>
-          </div>
-          
-          <div class="form-group" style="position: relative;">
-            <label>Chủ sở hữu <span class="required">*</span></label>
-            <div class="owner-input-wrapper" @click="isOwnerDropdownOpen = !isOwnerDropdownOpen" style="position: relative; border: 2px solid #DFE1E6; border-radius: 3px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; background: white;">
-               <div class="member-avatar-micro" style="background-color: #36B37E; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px;">{{ newGoal.ownerAvatar }}</div>
-               <span style="font-size: 14px; color: #172B4D;">{{ newGoal.ownerName }}</span>
-            </div>
-            
-            <div v-if="isOwnerDropdownOpen" class="dropdown-menu" style="position: absolute; top: 100%; left: 0; margin-top: 4px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 100%; z-index: 100; max-height: 200px; overflow-y: auto;">
-               <div v-for="user in mockUsers" :key="user.id" @click="selectOwner(user)" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; transition: background 0.1s;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                  <div class="member-avatar-micro" style="background-color: #0052CC; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px;">{{ user.initials }}</div>
-                  <span style="font-size: 14px; color: #172B4D;">{{ user.name }}</span>
-               </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer" style="padding: 16px 24px;">
-          <button class="cancel-btn" @click="isCreateModalOpen = false">Hủy</button>
-          <button class="primary-btn" @click="submitCreateGoal">Tạo</button>
-        </div>
-      </div>
-    </div>
+    <GoalCreateModal
+      v-model="isCreateModalOpen"
+      :users="siteUsers"
+      :current-user="currentUser"
+      @created="goalStore.fetchGoals"
+    />
+
   </div>
 </template>
 
 <script setup>
+import { Target, Search, X, ChevronDown, Calendar, ChevronLeft, ChevronRight, Rocket, Users, Activity, User, CheckCircle, CalendarDays } from 'lucide-vue-next';
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { getStoredUser } from '@/utils/permissions'
 import { useGoalStore } from '@/store/useGoalStore'
+import { usePeopleStore } from '@/store/usePeopleStore'
+import UserAvatar from '@/components/common/UserAvatar.vue'
+import GoalCreateModal from './GoalCreateModal.vue'
 
 const router = useRouter()
 const goalStore = useGoalStore()
+const peopleStore = usePeopleStore()
 
 const currentTab = ref('all')
 const searchQuery = ref('')
 const isCreateModalOpen = ref(false)
-const isTitleTouched = ref(false)
-const isDateDropdownOpen = ref(false)
-const isOwnerDropdownOpen = ref(false)
 
-const mockUsers = [
-  { id: 'u1', name: 'Tua20000', initials: 'T' },
-  { id: 'u2', name: 'Tuấn Khôi Đinh', initials: 'TK' },
-  { id: 'u3', name: 'ngkiet2805', initials: 'N' }
-]
+// Filter State
+const selectedProject = ref('')
+const selectedTeam = ref('')
+const selectedProgress = ref('')
+const selectedOwner = ref('')
+const selectedStatus = ref('')
+const selectedStartDate = ref('')
+const selectedEndDate = ref('')
 
-const newGoal = ref({
-  title: '',
-  type: 'Objective',
-  date: '',
-  ownerName: 'Tua20000',
-  ownerAvatar: 'T',
-  status: 'Đang chờ cập nhật'
+// Computed Filter Options
+const uniqueProjects = computed(() => {
+  const projs = goalStore.goals.flatMap(g => g.linkedProjects || []).map(p => p.name).filter(Boolean)
+  return [...new Set(projs)]
 })
+
+const uniqueTeams = computed(() => {
+  const tms = goalStore.goals.map(g => g.department?.name).filter(Boolean)
+  return [...new Set(tms)]
+})
+
+const uniqueOwners = computed(() => {
+  const owns = goalStore.goals.map(g => g.owner?.fullName || g.owner?.email).filter(Boolean)
+  return [...new Set(owns)]
+})
+
+const uniqueStatuses = computed(() => {
+  const stats = goalStore.goals.map(g => g.status).filter(Boolean)
+  return [...new Set(stats)]
+})
+
+const uniqueEndDates = computed(() => {
+  const dates = goalStore.goals.map(g => {
+    if (!g.dueDate) return null
+    return new Date(g.dueDate).toLocaleDateString('vi-VN')
+  }).filter(Boolean)
+  return [...new Set(dates)]
+})
+
+const siteUsers = computed(() => {
+  return peopleStore.users || []
+})
+
+const currentUser = computed(() => {
+  try {
+    const localUser = getStoredUser() || {}
+    const fullUser = siteUsers.value.find(u => u.id === localUser.id)
+    return fullUser || localUser
+  } catch {
+    return {}
+  }
+})
+
+const currentUserName = computed(() => {
+  const u = currentUser.value
+  return u.fullName || u.username || u.email || 'Người dùng'
+})
+
 
 onMounted(async () => {
   await goalStore.fetchGoals()
+  await peopleStore.fetchPeople()
   window.addEventListener('global-create-click', openCreateModal)
 })
 
@@ -250,17 +317,55 @@ const filteredGoals = computed(() => {
   } else if (currentTab.value === 'following') {
     list = list.filter(g => !g.isArchived && g.isFollowing)
   } else {
-    // Tất cả mục tiêu (all) thì chỉ hiện những cái chưa archived
     list = list.filter(g => !g.isArchived)
+  }
+
+  // Lọc theo Project
+  if (selectedProject.value) {
+    list = list.filter(g => g.linkedProjects && g.linkedProjects.some(p => p.name === selectedProject.value))
+  }
+
+  // Lọc theo Team
+  if (selectedTeam.value) {
+    list = list.filter(g => g.department?.name === selectedTeam.value)
+  }
+
+  // Lọc theo Tiến độ
+  if (selectedProgress.value) {
+    if (selectedProgress.value === '0%') {
+      list = list.filter(g => !g.progress || g.progress === 0)
+    } else if (selectedProgress.value === '100%') {
+      list = list.filter(g => g.progress === 100)
+    } else {
+      list = list.filter(g => g.progress > 0 && g.progress < 100)
+    }
+  }
+
+  // Lọc theo Chủ sở hữu
+  if (selectedOwner.value) {
+    list = list.filter(g => (g.owner?.fullName || g.owner?.email) === selectedOwner.value)
+  }
+
+  // Lọc theo Trạng thái
+  if (selectedStatus.value) {
+    list = list.filter(g => g.status === selectedStatus.value)
+  }
+
+  // Lọc theo Ngày kết thúc
+  if (selectedEndDate.value) {
+    list = list.filter(g => {
+      if (!g.dueDate) return false
+      return new Date(g.dueDate).toLocaleDateString('vi-VN') === selectedEndDate.value
+    })
   }
 
   // Tìm kiếm
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
-    list = list.filter(g => 
-      g.title.toLowerCase().includes(q) || 
+    list = list.filter(g =>
+      g.title.toLowerCase().includes(q) ||
       (g.status && g.status.toLowerCase().includes(q)) ||
-      (g.owner && g.owner.toLowerCase().includes(q))
+      (g.owner && (g.owner.fullName || g.owner.email) && (g.owner.fullName || g.owner.email).toLowerCase().includes(q))
     )
   }
 
@@ -275,6 +380,7 @@ const getStatusClass = (status) => {
     'trễ tiến độ': 'status-off-track',
     'không đúng tiến độ': 'status-off-track',
     'đang chờ cập nhật': 'status-pending',
+    'đang chờ xử lý': 'status-pending',
     'đã hoàn tất': 'status-done',
     'đã lưu trữ': 'status-archived'
   }
@@ -282,42 +388,10 @@ const getStatusClass = (status) => {
 }
 
 const openCreateModal = () => {
-  newGoal.value = { title: '', type: 'Objective', date: '', ownerName: 'Tua20000', ownerAvatar: 'T', status: 'Đang chờ cập nhật' }
-  isTitleTouched.value = false
-  isDateDropdownOpen.value = false
-  isOwnerDropdownOpen.value = false
   isCreateModalOpen.value = true
 }
 
-const selectDate = (d) => {
-  newGoal.value.date = d
-  isDateDropdownOpen.value = false
-}
 
-const selectOwner = (user) => {
-  newGoal.value.ownerName = user.name
-  newGoal.value.ownerAvatar = user.initials
-  isOwnerDropdownOpen.value = false
-}
-
-const submitCreateGoal = async () => {
-  isTitleTouched.value = true
-  if (!newGoal.value.title) return
-  
-  try {
-    await goalStore.createGoal({ 
-      title: newGoal.value.title, 
-      status: newGoal.value.status,
-      owner: newGoal.value.ownerName,
-      type: newGoal.value.type,
-      date: newGoal.value.date
-    })
-    isCreateModalOpen.value = false
-  } catch (error) {
-    console.error('Lỗi khi tạo mục tiêu:', error)
-    // Here we can add a toast notification in the future
-  }
-}
 
 const goToGoal = (id) => {
   router.push(`/home/goals/${id}`)
@@ -490,15 +564,11 @@ const goToGoal = (id) => {
 
 /* List Controls */
 .list-controls {
-  display: flex;
-  align-items: center;
-  gap: 16px;
   margin-bottom: 24px;
 }
 
 .search-box-wrapper {
   position: relative;
-  width: 250px;
 }
 
 .search-icon {
@@ -531,32 +601,29 @@ const goToGoal = (id) => {
   border-color: #4C9AFF;
 }
 
-.filter-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.filter-btn {
-  background-color: rgba(9, 30, 66, 0.04);
-  border: none;
+.filter-chip {
+  background: white;
+  border: 1px solid #DFE1E6;
   border-radius: 3px;
-  padding: 8px 12px;
-  font-size: 14px;
+  padding: 6px 12px;
+  font-size: 13px;
   font-weight: 500;
   color: #42526E;
-  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
-  transition: background-color 0.2s;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
 
-.filter-btn:hover {
-  background-color: rgba(9, 30, 66, 0.08);
+.filter-chip:hover {
+  background: #FAFBFC;
 }
 
-.filter-btn i {
-  font-size: 10px;
+.filter-chip.active-filter {
+  background: #E6FCFF;
+  color: #0052CC;
+  border-color: #0052CC;
 }
 
 /* Table */
@@ -745,107 +812,4 @@ const goToGoal = (id) => {
   color: #5E6C84;
 }
 
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(9, 30, 66, 0.54);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: #FFFFFF;
-  border-radius: 3px;
-  width: 500px;
-  box-shadow: 0 8px 16px -4px rgba(9, 30, 66, 0.25);
-}
-
-.modal-header {
-  padding: 20px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #DFE1E6;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 500;
-  color: #172B4D;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  color: #5E6C84;
-  cursor: pointer;
-}
-
-.modal-body {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.form-group label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: #5E6C84;
-  margin-bottom: 8px;
-}
-
-.required {
-  color: #DE350B;
-}
-
-.form-group input, .jira-select {
-  width: 100%;
-  padding: 8px 12px;
-  border: 2px solid #DFE1E6;
-  border-radius: 3px;
-  font-size: 14px;
-  box-sizing: border-box;
-  outline: none;
-}
-
-.form-group input:focus, .jira-select:focus {
-  border-color: #4C9AFF;
-}
-
-.error-input {
-  border-color: #DE350B !important;
-}
-
-.error-input:focus {
-  box-shadow: 0 0 0 2px rgba(222, 53, 11, 0.2);
-}
-
-.modal-footer {
-  padding: 16px 24px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  border-top: 1px solid #DFE1E6;
-}
-
-.cancel-btn {
-  background: transparent;
-  color: #5E6C84;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 3px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.cancel-btn:hover {
-  background: rgba(9, 30, 66, 0.08);
-}
 </style>

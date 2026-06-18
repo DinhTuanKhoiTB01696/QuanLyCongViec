@@ -87,6 +87,7 @@ const profileData = ref({
   publicName: '',
   jobTitle: '',
   department: '',
+  location: '',
   organization: '',
   email: '',
   collaboration: '',
@@ -192,10 +193,11 @@ const fetchProfile = async () => {
       fullName: data.fullName || '',
       publicName: data.publicName || '',
       jobTitle: data.jobTitle || '',
-      department: data.departmentName || '',
-      organization: data.organizationName || '',
+      department: data.department || '',
+      location: data.location || '',
+      organization: data.organization || '',
       email: data.email || '',
-      collaboration: data.collaborationRules || '',
+      collaboration: data.collaboration || '',
       avatarUrl: data.avatarUrl || '',
       coverUrl: data.coverUrl || '',
       lastPasswordChangedAt: data.lastPasswordChangedAt || '',
@@ -217,6 +219,7 @@ const saveProfile = async (updatedFields) => {
     profileData.value.publicName = updatedFields.publicName
     profileData.value.jobTitle = updatedFields.jobTitle
     profileData.value.department = updatedFields.department
+    profileData.value.location = updatedFields.location
     profileData.value.organization = updatedFields.organization
     profileData.value.collaboration = updatedFields.collaboration
     profileData.value.coverPositionY = updatedFields.coverPositionY
@@ -229,6 +232,7 @@ const saveProfile = async (updatedFields) => {
       publicName: profileData.value.publicName,
       jobTitle: profileData.value.jobTitle,
       departmentName: profileData.value.department,
+      location: profileData.value.location,
       organizationName: profileData.value.organization,
       collaborationRules: profileData.value.collaboration,
       coverPositionY: profileData.value.coverPositionY

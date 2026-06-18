@@ -279,7 +279,7 @@ BEGIN
 END;
 ");
         }
-        await TaskManagement.Infrastructure.Data.DataSeeder.SeedMockDataAsync(context);
+        // await TaskManagement.Infrastructure.Data.DataSeeder.SeedMockDataAsync(context);
     }
     catch (Exception ex)
     {

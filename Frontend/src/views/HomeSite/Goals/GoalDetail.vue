@@ -5,7 +5,7 @@
       <div class="header-content">
         <h1>Mục tiêu</h1>
         <div class="header-actions">
-          <button class="primary-btn">Tạo mục tiêu</button>
+          <button class="primary-btn" @click="openCreateModal">Tạo mục tiêu</button>
         </div>
       </div>
       
@@ -23,23 +23,23 @@
         <div class="header-main">
           <div class="title-block">
             <div class="goal-icon-large">
-              <i class="fa-solid fa-bullseye"></i>
+              <Target class="w-4 h-4"></Target>
             </div>
             <h1>{{ goal.title }}</h1>
           </div>
           
           <div class="header-actions">
             <button class="secondary-btn" @click="toggleFollow">
-              <i class="fa-solid fa-eye"></i> {{ goal.isFollowing ? 'Đang theo dõi' : 'Theo dõi' }}
+              <Eye class="w-4 h-4"></Eye> {{ goal.isFollowing ? 'Đang theo dõi' : 'Theo dõi' }}
             </button>
             <button class="secondary-btn icon-only" @click="toggleStar" :class="{ starred: goal.isStarred }">
-              <i :class="goal.isStarred ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i>
+              <Star :class="['w-4 h-4', goal.isStarred ? 'text-yellow-400' : 'text-gray-400']"></Star>
             </button>
             <button class="secondary-btn icon-only" @click="toggleShare">
               <i class="fa-solid fa-share-nodes"></i>
             </button>
             <button class="secondary-btn icon-only" @click="toggleMenu">
-              <i class="fa-solid fa-ellipsis"></i>
+              <MoreHorizontal class="w-4 h-4"></MoreHorizontal>
             </button>
           </div>
         </div>
@@ -58,7 +58,7 @@
     <div style="border-bottom: 2px solid #DFE1E6; background: white;">
       <div class="goal-tabs-nav" style="padding: 0 40px; display: flex; gap: 24px; max-width: 1000px; margin: 0 auto; width: 100%;">
         <button class="tab-btn" :class="{ active: currentTab === 'overview' }" @click="currentTab = 'overview'">Tổng quan</button>
-        <button class="tab-btn" :class="{ active: currentTab === 'updates' }" @click="currentTab = 'updates'">Cập nhật <span v-if="updates.length" class="badge-count">{{ updates.length + 1 }}</span></button>
+        <button class="tab-btn" :class="{ active: currentTab === 'updates' }" @click="currentTab = 'updates'">Cập nhật <span v-if="updates.length" class="badge-count">{{ updates.length }}</span></button>
         <button class="tab-btn" :class="{ active: currentTab === 'jira' }" @click="currentTab = 'jira'">Jira</button>
         <button class="tab-btn" :class="{ active: currentTab === 'projects' }" @click="currentTab = 'projects'">Dự án</button>
         <button class="tab-btn" :class="{ active: currentTab === 'learnings' }" @click="currentTab = 'learnings'">Bài học rút ra</button>
@@ -79,34 +79,12 @@
               <h3>Mô tả</h3>
             </div>
             <div class="section-body">
-              <RichTextEditor v-if="isEditingBio" v-model="tempBio" @save="saveBio" @cancel="isEditingBio = false" placeholder="Mô tả ngắn gọn lý do tại sao mục tiêu này lại quan trọng và cách đo lường thành công..." />
-              <div v-else @click="startEditingBio" style="cursor: pointer; color: #5E6C84; font-size: 14px; padding: 8px; border-radius: 3px; min-height: 40px;" onmouseover="this.style.backgroundColor='#FAFBFC'" onmouseout="this.style.backgroundColor='transparent'">
-                {{ goal.description || 'Mô tả ngắn gọn lý do tại sao mục tiêu này lại quan trọng và cách đo lường thành công, để bạn có thể cung cấp hiểu biết chung cho người theo dõi.' }}
+              <RichTextEditor v-if="isEditingBio" v-model="tempBio" :users="siteUsers" @save="saveBio" @cancel="isEditingBio = false" placeholder="Mô tả ngắn gọn lý do tại sao mục tiêu này lại quan trọng và cách đo lường thành công..." />
+              <div v-else @click="startEditingBio" class="description-display" v-html="goal.description || 'Mô tả ngắn gọn lý do tại sao mục tiêu này lại quan trọng và cách đo lường thành công, để bạn có thể cung cấp hiểu biết chung cho người theo dõi.'">
               </div>
             </div>
           </section>
 
-          <!-- Key results -->
-          <section class="content-section">
-            <div class="section-header">
-              <h3>Key results</h3>
-            </div>
-            <div class="section-body">
-              <div style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 24px; display: flex; justify-content: space-between; align-items: center; background: white;">
-                <div style="max-width: 400px;">
-                  <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #172B4D;">Theo dõi tiến độ hướng tới mục tiêu của bạn</h4>
-                  <p style="margin: 0 0 16px 0; font-size: 14px; color: #5E6C84; line-height: 1.5;">Chia sẻ nội dung cập nhật riêng cho từng kết quả chính để tự động cập nhật tiến độ của mục tiêu này.</p>
-                  <button class="primary-btn" style="display: inline-flex; align-items: center; gap: 8px; height: 32px;"><i class="fa-solid fa-plus"></i> Tạo</button>
-                </div>
-                <div>
-                  <div style="width: 180px; height: 100px; background: #E6FCFF; border-radius: 8px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
-                    <div style="position: absolute; right: -20px; top: -20px; width: 80px; height: 80px; background: #0052CC; transform: rotate(45deg);"></div>
-                    <i class="fa-solid fa-chart-line" style="font-size: 40px; color: #0052CC; z-index: 1;"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
 
           <!-- Hoạt động -->
           <section class="content-section" style="margin-top: 16px;">
@@ -122,16 +100,16 @@
               <div v-if="activityTab === 'comments'">
                 <h4 style="font-size: 14px; color: #172B4D; margin: 0 0 16px 0;">Comments</h4>
                 <div class="update-input-mockup" style="background: #FAFBFC; padding: 12px; border-radius: 3px; border: 1px solid transparent; transition: border 0.2s;" onmouseover="this.style.border='1px solid #DFE1E6'" onmouseout="this.style.border='1px solid transparent'">
-                  <div class="user-avatar-current" style="background: #36B37E;">T</div>
+                  <div class="user-avatar-current" style="background: #36B37E;">{{ currentUserInitials }}</div>
                   <input type="text" placeholder="Thêm nhận xét... đặt câu hỏi" style="border: none; background: transparent; width: 100%; outline: none; font-size: 14px;" />
                 </div>
               </div>
               <div v-else>
                 <div class="timeline-item" style="display: flex; align-items: flex-start; gap: 12px;">
-                   <div class="user-avatar-current" style="background: #36B37E; width: 24px; height: 24px; font-size: 10px;">T</div>
+                   <UserAvatar :user="currentUser" size="sm" />
                    <div style="flex: 1;">
                       <div style="display: flex; justify-content: space-between; align-items: center;">
-                         <span style="font-size: 14px; color: #172B4D;"><strong>Tua20000</strong> đã tạo Mục tiêu</span>
+                         <span style="font-size: 14px; color: #172B4D;"><strong>{{ currentUserName }}</strong> đã tạo Mục tiêu</span>
                          <span style="font-size: 12px; color: #5E6C84;">9 days ago</span>
                       </div>
                       <div style="font-size: 14px; color: #5E6C84; margin-top: 4px;">{{ goal.title }}</div>
@@ -144,115 +122,136 @@
 
         <!-- CẬP NHẬT TAB -->
         <template v-if="currentTab === 'updates'">
-           <div class="status-update-box">
-             <div class="update-input-mockup" @click="showUpdateForm = true" v-if="!showUpdateForm" style="background: white; border: 1px solid #DFE1E6; padding: 16px; border-radius: 3px;">
-               <div class="user-avatar-current" style="background: #36B37E;">T</div>
-               <div style="color: #5E6C84; font-size: 14px;">Đăng bản cập nhật của bạn</div>
-             </div>
-             
-             <div class="update-form-active" v-else style="background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 8px -2px rgba(9,30,66,0.25); overflow: hidden;">
-               <!-- Status Dropdown & Date row -->
-               <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid #DFE1E6; background: #FAFBFC;">
-                 <div style="position: relative;">
-                   <label style="font-size: 11px; font-weight: 600; color: #6B778C; display: block; margin-bottom: 4px;">Trạng thái hiện tại</label>
-                   <div @click="isUpdateStatusOpen = !isUpdateStatusOpen" style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                      <span class="status-badge" :class="getStatusClass(newUpdate.status)" style="font-size: 11px; padding: 4px 8px;">{{ newUpdate.status }} <i class="fa-solid fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i></span>
-                   </div>
-                   <!-- Status Menu -->
-                   <div v-if="isUpdateStatusOpen" class="dropdown-menu" style="position: absolute; top: 100%; left: 0; margin-top: 4px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 200px; z-index: 100; display: flex; flex-direction: column; padding: 8px 0;">
-                      <div v-for="st in ['ĐANG CHỜ XỬ LÝ', 'ĐÚNG TIẾN ĐỘ', 'CÓ RỦI RO', 'KHÔNG ĐÚNG TIẾN ĐỘ', 'ĐÃ HOÀN TẤT', 'ĐÃ TẠM DỪNG', 'ĐÃ HỦY']" :key="st" @click="newUpdate.status = st; isUpdateStatusOpen = false" style="padding: 6px 12px; cursor: pointer; display: flex; align-items: center;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                         <span class="status-badge" :class="getStatusClass(st)" style="font-size: 10px;">{{ st }}</span>
-                      </div>
-                   </div>
-                 </div>
-                 
-                 <div>
-                   <label style="font-size: 11px; font-weight: 600; color: #6B778C; display: block; margin-bottom: 4px;">Ngày mục tiêu</label>
-                   <div style="display: flex; align-items: center; gap: 4px; color: #172B4D; font-size: 13px; font-weight: 500;">
-                     <i class="fa-regular fa-calendar" style="color: #6B778C;"></i> Tháng 07 <i class="fa-solid fa-chevron-down" style="font-size: 10px; color: #6B778C;"></i>
-                   </div>
-                 </div>
-                 
-                 <div>
-                    <label style="font-size: 11px; font-weight: 600; color: #6B778C; display: block; margin-bottom: 4px;">Tiến độ</label>
-                    <div style="font-size: 13px; color: #172B4D; display: flex; align-items: center; gap: 8px;">
-                      <input type="number" v-model="newUpdate.progress" style="width: 50px; padding: 2px 4px; border: 1px solid #DFE1E6; border-radius: 3px; font-size: 13px;" /> % -> 100%
-                    </div>
-                 </div>
-               </div>
-               
-               <div style="padding: 16px;">
-                 <textarea v-model="newUpdate.message" rows="4" style="width: 100%; border: none; outline: none; font-size: 14px; color: #172B4D; resize: none; font-family: inherit;" placeholder="Viết bản cập nhật gồm tối đa 280 ký tự. Nhập '/gần nhất' để sao chép bản cập nhật gần đây nhất, còn nhập / để thêm thành phần khác" maxlength="280"></textarea>
-                 
-                 <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #DFE1E6; padding-top: 12px; margin-top: 8px;">
-                   <div style="display: flex; gap: 16px; color: #6B778C; font-size: 16px;">
-                     <i class="fa-regular fa-face-smile" style="cursor: pointer;"></i>
-                     <i class="fa-regular fa-image" style="cursor: pointer;"></i>
-                     <i class="fa-solid fa-link" style="cursor: pointer;"></i>
-                   </div>
-                   <div style="display: flex; align-items: center; gap: 12px;">
-                     <span style="font-size: 12px; color: #5E6C84;">{{ newUpdate.message.length }}/280</span>
-                     <button class="primary-btn" @click="postUpdate" :disabled="!newUpdate.message && !newUpdate.progress" style="width: 80px;">Đăng</button>
-                   </div>
-                 </div>
-               </div>
-             </div>
-           </div>
+          <section class="updates-panel">
+            <div class="status-update-box">
+              <button v-if="!showUpdateForm" type="button" class="update-composer-collapsed" @click="openUpdateComposer">
+                <UserAvatar :user="currentUser" size="md" />
+                <span>Đăng bản cập nhật của bạn</span>
+              </button>
 
-           <!-- Latest update Mockup -->
-           <div>
-             <h4 style="font-size: 14px; font-weight: 600; color: #172B4D; margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px;">Latest update <span style="font-size: 12px; font-weight: 400; color: #5E6C84;">Nội dung cập nhật đầu tiên trong chuỗi</span></h4>
-             
-             <div style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 16px; background: white; margin-bottom: 24px;">
-               <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                 <div style="display: flex; gap: 12px;">
-                    <div class="user-avatar-current" style="background: #36B37E; width: 32px; height: 32px;">T</div>
-                    <div>
-                      <div style="font-size: 14px; font-weight: 600; color: #172B4D;">Tua20000</div>
-                      <div style="font-size: 12px; color: #5E6C84;">khoảng 12 giờ trước • 1 người đã xem</div>
-                    </div>
-                 </div>
-                 <span class="status-badge" :class="getStatusClass('Đã hoàn tất')" style="font-size: 11px;">ĐÃ HOÀN TẤT</span>
-               </div>
-               
-               <p style="font-size: 14px; color: #172B4D; margin: 0 0 16px 0;">Cập nhật xong chức năng mục tiêu.</p>
-               
-               <div style="background: #FAFBFC; border: 1px solid #DFE1E6; border-radius: 3px; padding: 12px; display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-                  <span style="font-size: 12px; color: #5E6C84;">Đã thay đổi trạng thái</span>
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                     <span class="status-badge" style="font-size: 10px; background: #DFE1E6; color: #42526E;">ĐANG CHỜ XỬ LÝ</span>
-                     <i class="fa-solid fa-arrow-right" style="font-size: 10px; color: #5E6C84;"></i>
-                     <span class="status-badge" style="font-size: 10px; background: #EAE6FF; color: #403294;">ĐÃ HOÀN TẤT</span>
+              <div v-else class="update-composer-card">
+                <div class="update-composer-top">
+                  <div class="update-field">
+                    <label>Trạng thái hiện tại</label>
+                    <select v-model="newUpdate.status" class="update-select">
+                      <option v-for="st in goalStatuses" :key="st.value" :value="st.value">{{ st.label }}</option>
+                    </select>
                   </div>
-               </div>
-               
-               <div style="display: flex; align-items: center; gap: 12px; font-size: 13px; color: #5E6C84; border-bottom: 1px solid #DFE1E6; padding-bottom: 12px; margin-bottom: 12px;">
-                 <span style="cursor: pointer;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Chia sẻ</span> •
-                 <span style="cursor: pointer;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Sửa</span> •
-                 <span style="cursor: pointer;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Xóa</span> •
-                 <div style="display: flex; gap: 4px;">
-                   <span style="background: #FFF0B3; padding: 2px 6px; border-radius: 12px; cursor: pointer;">👍 1</span>
-                   <span style="background: #FFEBE6; padding: 2px 6px; border-radius: 12px; cursor: pointer;">❤️ 1</span>
-                   <span style="background: #FAFBFC; border: 1px solid #DFE1E6; padding: 2px 6px; border-radius: 12px; cursor: pointer;"><i class="fa-regular fa-face-smile"></i></span>
-                 </div>
-               </div>
-               
-               <div style="display: flex; align-items: center; gap: 12px;">
-                 <div class="user-avatar-current" style="background: #36B37E; width: 24px; height: 24px; font-size: 10px;">T</div>
-                 <input type="text" placeholder="Thêm nhận xét... ăn mừng cùng đồng đội của bạn" style="flex: 1; border: none; background: #FAFBFC; padding: 8px 12px; border-radius: 3px; font-size: 13px; outline: none;" />
-               </div>
-             </div>
-           </div>
-        </template>
 
+                  <div class="update-field">
+                    <label>Ngày mục tiêu</label>
+                    <el-date-picker
+                      v-model="newUpdate.targetDate"
+                      type="date"
+                      format="DD/MM/YYYY"
+                      value-format="YYYY-MM-DD"
+                      placeholder="Chọn ngày"
+                      class="update-date-picker"
+                    />
+                  </div>
+
+                  <div class="update-field update-progress-field">
+                    <label>Tiến độ</label>
+                    <div class="progress-input-wrap">
+                      <input v-model.number="newUpdate.progress" type="number" min="0" max="100" @input="clampUpdateProgress" />
+                      <span>%</span>
+                    </div>
+                  </div>
+
+                  <button type="button" class="template-btn" disabled title="Chưa có API mẫu cập nhật">
+                    Mẫu
+                    <ChevronDown class="w-4 h-4" />
+                  </button>
+                </div>
+
+                <RichTextEditor
+                  v-model="newUpdate.message"
+                  :show-footer="false"
+                  :users="siteUsers"
+                  class="update-rte"
+                  placeholder="Viết bản cập nhật gồm tối đa 280 ký tự. Nhập '/gần nhất' để sao chép bản cập nhật gần đây nhất, còn nhập / để thêm thành phần khác"
+                />
+
+                <div class="update-toolbar">
+                  <div class="update-submit-row">
+                    <span class="char-count">{{ updatePlainTextLength }}/280</span>
+                    <button type="button" class="cancel-btn" @click="cancelUpdateComposer">Hủy</button>
+                    <button type="button" class="primary-btn" @click="postUpdate" :disabled="!canPostUpdate || isPostingUpdate">
+                      {{ isPostingUpdate ? 'Đang đăng...' : 'Đăng' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="updates-list-section">
+              <h4 class="updates-title">
+                Latest update
+                <span v-if="sortedUpdates.length">{{ sortedUpdates.length }} cập nhật</span>
+                <span v-else>Nội dung cập nhật đầu tiên trong chuỗi</span>
+              </h4>
+
+              <div v-if="!sortedUpdates.length" class="empty-updates">Chưa có bản cập nhật nào cho mục tiêu này.</div>
+
+              <article v-for="update in sortedUpdates" :key="update.id" class="update-card">
+                <div class="update-card-header">
+                  <div class="update-author">
+                    <UserAvatar :user="update.user || currentUser" size="md" />
+                    <div>
+                      <div class="update-author-name">{{ getUpdateUserName(update) }}</div>
+                      <div class="update-time">{{ formatRelativeTime(update.createdAt) }}</div>
+                    </div>
+                  </div>
+                  <span v-if="update.status" class="status-badge" :class="getStatusClass(update.status)">{{ update.status }}</span>
+                </div>
+
+                <div v-if="update.content" class="update-content" v-html="update.content"></div>
+
+                <div v-if="hasStatusChange(update)" class="update-change-row">
+                  <span>Đã thay đổi trạng thái</span>
+                  <span class="status-badge status-badge-small" :class="getStatusClass(update.previousStatus)">{{ update.previousStatus }}</span>
+                  <ArrowRight class="w-4 h-4" />
+                  <span class="status-badge status-badge-small" :class="getStatusClass(update.newStatus)">{{ update.newStatus }}</span>
+                </div>
+
+                <div v-if="hasProgressChange(update)" class="update-change-row">
+                  <span>Đã thay đổi tiến độ</span>
+                  <strong>{{ update.previousProgress ?? 0 }}%</strong>
+                  <ArrowRight class="w-4 h-4" />
+                  <strong>{{ update.newProgress ?? 0 }}%</strong>
+                </div>
+
+                <div v-if="update.targetDate" class="update-change-row">
+                  <span>Ngày mục tiêu</span>
+                  <strong>{{ formatDate(update.targetDate) }}</strong>
+                </div>
+
+                <div class="update-actions-disabled">
+                  <button type="button" disabled title="Chưa có API chia sẻ bản cập nhật">Chia sẻ</button>
+                  <span>•</span>
+                  <button type="button" disabled title="Chưa có API sửa bản cập nhật">Sửa</button>
+                  <span>•</span>
+                  <button type="button" disabled title="Chưa có API xóa bản cập nhật">Xóa</button>
+                  <span>•</span>
+                  <button type="button" disabled title="Chưa có API reaction cho cập nhật"><Smile class="w-4 h-4" /> Reaction</button>
+                </div>
+
+                <div class="update-comment-disabled">
+                  <UserAvatar :user="currentUser" size="sm" />
+                  <input type="text" disabled placeholder="Bình luận cần backend comment API" />
+                </div>
+              </article>
+            </div>
+          </section>
+        </template>
         <!-- JIRA TAB -->
         <template v-if="currentTab === 'jira'">
           <div style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 32px; background: white; margin-top: 16px;">
             <div style="display: flex; gap: 24px; max-width: 600px; margin: 0 auto; position: relative;">
                <div style="width: 64px; height: 64px; background: #0052CC; color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 32px; position: relative; flex-shrink: 0;">
-                  <i class="fa-solid fa-layer-group"></i>
+                  <Layers class="w-4 h-4"></Layers>
                   <div style="position: absolute; bottom: -8px; right: -8px; width: 24px; height: 24px; background: #0052CC; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 2px solid white;">
-                     <i class="fa-solid fa-plus"></i>
+                     <Plus class="w-4 h-4"></Plus>
                   </div>
                </div>
                <div>
@@ -280,9 +279,9 @@
           <div style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 32px; background: white; margin-top: 16px;">
             <div style="display: flex; gap: 24px; max-width: 600px; margin: 0 auto; position: relative;">
                <div style="width: 64px; height: 64px; background: #EBECF0; color: #172B4D; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 32px; position: relative; flex-shrink: 0;">
-                  <i class="fa-solid fa-rocket"></i>
+                  <Rocket class="w-4 h-4"></Rocket>
                   <div style="position: absolute; bottom: -8px; right: -8px; width: 24px; height: 24px; background: #0052CC; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 2px solid white;">
-                     <i class="fa-solid fa-plus"></i>
+                     <Plus class="w-4 h-4"></Plus>
                   </div>
                </div>
                <div>
@@ -298,7 +297,7 @@
                       </div>
                       <div style="max-height: 200px; overflow-y: auto;">
                         <div v-for="proj in ['uqe', 'e', 'ueq', 'rWÉ']" :key="proj" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; color: #172B4D;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                           <div style="width: 16px; height: 16px; background: #FFAB00; border-radius: 3px; font-size: 10px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-rocket" style="color: white;"></i></div>
+                           <div style="width: 16px; height: 16px; background: #FFAB00; border-radius: 3px; font-size: 10px; display: flex; align-items: center; justify-content: center;"><Rocket class="w-4 h-4" style="color: white;"></Rocket></div>
                            {{ proj }}
                         </div>
                       </div>
@@ -340,28 +339,28 @@
              <!-- Rich Text Editor Toolbar Mockup -->
              <div style="display: flex; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #DFE1E6; background: white; flex-wrap: wrap; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; cursor: pointer; color: #5E6C84; border-radius: 3px;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                  <span style="font-size: 13px;">Normal text</span> <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
+                  <span style="font-size: 13px;">Normal text</span> <ChevronDown class="w-4 h-4" style="font-size: 10px;"></ChevronDown>
                 </div>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
                 <i class="fa-solid fa-bold toolbar-icon"></i>
                 <i class="fa-solid fa-italic toolbar-icon"></i>
-                <i class="fa-solid fa-ellipsis toolbar-icon"></i>
+                <MoreHorizontal class="w-4 h-4 toolbar-icon"></MoreHorizontal>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
                 <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 4px; border-radius: 3px;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
                    <i class="fa-solid fa-font" style="font-size: 14px; color: #5E6C84;"></i>
                    <div style="width: 12px; height: 3px; background: #FF5630; margin-top: 2px;"></div>
                 </div>
-                <i class="fa-solid fa-chevron-down toolbar-icon" style="font-size: 10px; margin-left: -4px;"></i>
+                <ChevronDown class="w-4 h-4 toolbar-icon" style="font-size: 10px; margin-left: -4px;"></ChevronDown>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-list-ul toolbar-icon"></i>
+                <List class="w-4 h-4 toolbar-icon"></List>
                 <i class="fa-solid fa-list-ol toolbar-icon"></i>
-                <i class="fa-regular fa-square-check toolbar-icon"></i>
+                <CheckSquare class="w-4 h-4 toolbar-icon"></CheckSquare>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
                 <i class="fa-solid fa-link toolbar-icon"></i>
                 <i class="fa-solid fa-at toolbar-icon"></i>
-                <i class="fa-regular fa-face-smile toolbar-icon"></i>
+                <Smile class="w-4 h-4 toolbar-icon"></Smile>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-table-cells toolbar-icon"></i>
+                <Grid class="w-4 h-4 toolbar-icon"></Grid>
                 <div style="position: relative;">
                   <i class="fa-solid fa-columns toolbar-icon" @click="isLayoutMenuOpen = !isLayoutMenuOpen"></i>
                   <!-- Layout Float Menu Mock -->
@@ -375,8 +374,8 @@
                   </div>
                 </div>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-plus toolbar-icon"></i>
-                <i class="fa-solid fa-chevron-down toolbar-icon" style="font-size: 10px; margin-left: -4px;"></i>
+                <Plus class="w-4 h-4 toolbar-icon"></Plus>
+                <ChevronDown class="w-4 h-4 toolbar-icon" style="font-size: 10px; margin-left: -4px;"></ChevronDown>
              </div>
              
              <!-- Editor Area -->
@@ -447,28 +446,28 @@
              <!-- Rich Text Editor Toolbar Mockup -->
              <div style="display: flex; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #DFE1E6; background: white; flex-wrap: wrap; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; cursor: pointer; color: #5E6C84; border-radius: 3px;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                  <span style="font-size: 13px;">Normal text</span> <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
+                  <span style="font-size: 13px;">Normal text</span> <ChevronDown class="w-4 h-4" style="font-size: 10px;"></ChevronDown>
                 </div>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
                 <i class="fa-solid fa-bold toolbar-icon"></i>
                 <i class="fa-solid fa-italic toolbar-icon"></i>
-                <i class="fa-solid fa-ellipsis toolbar-icon"></i>
+                <MoreHorizontal class="w-4 h-4 toolbar-icon"></MoreHorizontal>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
                 <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 4px; border-radius: 3px;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
                    <i class="fa-solid fa-font" style="font-size: 14px; color: #5E6C84;"></i>
                    <div style="width: 12px; height: 3px; background: #FF5630; margin-top: 2px;"></div>
                 </div>
-                <i class="fa-solid fa-chevron-down toolbar-icon" style="font-size: 10px; margin-left: -4px;"></i>
+                <ChevronDown class="w-4 h-4 toolbar-icon" style="font-size: 10px; margin-left: -4px;"></ChevronDown>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-list-ul toolbar-icon"></i>
+                <List class="w-4 h-4 toolbar-icon"></List>
                 <i class="fa-solid fa-list-ol toolbar-icon"></i>
-                <i class="fa-regular fa-square-check toolbar-icon"></i>
+                <CheckSquare class="w-4 h-4 toolbar-icon"></CheckSquare>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
                 <i class="fa-solid fa-link toolbar-icon"></i>
                 <i class="fa-solid fa-at toolbar-icon"></i>
-                <i class="fa-regular fa-face-smile toolbar-icon"></i>
+                <Smile class="w-4 h-4 toolbar-icon"></Smile>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-table-cells toolbar-icon"></i>
+                <Grid class="w-4 h-4 toolbar-icon"></Grid>
                 <div style="position: relative;">
                   <i class="fa-solid fa-columns toolbar-icon" @click="isLayoutMenuOpenRisk = !isLayoutMenuOpenRisk"></i>
                   <div v-if="isLayoutMenuOpenRisk" style="position: absolute; top: 100%; left: 0; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; gap: 8px; padding: 8px; z-index: 100;">
@@ -481,8 +480,8 @@
                   </div>
                 </div>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-plus toolbar-icon"></i>
-                <i class="fa-solid fa-chevron-down toolbar-icon" style="font-size: 10px; margin-left: -4px;"></i>
+                <Plus class="w-4 h-4 toolbar-icon"></Plus>
+                <ChevronDown class="w-4 h-4 toolbar-icon" style="font-size: 10px; margin-left: -4px;"></ChevronDown>
              </div>
              
              <!-- Editor Area -->
@@ -502,7 +501,7 @@
         <template v-if="currentTab === 'decisions'">
           <div v-if="!isEditingDecision" style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 40px; background: white; margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 32px;">
              <div style="position: relative; width: 64px; height: 64px; display: flex; justify-content: center; align-items: center;">
-               <i class="fa-solid fa-code-branch fa-rotate-270" style="font-size: 40px; color: #36B37E;"></i>
+               <GitBranch class="w-4 h-4" style="font-size: 40px; color: #36B37E;"></GitBranch>
                <div style="position: absolute; top: 12px; left: 16px; width: 12px; height: 12px; background: #0052CC; transform: rotate(45deg);"></div>
                <div style="position: absolute; bottom: 12px; left: 16px; width: 12px; height: 12px; background: #6554C0; transform: rotate(45deg);"></div>
              </div>
@@ -517,35 +516,35 @@
 
           <div v-else style="border: 1px solid #4C9AFF; border-radius: 3px; background: white; margin-top: 16px; overflow: hidden; box-shadow: 0 0 0 1px #4C9AFF;">
              <div style="padding: 16px 24px; border-bottom: 1px solid #DFE1E6; display: flex; align-items: center; gap: 12px;">
-                <i class="fa-solid fa-code-branch fa-rotate-270" style="color: #36B37E; font-size: 18px;"></i>
+                <GitBranch class="w-4 h-4" style="color: #36B37E; font-size: 18px;"></GitBranch>
                 <input type="text" placeholder="Tóm tắt cho quyết định của bạn là gì?" style="border: none; outline: none; font-size: 16px; color: #172B4D; width: 100%;" />
              </div>
              
              <!-- Rich Text Editor Toolbar Mockup -->
              <div style="display: flex; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #DFE1E6; background: white; flex-wrap: wrap; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; cursor: pointer; color: #5E6C84; border-radius: 3px;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                  <span style="font-size: 13px;">Normal text</span> <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
+                  <span style="font-size: 13px;">Normal text</span> <ChevronDown class="w-4 h-4" style="font-size: 10px;"></ChevronDown>
                 </div>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
                 <i class="fa-solid fa-bold toolbar-icon"></i>
                 <i class="fa-solid fa-italic toolbar-icon"></i>
-                <i class="fa-solid fa-ellipsis toolbar-icon"></i>
+                <MoreHorizontal class="w-4 h-4 toolbar-icon"></MoreHorizontal>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
                 <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 4px; border-radius: 3px;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
                    <i class="fa-solid fa-font" style="font-size: 14px; color: #5E6C84;"></i>
                    <div style="width: 12px; height: 3px; background: #FF5630; margin-top: 2px;"></div>
                 </div>
-                <i class="fa-solid fa-chevron-down toolbar-icon" style="font-size: 10px; margin-left: -4px;"></i>
+                <ChevronDown class="w-4 h-4 toolbar-icon" style="font-size: 10px; margin-left: -4px;"></ChevronDown>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-list-ul toolbar-icon"></i>
+                <List class="w-4 h-4 toolbar-icon"></List>
                 <i class="fa-solid fa-list-ol toolbar-icon"></i>
-                <i class="fa-regular fa-square-check toolbar-icon"></i>
+                <CheckSquare class="w-4 h-4 toolbar-icon"></CheckSquare>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
                 <i class="fa-solid fa-link toolbar-icon"></i>
                 <i class="fa-solid fa-at toolbar-icon"></i>
-                <i class="fa-regular fa-face-smile toolbar-icon"></i>
+                <Smile class="w-4 h-4 toolbar-icon"></Smile>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-table-cells toolbar-icon"></i>
+                <Grid class="w-4 h-4 toolbar-icon"></Grid>
                 <div style="position: relative;">
                   <i class="fa-solid fa-columns toolbar-icon" @click="isLayoutMenuOpenDecision = !isLayoutMenuOpenDecision"></i>
                   <div v-if="isLayoutMenuOpenDecision" style="position: absolute; top: 100%; left: 0; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; gap: 8px; padding: 8px; z-index: 100;">
@@ -558,8 +557,8 @@
                   </div>
                 </div>
                 <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-plus toolbar-icon"></i>
-                <i class="fa-solid fa-chevron-down toolbar-icon" style="font-size: 10px; margin-left: -4px;"></i>
+                <Plus class="w-4 h-4 toolbar-icon"></Plus>
+                <ChevronDown class="w-4 h-4 toolbar-icon" style="font-size: 10px; margin-left: -4px;"></ChevronDown>
              </div>
              
              <!-- Editor Area -->
@@ -592,29 +591,21 @@
               </div>
             </div>
 
-            <!-- Key results -->
-            <div class="detail-row">
-              <div class="detail-label">Key results <span class="badge-count">0</span></div>
-              <div class="detail-value progress-value">
-                <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 0%"></div></div>
-                <span>0%</span>
-              </div>
-            </div>
 
             <!-- Chủ sở hữu -->
             <div class="detail-row">
               <div class="detail-label">Chủ sở hữu</div>
               <div class="detail-value">
                 <div class="owner-chip">
-                  <div class="owner-avatar-micro">{{ goal.creatorName ? goal.creatorName.substring(0,1) : (goal.owner ? goal.owner.substring(0,1) : 'U') }}</div>
-                  <span>{{ goal.creatorName || goal.owner || 'Chưa có' }}</span>
+                  <UserAvatar :user="goal.owner || currentUser" size="sm" />
+                  <span>{{ goal.owner?.fullName || goal.owner?.email || currentUserName || 'Chưa có' }}</span>
                 </div>
               </div>
             </div>
 
             <!-- Người theo dõi -->
             <div class="detail-row">
-              <div class="detail-label">Người theo dõi <button class="icon-btn-micro" @click="isShareModalOpen = true"><i class="fa-solid fa-plus"></i></button></div>
+              <div class="detail-label">Người theo dõi <button class="icon-btn-micro" @click="isShareModalOpen = true"><Plus class="w-4 h-4"></Plus></button></div>
               <div class="detail-value flex-between">
                 <span class="empty-value" style="cursor: pointer;" @click="isShareModalOpen = true">Thêm người theo dõi</span>
                 <div class="follower-icons">
@@ -626,59 +617,60 @@
 
             <!-- Mục tiêu chính -->
             <div class="detail-row relative-popover-container">
-              <div class="detail-label">Mục tiêu chính <button class="icon-btn-micro" v-if="!linkedParentGoal" @click.stop="togglePopover('parentGoal')"><i class="fa-solid fa-plus"></i></button></div>
-              
+              <div class="detail-label">Mục tiêu chính <button class="icon-btn-micro" v-if="!linkedParentGoal" @click.stop="togglePopover('parentGoal')"><Plus class="w-4 h-4"></Plus></button></div>
               <div class="detail-value" v-if="linkedParentGoal">
                 <div class="linked-item">
-                  <i class="fa-solid fa-bullseye item-icon"></i>
-                  <span class="item-name">{{ linkedParentGoal.name }}</span>
-                  <button class="remove-btn" @click="linkedParentGoal = null"><i class="fa-solid fa-xmark"></i></button>
+                  <Target class="w-4 h-4 item-icon"></Target>
+                  <span class="item-name">{{ linkedParentGoal.title || linkedParentGoal.name }}</span>
+                  <button class="remove-btn" @click="removeParentGoal"><X class="w-4 h-4"></X></button>
                 </div>
               </div>
 
-              <!-- Parent Goal Popover -->
               <div class="custom-popover" v-if="popovers.parentGoal" @click.stop>
                 <input type="text" class="popover-search" placeholder="Tìm kiếm mục tiêu hoặc dán liên kết" v-model="searchQueries.parentGoal" />
                 <div class="popover-list-title">Kết quả</div>
                 <div class="popover-list">
-                  <div class="popover-item" v-for="g in mockGoalsList" :key="g.id" @click="setParentGoal(g)">
-                    <i class="fa-solid fa-bullseye item-icon-muted"></i>
+                  <div class="popover-item" v-for="g in availableParentGoals" :key="g.id" @click="setParentGoal(g)">
+                    <Target class="w-4 h-4 item-icon-muted"></Target>
                     <div class="item-details">
-                      <div class="item-name">{{ g.name }}</div>
-                      <div class="item-meta">{{ g.owner }}</div>
+                      <div class="item-name">{{ g.title || g.name }}</div>
+                      <div class="item-meta">{{ g.owner?.fullName || g.owner?.email || 'Chưa có chủ sở hữu' }}</div>
                     </div>
                   </div>
+                  <div v-if="!availableParentGoals.length" class="empty-value" style="padding: 8px;">Không có mục tiêu phù hợp</div>
                 </div>
                 <div style="padding: 12px 12px 0; border-top: 1px solid #DFE1E6; margin-top: 8px;">
-                  <span style="font-size: 14px; color: #172B4D; cursor: pointer; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'"><i class="fa-solid fa-plus"></i> Tạo mục tiêu</span>
+                  <button type="button" class="create-goal-link" @click="openCreateModal"><Plus class="w-4 h-4"></Plus> Tạo mục tiêu</button>
                 </div>
               </div>
             </div>
 
             <!-- Mục tiêu phụ -->
             <div class="detail-row relative-popover-container">
-              <div class="detail-label">Mục tiêu phụ <button class="icon-btn-micro" @click.stop="togglePopover('subGoals')"><i class="fa-solid fa-plus"></i></button></div>
-              
+              <div class="detail-label">Mục tiêu phụ <button class="icon-btn-micro" @click.stop="togglePopover('subGoals')"><Plus class="w-4 h-4"></Plus></button></div>
               <div class="detail-value" v-if="linkedSubGoals.length > 0">
                 <div class="linked-item" v-for="g in linkedSubGoals" :key="g.id">
-                  <i class="fa-solid fa-bullseye item-icon"></i>
-                  <span class="item-name">{{ g.name }}</span>
-                  <button class="remove-btn" @click="removeSubGoal(g.id)"><i class="fa-solid fa-xmark"></i></button>
+                  <Target class="w-4 h-4 item-icon"></Target>
+                  <span class="item-name">{{ g.title || g.name }}</span>
+                  <button class="remove-btn" @click="removeSubGoal(g.id)"><X class="w-4 h-4"></X></button>
                 </div>
               </div>
 
-              <!-- Sub Goals Popover -->
               <div class="custom-popover" v-if="popovers.subGoals" @click.stop>
                 <input type="text" class="popover-search" placeholder="Tìm kiếm mục tiêu hoặc dán liên kết" v-model="searchQueries.subGoals" />
                 <div class="popover-list-title">Kết quả</div>
                 <div class="popover-list">
-                  <div class="popover-item" v-for="g in mockGoalsList" :key="g.id" @click="addSubGoal(g)">
-                    <i class="fa-solid fa-bullseye item-icon-muted"></i>
+                  <div class="popover-item" v-for="g in availableSubGoals" :key="g.id" @click="addSubGoal(g)">
+                    <Target class="w-4 h-4 item-icon-muted"></Target>
                     <div class="item-details">
-                      <div class="item-name">{{ g.name }}</div>
-                      <div class="item-meta">{{ g.owner }}</div>
+                      <div class="item-name">{{ g.title || g.name }}</div>
+                      <div class="item-meta">{{ g.owner?.fullName || g.owner?.email || 'Chưa có chủ sở hữu' }}</div>
                     </div>
                   </div>
+                  <div v-if="!availableSubGoals.length" class="empty-value" style="padding: 8px;">Không có mục tiêu phù hợp</div>
+                </div>
+                <div style="padding: 12px 12px 0; border-top: 1px solid #DFE1E6; margin-top: 8px;">
+                  <button type="button" class="create-goal-link" @click="openCreateModal"><Plus class="w-4 h-4"></Plus> Tạo mục tiêu</button>
                 </div>
               </div>
             </div>
@@ -687,75 +679,57 @@
             <div class="detail-row">
               <div class="detail-label">Loại</div>
               <div class="detail-value" style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #172B4D;">
-                <i class="fa-solid fa-bullseye"></i> Mục tiêu
+                <Target class="w-4 h-4"></Target> Mục tiêu
               </div>
             </div>
 
             <!-- Nhóm -->
             <div class="detail-row relative-popover-container">
-              <div class="detail-label">Nhóm <button class="icon-btn-micro" @click.stop="togglePopover('teams')"><i class="fa-solid fa-plus"></i></button></div>
-              
+              <div class="detail-label">Nhóm <button class="icon-btn-micro" @click.stop="togglePopover('teams')"><Plus class="w-4 h-4"></Plus></button></div>
               <div class="detail-value" v-if="linkedTeams.length > 0">
                 <div class="linked-item team-item-chip" v-for="t in linkedTeams" :key="t.id">
-                  <div class="team-icon" :style="{ backgroundColor: t.color }"><i class="fa-solid fa-users"></i></div>
-                  <span class="item-name">{{ t.name }} <i class="fa-solid fa-circle-check text-blue" style="font-size: 12px;" v-if="t.verified"></i></span>
-                  <button class="remove-btn" @click="removeTeam(t.id)"><i class="fa-solid fa-xmark"></i></button>
+                  <div class="team-icon" :style="{ backgroundColor: t.color || '#0052CC' }"><User class="w-4 h-4"></User></div>
+                  <span class="item-name">{{ t.name }}</span>
+                  <button class="remove-btn" @click="removeTeam(t.id)"><X class="w-4 h-4"></X></button>
                 </div>
               </div>
 
-              <!-- Teams Popover -->
               <div class="custom-popover popover-large" v-if="popovers.teams" @click.stop style="width: 320px;">
-                <div class="search-input-with-icon">
-                  <i class="fa-solid fa-user-group icon-left"></i>
+                <div class="team-search-field">
+                  <User class="w-4 h-4 icon-left"></User>
                   <input type="text" class="popover-search with-icon" placeholder="Tìm kiếm đội ngũ" v-model="searchQueries.teams" />
                 </div>
                 <div class="popover-list mt-2" style="max-height: 250px; overflow-y: auto;">
-                  <div class="popover-item team-select-item" v-for="t in mockTeamsList" :key="t.id" @click="addTeam(t)">
-                    <div class="team-icon-large" :style="{ backgroundColor: t.color }"><i class="fa-solid fa-users"></i></div>
+                  <div class="popover-item team-select-item" v-for="t in availableTeams" :key="t.id" @click="addTeam(t)">
+                    <div class="team-icon-large" :style="{ backgroundColor: t.color || '#0052CC' }"><User class="w-4 h-4"></User></div>
                     <div class="item-details">
-                      <div class="item-name" style="font-weight: 500;">{{ t.name }} <i class="fa-solid fa-circle-check text-blue" style="font-size: 12px;" v-if="t.verified"></i></div>
-                      <div class="item-meta">Đội ngũ chính thức • {{ t.members }} thành viên, kể cả bạn</div>
+                      <div class="item-name" style="font-weight: 500;">{{ t.name }}</div>
+                      <div class="item-meta">Đội ngũ chính thức</div>
                     </div>
                   </div>
+                  <div v-if="!availableTeams.length" class="empty-value" style="padding: 8px;">Không có nhóm phù hợp</div>
                 </div>
               </div>
             </div>
 
             <!-- Ngày bắt đầu -->
             <div class="detail-row relative-popover-container">
-              <div class="detail-label">Ngày bắt đầu <button class="icon-btn-micro" @click.stop="togglePopover('startDate')"><i class="fa-solid fa-plus"></i></button></div>
-              <div class="detail-value" v-if="startDate"><span class="item-name">{{ formattedStartDate }}</span></div>
+              <div class="detail-label">Ngày bắt đầu <button class="icon-btn-micro" @click.stop="togglePopover('startDate')"><Plus class="w-4 h-4"></Plus></button></div>
+              <div class="detail-value" v-if="goal?.startDate"><span class="item-name">{{ new Date(goal.startDate).toLocaleDateString('vi-VN') }}</span></div>
 
-              <!-- Start Date Popover -->
-              <div class="custom-popover" v-if="popovers.startDate" @click.stop style="width: 300px; padding: 0;">
-                <div style="padding: 16px; border-bottom: 1px solid #DFE1E6;">
-                  <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #172B4D;">Ngày bắt đầu</h4>
-                  <div class="date-input-mock">
-                    <input type="text" placeholder="Nhập ngày bắt đầu" v-model="formattedStartDate" readonly />
-                    <i class="fa-regular fa-calendar"></i>
-                  </div>
-                </div>
-                <div style="padding: 16px;">
-                  <div class="calendar-header">
-                    <button class="cal-nav-btn"><i class="fa-solid fa-angles-left"></i></button>
-                    <button class="cal-nav-btn"><i class="fa-solid fa-angle-left"></i></button>
-                    <span class="cal-month-year">June 2026</span>
-                    <button class="cal-nav-btn"><i class="fa-solid fa-angle-right"></i></button>
-                    <button class="cal-nav-btn"><i class="fa-solid fa-angles-right"></i></button>
-                  </div>
-                  <div class="calendar-grid">
-                    <div class="cal-day-header">Sun</div><div class="cal-day-header">Mon</div><div class="cal-day-header">Tue</div><div class="cal-day-header">Wed</div><div class="cal-day-header">Thu</div><div class="cal-day-header">Fri</div><div class="cal-day-header">Sat</div>
-                    <div class="cal-day muted">31</div><div class="cal-day">1</div><div class="cal-day">2</div><div class="cal-day">3</div><div class="cal-day">4</div><div class="cal-day">5</div><div class="cal-day">6</div>
-                    <div class="cal-day">7</div><div class="cal-day">8</div><div class="cal-day">9</div><div class="cal-day">10</div><div class="cal-day">11</div><div class="cal-day">12</div><div class="cal-day">13</div>
-                    <div class="cal-day">14</div><div class="cal-day">15</div><div class="cal-day active">16</div><div class="cal-day">17</div><div class="cal-day">18</div><div class="cal-day">19</div><div class="cal-day">20</div>
-                    <div class="cal-day">21</div><div class="cal-day">22</div><div class="cal-day">23</div><div class="cal-day">24</div><div class="cal-day">25</div><div class="cal-day">26</div><div class="cal-day">27</div>
-                    <div class="cal-day">28</div><div class="cal-day">29</div><div class="cal-day">30</div><div class="cal-day muted">1</div><div class="cal-day muted">2</div><div class="cal-day muted">3</div><div class="cal-day muted">4</div>
-                  </div>
-                  <div style="font-size: 11px; color: #0052CC; margin-top: 12px;">Đã tạo mục tiêu này vào 7 Jun 2026</div>
-                </div>
-                <div class="popover-actions" style="padding: 12px 16px; border-top: 1px solid #DFE1E6; display: flex; justify-content: space-between;">
-                  <button class="secondary-btn" style="flex: 1;" @click="popovers.startDate = false">Hủy</button>
-                  <button class="primary-btn" style="flex: 1;" @click="saveStartDate">Lưu</button>
+              <div class="custom-popover" v-if="popovers.startDate" @click.stop style="width: 300px; padding: 16px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #172B4D;">Cập nhật ngày bắt đầu</h4>
+                <el-date-picker
+                  v-model="goalStartDate"
+                  type="date"
+                  placeholder="Chọn ngày bắt đầu"
+                  format="DD/MM/YYYY"
+                  value-format="YYYY-MM-DD"
+                  style="width: 100%; margin-bottom: 16px;"
+                  @change="handleStartDateChange"
+                />
+                <div style="display: flex; justify-content: flex-end;">
+                  <button class="secondary-btn" @click="popovers.startDate = false">Đóng</button>
                 </div>
               </div>
             </div>
@@ -771,23 +745,40 @@
       :projectName="goal?.name" 
       @close="isShareModalOpen = false" 
     />
+
+    <GoalCreateModal
+      v-model="isCreateModalOpen"
+      :users="siteUsers"
+      :current-user="currentUser"
+      @created="handleGoalCreated"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { Target, Eye, Star, MoreHorizontal, Plus, LineChart, ChevronDown, Calendar, Smile, ArrowRight, Layers, Rocket, List, CheckSquare, Grid, GitBranch, X, User, CheckCircle2 } from 'lucide-vue-next'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { getStoredUser } from '@/utils/permissions'
 import { useGoalStore } from '@/store/useGoalStore'
+import { usePeopleStore } from '@/store/usePeopleStore'
+import { useTeamStore } from '@/store/useTeamStore'
+import { getInitials } from '@/utils/avatarUtils'
 import RichTextEditor from '@/components/common/RichTextEditor.vue'
 import ShareModal from '@/components/common/ShareModal.vue'
+import UserAvatar from '@/components/common/UserAvatar.vue'
+import GoalCreateModal from './GoalCreateModal.vue'
 
 const route = useRoute()
 const router = useRouter()
 const goalStore = useGoalStore()
+const peopleStore = usePeopleStore()
+const teamStore = useTeamStore()
 
 const showUpdateForm = ref(false)
-const isUpdateStatusOpen = ref(false)
-const newUpdate = ref({ status: 'ĐÚNG TIẾN ĐỘ', message: '', progress: 0 })
+const isPostingUpdate = ref(false)
+const isMentionMenuOpen = ref(false)
+const newUpdate = ref({ status: '', message: '', progress: 0, targetDate: '' })
 
 const isJiraInputOpen = ref(false)
 const isProjectSearchOpen = ref(false)
@@ -800,17 +791,35 @@ const isLayoutMenuOpenDecision = ref(false)
 
 const currentTab = ref('overview')
 const activityTab = ref('comments')
-
 const isEditingBio = ref(false)
 const tempBio = ref('')
+const isShareModalOpen = ref(false)
+const isCreateModalOpen = ref(false)
 
 const goal = computed(() => goalStore.currentGoal)
 const updates = computed(() => goalStore.updates || [])
+const sortedUpdates = computed(() => [...updates.value].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)))
+const goalStatuses = computed(() => {
+  if (goalStore.statuses?.length) return goalStore.statuses
+  if (goal.value?.status) return [{ value: goal.value.status, label: goal.value.status }]
+  return []
+})
 
-// Mocks for subgoals
-const subGoals = ref([])
-
-const isShareModalOpen = ref(false)
+const siteUsers = computed(() => peopleStore.users || [])
+const currentUser = computed(() => {
+  try {
+    const localUser = getStoredUser() || {}
+    const fullUser = siteUsers.value.find(u => u.id === localUser.id)
+    return fullUser || localUser
+  } catch {
+    return {}
+  }
+})
+const currentUserName = computed(() => {
+  const u = currentUser.value
+  return u.fullName || u.username || u.email || 'Người dùng'
+})
+const currentUserInitials = computed(() => getInitials(currentUserName.value))
 
 const popovers = ref({
   parentGoal: false,
@@ -821,104 +830,234 @@ const popovers = ref({
 
 const togglePopover = (type) => {
   for (const key in popovers.value) {
-    if (key === type) popovers.value[key] = !popovers.value[key]
-    else popovers.value[key] = false
+    popovers.value[key] = key === type ? !popovers.value[key] : false
   }
 }
 
 const closePopovers = (e) => {
+  if (e.target.closest('.el-picker-panel') || e.target.closest('.el-popper')) return
   if (!e.target.closest('.custom-popover') && !e.target.closest('.icon-btn-micro')) {
     popovers.value = { parentGoal: false, subGoals: false, teams: false, startDate: false }
   }
 }
 
 const searchQueries = ref({ parentGoal: '', subGoals: '', teams: '' })
+const normalizeText = (value) => (value || '').toString().toLowerCase().trim()
+const matchesSearch = (goalItem, query) => {
+  const q = normalizeText(query)
+  if (!q) return true
+  return normalizeText(goalItem.title || goalItem.name).includes(q) ||
+    normalizeText(goalItem.owner?.fullName || goalItem.owner?.email).includes(q)
+}
 
-const linkedParentGoal = ref(null)
-const linkedSubGoals = ref([])
-const linkedTeams = ref([])
-const startDate = ref(null)
-const formattedStartDate = ref('16 Jun 2026')
+const availableGoals = computed(() => (goalStore.goals || []).filter(g => g.id !== goal.value?.id))
+const availableParentGoals = computed(() => availableGoals.value.filter(g => matchesSearch(g, searchQueries.value.parentGoal)))
+const availableSubGoals = computed(() => availableGoals.value.filter(g => matchesSearch(g, searchQueries.value.subGoals)))
+const availableTeams = computed(() => {
+  const q = normalizeText(searchQueries.value.teams)
+  return (teamStore.allTeams || []).filter(t => !q || normalizeText(t.name).includes(q))
+})
+const linkedParentGoal = computed(() => {
+  if (!goal.value?.parentGoalId) return null
+  return goalStore.goals.find(g => g.id === goal.value.parentGoalId) || null
+})
+const linkedSubGoals = computed(() => goalStore.goals.filter(g => g.parentGoalId === goal.value?.id))
+const linkedTeams = computed(() => {
+  if (!goal.value?.departmentId) return []
+  const team = (teamStore.allTeams || []).find(t => t.id === goal.value.departmentId)
+  return team ? [team] : []
+})
 
-const mockGoalsList = [
-  { id: 'g1', name: 'iPhone 15 Pro Max', owner: 'Tua20000' },
-  { id: 'g2', name: 'uew', owner: 'Tua20000' }
-]
+const toDateInputValue = (value) => {
+  if (!value) return ''
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return ''
+  return parsed.toISOString().slice(0, 10)
+}
 
-const mockTeamsList = [
-  { id: 't1', name: '###', members: 1, color: '#36B37E', verified: true },
-  { id: 't2', name: '30', members: 1, color: '#FF5630', verified: true },
-  { id: 't3', name: 'RRRR', members: 1, color: '#FF5630', verified: true }
-]
+const goalStartDate = computed({
+  get: () => toDateInputValue(goal.value?.startDate),
+  set: (value) => {
+    if (goal.value) goal.value.startDate = value
+  }
+})
 
-const setParentGoal = (g) => {
-  linkedParentGoal.value = g
+const isStatusChanged = computed(() => Boolean(newUpdate.value.status && newUpdate.value.status !== goal.value?.status))
+const isProgressChanged = computed(() => Number(newUpdate.value.progress) !== Number(goal.value?.progress || 0))
+const isTargetDateChanged = computed(() => Boolean(newUpdate.value.targetDate && newUpdate.value.targetDate !== goalStartDate.value))
+const stripHtml = (value) => {
+  const div = document.createElement('div')
+  div.innerHTML = value || ''
+  return div.textContent || div.innerText || ''
+}
+const updatePlainTextLength = computed(() => stripHtml(newUpdate.value.message).trim().length)
+const canPostUpdate = computed(() => {
+  return updatePlainTextLength.value <= 280 &&
+    Boolean(updatePlainTextLength.value || isStatusChanged.value || isProgressChanged.value || isTargetDateChanged.value)
+})
+
+const resetUpdateDraft = () => {
+  newUpdate.value = {
+    status: goal.value?.status || goalStatuses.value[0]?.value || '',
+    message: '',
+    progress: Number(goal.value?.progress || 0),
+    targetDate: goalStartDate.value
+  }
+  isMentionMenuOpen.value = false
+}
+
+const openUpdateComposer = () => {
+  if (!showUpdateForm.value) {
+    resetUpdateDraft()
+    showUpdateForm.value = true
+  }
+}
+
+const cancelUpdateComposer = () => {
+  if (updatePlainTextLength.value) return
+  resetUpdateDraft()
+  showUpdateForm.value = false
+}
+
+const clampUpdateProgress = () => {
+  const raw = Number(newUpdate.value.progress)
+  if (Number.isNaN(raw)) {
+    newUpdate.value.progress = 0
+    return
+  }
+  newUpdate.value.progress = Math.min(100, Math.max(0, raw))
+}
+
+const getUpdateUserName = (update) => {
+  const user = update.user || currentUser.value || {}
+  return user.fullName || user.username || user.email || 'Người dùng'
+}
+const formatRelativeTime = (value) => {
+  if (!value) return ''
+  const created = new Date(value)
+  if (Number.isNaN(created.getTime())) return ''
+  const minutes = Math.max(0, Math.floor((Date.now() - created.getTime()) / 60000))
+  if (minutes < 1) return 'Vừa xong'
+  if (minutes < 60) return `${minutes} phút trước`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} giờ trước`
+  return `${Math.floor(hours / 24)} ngày trước`
+}
+const formatDate = (value) => {
+  if (!value) return ''
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return ''
+  return parsed.toLocaleDateString('vi-VN')
+}
+const hasStatusChange = (update) => Boolean(update.previousStatus && update.newStatus && update.previousStatus !== update.newStatus)
+const hasProgressChange = (update) => update.previousProgress !== null && update.previousProgress !== undefined && update.newProgress !== null && update.newProgress !== undefined && Number(update.previousProgress) !== Number(update.newProgress)
+
+const setParentGoal = async (g) => {
+  await goalStore.updateGoal(goal.value.id, { parentGoalId: g.id })
   popovers.value.parentGoal = false
+  await goalStore.fetchGoals()
+  await goalStore.fetchGoalDetail(goal.value.id)
 }
-
-const addSubGoal = (g) => {
-  if (!linkedSubGoals.value.find(x => x.id === g.id)) linkedSubGoals.value.push(g)
+const removeParentGoal = async () => {
+  await goalStore.updateGoal(goal.value.id, { parentGoalId: null })
+  await goalStore.fetchGoals()
+  await goalStore.fetchGoalDetail(goal.value.id)
+}
+const addSubGoal = async (g) => {
+  await goalStore.updateGoal(g.id, { parentGoalId: goal.value.id })
   popovers.value.subGoals = false
+  await goalStore.fetchGoals()
 }
-const removeSubGoal = (id) => { linkedSubGoals.value = linkedSubGoals.value.filter(x => x.id !== id) }
-
-const addTeam = (t) => {
-  if (!linkedTeams.value.find(x => x.id === t.id)) linkedTeams.value.push(t)
+const removeSubGoal = async (id) => {
+  await goalStore.updateGoal(id, { parentGoalId: null })
+  await goalStore.fetchGoals()
+}
+const addTeam = async (t) => {
+  await goalStore.updateGoal(goal.value.id, { departmentId: t.id })
   popovers.value.teams = false
+  await goalStore.fetchGoals()
+  await goalStore.fetchGoalDetail(goal.value.id)
 }
-const removeTeam = (id) => { linkedTeams.value = linkedTeams.value.filter(x => x.id !== id) }
-
-const saveStartDate = () => {
-  startDate.value = '2026-06-16'
+const removeTeam = async () => {
+  await goalStore.updateGoal(goal.value.id, { departmentId: null })
+  await goalStore.fetchGoals()
+  await goalStore.fetchGoalDetail(goal.value.id)
+}
+const handleStartDateChange = async (val) => {
+  await goalStore.updateGoal(goal.value.id, { startDate: val })
   popovers.value.startDate = false
+  await goalStore.fetchGoals()
+  await goalStore.fetchGoalDetail(goal.value.id)
 }
 
 const startEditingBio = () => {
   tempBio.value = goal.value?.description || ''
   isEditingBio.value = true
 }
-
 const saveBio = async (val) => {
-  if (goal.value) {
-    // API call to update bio
-    goal.value.description = typeof val === 'string' ? val : tempBio.value
-  }
+  if (!goal.value) return
+  const description = typeof val === 'string' ? val : tempBio.value
+  await goalStore.updateGoal(goal.value.id, { description })
+  await goalStore.fetchGoalDetail(goal.value.id)
   isEditingBio.value = false
 }
 
-onMounted(async () => {
-  window.addEventListener('click', closePopovers)
-  if (route.params.id) {
-    await goalStore.fetchGoalDetail(route.params.id)
-  }
-})
-
 const getStatusClass = (status) => {
   if (!status) return 'status-pending'
-  const map = {
-    'đúng tiến độ': 'status-on-track',
-    'có rủi ro': 'status-at-risk',
-    'trễ tiến độ': 'status-off-track',
-    'đang chờ cập nhật': 'status-pending',
-    'đã hoàn tất': 'status-done',
-    'đã lưu trữ': 'status-archived'
-  }
-  return map[status.toLowerCase()] || 'status-pending'
+  const normalized = status.toString().toLowerCase()
+  if (normalized.includes('hoàn tất') || normalized.includes('hoàn thành')) return 'status-done'
+  if (normalized.includes('rủi ro')) return 'status-at-risk'
+  if (normalized.includes('không đúng') || normalized.includes('trễ')) return 'status-off-track'
+  if (normalized.includes('đúng tiến độ')) return 'status-on-track'
+  if (normalized.includes('lưu trữ') || normalized.includes('hủy')) return 'status-archived'
+  return 'status-pending'
 }
 
 const toggleFollow = () => {
   if (goal.value) goalStore.toggleFollow(goal.value.id)
 }
+const toggleStar = () => goalStore.toggleStar()
+const toggleShare = () => { isShareModalOpen.value = true }
+const toggleMenu = () => {}
 
-const toggleStar = () => {
-  goalStore.toggleStar()
+const postUpdate = async () => {
+  if (!goal.value || !canPostUpdate.value || isPostingUpdate.value) return
+  clampUpdateProgress()
+  isPostingUpdate.value = true
+  try {
+    await goalStore.addUpdate(goal.value.id, {
+      content: newUpdate.value.message.trim(),
+      status: newUpdate.value.status,
+      progress: Number(newUpdate.value.progress),
+      targetDate: newUpdate.value.targetDate
+    })
+    resetUpdateDraft()
+    showUpdateForm.value = false
+  } finally {
+    isPostingUpdate.value = false
+  }
 }
 
-const postUpdate = () => {
-  showUpdateForm.value = false
-  newUpdate.value.message = ''
-  // API Call would go here
+const openCreateModal = () => { isCreateModalOpen.value = true }
+const handleGoalCreated = async () => {
+  await goalStore.fetchGoals()
+  if (goal.value?.id) await goalStore.fetchGoalDetail(goal.value.id)
 }
+
+onMounted(async () => {
+  window.addEventListener('click', closePopovers)
+  await goalStore.fetchStatuses()
+  if (route.params.id) await goalStore.fetchGoalDetail(route.params.id)
+  await goalStore.fetchGoals()
+  await teamStore.fetchAllTeams()
+  await peopleStore.fetchPeople()
+  resetUpdateDraft()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', closePopovers)
+})
 </script>
 
 <style scoped>
@@ -1204,6 +1343,42 @@ const postUpdate = () => {
   color: #5E6C84;
   font-style: italic;
   font-size: 14px;
+}
+
+.description-display {
+  cursor: pointer;
+  color: #172B4D;
+  font-size: 14px;
+  line-height: 1.55;
+  padding: 8px;
+  border-radius: 3px;
+  min-height: 40px;
+}
+
+.description-display:hover {
+  background-color: #FAFBFC;
+}
+
+.description-display :deep(ul),
+.description-display :deep(ol) {
+  padding-left: 22px;
+}
+
+.description-display :deep(a) {
+  color: #0052CC;
+  text-decoration: underline;
+}
+
+.description-display :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+}
+
+.description-display :deep(td),
+.description-display :deep(th) {
+  border: 1px solid #DFE1E6;
+  padding: 6px 8px;
 }
 
 /* Empty States */
@@ -1588,6 +1763,354 @@ const postUpdate = () => {
   background-color: #FAFBFC;
 }
 
+.updates-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.update-composer-collapsed {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px;
+  background: #FFFFFF;
+  border: 1px solid #DFE1E6;
+  border-radius: 3px;
+  color: #5E6C84;
+  font-size: 15px;
+  text-align: left;
+  cursor: text;
+}
+
+.update-composer-collapsed:hover {
+  border-color: #A5ADBA;
+}
+
+.update-composer-card {
+  background: #FFFFFF;
+  border: 1px solid #DFE1E6;
+  border-radius: 3px;
+  box-shadow: 0 8px 16px -4px rgba(9, 30, 66, 0.25);
+  overflow: visible;
+}
+
+.update-composer-top {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(170px, 1fr) 96px auto;
+  gap: 16px;
+  align-items: end;
+  padding: 20px 24px 12px;
+  background: #FAFBFC;
+  border-bottom: 1px solid #DFE1E6;
+}
+
+.update-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.update-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B778C;
+}
+
+.update-select,
+.progress-input-wrap input {
+  height: 34px;
+  border: 1px solid #DFE1E6;
+  border-radius: 3px;
+  background: #FFFFFF;
+  color: #172B4D;
+  font-size: 13px;
+}
+
+.update-select {
+  padding: 0 10px;
+}
+
+.progress-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.progress-input-wrap input {
+  width: 64px;
+  padding: 0 8px;
+}
+
+.template-btn {
+  height: 34px;
+  border: 1px solid #DFE1E6;
+  background: #F4F5F7;
+  color: #5E6C84;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+}
+
+.update-date-picker {
+  width: 100%;
+}
+
+.update-rte {
+  border: 0;
+  box-shadow: none;
+  margin: 0;
+  border-radius: 0;
+}
+
+.update-rte :deep(.rte-toolbar) {
+  background: #FFFFFF;
+  border-top: 1px solid #DFE1E6;
+}
+
+.update-rte :deep(.rte-content) {
+  min-height: 190px;
+  padding: 22px 24px;
+  font-size: 15px;
+}
+
+.update-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 24px 20px;
+  border-top: 1px solid #DFE1E6;
+}
+
+.update-tools,
+.update-submit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-btn {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: #5E6C84;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.toolbar-btn:hover:not(:disabled) {
+  background: #F4F5F7;
+  color: #172B4D;
+}
+
+.toolbar-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.mention-wrap {
+  position: relative;
+}
+
+.mention-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  width: 240px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #FFFFFF;
+  border: 1px solid #DFE1E6;
+  border-radius: 3px;
+  box-shadow: 0 8px 16px -4px rgba(9, 30, 66, 0.25);
+  z-index: 110;
+  padding: 6px;
+}
+
+.mention-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.mention-item:hover {
+  background: #F4F5F7;
+}
+
+.mention-empty,
+.char-count {
+  color: #5E6C84;
+  font-size: 12px;
+}
+
+.updates-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  color: #172B4D;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.updates-title span {
+  color: #5E6C84;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.empty-updates,
+.update-card {
+  border: 1px solid #DFE1E6;
+  border-radius: 3px;
+  background: #FFFFFF;
+}
+
+.empty-updates {
+  padding: 24px;
+  color: #5E6C84;
+  font-size: 14px;
+}
+
+.update-card {
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.update-card-header,
+.update-author,
+.update-change-row,
+.update-actions-disabled,
+.update-comment-disabled {
+  display: flex;
+  align-items: center;
+}
+
+.update-card-header {
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.update-author {
+  gap: 12px;
+}
+
+.update-author-name {
+  color: #172B4D;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.update-time {
+  color: #5E6C84;
+  font-size: 12px;
+}
+
+.update-content {
+  color: #172B4D;
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0 0 16px;
+  white-space: pre-wrap;
+}
+
+.update-change-row {
+  gap: 10px;
+  flex-wrap: wrap;
+  background: #FAFBFC;
+  border: 1px solid #DFE1E6;
+  border-radius: 3px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  color: #5E6C84;
+  font-size: 12px;
+}
+
+.update-actions-disabled {
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #DFE1E6;
+  color: #5E6C84;
+  font-size: 13px;
+}
+
+.update-actions-disabled button {
+  border: 0;
+  background: transparent;
+  color: #5E6C84;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: not-allowed;
+}
+
+.update-comment-disabled {
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.update-comment-disabled input {
+  flex: 1;
+  border: 0;
+  background: #FAFBFC;
+  padding: 8px 12px;
+  border-radius: 3px;
+  color: #5E6C84;
+}
+
+.create-goal-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: #172B4D;
+  padding: 0;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.create-goal-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .update-composer-top {
+    grid-template-columns: 1fr;
+  }
+
+  .update-toolbar,
+  .update-submit-row {
+    align-items: stretch;
+  }
+
+  .update-toolbar {
+    flex-direction: column;
+  }
+
+  .update-submit-row {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
 /* Sidebar Popovers (Shared with ProjectDetail) */
 .relative-popover-container {
   position: relative;
@@ -1630,16 +2153,32 @@ const postUpdate = () => {
   position: relative;
 }
 
-.search-input-with-icon .icon-left {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
+.team-search-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0 8px;
+  border: 2px solid #DFE1E6;
+  border-radius: 3px;
+  box-sizing: border-box;
+}
+
+.team-search-field:focus-within {
+  border-color: #4C9AFF;
+}
+
+.search-input-with-icon .icon-left,
+.team-search-field .icon-left {
   color: #5E6C84;
+  flex: 0 0 16px;
 }
 
 .popover-search.with-icon {
-  padding-left: 32px;
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
 }
 
 .popover-list-title {

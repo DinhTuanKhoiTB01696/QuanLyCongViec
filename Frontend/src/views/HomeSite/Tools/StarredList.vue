@@ -7,11 +7,11 @@
     <div class="page-content">
       <div class="filter-controls">
         <div class="search-input-wrapper">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <Search class="w-4 h-4 search-icon"></Search>
           <input type="text" placeholder="Tìm kiếm theo tiêu đề" class="search-input" />
         </div>
         <button class="filter-btn">
-          <i class="fa-solid fa-sliders"></i> Lọc theo ứng dụng
+          <SlidersHorizontal class="w-4 h-4"></SlidersHorizontal> Lọc theo ứng dụng
         </button>
       </div>
 
@@ -19,7 +19,7 @@
         <div class="empty-illustration">
           <div class="medal-icon">
             <div class="medal-circle">
-              <i class="fa-regular fa-star"></i>
+              <Star class="w-4 h-4"></Star>
             </div>
             <div class="medal-ribbons">
               <div class="ribbon left-ribbon"></div>
@@ -36,6 +36,7 @@
 </template>
 
 <script setup>
+import { Search, SlidersHorizontal, Star } from 'lucide-vue-next';
 // Minimal logic for the UI representation
 </script>
 

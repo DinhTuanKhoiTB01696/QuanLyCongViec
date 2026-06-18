@@ -14,7 +14,7 @@
           </div>
           <div class="empty-banner-illustration">
             <div class="mock-illustration">
-              <i class="fa-solid fa-users-viewfinder"></i>
+              <User class="w-4 h-4"></User>
             </div>
           </div>
         </div>
@@ -30,12 +30,12 @@
             
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div class="search-box" style="position: relative; width: 300px;">
-                <i class="fa-solid fa-magnifying-glass search-icon" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #6B778C; z-index: 1;"></i>
+                <Search class="w-4 h-4 search-icon" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #6B778C; z-index: 1;"></Search>
                 <input type="text" placeholder="Tìm kiếm các đội ngũ" class="search-input" style="width: 100%; padding: 8px 12px 8px 36px !important; border: 1px solid #DFE1E6; border-radius: 3px; outline: none; font-size: 14px; color: #172B4D; height: 36px; transition: border-color 0.2s;" />
               </div>
               
               <div class="view-toggle" style="display: flex; border: 1px solid #DFE1E6; border-radius: 3px; overflow: hidden; height: 32px;">
-                <button class="icon-btn" style="border: none; border-radius: 0; background: #DEEBFF; color: #0052CC; padding: 0 12px; height: 100%; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-table-cells-large"></i></button>
+                <button class="icon-btn" style="border: none; border-radius: 0; background: #DEEBFF; color: #0052CC; padding: 0 12px; height: 100%; display: flex; align-items: center; justify-content: center;"><Grid class="w-4 h-4"></Grid></button>
                 <div style="width: 1px; background-color: #DFE1E6; height: 100%;"></div>
                 <button class="icon-btn" style="border: none; border-radius: 0; background: white; color: #6B778C; padding: 0 12px; height: 100%; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-list"></i></button>
               </div>
@@ -60,8 +60,8 @@
     <div class="modal-overlay invisible-backdrop" v-if="isCreateModalOpen" @click.self="isCreateModalOpen = false; isMemberDropdownOpen = false">
       <div class="modal-content side-popover">
         <div class="popover-header">
-          <button class="icon-btn-small" @click="isCreateModalOpen = false"><i class="fa-solid fa-arrow-left"></i></button>
-          <span class="popover-title"><i class="fa-solid fa-user-group"></i> Đội ngũ</span>
+          <button class="icon-btn-small" @click="isCreateModalOpen = false"><ArrowLeft class="w-4 h-4"></ArrowLeft></button>
+          <span class="popover-title"><User class="w-4 h-4"></User> Đội ngũ</span>
         </div>
         <div class="popover-body">
           <p class="required-subtitle">Các trường bắt buộc được đánh dấu bằng dấu sao <span class="required">*</span></p>
@@ -77,7 +77,7 @@
               <div class="tag-chip" v-for="member in newTeamData.members" :key="member.id">
                  <div class="member-avatar-micro" :style="{ backgroundColor: member.color || '#0052CC' }">{{ member.initials }}</div>
                  {{ member.name }}
-                 <i class="fa-solid fa-xmark remove-tag" @click.stop="removeMember(member.id)"></i>
+                 <X class="w-4 h-4 remove-tag" @click.stop="removeMember(member.id)"></X>
               </div>
               <input type="text" ref="memberInputRef" placeholder="Nhập tên" v-model="memberSearchQuery" @focus="isMemberDropdownOpen = true" />
             </div>
@@ -115,6 +115,7 @@
 </template>
 
 <script setup>
+import { User, Search, Grid, ArrowLeft, X } from 'lucide-vue-next';
 import { ref, onMounted, onUnmounted, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTeamStore } from '@/store/useTeamStore'

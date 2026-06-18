@@ -7,6 +7,7 @@ namespace TaskManagement.Application.Interfaces
     public interface IGoalService
     {
         Task<object> GetAllAsync(Guid workspaceId);
+        Task<object> GetStatusesAsync();
         Task<object?> GetByIdAsync(Guid id);
         Task<object> CreateAsync(Guid creatorId, Guid workspaceId, object dto);
         Task<object> UpdateAsync(Guid id, object dto);

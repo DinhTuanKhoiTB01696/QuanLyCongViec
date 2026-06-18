@@ -7,7 +7,7 @@
 
     <div class="log-controls">
       <div class="search-box">
-        <i class="fa-solid fa-magnifying-glass"></i>
+        <Search class="w-4 h-4"></Search>
         <input type="text" placeholder="Filter activities..." v-model="searchQuery" />
       </div>
       <select class="filter-select" v-model="filterType">
@@ -35,7 +35,7 @@
       </div>
 
       <div v-if="filteredLogs.length === 0" class="empty-state">
-        <i class="fa-solid fa-clipboard-list empty-icon"></i>
+        <ClipboardList class="w-4 h-4 empty-icon"></ClipboardList>
         <h3>No activities found</h3>
         <p>Try adjusting your filters to find what you're looking for.</p>
       </div>
@@ -44,6 +44,7 @@
 </template>
 
 <script setup>
+import { Search, ClipboardList } from 'lucide-vue-next';
 import { ref, computed } from 'vue'
 import { useI18nStore } from '@/store/useI18nStore'
 

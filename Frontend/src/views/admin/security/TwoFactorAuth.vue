@@ -3,7 +3,7 @@
     <div class="admin-page-container">
       <div class="page-header">
         <div class="breadcrumb">
-          <i class="fa-solid fa-shield-halved"></i> Security / Two-Factor Auth
+          <Shield class="w-4 h-4 inline-block" /> Security / Two-Factor Auth
         </div>
         <h1 class="page-title">{{ t('Two-Factor Authentication (2FA)', 'Xác thực 2 bước (2FA)') }}</h1>
         <p class="page-subtitle">{{ t('Protect your account with an additional security layer.', 'Bảo vệ tài khoản với lớp bảo mật bổ sung phòng chống đánh cắp dữ liệu.') }}</p>
@@ -35,7 +35,7 @@
                <p class="method-desc">{{ t('Use Google Authenticator or Microsoft Authenticator to generate secure OTP codes.', 'Sử dụng Google Authenticator hoặc Microsoft Authenticator để tạo mã OTP an toàn.') }}</p>
             </div>
             <div class="method-action">
-              <el-button type="primary" plain @click="handleNotImplemented(t('Configure Authenticator App', 'Cấu hình Ứng dụng xác thực'))">{{ t('Configure', 'Cấu hình') }}</el-button>
+              <SprintaButton type="primary" plain @click="handleNotImplemented(t('Configure Authenticator App', 'Cấu hình Ứng dụng xác thực'))">{{ t('Configure', 'Cấu hình') }}</SprintaButton>
             </div>
           </div>
 
@@ -48,22 +48,22 @@
                <p class="method-desc">{{ t('Receive a 6-digit verification code via SMS or email.', 'Nhận mã xác nhận gồm 6 chữ số gửi qua số điện thoại hoặc email. Thiết lập dễ dàng nhưng kém an toàn hơn Ứng dụng.') }}</p>
             </div>
             <div class="method-action">
-              <el-button type="default" :type="is2faEnabled ? 'danger' : 'success'" :plain="true" @click="is2faEnabled = !is2faEnabled; toggle2fa(is2faEnabled)">
+              <SprintaButton type="default" :type="is2faEnabled ? 'danger' : 'success'" :plain="true" @click="is2faEnabled = !is2faEnabled; toggle2fa(is2faEnabled)">
                  {{ is2faEnabled ? t('Disable', 'Tắt') : t('Enable', 'Bật') }}
-              </el-button>
+              </SprintaButton>
             </div>
           </div>
 
           <div class="divider"></div>
 
           <div class="auth-method">
-            <div class="method-icon"><i class="fa-solid fa-key"></i></div>
+            <div class="method-icon"><Key class="w-4 h-4 inline-block" /></div>
             <div class="method-content">
                <h4 class="method-title">{{ t('Backup Codes', 'Mã dự phòng (Backup Codes)') }}</h4>
                <p class="method-desc">{{ t('Get a list of 10 single-use codes in case you lose your phone.', 'Nhận danh sách 10 mã (mỗi mã dùng 1 lần duy nhất) phòng trường hợp bạn làm mất điện thoại.') }}</p>
             </div>
             <div class="method-action">
-              <el-button type="default" @click="handleNotImplemented(t('Generate new backup codes', 'Tạo Mã dự phòng mới'))">{{ t('Generate', 'Tạo mã') }}</el-button>
+              <SprintaButton type="default" @click="handleNotImplemented(t('Generate new backup codes', 'Tạo Mã dự phòng mới'))">{{ t('Generate', 'Tạo mã') }}</SprintaButton>
             </div>
           </div>
         </div>
@@ -74,6 +74,8 @@
 </template>
 
 <script setup>
+import SprintaButton from '@/components/ui/SprintaButton.vue';
+import { Shield, Key } from 'lucide-vue-next';
 import { ref, onMounted } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import axiosClient from '@/api/axiosClient'

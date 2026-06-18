@@ -30,6 +30,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useLocale } from '@/composables/useLocale'
+import { getInitials, getAvatarColor } from '@/utils/avatarUtils'
 
 const { t } = useLocale()
 
@@ -82,25 +83,18 @@ const menuItems = computed(() => [
 const getBaseUrl = () => import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5136'
 
 const avatarStyle = computed(() => {
-  if (!props.profileData.avatarUrl) return {}
+  if (props.profileData.avatarUrl) {
+    return {
+      backgroundImage: `url(${getBaseUrl()}${props.profileData.avatarUrl})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      color: 'transparent'
+    }
+  }
   return {
-    backgroundImage: `url(${getBaseUrl()}${props.profileData.avatarUrl})`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    color: 'transparent'
+    backgroundColor: getAvatarColor(props.profileData.fullName || props.profileData.email)
   }
 })
-
-const getInitials = (name) => {
-  if (!name) return '?'
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .map((word) => word[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase()
-}
 </script>
 
 <style scoped>
@@ -133,7 +127,6 @@ const getInitials = (name) => {
 .sidebar-avatar {
   height: 96px;
   width: 96px;
-  background-color: #0052cc;
   border-radius: 50%;
   display: flex;
   align-items: center;

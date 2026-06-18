@@ -7,73 +7,47 @@
   Standardized tokens for consistent Light/Dark UI
 */
 :root {
-  /* LIGHT THEME TOKENS */
-  --color-bg: #f8fafc;           /* Main background (Slate-50) */
-  --color-surface: #ffffff;      /* Card/Panel surface */
-  --color-surface-hover: #f1f5f9;/* Slate-100 */
+  /* JIRA DESIGN SYSTEM TOKENS */
+  --brand-navy: #172B4D;
+  --brand-navy-deep: #091E42;
+  --brand-text-light: #DEEBFF;
+  --color-accent: #0052CC;
+  --color-accent-hover: #0047B3;
+  --color-bg: #f4f5f7;
+  --color-surface: #ffffff;
+  --color-surface-hover: #ebecf0;
+  --color-border: #dfe1e6;
+  --color-border-hover: #c1c7d0;
+  --color-text-primary: #172B4D;
+  --color-text-secondary: #5e6c84;
+  --color-text-muted: #6b778c;
   
-  --color-text-primary: #0f172a;   /* Headings (Slate-900) */
-  --color-text-secondary: #475569; /* Labels (Slate-600) */
-  --color-text-muted: #64748b;    /* Placeholders (Slate-500) */
-  --color-text-disabled: #94a3b8;
-  --color-text-inverse: #ffffff;  
+  --color-success: #00875a;
+  --color-warning: #ff991f;
+  --color-danger: #de350b;
+
+  --color-success-bg: #e3fcef;
+  --color-warning-bg: #fffae6;
+  --color-danger-bg: #ffebe6;
   
-  --color-border: #e2e8f0;       /* Slate-200 */
-  --color-border-hover: #cbd5e1;
-  
-  --color-input-bg: #ffffff;
-  --color-input-border: #cbd5e1;
-  
-  --color-accent: #0ea5e9;       /* Sky-500 */
-  --color-accent-hover: #0284c7;
-  
-  --color-success: #10b981;      /* Emerald-500 */
-  --color-warning: #f59e0b;      /* Amber-500 */
-  --color-danger: #ef4444;       /* Red-500 */
-  
-  --color-success-bg: rgba(16, 185, 129, 0.1);
-  --color-warning-bg: rgba(245, 158, 11, 0.1);
-  --color-danger-bg: rgba(239, 68, 68, 0.1);
-  
-  --color-success: #10b981;      /* Emerald-500 */
-  --color-warning: #f59e0b;      /* Amber-500 */
-  --color-danger: #ef4444;       /* Red-500 */
-  
-  --color-success-bg: rgba(16, 185, 129, 0.1);
-  --color-warning-bg: rgba(245, 158, 11, 0.1);
-  --color-danger-bg: rgba(239, 68, 68, 0.1);
-  
-  /* New Semantic Tokens */
+  --radius-sm: 3px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Aliases to keep layout working without breaking too much */
   --bg-primary: var(--color-bg);
   --bg-secondary: var(--color-surface);
-  --bg-tertiary: var(--color-surface-hover);
+  --bg-tertiary: var(--color-bg);
   --text-primary: var(--color-text-primary);
   --text-secondary: var(--color-text-secondary);
   --border-color: var(--color-border);
-  --input-bg: var(--color-input-bg);
+  --input-bg: var(--color-surface);
   --table-bg: var(--color-surface);
   --hover-bg: var(--color-surface-hover);
-
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
-  --transition-speed: 0.25s;
-
-  /* RADIUS SYSTEM (ATLASSIAN STRICT) */
-  --radius-button: 3px;
-  --radius-input: 3px;
-  --radius-label: 3px;
-  --radius-card: 3px;
-  --radius-small: 2px;
-
-  /* ELEMENT PLUS OVERRIDES */
-  --el-border-radius-base: 3px;
-  --el-border-radius-small: 2px;
-  --el-border-radius-round: 16px;
-  --el-border-radius-circle: 100%;
-
-  --accent-color: var(--color-accent);
 }
 
 
@@ -182,7 +156,7 @@ p {
 .card, .panel {
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   color: var(--color-text-primary);
 }
@@ -195,7 +169,7 @@ input, select, textarea,
   background-color: var(--input-bg) !important;
   color: var(--text-primary) !important;
   border: 2px solid var(--border-color) !important;
-  border-radius: var(--radius-input) !important;
+  border-radius: var(--radius-sm) !important;
   padding: 4px 8px !important;
   height: 34px !important;
   outline: none;
@@ -228,14 +202,12 @@ input:focus, select:focus, textarea:focus,
   opacity: 0.7 !important;
 }
 
-label, .el-form-item__label, .field-label {
-  color: var(--color-text-secondary) !important;
-  font-weight: 700 !important;
-  font-size: 12px !important;
-  margin-bottom: 2px !important;
-  display: block;
+.field-label, .form-label, .el-form-item__label {
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
 }
 
 /* Button Refinement - Atlassian Sharp & Professional */
@@ -245,7 +217,7 @@ label, .el-form-item__label, .field-label {
   border: none !important;
   padding: 6px 12px !important;
   height: 32px !important;
-  border-radius: var(--radius-button) !important;
+  border-radius: var(--radius-sm) !important;
   font-weight: 500 !important;
   font-size: 14px !important;
   cursor: pointer;
@@ -266,7 +238,7 @@ label, .el-form-item__label, .field-label {
   border: none !important;
   padding: 6px 12px !important;
   height: 32px !important;
-  border-radius: var(--radius-button) !important;
+  border-radius: var(--radius-sm) !important;
   font-weight: 500 !important;
   font-size: 14px !important;
   cursor: pointer;
@@ -339,7 +311,7 @@ label, .el-form-item__label, .field-label {
 .settings-card {
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-md);
   padding: 20px;
   margin-bottom: 24px;
   box-shadow: var(--shadow-sm);
@@ -426,7 +398,7 @@ label, .el-form-item__label, .field-label {
 .nexus-btn, .export-btn, .plane-primary-btn, .favorite-btn,
 .auth-btn, .social-btn, .nav-link, .nav-primary,
 .row-actions button, .dialog-actions button {
-  border-radius: var(--radius-button) !important;
+  border-radius: var(--radius-sm) !important;
 }
 
 /* Inputs & Form Fields */
@@ -434,12 +406,12 @@ input, select, textarea,
 .el-input__inner, .el-textarea__inner, .el-input__wrapper,
 .search-shell, .ai-input-wrapper, .task-form input, 
 .task-form select, .task-form textarea {
-  border-radius: var(--radius-input) !important;
+  border-radius: var(--radius-sm) !important;
 }
 
 /* Tags, Badges & Labels */
 .badge, .tag, .el-tag, .lr-badge, .dd-tag, .project-icon, .dbox, .box {
-  border-radius: var(--radius-label) !important;
+  border-radius: var(--radius-sm) !important;
 }
 
 /* Cards & Containers */
@@ -447,13 +419,13 @@ input, select, textarea,
 .stat-box, .metric-card, .empty-state, .helper-panel,
 .kanban-card, .issue-row, .task-row, .stack-row, .module-card,
 .auth-card, .info-card {
-  border-radius: var(--radius-card) !important;
+  border-radius: var(--radius-md) !important;
 }
 
 /* Small UI blocks & Scrollbars */
 .color-swatch, .status-indicator, 
 ::-webkit-scrollbar-thumb {
-  border-radius: var(--radius-small) !important;
+  border-radius: var(--radius-sm) !important;
 }
 
 /* 
@@ -461,12 +433,11 @@ input, select, textarea,
   Targeting dialogs, popovers, and their internal forms.
 */
 
-/* 1. Global Modal & Popover Containers */
-.el-dialog, .el-popover.dark, .plane-popover, .standard-dialog {
-  border-radius: 16px !important;
-  overflow: hidden;
-  box-shadow: var(--shadow-xl) !important;
+.el-dialog {
+  background-color: var(--color-surface) !important;
+  border-radius: var(--radius-md) !important;
   border: 1px solid var(--color-border) !important;
+  box-shadow: 0 8px 24px rgba(9, 30, 66, 0.15) !important;
 }
 
 /* 2. Premium Button Overrides for Popups */
@@ -501,7 +472,7 @@ input, select, textarea,
 .el-dialog textarea,
 .el-dialog .el-input__wrapper,
 .el-popover input {
-  border-radius: 12px !important;
+  border-radius: var(--radius-md) !important;
   height: 44px !important;
   background-color: var(--bg-tertiary) !important;
   border: 1px solid var(--border-color) !important;
@@ -721,7 +692,7 @@ i.fa-regular.fa-calendar {
 /* Global Element Plus Dialog (Modal) Overrides */
 .el-dialog {
   background-color: var(--bg-secondary) !important;
-  border-radius: 12px !important;
+  border-radius: var(--radius-md) !important;
   box-shadow: var(--shadow-xl) !important;
   border: 1px solid var(--border-color) !important;
 }
@@ -762,3 +733,5 @@ i.fa-regular.fa-calendar {
   justify-content: flex-end;
   gap: 12px;
 }
+
+.el-input__inner { background-color: transparent !important; color: var(--text-primary) !important; border: none !important; padding: 0 !important; height: 100% !important; outline: none !important; box-shadow: none !important; }

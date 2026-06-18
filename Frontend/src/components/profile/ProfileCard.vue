@@ -204,6 +204,7 @@
 import { computed, ref, watch, onMounted } from 'vue'
 import { useLocale } from '@/composables/useLocale'
 import { ElMessage } from 'element-plus'
+import { getInitials, getAvatarColor } from '@/utils/avatarUtils'
 
 const { t } = useLocale()
 const avatarInput = ref(null)
@@ -254,6 +255,7 @@ watch(() => props.profileData, (newData) => {
     form.value.publicName = newData.publicName || ''
     form.value.jobTitle = newData.jobTitle || ''
     form.value.department = newData.department || ''
+    form.value.location = newData.location || localStorage.getItem('profile_location') || ''
     form.value.organization = newData.organization || ''
     form.value.collaboration = newData.collaboration || ''
     form.value.coverPositionY = newData.coverPositionY ?? 50
@@ -275,25 +277,20 @@ onMounted(() => {
 const getBaseUrl = () => import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5136'
 
 const avatarStyle = computed(() => {
-  if (!props.profileData.avatarUrl) return {}
+  if (props.profileData.avatarUrl) {
+    return {
+      backgroundImage: `url(${getBaseUrl()}${props.profileData.avatarUrl})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      color: 'transparent'
+    }
+  }
   return {
-    backgroundImage: `url(${getBaseUrl()}${props.profileData.avatarUrl})`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    color: 'transparent'
+    backgroundColor: getAvatarColor(form.value.fullName || props.profileData.email)
   }
 })
 
-const getInitials = (name) => {
-  if (!name) return '?'
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .map((word) => word[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase()
-}
+
 
 const getVisibilityIcon = (val) => {
   switch (val) {
@@ -335,6 +332,7 @@ const onSubmit = () => {
     jobTitle: form.value.jobTitle,
     department: form.value.department,
     organization: form.value.organization,
+    location: form.value.location,
     collaboration: form.value.collaboration,
     coverPositionY: form.value.coverPositionY
   })
@@ -404,7 +402,6 @@ const onSubmit = () => {
 .large-avatar-preview {
   height: 96px;
   width: 96px;
-  background-color: #0052cc;
   border-radius: 50%;
   display: flex;
   align-items: center;

@@ -37,7 +37,7 @@
           </div>
 
           <button type="button" class="btn-ghost add-row-btn" @click="addStatusRow(defaultTaskStatuses)">
-            <i class="fa-solid fa-plus"></i> {{ t('Add status', 'Thêm trạng thái') }}
+            <Plus class="w-4 h-4 inline-block" /> {{ t('Add status', 'Thêm trạng thái') }}
           </button>
         </section>
 
@@ -67,7 +67,7 @@
           </div>
 
           <button type="button" class="btn-ghost add-row-btn" @click="addStatusRow(projectStatuses)">
-            <i class="fa-solid fa-plus"></i> {{ t('Add project status', 'Thêm trạng thái dự án') }}
+            <Plus class="w-4 h-4 inline-block" /> {{ t('Add project status', 'Thêm trạng thái dự án') }}
           </button>
         </section>
 
@@ -94,6 +94,7 @@
 </template>
 
 <script setup>
+import { Plus } from 'lucide-vue-next';
 import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import apexchart from 'vue3-apexcharts'

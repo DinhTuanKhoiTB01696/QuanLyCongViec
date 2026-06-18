@@ -3,7 +3,7 @@
     <div class="admin-page-container">
       <div class="page-header">
         <div class="breadcrumb">
-          <i class="fa-solid fa-building"></i>
+          <Building2 class="w-4 h-4 inline-block" />
           Admin / Organization
         </div>
         <h1 class="page-title">{{ t('Organization & Security Profile', 'Hồ sơ Tổ chức & Bảo mật (Tenant Settings)') }}</h1>
@@ -15,31 +15,31 @@
           <el-tab-pane :label="t('Organization Info', 'Thông tin Tổ chức')" name="profile">
             <div class="form-group mt-12">
               <label>{{ t('Organization Name', 'Tên Tổ chức') }}</label>
-              <el-input v-model="form.organizationName" class="neumorphic-input" />
+              <SprintaInput v-model="form.organizationName" class="neumorphic-input" />
             </div>
 
             <div class="form-group">
               <label>{{ t('Domain', 'Tên miền') }}</label>
-              <el-input v-model="form.domain" class="neumorphic-input" />
+              <SprintaInput v-model="form.domain" class="neumorphic-input" />
             </div>
 
             <div class="form-group">
               <label>URL Logo</label>
-              <el-input v-model="form.logoUrl" class="neumorphic-input" />
+              <SprintaInput v-model="form.logoUrl" class="neumorphic-input" />
             </div>
 
             <div class="form-actions mt-24">
-              <el-button type="primary" :loading="isSaving" @click="saveConfig">
-                <i class="fa-solid fa-save mr-2"></i>
+              <SprintaButton type="primary" :loading="isSaving" @click="saveConfig">
+                <Save class="w-4 h-4 inline-block" />
                 {{ t('Save changes', 'Lưu thay đổi') }}
-              </el-button>
+              </SprintaButton>
             </div>
           </el-tab-pane>
 
           <el-tab-pane :label="t('System Security', 'Bảo vệ Hệ thống (Security)')" name="security">
             <div class="section-intro">
               <h3>
-                <i class="fa-solid fa-shield-halved mr-2 text-warning"></i>
+                <Shield class="w-4 h-4 inline-block" />
                 {{ t('Global Security Policies', 'Chính sách Bảo mật Toàn cầu') }}
               </h3>
               <p>{{ t('Mandatory settings for all organization members.', 'Thiết lập bắt buộc đối với tất cả thành viên trong tổ chức.') }}</p>
@@ -70,7 +70,7 @@
 
             <div class="form-group">
               <label>{{ t('Allowed IP List (IP Whitelist)', 'Danh sách IP hợp lệ (IP Whitelist)') }}</label>
-              <el-input
+              <SprintaInput
                 v-model="form.ipWhitelist"
                 type="textarea"
                 :rows="4"
@@ -80,10 +80,10 @@
             </div>
 
             <div class="form-actions mt-24">
-              <el-button type="primary" :loading="isSaving" @click="saveConfig">
-                <i class="fa-solid fa-shield-halved mr-2"></i>
+              <SprintaButton type="primary" :loading="isSaving" @click="saveConfig">
+                <Shield class="w-4 h-4 inline-block" />
                 {{ t('Save Security Configuration', 'Lưu cấu hình Bảo mật') }}
-              </el-button>
+              </SprintaButton>
             </div>
           </el-tab-pane>
         </el-tabs>
@@ -93,6 +93,9 @@
 </template>
 
 <script setup>
+import SprintaButton from '@/components/ui/SprintaButton.vue';
+import SprintaInput from '@/components/ui/SprintaInput.vue';
+import { Building2, Save, Shield } from 'lucide-vue-next';
 import { ref, onMounted } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { ElMessage } from 'element-plus'

@@ -2,7 +2,7 @@ export default [
   {
     path: '/dashboard',
     name: 'Dashboard',
-    component: () => import('../views/ForYou.vue')
+    redirect: '/your-work'
   },
   {
     path: '/profile',

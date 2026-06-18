@@ -25,7 +25,14 @@ namespace TaskManagement.API.Controllers
             return Ok(result);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("statuses")]
+        public async Task<IActionResult> GetStatuses(Guid workspaceId)
+        {
+            var result = await _goalService.GetStatusesAsync();
+            return Ok(result);
+        }
+
+        [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid workspaceId, Guid id)
         {
             var result = await _goalService.GetByIdAsync(id);
@@ -41,28 +48,28 @@ namespace TaskManagement.API.Controllers
             return Ok(result);
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update(Guid workspaceId, Guid id, [FromBody] object dto)
         {
             var result = await _goalService.UpdateAsync(id, dto);
             return Ok(result);
         }
 
-        [HttpPost("{id}/archive")]
+        [HttpPost("{id:guid}/archive")]
         public async Task<IActionResult> Archive(Guid workspaceId, Guid id)
         {
             await _goalService.ArchiveAsync(id);
             return NoContent();
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid workspaceId, Guid id)
         {
             await _goalService.DeleteAsync(id);
             return NoContent();
         }
 
-        [HttpPost("{id}/updates")]
+        [HttpPost("{id:guid}/updates")]
         public async Task<IActionResult> AddUpdate(Guid workspaceId, Guid id, [FromBody] object dto)
         {
             var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
@@ -70,7 +77,7 @@ namespace TaskManagement.API.Controllers
             return Ok(result);
         }
 
-        [HttpPost("{id}/lessons")]
+        [HttpPost("{id:guid}/lessons")]
         public async Task<IActionResult> AddLesson(Guid workspaceId, Guid id, [FromBody] object dto)
         {
             var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
@@ -78,7 +85,7 @@ namespace TaskManagement.API.Controllers
             return Ok(result);
         }
 
-        [HttpPost("{id}/risks")]
+        [HttpPost("{id:guid}/risks")]
         public async Task<IActionResult> AddRisk(Guid workspaceId, Guid id, [FromBody] object dto)
         {
             var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
@@ -86,7 +93,7 @@ namespace TaskManagement.API.Controllers
             return Ok(result);
         }
 
-        [HttpPost("{id}/decisions")]
+        [HttpPost("{id:guid}/decisions")]
         public async Task<IActionResult> AddDecision(Guid workspaceId, Guid id, [FromBody] object dto)
         {
             var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());

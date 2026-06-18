@@ -81,6 +81,7 @@ import { getStoredUser } from '@/utils/permissions'
 import { clearAuthSession } from '@/utils/authSession'
 import axiosClient from '@/api/axiosClient'
 import { useI18nStore } from '@/store/useI18nStore'
+import { getInitials, getAvatarColor } from '@/utils/avatarUtils'
 
 const router = useRouter()
 const langSubVisible = ref(false)
@@ -94,17 +95,6 @@ const userDisplayName = computed(() => currentUser.value?.fullName || currentUse
 const userEmail = computed(() => currentUser.value?.email || 'user@example.com')
 const userEmailPrefix = computed(() => userEmail.value.split('@')[0])
 
-const getInitials = (name) => {
-  if (!name) return '?'
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .map((word) => word[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase()
-}
-
 const userInitial = computed(() => getInitials(userDisplayName.value))
 
 const getBaseUrl = () => import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5136'
@@ -113,7 +103,7 @@ const avatarUrl = computed(() => currentUser.value?.avatarUrl || '')
 
 const avatarStyle = computed(() => {
   if (!avatarUrl.value) {
-    return { backgroundColor: avatarColor.value }
+    return { backgroundColor: getAvatarColor(userDisplayName.value || userEmailPrefix.value), color: '#ffffff' }
   }
   return {
     backgroundImage: `url(${getBaseUrl()}${avatarUrl.value})`,
@@ -122,13 +112,6 @@ const avatarStyle = computed(() => {
     color: 'transparent',
     border: '1px solid var(--color-border)'
   }
-})
-
-const avatarColor = computed(() => {
-  const colors = ['#579dff', '#c97cf4', '#00b8d9', '#22a06b', '#f5cd47', '#e2483d']
-  const name = userDisplayName.value || 'User'
-  const index = name.length % colors.length
-  return colors[index]
 })
 
 const fetchProfile = async () => {

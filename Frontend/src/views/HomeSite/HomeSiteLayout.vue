@@ -17,43 +17,43 @@
         </div>
         
         <nav class="sidebar-nav">
-          <router-link to="/sites" class="nav-item" :class="{ 'active-nav': $route.path === '/sites' }">
-            <span class="nav-icon"><i class="fa-regular fa-user-circle"></i></span>
+          <router-link to="/sites" class="nav-link" :class="{ 'active-nav': $route.path === '/sites' }">
+            <CircleUser class="nav-icon" />
             <span>{{ t('For you', 'Dành cho bạn') }}</span>
           </router-link>
-          <router-link to="/home/recent" class="nav-item" :class="{ 'active-nav': $route.path === '/home/recent' }">
-            <span class="nav-icon"><i class="fa-regular fa-clock"></i></span>
+          <router-link to="/home/recent" class="nav-link" :class="{ 'active-nav': $route.path === '/home/recent' }">
+            <Clock class="nav-icon" />
             <span>{{ t('Recent', 'Gần đây') }}</span>
           </router-link>
-          <router-link to="/home/starred" class="nav-item" :class="{ 'active-nav': isModule('starred') }">
-            <span class="nav-icon"><i class="fa-regular fa-star"></i></span>
+          <router-link to="/home/starred" class="nav-link" :class="{ 'active-nav': isModule('starred') }">
+            <Star class="nav-icon" :class="{'fill-current': isModule('starred')}" />
             <span>{{ t('Starred', 'Có gắn sao') }}</span>
           </router-link>
-          <router-link to="/home/notifications" class="nav-item" :class="{ 'active-nav': isModule('notifications') }">
-            <span class="nav-icon"><i class="fa-regular fa-bell"></i></span>
+          <router-link to="/home/notifications" class="nav-link" :class="{ 'active-nav': isModule('notifications') }">
+            <Bell class="nav-icon" />
             <span>{{ t('Notifications', 'Thông báo') }}</span>
           </router-link>
-          <router-link to="/home/status" class="nav-item" :class="{ 'active-nav': isModule('status') }">
-            <span class="nav-icon"><i class="fa-solid fa-bullhorn"></i></span>
+          <router-link to="/home/status" class="nav-link" :class="{ 'active-nav': isModule('status') }">
+            <Megaphone class="nav-icon" />
             <span>{{ t('Status', 'Cập nhật trạng thái') }}</span>
           </router-link>
           
           <div class="nav-divider"></div>
           
-          <router-link to="/site-selection" class="nav-item">
-            <span class="nav-icon jira-blue"><i class="fa-brands fa-jira"></i></span>
+          <router-link to="/site-selection" class="nav-link">
+            <Hexagon class="nav-icon text-accent" />
             <span>SprintA</span>
           </router-link>
-          <router-link to="/home/teams" class="nav-item" :class="{ 'active-nav': isModule('teams') }">
-            <span class="nav-icon"><i class="fa-solid fa-users"></i></span>
+          <router-link to="/home/teams" class="nav-link" :class="{ 'active-nav': isModule('teams') }">
+            <Users class="nav-icon" />
             <span>{{ t('Teams') }}</span>
           </router-link>
-          <router-link to="/home/goals" class="nav-item" :class="{ 'active-nav': isModule('goals') }">
-            <span class="nav-icon"><i class="fa-solid fa-bullseye"></i></span>
+          <router-link to="/home/goals" class="nav-link" :class="{ 'active-nav': isModule('goals') }">
+            <Target class="nav-icon" />
             <span>{{ t('Goals') }}</span>
           </router-link>
-          <router-link to="/home/projects" class="nav-item" :class="{ 'active-nav': isModule('projects') }">
-            <span class="nav-icon"><i class="fa-solid fa-rocket"></i></span>
+          <router-link to="/home/projects" class="nav-link" :class="{ 'active-nav': isModule('projects') }">
+            <Rocket class="nav-icon" />
             <span>{{ t('Projects') }}</span>
           </router-link>
         </nav>
@@ -75,6 +75,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { getStoredUser } from '@/utils/permissions'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
 import { useI18nStore } from '@/store/useI18nStore'
+import { CircleUser, Clock, Star, Bell, Megaphone, Hexagon, Users, Target, Rocket } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -84,8 +85,10 @@ const t = i18nStore.t
 const showCreateModal = ref(false)
 
 const currentUser = getStoredUser()
-const userName = currentUser?.username || 'Tua20000'
-const userInitials = userName.substring(0, 2).toUpperCase()
+const userEmail = currentUser?.email || ''
+const derivedName = userEmail ? userEmail.split('@')[0] : 'User'
+const userName = currentUser?.username || currentUser?.name || currentUser?.publicName || derivedName
+const userInitials = userName ? userName.substring(0, 2).toUpperCase() : 'US'
 
 const isModule = (moduleName) => {
   if (moduleName === 'people') {
@@ -107,176 +110,10 @@ const goToSiteSelection = () => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #ffffff;
-  color: #172b4d;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow: hidden;
-}
-
-/* Topbar */
-.home-topbar {
-  height: 56px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #dfe1e6;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 16px;
-  flex-shrink: 0;
-  z-index: 10;
-}
-
-.topbar-left, .topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.app-launcher-icon {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #42526e;
-  border-radius: 3px;
-}
-
-.app-launcher-icon:hover {
-  background-color: rgba(9, 30, 66, 0.08);
-}
-
-.grid-icon {
-  font-size: 18px;
-  line-height: 1;
-  letter-spacing: -2px;
-}
-
-.sprinta-logo {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-right: 16px;
-  cursor: pointer;
-}
-
-.logo-icon {
-  width: 24px;
-  height: 24px;
-  background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%);
-  border-radius: 4px;
-}
-
-.logo-text {
-  font-size: 20px;
-  font-weight: bold;
-  color: #172b4d;
-  letter-spacing: -0.5px;
-}
-
-.topbar-nav {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.topbar-link {
-  padding: 6px 12px;
-  color: #42526e;
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 14px;
-  border-radius: 3px;
-  transition: background-color 0.2s, color 0.2s;
-}
-
-.topbar-link:hover {
-  background-color: rgba(9, 30, 66, 0.08);
-  color: #172b4d;
-}
-
-.topbar-link.active {
-  color: #0052cc;
-  background-color: rgba(0, 82, 204, 0.08);
-}
-
-.create-btn {
-  background-color: #0052cc;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 3px;
-  font-weight: 500;
-  font-size: 14px;
-  margin-left: 8px;
-  cursor: pointer;
-}
-
-.create-btn:hover {
-  background-color: #0047b3;
-}
-
-.search-bar {
-  position: relative;
-  width: 200px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 12px;
-  color: #6b778c;
-}
-
-.search-bar input {
-  width: 100%;
-  padding: 6px 8px 6px 28px;
-  border: 2px solid #dfe1e6;
-  border-radius: 3px;
-  font-size: 14px;
-  background-color: #fafbfc;
-  transition: all 0.2s;
-  box-sizing: border-box;
-  outline: none;
-}
-
-.search-bar input:focus {
-  background-color: #ffffff;
-  border-color: #4c9aff;
-}
-
-.icon-btn {
-  background: none;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.icon-btn:hover {
-  background-color: rgba(9, 30, 66, 0.08);
-}
-
-.user-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background-color: #0052cc;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
 }
 
 /* Layout Wrapper */
@@ -289,8 +126,8 @@ const goToSiteSelection = () => {
 /* Sidebar */
 .sidebar {
   width: 240px;
-  background-color: #f4f5f7;
-  border-right: 1px solid #dfe1e6;
+  background-color: var(--color-bg);
+  border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -306,21 +143,21 @@ const goToSiteSelection = () => {
   align-items: center;
   gap: 12px;
   padding: 8px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .site-switcher:hover {
-  background-color: rgba(9, 30, 66, 0.08);
+  background-color: var(--color-surface-hover);
 }
 
 .site-icon {
   width: 32px;
   height: 32px;
-  background-color: #0052cc;
+  background-color: var(--color-accent);
   color: white;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -339,7 +176,7 @@ const goToSiteSelection = () => {
 .site-name {
   font-weight: 600;
   font-size: 14px;
-  color: #172b4d;
+  color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -347,11 +184,11 @@ const goToSiteSelection = () => {
 
 .site-subtitle {
   font-size: 12px;
-  color: #5e6c84;
+  color: var(--color-text-secondary);
 }
 
 .dropdown-icon {
-  color: #6b778c;
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
@@ -364,58 +201,50 @@ const goToSiteSelection = () => {
 .nav-section-title {
   font-size: 11px;
   font-weight: 700;
-  color: #5e6c84;
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   margin: 16px 0 8px 8px;
   letter-spacing: 0.5px;
 }
 
-.nav-item {
+.nav-link {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
   text-decoration: none;
-  color: #42526e;
+  color: var(--color-text-secondary);
   font-size: 14px;
   font-weight: 500;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   margin-bottom: 2px;
   transition: all 0.2s;
 }
 
-.nav-item:hover {
-  background-color: rgba(9, 30, 66, 0.08);
-  color: #172b4d;
+.nav-link:hover {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text-primary);
 }
 
-.nav-item.router-link-active, .nav-item.active-nav {
-  background-color: rgba(0, 82, 204, 0.08);
-  color: #0052cc;
-}
-
-.nav-item.router-link-active .nav-icon, .nav-item.active-nav .nav-icon {
-  color: #0052cc;
-}
-
-.nav-item.active-nav[to="/home/starred"] .nav-icon i {
-  font-weight: 900; /* Solid star */
+.nav-link.active-nav, .router-link-active.nav-link {
+  background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  color: var(--color-accent);
+  font-weight: 600;
 }
 
 .nav-icon {
-  font-size: 16px;
-  width: 20px;
-  text-align: center;
-  color: #6b778c;
+  width: 18px;
+  height: 18px;
+  color: currentColor;
 }
 
-.nav-icon.jira-blue {
-  color: #0052CC;
+.text-accent {
+  color: var(--color-accent);
 }
 
 .nav-divider {
   height: 1px;
-  background-color: #dfe1e6;
+  background-color: var(--color-border);
   margin: 16px 8px;
 }
 
@@ -423,7 +252,7 @@ const goToSiteSelection = () => {
 .main-content {
   flex: 1;
   overflow-y: auto;
-  background-color: #ffffff;
+  background-color: var(--color-surface);
   position: relative;
 }
 </style>

@@ -2,7 +2,7 @@
   <header class="app-topbar">
     <div class="nav-left">
       <div class="app-launcher-icon">
-        <span class="grid-icon">⋮⋮⋮</span>
+        <Grip class="w-5 h-5" />
       </div>
 
       <div class="sprinta-logo" @click="router.push('/site-selection')">
@@ -20,17 +20,17 @@
         <div class="workspace-switcher" @click="router.push('/spaces')">
           <div class="ws-icon">{{ workspaceBadge }}</div>
           <span class="ws-name">{{ workspaceName }}</span>
-          <i class="fa-solid fa-chevron-down ms-1"></i>
+          <ChevronDown class="w-3.5 h-3.5 ms-1 opacity-70" />
         </div>
         <button class="menu-toggle" @click="emit('toggle-sidebar')">
-          <i class="fa-solid fa-bars-staggered"></i>
+          <Menu class="w-4 h-4" />
         </button>
       </div>
     </div>
 
     <div class="nav-center" ref="searchWrapperRef">
       <div class="search-input-wrapper">
-        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <Search class="w-3.5 h-3.5 search-icon" />
         <input type="text" :placeholder="isSpaceContext ? t('Search work items...') : t('Search')" v-model="searchQuery" @input="handleSearchInput" />
         <div v-if="showSearchDropdown" class="search-dropdown">
           <div v-if="searching" class="search-state">{{ t('Searching...', 'Đang tìm kiếm...') }}</div>
@@ -44,21 +44,22 @@
           <div v-else class="search-state">{{ t('No items found.', 'Không tìm thấy kết quả.') }}</div>
         </div>
       </div>
-      <button v-if="isHomeContext" class="topbar-btn create-btn" @click="handleGlobalCreate">{{ t('Create', 'Tạo') }}</button>
+      <SprintaButton v-if="isHomeContext" variant="primary" class="ms-2" @click="handleGlobalCreate">{{ t('Create', 'Tạo') }}</SprintaButton>
     </div>
 
     <div class="nav-right">
       <NotificationsDropdown v-if="isSpaceContext" />
       <button class="icon-btn" @click="goToNotifications" v-else>
-        <i class="fa-regular fa-bell"></i>
+        <Bell class="w-4 h-4" />
       </button>
 
       <button class="icon-btn" @click="toggleTheme()" :title="currentTheme === 'dark' ? 'Light mode' : 'Dark mode'">
-        <i :class="currentTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i>
+        <Sun v-if="currentTheme === 'dark'" class="w-4 h-4" />
+        <Moon v-else class="w-4 h-4" />
       </button>
 
       <button v-if="isSpaceContext" class="icon-btn" @click="emit('toggle-ai')">
-        <i class="fa-solid fa-robot"></i>
+        <Bot class="w-4 h-4" />
       </button>
 
       <SettingsDropdown />
@@ -70,6 +71,8 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { Grip, ChevronDown, Menu, Search, Bell, Sun, Moon, Bot } from 'lucide-vue-next'
+import SprintaButton from '@/components/ui/SprintaButton.vue'
 import axiosClient from '@/api/axiosClient'
 import UserDropdown from '@/components/UserDropdown.vue'
 import NotificationsDropdown from '@/components/NotificationsDropdown.vue'
@@ -268,14 +271,14 @@ onUnmounted(() => {
 <style scoped>
 .app-topbar {
   height: 56px;
-  background-color: #172B4D;
+  background-color: var(--brand-navy);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
   flex-shrink: 0;
   z-index: 1001;
-  border-bottom: 1px solid #091E42;
+  border-bottom: 1px solid var(--brand-navy-deep);
 }
 
 .nav-left {
@@ -291,12 +294,12 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #DEEBFF;
-  border-radius: 3px;
+  color: var(--brand-text-light);
+  border-radius: var(--radius-sm);
 }
 
 .app-launcher-icon:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: color-mix(in srgb, var(--brand-text-light) 20%, transparent);
 }
 
 .grid-icon {
@@ -314,18 +317,15 @@ onUnmounted(() => {
 }
 
 .sprinta-logo-img {
-  height: 24px;
+  height: 32px;
   width: auto;
   object-fit: contain;
-  transform: scale(4);
-  margin-right: 12px;
-  margin-left: 8px;
 }
 
 .logo-text {
   font-size: 20px;
   font-weight: bold;
-  color: #FFFFFF;
+  color: var(--brand-text-light);
   letter-spacing: -0.5px;
 }
 
@@ -338,38 +338,22 @@ onUnmounted(() => {
 
 .topbar-link {
   padding: 6px 12px;
-  color: #DEEBFF;
+  color: var(--brand-text-light);
   text-decoration: none;
   font-weight: 500;
   font-size: 14px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   transition: background-color 0.2s, color 0.2s;
 }
 
 .topbar-link:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: #FFFFFF;
+  background-color: color-mix(in srgb, var(--brand-text-light) 10%, transparent);
+  color: var(--brand-text-light);
 }
 
 .topbar-link.active {
-  color: #FFFFFF;
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.create-btn {
-  background-color: #0052cc;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 3px;
-  font-weight: 500;
-  font-size: 14px;
-  margin-left: 8px;
-  cursor: pointer;
-}
-
-.create-btn:hover {
-  background-color: #0047b3;
+  color: var(--color-text-inverse, #FFFFFF);
+  background-color: color-mix(in srgb, var(--brand-text-light) 10%, transparent);
 }
 
 /* Space Nav */
@@ -384,15 +368,15 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 4px 8px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.2s;
-  color: #DEEBFF;
+  color: var(--brand-text-light);
 }
 
 .workspace-switcher:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: #FFFFFF;
+  background: color-mix(in srgb, var(--brand-text-light) 20%, transparent);
+  color: var(--color-text-inverse, #FFFFFF);
 }
 
 .ws-icon {
@@ -419,7 +403,7 @@ onUnmounted(() => {
   display: none;
   background: transparent;
   border: none;
-  color: #DEEBFF;
+  color: var(--brand-text-light);
   cursor: pointer;
   padding: 4px;
 }
@@ -435,9 +419,9 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  background-color: rgba(9, 30, 66, 0.48);
+  background-color: color-mix(in srgb, var(--brand-navy-deep) 50%, transparent);
   border: 1px solid transparent;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   padding: 0 12px;
   width: 400px;
   height: 32px;
@@ -445,18 +429,31 @@ onUnmounted(() => {
 }
 
 .search-input-wrapper:focus-within {
-  border-color: #4c9aff;
-  background-color: #ffffff;
+  border-color: var(--color-accent);
+  background-color: var(--color-surface);
 }
 
 .search-input-wrapper:focus-within .search-icon {
-  color: #6b778c;
+  color: var(--color-text-muted);
 }
 
 .search-input-wrapper:focus-within input {
-  color: #172b4d;
+  color: var(--color-text-primary);
 }
 
+
+.search-icon { 
+  color: var(--brand-text-light); 
+  margin-right: 8px; 
+}
+
+.search-input-wrapper input { 
+  background: transparent; 
+  border: none; 
+  color: var(--brand-text-light); 
+  font-size: 14px; 
+  width: 100%; 
+  outline: none; 
 .search-icon {
   color: #DEEBFF;
   font-size: 13px;
@@ -470,6 +467,7 @@ onUnmounted(() => {
   font-size: 14px;
   width: 100%;
   outline: none;
+
 }
 
 .search-dropdown {
@@ -479,7 +477,7 @@ onUnmounted(() => {
   right: 0;
   background: var(--color-surface, #ffffff);
   border: 1px solid var(--color-border, #dfe1e6);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -530,7 +528,6 @@ onUnmounted(() => {
 .icon-btn {
   background: none;
   border: none;
-  font-size: 16px;
   cursor: pointer;
   width: 32px;
   height: 32px;
@@ -538,11 +535,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #DEEBFF;
+  color: var(--brand-text-light);
 }
 
 .icon-btn:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: color-mix(in srgb, var(--brand-text-light) 10%, transparent);
 }
 
 @media (max-width: 1024px) {

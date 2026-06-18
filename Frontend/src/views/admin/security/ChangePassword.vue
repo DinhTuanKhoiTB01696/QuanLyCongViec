@@ -3,7 +3,7 @@
     <div class="admin-page-container">
       <div class="page-header">
         <div class="breadcrumb">
-          <i class="fa-solid fa-shield-halved"></i> Security / Change Password
+          <Shield class="w-4 h-4 inline-block" /> Security / Change Password
         </div>
         <h1 class="page-title">{{ t('Change Password', 'Đổi mật khẩu') }}</h1>
         <p class="page-subtitle">{{ t('Keep your account safe by creating a strong and unique password.', 'Đảm bảo an toàn tài khoản bằng cách tạo một mật khẩu mạnh và duy nhất.') }}</p>
@@ -25,7 +25,7 @@
 
               <div class="form-group">
                 <label class="form-label">{{ t('Email Address', 'Địa chỉ Email') }}</label>
-                <el-input
+                <SprintaInput
                   v-model="form.email"
                   :placeholder="t('Enter your login email...', 'Nhập email đăng nhập của bạn...')"
                   class="glass-input"
@@ -34,13 +34,13 @@
                   <template #prefix>
                     <i class="fa-solid fa-at" style="color: var(--color-text-muted);"></i>
                   </template>
-                </el-input>
+                </SprintaInput>
               </div>
 
               <div class="form-group mt-24" v-if="otpSent">
                 <label class="form-label">{{ t('Verification Code (OTP)', 'Mã xác nhận (OTP)') }}</label>
                 <div style="display: flex; gap: 12px; align-items: flex-start;">
-                  <el-input
+                  <SprintaInput
                     v-model="form.otpCode"
                     :placeholder="t('Enter 6-digit OTP code...', 'Nhập mã OTP 6 ký tự...')"
                     class="glass-input"
@@ -50,10 +50,10 @@
                     <template #prefix>
                       <i class="fa-solid fa-key" style="color: var(--color-text-muted);"></i>
                     </template>
-                  </el-input>
+                  </SprintaInput>
                 </div>
                 <div class="otp-hint mt-8">
-                  <i class="fa-solid fa-circle-info"></i>
+                  <Info class="w-4 h-4 inline-block" />
                   {{ t('OTP code has been sent to your email. Code is valid for 5 minutes.', 'Mã OTP đã được gửi đến email của bạn. Mã có hiệu lực trong 5 phút.') }}
                   <a href="#" @click.prevent="sendOtp" v-if="!isSendingOtp && canResend" class="resend-link">{{ t('Resend code', 'Gửi lại mã') }}</a>
                   <span v-if="!canResend" class="countdown-text">({{ countdownText }})</span>
@@ -61,7 +61,7 @@
               </div>
 
               <div class="action-footer mt-32" style="display: flex; gap: 12px; justify-content: flex-end;">
-                <el-button
+                <SprintaButton
                   v-if="!otpSent"
                   type="primary"
                   :disabled="!form.email"
@@ -70,8 +70,8 @@
                   style="padding: 20px 24px; font-weight: 500;"
                 >
                   <i class="fa-solid fa-paper-plane" style="margin-right: 6px;"></i> {{ t('Send verification code', 'Gửi mã xác nhận') }}
-                </el-button>
-                <el-button
+                </SprintaButton>
+                <SprintaButton
                   v-if="otpSent"
                   type="primary"
                   :disabled="!form.otpCode || form.otpCode.length < 6"
@@ -80,29 +80,29 @@
                   style="padding: 20px 24px; font-weight: 500;"
                 >
                   <i class="fa-solid fa-arrow-right" style="margin-right: 6px;"></i> {{ t('Verify & Continue', 'Xác nhận & Tiếp tục') }}
-                </el-button>
+                </SprintaButton>
               </div>
             </div>
 
             <!-- ======== STEP 2: New Password ======== -->
             <div v-if="step === 2" class="step-section">
               <div class="step-indicator">
-                <div class="step-badge done"><i class="fa-solid fa-check"></i></div>
+                <div class="step-badge done"><Check class="w-4 h-4 inline-block" /></div>
                 <div class="step-line done"></div>
                 <div class="step-badge active">2</div>
               </div>
 
               <div class="verified-badge">
-                <i class="fa-solid fa-circle-check"></i>
+                <CheckCircle2 class="w-4 h-4 inline-block" />
                 <span>{{ t('Email verified:', 'Email đã xác minh:') }} <strong>{{ form.email }}</strong></span>
               </div>
 
-              <h3 class="step-title mt-24"><i class="fa-solid fa-lock"></i> {{ t('Create new password', 'Tạo mật khẩu mới') }}</h3>
+              <h3 class="step-title mt-24"><Lock class="w-4 h-4 inline-block" /> {{ t('Create new password', 'Tạo mật khẩu mới') }}</h3>
               <p class="step-desc">{{ t('Create a new secure password for your account.', 'Tạo mật khẩu mới an toàn cho tài khoản của bạn.') }}</p>
 
               <div class="form-group mt-24">
                 <label class="form-label">{{ t('New password', 'Mật khẩu mới') }}</label>
-                <el-input type="password" v-model="form.newPassword" @input="checkStrength" show-password :placeholder="t('Create a new password...', 'Tạo mật khẩu mới...')" class="glass-input" />
+                <SprintaInput type="password" v-model="form.newPassword" @input="checkStrength" show-password :placeholder="t('Create a new password...', 'Tạo mật khẩu mới...')" class="glass-input" />
                 
                 <!-- Password Strength Indicator -->
                 <div class="password-strength mt-12" v-if="form.newPassword">
@@ -127,7 +127,7 @@
 
               <div class="form-group mt-24">
                 <label class="form-label">{{ t('Confirm new password', 'Xác nhận mật khẩu mới') }}</label>
-                <el-input type="password" v-model="form.confirmPassword" show-password :placeholder="t('Re-enter password to confirm...', 'Nhập lại mật khẩu để xác nhận...')" class="glass-input" />
+                <SprintaInput type="password" v-model="form.confirmPassword" show-password :placeholder="t('Re-enter password to confirm...', 'Nhập lại mật khẩu để xác nhận...')" class="glass-input" />
                 <div v-if="form.confirmPassword && form.newPassword !== form.confirmPassword" class="error-msg mt-2 text-danger">
                   {{ t('Passwords do not match.', 'Mật khẩu xác nhận không khớp.') }}
                 </div>
@@ -146,25 +146,25 @@
               </div>
 
               <div class="action-footer mt-32" style="display: flex; justify-content: space-between;">
-                <el-button @click="goBack" style="padding: 20px 24px; font-weight: 500;">
+                <SprintaButton @click="goBack" style="padding: 20px 24px; font-weight: 500;">
                   <i class="fa-solid fa-arrow-left" style="margin-right: 6px;"></i> {{ t('Go back', 'Quay lại') }}
-                </el-button>
-                <el-button type="primary" :disabled="!isValid" :loading="isSaving" @click="submitPassword" style="padding: 20px 24px; font-weight: 500;">
+                </SprintaButton>
+                <SprintaButton type="primary" :disabled="!isValid" :loading="isSaving" @click="submitPassword" style="padding: 20px 24px; font-weight: 500;">
                   <i class="fa-solid fa-floppy-disk" style="margin-right: 6px;"></i> {{ t('Update password', 'Cập nhật mật khẩu') }}
-                </el-button>
+                </SprintaButton>
               </div>
             </div>
 
             <!-- ======== SUCCESS State ======== -->
             <div v-if="step === 3" class="step-section success-section">
               <div class="success-icon-wrapper">
-                <i class="fa-solid fa-circle-check"></i>
+                <CheckCircle2 class="w-4 h-4 inline-block" />
               </div>
               <h3 class="success-title">{{ t('Password changed successfully!', 'Đổi mật khẩu thành công!') }}</h3>
               <p class="success-desc">{{ t('Your password has been updated securely. You can log in with your new password.', 'Mật khẩu của bạn đã được cập nhật an toàn. Bạn có thể đăng nhập với mật khẩu mới.') }}</p>
-              <el-button type="primary" @click="resetForm" style="padding: 20px 24px; font-weight: 500; margin-top: 24px;">
+              <SprintaButton type="primary" @click="resetForm" style="padding: 20px 24px; font-weight: 500; margin-top: 24px;">
                 <i class="fa-solid fa-rotate-left" style="margin-right: 6px;"></i> {{ t('Change another password', 'Đổi mật khẩu khác') }}
-              </el-button>
+              </SprintaButton>
             </div>
           </div>
         </div>
@@ -174,6 +174,9 @@
 </template>
 
 <script setup>
+import SprintaButton from '@/components/ui/SprintaButton.vue';
+import SprintaInput from '@/components/ui/SprintaInput.vue';
+import { Shield, Info, Check, CheckCircle2, Lock } from 'lucide-vue-next';
 import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { ElMessage } from 'element-plus'

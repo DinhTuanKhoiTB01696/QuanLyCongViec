@@ -7,7 +7,7 @@ import apexchart from 'vue3-apexcharts'
 import { ElNotification } from 'element-plus'
 
 const activeTab = ref('Summary')
-const tabs = ['Summary', 'Assigned', 'Created', 'Subscribed', 'Activity']
+const tabs = ['Summary', 'Assigned', 'Created', 'Subscribed', 'Starred', 'Activity']
 
 const myTasks = ref([])
 const loading = ref(false)
@@ -176,6 +176,9 @@ const listData = computed(() => {
     list = myTasks.value.filter(task => task.reporterId === currentUserId.value)
   } else if (activeTab.value === 'Subscribed') {
     list = myTasks.value.filter(task => task.isSubscribed)
+  } else if (activeTab.value === 'Starred') {
+    const starredLocal = JSON.parse(localStorage.getItem('starred_tasks') || '[]')
+    list = starredLocal.map(v => myTasks.value.find(t => t.id === v.id)).filter(Boolean)
   }
 
   return list.map(task => ({
@@ -362,7 +365,7 @@ const downloadWordActivity = () => {
           </div>
         </div>
 
-        <div class="yw-scrollable" v-else-if="['Assigned', 'Created', 'Subscribed'].includes(activeTab)">
+        <div class="yw-scrollable" v-else-if="['Assigned', 'Created', 'Subscribed', 'Starred'].includes(activeTab)">
           <div class="list-header mt-4">
             <i class="fa-solid fa-circle-dashed f-icon"></i>
             <span class="lh-title">All work items</span>

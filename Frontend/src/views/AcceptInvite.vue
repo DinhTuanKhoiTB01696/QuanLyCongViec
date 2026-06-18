@@ -33,22 +33,22 @@
       </div>
 
       <div v-if="loading" class="state-block">
-        <i class="fa-solid fa-spinner fa-spin"></i>
+        <Loader2 class="w-12 h-12 text-blue-600 animate-spin mb-6 mx-auto" />
         <h1>Đang kiểm tra thông tin...</h1>
         <p>SprintA đang xác minh liên kết của bạn.</p>
       </div>
 
       <div v-else-if="error" class="state-block">
-        <i class="fa-solid fa-circle-xmark danger"></i>
+        <XCircle class="w-12 h-12 text-red-500 mb-6 mx-auto" />
         <h1>Liên kết không hợp lệ</h1>
         <p>{{ error }}</p>
-        <button type="button" class="primary-btn" @click="router.push('/login')">
+        <SprintaButton variant="primary" @click="router.push('/login')">
           Về trang đăng nhập
-        </button>
+        </SprintaButton>
       </div>
 
       <div v-else-if="success" class="state-block">
-        <i class="fa-solid fa-circle-check success"></i>
+        <CheckCircle2 class="w-12 h-12 text-green-500 mb-6 mx-auto" />
         <h1>Đã thiết lập tài khoản</h1>
         <p v-if="requiresLogin">
           Tài khoản đã sẵn sàng cho <strong>{{ invite.email }}</strong>.
@@ -57,9 +57,9 @@
         <p v-else>
           Tài khoản của bạn đã sẵn sàng. Bạn sẽ được chuyển tới bảng điều khiển.
         </p>
-        <button type="button" class="primary-btn mt-24" @click="continueAfterSuccess">
+        <SprintaButton variant="primary" class="mt-6" @click="continueAfterSuccess">
           {{ requiresLogin ? 'Đăng nhập' : 'Vào SprintA' }}
-        </button>
+        </SprintaButton>
       </div>
 
       <template v-else>
@@ -85,19 +85,18 @@
             />
           </div>
 
-          <button
-            type="button"
-            class="primary-btn"
+          <SprintaButton
+            variant="primary"
             :disabled="!isOtpComplete || isVerifyingOtp"
             @click="verifyOtp"
+            :loading="isVerifyingOtp"
           >
-            <i v-if="isVerifyingOtp" class="fa-solid fa-spinner fa-spin"></i>
-            <span>Xác thực</span>
-          </button>
+            Xác thực
+          </SprintaButton>
 
           <div class="resend-link">
-            <span v-if="isSendingOtp" class="resend-loading">
-              <i class="fa-solid fa-spinner fa-spin"></i> Đang gửi lại...
+            <span v-if="isSendingOtp" class="resend-loading flex items-center justify-center gap-2">
+              <Loader2 class="w-4 h-4 animate-spin"/> Đang gửi lại...
             </span>
             <span v-else-if="otpCooldown > 0" class="resend-cooldown">
               Gửi lại sau {{ otpCooldown }}s
@@ -121,14 +120,12 @@
           </p>
 
           <div v-else class="invite-form">
-            <div class="field">
-              <span class="field-label">Họ và tên *</span>
-              <input v-model="form.fullName" type="text" placeholder="Nhập họ tên của bạn" />
+            <div class="form-group mb-4">
+              <SprintaInput label="Họ và tên *" v-model="form.fullName" type="text" placeholder="Nhập họ tên của bạn" />
             </div>
 
-            <div class="field">
-              <span class="field-label">Mật khẩu *</span>
-              <input v-model="form.password" type="password" placeholder="Tạo mật khẩu" />
+            <div class="form-group mb-4">
+              <SprintaInput label="Mật khẩu *" v-model="form.password" type="password" placeholder="Tạo mật khẩu" />
               <p class="password-hint">Ít nhất 6 ký tự, bao gồm chữ hoa, số và ký tự đặc biệt.</p>
             </div>
 
@@ -137,15 +134,15 @@
             </div>
           </div>
 
-          <button
-            type="button"
-            class="primary-btn"
-            :disabled="isSubmitting"
+          <SprintaButton
+            variant="primary"
+            class="w-full mt-4"
+            size="large"
+            :loading="isSubmitting"
             @click="acceptInvite"
           >
-            <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin"></i>
-            <span>Tiếp tục</span>
-          </button>
+            Tiếp tục
+          </SprintaButton>
         </div>
       </template>
     </div>
@@ -159,6 +156,9 @@
   import axiosClient from '@/api/axiosClient'
   import { saveAuthSession } from '@/utils/authSession'
   import logoImg from '@/assets/logo_QLCV.png'
+  import SprintaInput from '@/components/ui/SprintaInput.vue'
+  import SprintaButton from '@/components/ui/SprintaButton.vue'
+  import { Loader2, XCircle, CheckCircle2 } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()

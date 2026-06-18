@@ -22,9 +22,9 @@
         <!-- Timeline / Stats -->
         <div class="timeline-section">
           <div class="timeline-header">
-            <button class="icon-btn"><i class="fa-solid fa-arrow-left"></i></button>
+            <button class="icon-btn"><ArrowLeft class="w-4 h-4"></ArrowLeft></button>
             <h2 class="timeline-title">Tuần trước</h2>
-            <button class="icon-btn" disabled><i class="fa-solid fa-arrow-right"></i></button>
+            <button class="icon-btn" disabled><ArrowRight class="w-4 h-4"></ArrowRight></button>
           </div>
 
           <p class="stats-subtitle">Bạn đang theo dõi 4 {{ itemType }} đang hoạt động, dưới đây là phần phân tích.</p>
@@ -106,7 +106,7 @@
                     <button class="reaction-btn">👋</button>
                     <button class="reaction-btn">❤️</button>
                     <button class="reaction-btn">...</button>
-                    <button class="reaction-btn add-reaction"><i class="fa-regular fa-face-smile"></i></button>
+                    <button class="reaction-btn add-reaction"><Smile class="w-4 h-4"></Smile></button>
                   </div>
                 </div>
               </div>
@@ -162,6 +162,7 @@
 </template>
 
 <script setup>
+import { ArrowLeft, ArrowRight, Smile } from 'lucide-vue-next';
 import { ref, computed } from 'vue'
 
 const currentTab = ref('projects')

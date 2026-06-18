@@ -3,7 +3,7 @@
     <div class="admin-page">
       <div class="page-header">
         <div class="breadcrumb">
-          <i class="fa-solid fa-envelope"></i>
+          <Mail class="w-4 h-4 inline-block" />
           <span>Admin / Instance / Email</span>
         </div>
         <h1 class="text-hero">Email and SMTP management</h1>
@@ -108,6 +108,7 @@
 </template>
 
 <script setup>
+import { Mail } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import AdminLayout from '@/components/layout/AdminLayout.vue'

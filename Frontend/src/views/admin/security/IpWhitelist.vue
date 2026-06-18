@@ -3,7 +3,7 @@
     <div class="admin-page-container">
       <div class="page-header">
         <div class="breadcrumb">
-          <i class="fa-solid fa-shield-halved"></i> {{ t('Security / IP Whitelist', 'Bảo mật / Danh sách IP cho phép') }}
+          <Shield class="w-4 h-4 inline-block" /> {{ t('Security / IP Whitelist', 'Bảo mật / Danh sách IP cho phép') }}
         </div>
         <h1 class="page-title">{{ t('Allowed IP List', 'Danh sách IP cho phép') }}</h1>
         <p class="page-subtitle">{{ t('Advanced security control: Limit system access only from trusted networks.', 'Kiểm soát bảo mật nâng cao: Giới hạn truy cập hệ thống chỉ từ các mạng được tin tưởng.') }}</p>
@@ -28,12 +28,12 @@
                {{ t('Your current IP:', 'IP hiện tại của bạn:') }} <strong class="text-highlight">113.160.100.22</strong>
             </div>
             <div class="action-buttons">
-               <el-button @click="addCurrentIp" type="default" plain>
+               <SprintaButton @click="addCurrentIp" type="default" plain>
                  <i class="fa-solid fa-laptop-house mr-2"></i> {{ t('Add Current IP', 'Thêm IP Hiện Tại') }}
-               </el-button>
-               <el-button type="primary">
-                 <i class="fa-solid fa-plus mr-2"></i> {{ t('Add New IP', 'Thêm IP Mới') }}
-               </el-button>
+               </SprintaButton>
+               <SprintaButton type="primary">
+                 <Plus class="w-4 h-4 inline-block" /> {{ t('Add New IP', 'Thêm IP Mới') }}
+               </SprintaButton>
             </div>
          </div>
 
@@ -44,7 +44,7 @@
             <el-table-column prop="date" :label="t('Date saved', 'Ngày lưu')" width="180" />
             <el-table-column :label="t('Actions', 'Thao tác')" width="120" align="right">
               <template #default="scope">
-                <el-button type="danger" link @click="removeIp(scope.$index)">{{ t('Delete', 'Xóa') }}</el-button>
+                <SprintaButton type="danger" link @click="removeIp(scope.$index)">{{ t('Delete', 'Xóa') }}</SprintaButton>
               </template>
             </el-table-column>
          </el-table>
@@ -77,6 +77,8 @@
 </template>
 
 <script setup>
+import SprintaButton from '@/components/ui/SprintaButton.vue';
+import { Shield, Plus } from 'lucide-vue-next';
 import { ref, onMounted } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { ElMessage } from 'element-plus'

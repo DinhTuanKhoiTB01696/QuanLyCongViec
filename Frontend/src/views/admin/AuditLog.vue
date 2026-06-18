@@ -9,7 +9,7 @@
 
       <div class="header-actions-row">
         <div class="search-box">
-          <i class="fa-solid fa-magnifying-glass"></i>
+          <Search class="w-4 h-4 inline-block" />
           <input v-model="searchQuery" type="text" :placeholder="t('Search logs...', 'Tìm kiếm log...')" @input="debounceSearch" />
         </div>
         
@@ -95,6 +95,7 @@
 </template>
 
 <script setup>
+import { Search } from 'lucide-vue-next';
 import { ref, onMounted, onUnmounted } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import axiosClient from '@/api/axiosClient'

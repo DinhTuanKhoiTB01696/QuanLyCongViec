@@ -9,8 +9,8 @@
       </div>
       <div class="header-main">
         <div class="identity-block">
-          <div class="profile-avatar" :class="{ inactive: isInactive }">
-            {{ user.avatar }}
+          <div class="profile-avatar" :class="{ inactive: isInactive }" :style="{ backgroundColor: getAvatarColor(user.fullName || user.email) }">
+            {{ getInitials(user.fullName || user.email) }}
           </div>
           <div class="title-block">
             <div class="title-row">
@@ -66,7 +66,7 @@
             <h3>Teams & Departments</h3>
             <div class="teams-list">
               <div class="team-chip" v-for="t in user.teamsList" :key="t.id">
-                <i class="fa-solid fa-users team-icon"></i>
+                <User class="w-4 h-4 team-icon"></User>
                 {{ t.name }}
               </div>
               <div class="empty-state-micro" v-if="!user.teamsList || user.teamsList.length === 0">
@@ -142,7 +142,7 @@
           </thead>
           <tbody>
             <tr v-for="goal in linkedGoals" :key="goal.id" @click="goToGoal(goal.id)">
-              <td class="link-text"><i class="fa-solid fa-bullseye"></i> {{ goal.title }}</td>
+              <td class="link-text"><Target class="w-4 h-4"></Target> {{ goal.title }}</td>
               <td><span class="status-badge" :class="goal.status.toLowerCase().replace(' ', '-')">{{ goal.status }}</span></td>
             </tr>
           </tbody>
@@ -175,7 +175,7 @@
         </div>
         <div class="kudos-grid mt-16">
           <div class="kudos-card" v-for="k in kudos" :key="k.id">
-            <div class="kudos-icon"><i class="fa-solid fa-star" style="color: #FFAB00;"></i></div>
+            <div class="kudos-icon"><Star class="w-4 h-4" style="color: #FFAB00;"></Star></div>
             <div class="kudos-content">
               <p class="kudos-msg">"{{ k.message }}"</p>
               <div class="kudos-meta">
@@ -203,6 +203,14 @@
       </div>
     </div>
   </div>
+  <div v-else-if="error" class="empty-state" style="margin: 40px;">
+    <div class="empty-icon-wrapper" style="background-color: #FFEBE6; color: #DE350B;">
+      <i class="fa-solid fa-circle-exclamation"></i>
+    </div>
+    <h3>Không thể tải hồ sơ</h3>
+    <p>{{ error }}</p>
+    <button class="primary-btn" style="margin-top: 16px;" @click="router.push('/home/people')">Quay lại</button>
+  </div>
   <div v-else class="loading-state">
     <div class="loader-spinner"></div>
     <p>Loading profile...</p>
@@ -210,9 +218,11 @@
 </template>
 
 <script setup>
+import { User, Target, Star } from 'lucide-vue-next';
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePeopleStore } from '@/store/usePeopleStore'
+import { getInitials, getAvatarColor } from '@/utils/avatarUtils'
 
 const route = useRoute()
 const router = useRouter()
@@ -220,6 +230,8 @@ const peopleStore = usePeopleStore()
 
 const currentTab = ref('overview')
 const isMenuOpen = ref(false)
+
+const error = computed(() => peopleStore.error)
 
 const user = computed(() => {
   const u = peopleStore.currentUser

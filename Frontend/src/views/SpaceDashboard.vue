@@ -8,8 +8,16 @@
         </div>
       </header>
 
+      
+      <div v-if="loading" class="dashboard-grid">
+        <SprintaSkeleton height="88px" rounded="md" v-for="i in 4" :key="i" />
+        <SprintaSkeleton class="col-span-2" height="200px" rounded="md" />
+        <SprintaSkeleton class="col-span-2" height="200px" rounded="md" />
+
+
       <div v-if="loading" class="text-center py-12 text-[var(--color-text-muted)]">
         <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
+
       </div>
 
       <div v-else-if="loadError" class="text-center py-12 text-[var(--color-text-muted)]">
@@ -19,28 +27,28 @@
 
       <div v-else class="dashboard-grid">
         <div class="stat-card">
-          <div class="stat-icon bg-blue-500/10 text-blue-500"><i class="fa-solid fa-list-check"></i></div>
+          <div class="stat-icon bg-blue-500/10 text-blue-500"><ListTodo class="w-5 h-5" /></div>
           <div class="stat-info">
             <span class="stat-value">{{ openTasksCount }}</span>
             <span class="stat-label">{{ t('spaceDashboard.openTasks') }}</span>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon bg-green-500/10 text-green-500"><i class="fa-solid fa-check-double"></i></div>
+          <div class="stat-icon bg-green-500/10 text-green-500"><CheckCircle2 class="w-5 h-5" /></div>
           <div class="stat-info">
             <span class="stat-value">{{ completedCount }}</span>
             <span class="stat-label">{{ t('spaceDashboard.completed') }}</span>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon bg-yellow-500/10 text-yellow-500"><i class="fa-solid fa-clock-rotate-left"></i></div>
+          <div class="stat-icon bg-yellow-500/10 text-yellow-500"><Clock class="w-5 h-5" /></div>
           <div class="stat-info">
             <span class="stat-value">{{ inProgressCount }}</span>
             <span class="stat-label">{{ t('spaceDashboard.inProgress') }}</span>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon bg-red-500/10 text-red-500"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div class="stat-icon bg-red-500/10 text-red-500"><AlertTriangle class="w-5 h-5" /></div>
           <div class="stat-info">
             <span class="stat-value">{{ blockedCount }}</span>
             <span class="stat-label">{{ t('spaceDashboard.blocked') }}</span>
@@ -48,6 +56,25 @@
         </div>
 
         <div class="dashboard-panel col-span-2">
+
+          <h3 class="font-semibold text-lg mb-4 text-[var(--color-text-primary)]">Recent Tasks</h3>
+          <SprintaEmptyState
+            icon="Inbox"
+            title="No recent tasks"
+            description="Get started by creating a new task in your board or backlog."
+            class="h-[180px]"
+          />
+        </div>
+
+        <div class="dashboard-panel col-span-2">
+          <h3 class="font-semibold text-lg mb-4 text-[var(--color-text-primary)]">Team Workload</h3>
+          <SprintaEmptyState
+            icon="Users"
+            title="Workload distribution"
+            description="Assign tasks to your team members to see their workload here."
+            class="h-[180px]"
+          />
+
           <h3 class="font-semibold text-lg mb-4">{{ t('spaceDashboard.recentTasks') }}</h3>
           <div v-if="recentTasks.length === 0" class="empty-state">
             <i class="fa-solid fa-inbox text-3xl mb-3 text-[var(--color-text-muted)]"></i>
@@ -75,6 +102,7 @@
               <span class="item-meta">{{ t('spaceDashboard.tasksCount', { count: member.count }) }}</span>
             </li>
           </ul>
+
         </div>
       </div>
     </div>
@@ -86,10 +114,16 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
+
+import SprintaSkeleton from '@/components/ui/SprintaSkeleton.vue'
+import SprintaEmptyState from '@/components/ui/SprintaEmptyState.vue'
+import { ListTodo, CheckCircle2, Clock, AlertTriangle } from 'lucide-vue-next'
+
 import { useI18n } from '@/composables/useI18n'
 
 const route = useRoute()
 const { t } = useI18n()
+
 
 const loading = ref(false)
 const loadError = ref(false)
@@ -171,22 +205,22 @@ watch(projectId, fetchDashboard)
   grid-column: span 2;
 }
 .stat-card {
-  background: var(--color-bg);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 20px;
   display: flex;
   align-items: center;
   gap: 16px;
+  box-shadow: var(--shadow-sm);
 }
 .stat-icon {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
 }
 .stat-info {
   display: flex;
@@ -196,16 +230,18 @@ watch(projectId, fetchDashboard)
   font-size: 24px;
   font-weight: 700;
   line-height: 1.2;
+  color: var(--color-text-primary);
 }
 .stat-label {
   font-size: 13px;
   color: var(--color-text-muted);
 }
 .dashboard-panel {
-  background: var(--color-bg);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 20px;
+  border-radius: var(--radius-md);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
 }
 .dashboard-list {
   list-style: none;
@@ -250,12 +286,5 @@ watch(projectId, fetchDashboard)
   .col-span-2 {
     grid-column: span 1;
   }
-}
-.empty-state {
-  text-align: center;
-  background: var(--color-surface);
-  border: 1px dashed var(--color-border);
-  border-radius: 8px;
-  padding: 32px;
 }
 </style>

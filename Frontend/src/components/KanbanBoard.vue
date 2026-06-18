@@ -20,10 +20,10 @@ const creatingByStatus = ref({})
 
 const statusColumns = computed(() => {
   const defaultColumns = [
-    { key: 'TO DO', label: 'To Do', color: 'var(--color-text-muted)', icon: 'O' },
-    { key: 'IN PROGRESS', label: 'In Progress', color: 'var(--color-accent)', icon: '~' },
-    { key: 'IN REVIEW', label: 'In Review', color: 'var(--color-warning)', icon: '*' },
-    { key: 'DONE', label: 'Done', color: 'var(--color-success)', icon: '+' }
+    { key: 'TO DO', label: 'To Do', color: 'var(--color-text-muted)', icon: 'fa-regular fa-circle' },
+    { key: 'IN PROGRESS', label: 'In Progress', color: 'var(--color-accent)', icon: 'fa-solid fa-circle-half-stroke' },
+    { key: 'IN REVIEW', label: 'In Review', color: 'var(--color-warning)', icon: 'fa-regular fa-eye' },
+    { key: 'DONE', label: 'Done', color: 'var(--color-success)', icon: 'fa-solid fa-circle-check' }
   ]
 
   return defaultColumns.map(column => ({
@@ -169,7 +169,7 @@ function handleColumnClick(column) {
       <div v-for="column in statusColumns" :key="column.key" class="kanban-column" @click="handleColumnClick(column)">
         <div class="column-header">
           <div class="column-header-left">
-            <span class="column-status-dot" :style="{ background: column.color }"></span>
+            <i :class="column.icon" :style="{ color: column.color }"></i>
             <span class="column-title">{{ column.label }}</span>
             <span class="column-count">{{ column.tasks.length }}</span>
           </div>
@@ -332,11 +332,7 @@ function handleColumnClick(column) {
   gap: 10px;
 }
 
-.column-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
+
 
 .column-title {
   font-size: 14px;

@@ -2,10 +2,17 @@
   <NexusLayout>
     <div v-if="isForbidden" class="forbidden-overlay">
       <div class="forbidden-content">
+
+        <div class="lock-icon"><Lock class="w-4 h-4"></Lock></div>
+        <h2>Access Denied</h2>
+        <p>Bạn không đủ quyền để truy cập dự án này.</p>
+        <button class="plane-primary-btn mt-4" @click="router.push('/spaces')">Quay lại trang Home</button>
+
         <div class="lock-icon"><i class="fa-solid fa-lock"></i></div>
         <h2>{{ t('common.accessDenied') }}</h2>
         <p>{{ t('common.accessDeniedProject') }}</p>
         <button class="plane-primary-btn mt-4" @click="router.push('/spaces')">{{ t('common.backToHome') }}</button>
+
       </div>
     </div>
     <div v-else class="plane-board-container">
@@ -14,18 +21,36 @@
         <div class="sh-left">
           <div class="breadcrumb">
             <span class="proj-icon">{{ projectBadge }}</span>
+
+            <span class="proj-name">{{ project?.name || 'Project' }}</span>
+            <ChevronRight class="w-4 h-4 separator"></ChevronRight>
+            <span class="active-page">
+              <Layers class="w-4 h-4"></Layers> Work Items
+
             <span class="proj-name">{{ project?.name || t('common.project') }}</span>
             <i class="fa-solid fa-chevron-right separator"></i>
             <span class="active-page">
               <i class="fa-solid fa-layer-group"></i> {{ t('workItems.workItems') }}
+
             </span>
             <span class="item-count">{{ visibleTopLevelTasks.length }}</span>
           </div>
         </div>
         
         <div class="sh-right">
+
+          <!-- View Toggles -->
+          <div class="view-toggles">
+            <button class="toggle-btn" :class="{ active: currentTab === 'list' }" @click="currentTab = 'list'" title="List view"><List class="w-4 h-4"></List></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'board' }" @click="currentTab = 'board'" title="Kanban view"><Kanban class="w-4 h-4"></Kanban></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'calendar' }" @click="currentTab = 'calendar'" title="Calendar view"><Calendar class="w-4 h-4"></Calendar></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'spreadsheet' }" @click="currentTab = 'spreadsheet'" title="Spreadsheet view"><Grid class="w-4 h-4"></Grid></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'timeline' }" @click="currentTab = 'timeline'" title="Gantt chart view"><GanttChart class="w-4 h-4"></GanttChart></button>
+          </div>
+
+
           <button class="plane-toolbar-btn" @click="showFilterPanel = !showFilterPanel" :class="{ active: showFilterPanel || activeTaskFilters.length }">
-            <i class="fa-solid fa-filter"></i>
+            <Filter class="w-4 h-4"></Filter>
             <span v-if="activeTaskFilters.length" class="filter-count">{{ activeTaskFilters.length }}</span>
           </button>
           
@@ -35,8 +60,13 @@
              <div class="plane-dropdown-menu" v-show="showDisplayDropdown" @click.stop>
                 <div class="dd-section">
                    <div class="dd-title">
+
+                      <span>Display Properties</span>
+                      <ChevronUp class="w-4 h-4"></ChevronUp>
+
                       <span>{{ t('workItems.displayProperties') }}</span>
                       <i class="fa-solid fa-chevron-up"></i>
+
                    </div>
                    <div class="dd-btns">
                       <button class="dd-tag active" type="button" disabled title="[Cáº¦N FLOW] TÃ¹y chá»‰nh thuá»™c tÃ­nh hiá»ƒn thá»‹ chÆ°a há»— trá»£">ID</button>
@@ -44,8 +74,13 @@
                 </div>
                 <div class="dd-section border-top">
                    <div class="dd-title">
+
+                      <span>Order by</span>
+                      <ChevronUp class="w-4 h-4"></ChevronUp>
+
                       <span>{{ t('workItems.orderBy') }}</span>
                       <i class="fa-solid fa-chevron-up"></i>
+
                    </div>
                    <div class="dd-list">
                       <label class="dd-item"><input type="radio" name="order" value="manual" v-model="displayOrder" /> {{ t('workItems.manual') }}</label>
@@ -138,12 +173,12 @@
              <div class="group-header" @click="toggleListGroup(group.id)">
                <div class="gh-left">
                  <i class="gh-chevron fa-solid" :class="collapsedListGroups[group.id] ? 'fa-chevron-right' : 'fa-chevron-down'"></i>
-                 <i class="status-icon" :class="group.icon" :style="{ color: group.color }"></i>
+                 <component :is="group.icon" class="status-icon w-4 h-4" :style="{ color: group.color }"></component>
                  <span class="group-name">{{ group.name }}</span>
                  <span class="group-count">{{ group.items.length }}</span>
                </div>
                <div class="gh-right">
-                 <i class="fa-solid fa-plus add-icon" @click.stop="openCreateTask(group.statusName)"></i>
+                 <Plus class="w-4 h-4 add-icon" @click.stop="openCreateTask(group.statusName)"></Plus>
                </div>
              </div>
 
@@ -152,7 +187,7 @@
                <div class="task-row" @click="openTaskDetail(task)">
                  <div class="tr-left">
                    <button class="star-task-btn" :class="{ starred: isTaskStarred(task.id) }" @click.stop="toggleTaskStar(task)">
-                     <i :class="isTaskStarred(task.id) ? 'fa-solid fa-star text-yellow-400' : 'fa-regular fa-star text-gray-400'"></i>
+                     <Star :class="['w-4 h-4', isTaskStarred(task.id) ? 'text-yellow-400' : 'text-gray-400']"></Star>
                    </button>
                    <span class="task-id" style="margin-left: 8px;">{{ task.sequenceId || task.id.substring(0,8).toUpperCase() }}</span>
                    <span class="task-title" :style="group.statusName === 'DONE' ? { textDecoration: 'line-through', color: 'var(--color-text-muted)' } : {}">
@@ -161,41 +196,41 @@
                  </div>
                  <div class="tr-right" @click.stop>
                    <div class="pill-group">
-                     <el-dropdown trigger="click" @command="(val) => updateTask(task, 'statusName', val, task.statusName)">
+                     <SprintaDropdown trigger="click" @command="(val) => updateTask(task, 'statusName', val, task.statusName)">
                        <div class="pill pill-status cursor-pointer hover:bg-[var(--color-border)]">
-                         <i :class="getBoardStatusIcon(task.statusName)" :style="{ color: getStatusColor(task.statusName) }"></i>
+                         <component :is="getBoardStatusIcon(task.statusName)" class="w-4 h-4" :style="{ color: getStatusColor(task.statusName) }"></component>
                          {{ normalizeStatusLabel(task.statusName) }}
                        </div>
                        <template #dropdown>
                          <el-dropdown-menu class="plane-dropdown">
                            <el-dropdown-item v-for="status in taskStatusOptions" :key="status.name" :command="status.name">
-                             <i :class="status.icon" :style="{ color: status.color }"></i>
+                             <component :is="status.icon" class="w-4 h-4" :style="{ color: status.color }"></component>
                              {{ status.label }}
                            </el-dropdown-item>
                          </el-dropdown-menu>
                        </template>
-                     </el-dropdown>
+                     </SprintaDropdown>
 
-                     <el-dropdown trigger="click" @command="(val) => updateTask(task, 'priority', val, task.priority)">
+                     <SprintaDropdown trigger="click" @command="(val) => updateTask(task, 'priority', val, task.priority)">
                        <div class="pill pill-priority cursor-pointer hover:bg-[var(--color-border)]">
-                         <i :class="getPriorityIcon(task.priority)"></i>
+                         <component :is="getPriorityIcon(task.priority)" class="w-4 h-4"></component>
                        </div>
                        <template #dropdown>
                          <el-dropdown-menu class="plane-dropdown">
-                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> Urgent</el-dropdown-item>
-                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> High</el-dropdown-item>
-                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> Normal</el-dropdown-item>
-                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> Low</el-dropdown-item>
-                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> None</el-dropdown-item>
+                           <el-dropdown-item :command="1"><ChevronsUp class="w-4 h-4 text-red-500"></ChevronsUp> Urgent</el-dropdown-item>
+                           <el-dropdown-item :command="2"><ChevronUp class="w-4 h-4 text-orange-500"></ChevronUp> High</el-dropdown-item>
+                           <el-dropdown-item :command="3"><Minus class="w-4 h-4 text-blue-500"></Minus> Normal</el-dropdown-item>
+                           <el-dropdown-item :command="4"><ChevronDown class="w-4 h-4 text-gray-400"></ChevronDown> Low</el-dropdown-item>
+                           <el-dropdown-item :command="0"><Ban class="w-4 h-4 text-gray-500"></Ban> None</el-dropdown-item>
                          </el-dropdown-menu>
                        </template>
-                     </el-dropdown>
+                     </SprintaDropdown>
 
                      <el-popover placement="bottom" trigger="click" width="260" popper-class="plane-popover">
                        <template #reference>
                          <div class="pill pill-user cursor-pointer hover:bg-[var(--color-border)]">
                            <div class="avatar-xxs">
-                             <i class="fa-regular fa-user" v-if="!getTaskAssigneeSummary(task).label"></i>
+                             <User class="w-4 h-4" v-if="!getTaskAssigneeSummary(task).label"></User>
                              <span v-else>{{ getTaskAssigneeSummary(task).avatar }}</span>
                            </div>
                            <span v-if="getTaskAssigneeSummary(task).label" class="pill-user-text">{{ getTaskAssigneeSummary(task).label }}</span>
@@ -222,7 +257,11 @@
                </template>
 
                <div class="add-row-placeholder" @click="openCreateTask(group.statusName)">
+
+                 <Plus class="w-4 h-4"></Plus> New work item
+
                  <i class="fa-solid fa-plus"></i> {{ t('workItems.newWorkItem') }}
+
                </div>
              </div>
            </div>
@@ -251,11 +290,11 @@
         <div class="kanban-col" v-for="col in kanbanColumns" :key="col.id">
           <div class="col-head">
             <div class="col-title">
-              <i :class="col.icon" :style="{ color: col.color }"></i>
+              <component :is="col.icon" class="w-4 h-4 mr-2" :style="{ color: col.color }"></component>
               <span>{{ col.name }}</span>
               <span class="col-count">{{ col.items.length }}</span>
             </div>
-            <i class="fa-solid fa-plus add-btn" @click="openCreateTask(col.name)"></i>
+            <Plus class="w-4 h-4 add-btn" @click="openCreateTask(col.name)"></Plus>
           </div>
           
           <div class="col-body">
@@ -271,47 +310,47 @@
                   <div class="flex-between mb-1">
                     <p class="issue-sequence">{{ element.sequenceId || element.id.substring(0,8).toUpperCase() }}</p>
                     <button class="star-task-btn small" @click.stop="toggleTaskStar(element)">
-                      <i :class="isTaskStarred(element.id) ? 'fa-solid fa-star text-yellow-400' : 'fa-regular fa-star text-gray-400'"></i>
+                      <Star :class="['w-4 h-4', isTaskStarred(element.id) ? 'text-yellow-400' : 'text-gray-400']"></Star>
                     </button>
                   </div>
                   <p class="issue-title" :style="element.statusName === 'DONE' ? { textDecoration: 'line-through', color: 'var(--color-text-muted)' } : {}">{{ element.title }}</p>
                   <div class="issue-meta mt-2" style="display:flex; align-items:center; gap:8px;" @click.stop>
-                     <el-dropdown trigger="click" @command="(val) => updateTask(element, 'statusName', val, element.statusName)">
+                     <SprintaDropdown trigger="click" @command="(val) => updateTask(element, 'statusName', val, element.statusName)">
                        <div class="badge cursor-pointer hover:bg-[var(--color-border)]">
-                         <i :class="getBoardStatusIcon(element.statusName)" :style="{ color: getStatusColor(element.statusName) }"></i>
+                         <component :is="getBoardStatusIcon(element.statusName)" class="w-4 h-4" :style="{ color: getStatusColor(element.statusName) }"></component>
                          <span>{{ normalizeStatusLabel(element.statusName) }}</span>
                        </div>
                        <template #dropdown>
                          <el-dropdown-menu class="plane-dropdown">
                            <el-dropdown-item v-for="status in taskStatusOptions" :key="status.name" :command="status.name">
-                             <i :class="status.icon" :style="{ color: status.color }"></i>
+                             <component :is="status.icon" class="w-4 h-4" :style="{ color: status.color }"></component>
                              {{ status.label }}
                            </el-dropdown-item>
                          </el-dropdown-menu>
                        </template>
-                     </el-dropdown>
+                     </SprintaDropdown>
 
-                     <el-dropdown trigger="click" @command="(val) => updateTask(element, 'priority', val, element.priority)">
+                     <SprintaDropdown trigger="click" @command="(val) => updateTask(element, 'priority', val, element.priority)">
                        <div class="badge cursor-pointer hover:bg-[var(--color-border)]">
-                         <i :class="getPriorityIcon(element.priority)"></i>
+                         <component :is="getPriorityIcon(element.priority)" class="w-4 h-4"></component>
                        </div>
                        <template #dropdown>
                          <el-dropdown-menu class="plane-dropdown">
-                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> Urgent</el-dropdown-item>
-                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> High</el-dropdown-item>
-                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> Medium</el-dropdown-item>
-                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> Low</el-dropdown-item>
-                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> None</el-dropdown-item>
+                           <el-dropdown-item :command="1"><ChevronsUp class="w-4 h-4 text-red-500"></ChevronsUp> Urgent</el-dropdown-item>
+                           <el-dropdown-item :command="2"><ChevronUp class="w-4 h-4 text-orange-500"></ChevronUp> High</el-dropdown-item>
+                           <el-dropdown-item :command="3"><Minus class="w-4 h-4 text-blue-500"></Minus> Medium</el-dropdown-item>
+                           <el-dropdown-item :command="4"><ChevronDown class="w-4 h-4 text-gray-400"></ChevronDown> Low</el-dropdown-item>
+                           <el-dropdown-item :command="0"><Ban class="w-4 h-4 text-gray-500"></Ban> None</el-dropdown-item>
                          </el-dropdown-menu>
                        </template>
-                     </el-dropdown>
+                     </SprintaDropdown>
 
                      <el-popover placement="bottom" trigger="click" width="260" popper-class="plane-popover">
                        <template #reference>
                          <div class="avatar-xs ms-auto cursor-pointer hover:bg-[var(--color-border)]" v-if="getTaskAssigneeSummary(element).label">
                            {{ getTaskAssigneeSummary(element).avatar }}
                          </div>
-                         <div class="avatar-xs ms-auto cursor-pointer hover:bg-[var(--color-border)]" style="border: 1px dashed var(--color-text-muted); background: transparent; color: var(--color-text-muted);" v-else><i class="fa-solid fa-user"></i></div>
+                         <div class="avatar-xs ms-auto cursor-pointer hover:bg-[var(--color-border)]" style="border: 1px dashed var(--color-text-muted); background: transparent; color: var(--color-text-muted);" v-else><User class="w-4 h-4"></User></div>
                        </template>
                        <div class="popover-content">
                          <input type="text" class="plane-search-input" v-model="assigneeSearch" :placeholder="t('workItems.searchMembers')" />
@@ -335,17 +374,26 @@
             
             <div class="inline-create-box" v-if="inlineCreateColId === col.id">
                <div class="ic-top">
+
+                 <Plus class="w-4 h-4 ic-plus"></Plus>
+                 <input type="text" class="ic-input" v-model="inlineTaskTitle" placeholder="New work item" @keyup.enter="submitInlineTask(col)" @keyup.esc="inlineCreateColId = null" ref="inlineInput" />
+
                  <i class="fa-solid fa-plus ic-plus"></i>
                  <input type="text" class="ic-input" v-model="inlineTaskTitle" :placeholder="t('workItems.newWorkItem')" @keyup.enter="submitInlineTask(col)" @keyup.esc="inlineCreateColId = null" ref="inlineInput" />
+
                </div>
                <div class="ic-bottom">
-                 <div class="ic-chip"><i class="fa-regular fa-circle"></i> {{ col.name }}</div>
-                 <div class="ic-chip"><i class="fa-solid fa-minus text-blue"></i></div>
-                 <div class="avatar-xs ms-auto ic-avatar"><i class="fa-solid fa-user"></i></div>
+                 <div class="ic-chip"><Circle class="w-4 h-4"></Circle> {{ col.name }}</div>
+                 <div class="ic-chip"><Minus class="w-4 h-4 text-blue"></Minus></div>
+                 <div class="avatar-xs ms-auto ic-avatar"><User class="w-4 h-4"></User></div>
                </div>
             </div>
             <div class="add-btn-bottom" v-else @click="openInlineCreate(col.id)">
+
+               <Plus class="w-4 h-4"></Plus> New work item
+
                <i class="fa-solid fa-plus"></i> {{ t('workItems.newWorkItem') }}
+
             </div>
           </div>
         </div>
@@ -374,8 +422,8 @@
          <div class="ap-header">
             <h3>{{ t('workItems.analyticsFor', { project: project?.name || t('common.project') }) }}</h3>
             <div class="ap-actions">
-               <button class="icon-btn" @click="toggleAnalyticsExpand"><i :class="isAnalyticsExpanded ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
-               <button class="icon-btn" @click="closeAnalyticsSidebar"><i class="fa-solid fa-xmark"></i></button>
+               <button class="icon-btn" @click="toggleAnalyticsExpand"><component :is="isAnalyticsExpanded ? Shrink : Expand" class="w-4 h-4"></component></button>
+               <button class="icon-btn" @click="closeAnalyticsSidebar"><X class="w-4 h-4"></X></button>
             </div>
          </div>
          
@@ -413,10 +461,15 @@
             <!-- Customized Insights -->
             <div class="ap-chart-card mt-4">
                <div class="flex-between">
+
+                  <h4>Customized Insights</h4>
+                  <SprintaDropdown trigger="click" @command="setAnalyticsInsightMode">
+
                   <h4>{{ t('workItems.customizedInsights') }}</h4>
                   <el-dropdown trigger="click" @command="setAnalyticsInsightMode">
+
                     <button class="filter-btn" type="button">
-                      <i class="fa-solid fa-sliders"></i> {{ analyticsInsightLabel }} <i class="fa-solid fa-chevron-down"></i>
+                      <SlidersHorizontal class="w-4 h-4"></SlidersHorizontal> {{ analyticsInsightLabel }} <ChevronDown class="w-4 h-4"></ChevronDown>
                     </button>
                     <template #dropdown>
                       <el-dropdown-menu class="plane-dropdown">
@@ -425,7 +478,7 @@
                         <el-dropdown-item command="assignee">{{ t('workItems.assigneeDistribution') }}</el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
-                  </el-dropdown>
+                  </SprintaDropdown>
                </div>
                
                <v-chart class="chart-container mt-4" :option="insightChartOptions" autoresize />
@@ -436,8 +489,13 @@
                <div class="table-head">
                   <span class="text-muted">{{ analyticsBreakdownRows.length }} {{ analyticsTableHeading }}</span>
                   <div class="flex-center gap-1">
+
+                     <Search class="w-4 h-4 text-muted"></Search>
+                     <button class="export-btn" @click="exportAnalyticsCsv()"><Download class="w-4 h-4"></Download> Export as csv</button>
+
                      <i class="fa-solid fa-magnifying-glass text-muted"></i>
                      <button class="export-btn" @click="exportAnalyticsCsv()"><i class="fa-solid fa-download"></i> {{ t('workItems.exportCsv') }}</button>
+
                   </div>
                </div>
                <table class="ap-table">
@@ -455,8 +513,13 @@
                <div class="table-head">
                   <span class="text-muted">{{ t('workItems.assigneeCount', { count: assigneeAnalyticsRows.length }) }}</span>
                   <div class="flex-center gap-1">
+
+                     <Search class="w-4 h-4 text-muted"></Search>
+                     <button class="export-btn" @click="exportAnalyticsCsv('assignee')"><Download class="w-4 h-4"></Download> Export as csv</button>
+
                      <i class="fa-solid fa-magnifying-glass text-muted"></i>
                      <button class="export-btn" @click="exportAnalyticsCsv('assignee')"><i class="fa-solid fa-download"></i> {{ t('workItems.exportCsv') }}</button>
+
                   </div>
                </div>
                <table class="ap-table">
@@ -472,7 +535,7 @@
                   </thead>
                   <tbody>
                      <tr v-for="row in assigneeAnalyticsRows" :key="row.id">
-                        <td><i class="fa-regular fa-user"></i> {{ row.label }}</td>
+                        <td><User class="w-4 h-4"></User> {{ row.label }}</td>
                         <td style="text-align: right;">{{ row.backlog }}</td>
                         <td style="text-align: right;">{{ row.started }}</td>
                         <td style="text-align: right;">{{ row.unstarted }}</td>
@@ -489,7 +552,11 @@
 </template>
 
 <script setup>
-// AI 3: CHUYÃŠN VIÃŠN GHÃ‰P Ná»I LOGIC FRONT-TO-BACK
+
+import { CircleDashed, CircleDot, Eye, CheckCircle2, XCircle, Circle, ChevronsUp, ChevronUp, Minus, ChevronDown, Ban, Lock, ChevronRight, Layers, List, Kanban, Calendar, Grid, GanttChart, Filter, Plus, Star, User, Shrink, X, SlidersHorizontal, Search, Download } from 'lucide-vue-next';
+import SprintaDropdown from '@/components/ui/SprintaDropdown.vue';
+// AI 3: CHUYÊN VIÊN GHÉP NỐI LOGIC FRONT-TO-BACK
+
 import { ref, onMounted, computed, defineAsyncComponent, watch, nextTick, onUnmounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { ElMessage } from 'element-plus'
@@ -718,6 +785,16 @@ const visibleTasks = computed(() => {
   return sourceTasks.filter(canCurrentUserSeeTask)
 })
 const visibleTopLevelTasks = computed(() => filteredTasksList.value.filter(task => !isSubtask(task)))
+
+const defaultTaskStatusOptions = [
+  { name: 'BACKLOG', label: 'Backlog', color: 'var(--color-text-muted)', icon: CircleDashed },
+  { name: 'TO DO', label: 'To Do', color: '#D4D4D8', icon: Circle },
+  { name: 'IN PROGRESS', label: 'In Progress', color: '#3B82F6', icon: CircleDot },
+  { name: 'IN REVIEW', label: 'In Review', color: '#F59E0B', icon: Eye },
+  { name: 'DONE', label: 'Done', color: '#10B981', icon: CheckCircle2 },
+  { name: 'CANCELLED', label: 'Cancelled', color: '#EF4444', icon: XCircle }
+]
+
 const defaultTaskStatusOptions = computed(() => [
   { name: 'BACKLOG', label: t('workItems.statusLabels.backlog'), color: 'var(--color-text-muted)', icon: 'fa-regular fa-circle-dashed' },
   { name: 'TO DO', label: t('workItems.statusLabels.toDo'), color: '#D4D4D8', icon: 'fa-regular fa-circle' },
@@ -727,16 +804,17 @@ const defaultTaskStatusOptions = computed(() => [
   { name: 'CANCELLED', label: t('workItems.statusLabels.cancelled'), color: '#EF4444', icon: 'fa-regular fa-circle-xmark' }
 ])
 
+
 const normalizeText = (value) => `${value || ''}`.toLowerCase().trim()
 const normalizeStatus = (value) => `${value || 'BACKLOG'}`.toUpperCase().replace(/\s+/g, ' ').trim()
 const resolveStatusIcon = (value) => {
   const status = normalizeStatus(value)
-  if (status.includes('CANCEL')) return 'fa-regular fa-circle-xmark'
-  if (status.includes('DONE') || status.includes('COMPLETE')) return 'fa-solid fa-circle-check'
-  if (status.includes('PROGRESS') || status.includes('ACTIVE')) return 'fa-solid fa-circle-half-stroke'
-  if (status.includes('REVIEW') || status.includes('TEST')) return 'fa-solid fa-eye'
-  if (status.includes('TODO') || status.includes('TO DO')) return 'fa-regular fa-circle'
-  return 'fa-regular fa-circle-dashed'
+  if (status.includes('CANCEL')) return XCircle
+  if (status.includes('DONE') || status.includes('COMPLETE')) return CheckCircle2
+  if (status.includes('PROGRESS') || status.includes('ACTIVE')) return CircleDot
+  if (status.includes('REVIEW') || status.includes('TEST')) return Eye
+  if (status.includes('TODO') || status.includes('TO DO')) return Circle
+  return CircleDashed
 }
 const taskStatusOptions = computed(() => {
   if (projectStatuses.value.length) {
@@ -780,14 +858,14 @@ const analyticsStatusBucket = (statusName) => {
   if (normalized === 'CANCELLED') return 'cancelled'
   return 'unstarted'
 }
-const getBoardStatusIcon = (value) => taskStatusOptions.value.find(item => item.name === normalizeStatus(value))?.icon || 'fa-regular fa-circle-dashed'
+const getBoardStatusIcon = (value) => taskStatusOptions.value.find(item => item.name === normalizeStatus(value))?.icon || CircleDashed
 const getStatusColor = (value) => taskStatusOptions.value.find(item => item.name === normalizeStatus(value))?.color || 'var(--color-text-muted)'
 const getPriorityIcon = (priority) => {
-  if (priority === 1) return 'fa-solid fa-angles-up text-red-500'
-  if (priority === 2) return 'fa-solid fa-chevron-up text-orange-500'
-  if (priority === 3) return 'fa-solid fa-minus text-blue-500'
-  if (priority === 4) return 'fa-solid fa-chevron-down text-gray-400'
-  return 'fa-solid fa-ban text-gray-500'
+  if (priority === 1) return ChevronsUp
+  if (priority === 2) return ChevronUp
+  if (priority === 3) return Minus
+  if (priority === 4) return ChevronDown
+  return Ban
 }
 const normalizePriority = (value) => {
   const map = { urgent: 1, high: 2, normal: 3, low: 4, none: null }

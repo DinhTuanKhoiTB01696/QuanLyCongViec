@@ -1,98 +1,111 @@
 <template>
-  <div class="auth-page">
-    <header class="auth-navbar">
-      <div class="container nav-content">
-        <router-link to="/" class="logo">
-          <img :src="logoImg" alt="SprintA Logo" class="custom-logo" />
-          <span class="logo-text">SprintA</span>
-        </router-link>
-        <div class="nav-actions" style="display: flex; align-items: center; gap: 16px;">
-          <el-button link @click="$router.push('/login')">Đăng nhập</el-button>
-          <el-button type="primary" @click="$router.push('/register')">Đăng ký</el-button>
-        </div>
-      </div>
-    </header>
+  <div class="auth-wrapper">
+    <!-- Decorative background elements -->
+    <div class="bg-shape bg-shape-1"></div>
+    <div class="bg-shape bg-shape-2"></div>
+
+    <!-- Back Button -->
+    <router-link to="/" class="back-button">
+      <ArrowLeft :size="20" />
+      <span>Trang chủ</span>
+    </router-link>
 
     <div class="auth-container">
-      <div class="auth-card">
-        <h1 class="auth-title">
-          {{ step === 1 ? 'Đăng Ký Tài Khoản' : step === 2 ? 'Xác thực Email' : 'Hoàn Tất Đăng Ký' }}
-        </h1>
-        <p class="auth-subtitle">
-          {{ 
-            step === 1 ? 'Bắt đầu quản lý dự án và công việc của bạn với SprintA.' : 
-            step === 2 ? 'Nhập mã xác thực đã được gửi đến email của bạn.' :
-            'Tạo mật khẩu và tên hiển thị cho tài khoản của bạn.'
-          }}
-        </p>
+      <!-- Minimal top brand area -->
+      <div class="top-brand">
+        <router-link to="/" class="brand-link">
+          <img :src="logoImg" alt="SprintA Logo" class="brand-logo" />
+          <span class="brand-text">SprintA</span>
+        </router-link>
+      </div>
+
+      <main class="auth-card">
+        <div class="auth-header">
+          <h1 class="auth-title">
+            {{ step === 1 ? 'Đăng ký tài khoản' : step === 2 ? 'Xác thực Email' : 'Hoàn tất đăng ký' }}
+          </h1>
+          <p class="auth-subtitle">
+            {{ 
+              step === 1 ? 'Bắt đầu quản lý dự án và công việc của bạn với SprintA.' : 
+              step === 2 ? 'Nhập mã xác thực đã được gửi đến email của bạn.' :
+              'Tạo mật khẩu và tên hiển thị cho tài khoản của bạn.'
+            }}
+          </p>
+        </div>
 
         <!-- Step 1: Email Input -->
-        <el-form 
+        <form 
           v-if="step === 1" 
-          ref="emailFormRef"
-          :model="form"
-          :rules="rules"
           class="auth-form" 
-          label-position="top"
           @submit.prevent="handleSendOtp"
         >
-          <el-form-item label="Địa chỉ Email" prop="email">
-            <el-input v-model="form.email" placeholder="name@company.com" size="large" />
-          </el-form-item>
+          <div class="form-group mb-5">
+            <label class="form-label">ĐỊA CHỈ EMAIL</label>
+            <SprintaInput v-model="form.email" type="email" placeholder="name@company.com" size="large" required class="premium-input" />
+          </div>
           
-          <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">
+          <SprintaButton variant="primary" type="submit" class="auth-btn premium-btn" size="large" :loading="isLoading">
             Gửi mã OTP
-          </el-button>
+          </SprintaButton>
           
-          <p class="auth-footer-text">
-            Đã có tài khoản? <router-link to="/login">Đăng nhập</router-link>
-          </p>
-        </el-form>
+          <div class="auth-links text-center mt-5">
+            <span class="prompt-text">Đã có tài khoản?</span> 
+            <router-link to="/login" class="link-btn">Đăng nhập</router-link>
+          </div>
+        </form>
 
         <!-- Step 2: OTP Verification -->
-        <el-form v-else-if="step === 2" class="auth-form" @submit.prevent="handleVerifyOtp" label-position="top">
+        <form v-else-if="step === 2" class="auth-form" @submit.prevent="handleVerifyOtp">
           <div class="otp-instruction">
             Chúng tôi đã gửi mã xác thực tới <strong>{{ form.email }}</strong>. Vui lòng kiểm tra hộp thư của bạn.
           </div>
-          <el-form-item label="Mã xác thực OTP">
-            <el-input v-model="form.otp" placeholder="123456" size="large" maxlength="6" class="otp-input" />
-          </el-form-item>
+          <div class="form-group mb-5">
+            <label class="form-label">MÃ XÁC THỰC OTP</label>
+            <SprintaInput v-model="form.otp" placeholder="123456" size="large" maxlength="6" class="premium-input otp-input" required />
+          </div>
           
-          <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">
+          <SprintaButton variant="primary" type="submit" class="auth-btn premium-btn" size="large" :loading="isLoading">
             Xác thực Mã
-          </el-button>
+          </SprintaButton>
           
-          <p class="auth-footer-text">
-            Không nhận được mã? <a href="#" @click.prevent="step = 1">Đổi email</a> hoặc <a href="#" @click.prevent="handleSendOtp">Gửi lại OTP</a>
-          </p>
-        </el-form>
+          <div class="auth-links text-center mt-5">
+            <span class="prompt-text">Không nhận được mã?</span> 
+            <button type="button" class="link-btn" @click="step = 1">Đổi email</button> 
+            <span class="prompt-text mx-1">hoặc</span> 
+            <button type="button" class="link-btn" @click="handleSendOtp">Gửi lại</button>
+          </div>
+        </form>
 
         <!-- Step 3: Complete Profile -->
-        <el-form 
+        <form 
           v-else 
-          ref="profileFormRef"
-          :model="form"
-          :rules="rules"
           class="auth-form" 
-          label-position="top"
           @submit.prevent="handleRegister"
         >
-          <el-form-item label="Họ và Tên" prop="fullName">
-            <el-input v-model="form.fullName" placeholder="Nhập họ và tên" size="large" />
-          </el-form-item>
+          <div class="form-group mb-5">
+            <label class="form-label">HỌ VÀ TÊN</label>
+            <SprintaInput v-model="form.fullName" placeholder="Nhập họ và tên" size="large" required minlength="2" class="premium-input" />
+          </div>
 
-          <el-form-item label="Mật khẩu" prop="password">
-            <el-input v-model="form.password" type="password" placeholder="Tạo mật khẩu" size="large" show-password />
-          </el-form-item>
+          <div class="form-group mb-5">
+            <label class="form-label">MẬT KHẨU</label>
+            <SprintaInput v-model="form.password" type="password" placeholder="Tạo mật khẩu" size="large" required minlength="6" class="premium-input" />
+          </div>
           
-          <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">
-            Hoàn Tất Đăng Ký
-          </el-button>
-        </el-form>
-      </div>
-      
-      <div class="auth-small-links">
-        <a href="#">Điều khoản Dịch vụ</a> &nbsp;•&nbsp; <a href="#">Chính sách Bảo mật</a>
+          <SprintaButton variant="primary" type="submit" class="auth-btn premium-btn" size="large" :loading="isLoading">
+            Hoàn tất đăng ký
+          </SprintaButton>
+        </form>
+      </main>
+
+      <div class="auth-footer">
+        <div class="footer-links">
+          <span>© 2026 SprintA</span>
+          <span class="dot">•</span>
+          <a href="#">Điều khoản Dịch vụ</a>
+          <span class="dot">•</span>
+          <a href="#">Chính sách Bảo mật</a>
+        </div>
       </div>
     </div>
   </div>
@@ -102,13 +115,15 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import axiosClient from '../api/axiosClient'
+import { ElMessage } from 'element-plus'
+import { ArrowLeft } from 'lucide-vue-next'
 
 import logoImg from '../assets/logo_QLCV.png'
+import SprintaInput from '@/components/ui/SprintaInput.vue'
+import SprintaButton from '@/components/ui/SprintaButton.vue'
 
 const router = useRouter()
 const isLoading = ref(false)
-const emailFormRef = ref(null)
-const profileFormRef = ref(null)
 const step = ref(1)
 const verifiedOtpToken = ref('')
 
@@ -119,60 +134,28 @@ const form = reactive({
   password: ''
 })
 
-const rules = reactive({
-  email: [
-    { required: true, message: 'Vui lòng nhập email', trigger: 'blur' },
-    { type: 'email', message: 'Email không hợp lệ', trigger: ['blur', 'change'] }
-  ],
-  fullName: [
-    { required: true, message: 'Vui lòng nhập họ và tên', trigger: 'blur' },
-    { min: 2, message: 'Tên phải có ít nhất 2 ký tự', trigger: 'blur' }
-  ],
-  password: [
-    { required: true, message: 'Vui lòng tạo mật khẩu', trigger: 'blur' },
-    { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự', trigger: 'blur' },
-    { 
-      pattern: /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/, 
-      message: 'Mật khẩu phải có ít nhất 1 chữ hoa, 1 số và 1 ký tự đặc biệt', 
-      trigger: 'blur' 
-    }
-  ]
-})
-
 const handleSendOtp = async () => {
-  if (step.value === 1 && !emailFormRef.value) return;
-  
-  const validatePromise = step.value === 1 
-    ? emailFormRef.value.validate() 
-    : Promise.resolve(true);
-
+  if (step.value === 1 && !form.email) return;
+  isLoading.value = true;
   try {
-    const valid = await validatePromise;
-    if (valid) {
-      isLoading.value = true;
-      try {
-        const response = await axiosClient.post('/auth/send-otp', {
-          email: form.email,
-          purpose: 'register'
-        });
-        ElMessage.success(response.data.message || 'Đã gửi mã OTP đến email của bạn');
-        form.otp = ''; // Reset OTP field
-        step.value = 2;
-      } catch (error) {
-        console.error('Send OTP error:', error);
-        ElMessage.error(error.response?.data?.message || 'Có lỗi xảy ra khi gửi OTP');
-      } finally {
-        isLoading.value = false;
-      }
-    }
-  } catch (err) {
-    // validation failed
+    const response = await axiosClient.post('/auth/send-otp', {
+      email: form.email,
+      purpose: 'register'
+    });
+    ElMessage.success(response.data.message || 'Đã gửi mã OTP đến email của bạn');
+    form.otp = ''; 
+    step.value = 2;
+  } catch (error) {
+    console.error('Send OTP error:', error);
+    ElMessage.error(error.response?.data?.message || 'Có lỗi xảy ra khi gửi OTP');
+  } finally {
+    isLoading.value = false;
   }
 }
 
 const handleVerifyOtp = async () => {
   if (!form.otp || form.otp.length !== 6) {
-    ElMessage.error('Vui lòng nhập mã OTP 6 ký tự');
+    ElMessage.warning('Vui lòng nhập mã OTP 6 ký tự');
     return;
   }
   
@@ -185,7 +168,7 @@ const handleVerifyOtp = async () => {
     
     if (response.data.verified) {
       ElMessage.success('Xác thực email thành công');
-      verifiedOtpToken.value = response.data.otpToken; // Save token for register step
+      verifiedOtpToken.value = response.data.otpToken;
       step.value = 3;
     }
   } catch (error) {
@@ -197,210 +180,323 @@ const handleVerifyOtp = async () => {
 }
 
 const handleRegister = async () => {
-  if (!profileFormRef.value) return;
-  
-  await profileFormRef.value.validate(async (valid) => {
-    if (valid) {
-      isLoading.value = true;
-      try {
-        const response = await axiosClient.post('/auth/register', { 
-          email: form.email,
-          fullName: form.fullName,
-          password: form.password,
-          otpCode: verifiedOtpToken.value
-        });
-        
-        ElMessage.success('Tạo tài khoản thành công! Khởi tạo phiên làm việc bằng cách đăng nhập.');
-        router.push('/login');
-      } catch (error) {
-        console.error('Register error:', error);
-        ElMessage.error(error.response?.data?.message || 'Có lỗi xảy ra khi tạo tài khoản');
-      } finally {
-        isLoading.value = false;
-      }
-    }
-  });
+  if (!form.fullName || !form.password) return;
+  isLoading.value = true;
+  try {
+    const response = await axiosClient.post('/auth/register', { 
+      email: form.email,
+      fullName: form.fullName,
+      password: form.password,
+      otpCode: verifiedOtpToken.value
+    });
+    
+    ElMessage.success('Tạo tài khoản thành công! Khởi tạo phiên làm việc bằng cách đăng nhập.');
+    router.push('/login');
+  } catch (error) {
+    console.error('Register error:', error);
+    ElMessage.error(error.response?.data?.message || 'Có lỗi xảy ra khi tạo tài khoản');
+  } finally {
+    isLoading.value = false;
+  }
 }
 </script>
 
 <style scoped>
-.auth-page {
+.auth-wrapper {
+  position: relative;
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
-  background-color: var(--color-bg);
-}
-
-.auth-navbar {
-  height: 80px;
-  display: flex;
   align-items: center;
-  background: transparent;
+  justify-content: center;
+  background-color: #FAFBFC;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow: hidden;
 }
 
-.container {
-  max-width: 1440px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 0 24px;
-}
-
-.nav-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* Logo Styles */
-.logo {
+.back-button {
+  position: absolute;
+  top: 32px;
+  left: 32px;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 800;
-  font-size: 24px;
-  color: var(--color-text-primary);
+  color: #5E6C84;
   text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  z-index: 10;
 }
 
-.custom-logo {
-  height: 48px;
-  width: auto;
-  object-fit: contain;
+.back-button:hover {
+  background: #ffffff;
+  color: #172B4D;
+  box-shadow: 0 4px 12px rgba(9, 30, 66, 0.05);
 }
 
-.nav-actions {
-  display: flex;
-  gap: 16px;
+/* Premium Pastel Blobs */
+.bg-shape {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  z-index: 0;
+  opacity: 0.6;
+}
+
+.bg-shape-1 {
+  width: 600px;
+  height: 600px;
+  background: rgba(0, 82, 204, 0.12);
+  top: -150px;
+  left: -150px;
+}
+
+.bg-shape-2 {
+  width: 500px;
+  height: 500px;
+  background: rgba(101, 84, 192, 0.1);
+  bottom: -100px;
+  right: -100px;
 }
 
 .auth-container {
-  flex: 1;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 460px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
+}
+
+.top-brand {
+  margin-bottom: 32px;
+}
+
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.brand-logo {
+  height: 36px;
+  object-fit: contain;
+}
+
+.brand-text {
+  font-size: 26px;
+  font-weight: 800;
+  color: #172B4D;
+  letter-spacing: -0.02em;
 }
 
 .auth-card {
-  background: var(--color-surface);
   width: 100%;
-  max-width: 440px;
-  padding: 48px 40px 40px;
-  border-radius: 2px;
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-md);
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(9, 30, 66, 0.08);
+  box-shadow: 0 12px 32px rgba(9, 30, 66, 0.04), 0 0 2px rgba(9, 30, 66, 0.08);
+  padding: 48px 40px;
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 36px;
 }
 
 .auth-title {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
-  color: var(--color-text-primary);
-  text-align: center;
-  margin-bottom: 8px;
+  color: #172B4D;
+  margin: 0 0 10px 0;
+  letter-spacing: -0.01em;
 }
 
 .auth-subtitle {
-  color: var(--color-text-secondary);
-  text-align: center;
-  font-size: 13px;
-  margin-bottom: 32px;
+  font-size: 15px;
+  color: #5E6C84;
+  margin: 0;
   line-height: 1.5;
 }
 
-.auth-form {
-  width: 100%;
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-:deep(.el-form-item__label) {
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  padding-bottom: 4px;
-  font-size: 13px;
-}
-
-.auth-btn {
-  width: 100%;
-  font-weight: 600;
-  border-radius: 2px;
-  height: 48px;
-  font-size: 15px;
-  background: var(--color-accent);
-  border: none;
-  margin-top: 8px;
-  margin-bottom: 24px;
-  transition: transform 0.2s, box-shadow 0.2s;
-  color: #ffffff;
-}
-
-.auth-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 97, 255, 0.3);
-}
-
-.otp-instruction {
-  text-align: center;
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  margin-bottom: 24px;
-  background: var(--color-surface-hover);
-  padding: 12px;
-  border-radius: 2px;
-  line-height: 1.6;
-}
-
-.otp-input :deep(input) {
-  text-align: center;
-  letter-spacing: 8px;
-  font-size: 20px;
+.form-label {
+  font-size: 11px;
   font-weight: 700;
-}
-
-@media (max-width: 640px) {
-  .logo-text {
-    display: none;
-  }
-  .auth-navbar {
-    height: 60px;
-  }
-  .auth-card {
-    padding: 32px 20px;
-    border-radius: 12px;
-  }
-  .auth-title {
-    font-size: 20px;
-  }
-}
-
-
-
-.auth-footer-text {
-  text-align: center;
-  font-size: 14px;
-  color: var(--color-text-secondary);
+  color: #5E6C84;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   margin: 0;
 }
 
-.auth-footer-text a {
-  color: var(--el-color-primary);
-  text-decoration: none;
+/* Premium Input Overrides */
+:deep(.premium-input .el-input__wrapper) {
+  height: 46px !important;
+  border-radius: 6px !important;
+  border: 2px solid #DFE1E6 !important;
+  background-color: #FAFBFC !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease;
+  padding: 0 12px !important;
+}
+
+:deep(.premium-input .el-input__wrapper:hover) {
+  background-color: #EBECF0 !important;
+}
+
+:deep(.premium-input.is-focus .el-input__wrapper),
+:deep(.premium-input .el-input__wrapper.is-focus) {
+  border-color: #0052CC !important;
+  background-color: #ffffff !important;
+}
+
+:deep(.premium-input .el-input__inner) {
+  font-size: 15px !important;
+  color: #172B4D !important;
+}
+
+:deep(.premium-input .el-input__inner::placeholder) {
+  color: #A5ADBA !important;
+}
+
+/* Primary Button */
+.premium-btn {
+  height: 48px !important;
+  width: 100%;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  background-color: #0052CC !important;
+  border: none !important;
+  color: #ffffff !important;
+  transition: background-color 0.2s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.premium-btn:hover {
+  background-color: #0047B3 !important;
+}
+
+.premium-btn:active {
+  transform: scale(0.98);
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #0052CC;
+  font-size: 14px;
   font-weight: 600;
-}
-
-.auth-small-links {
-  margin-top: 24px;
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-
-.auth-small-links a {
-  color: var(--color-text-muted);
+  cursor: pointer;
   text-decoration: none;
+  padding: 0;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.prompt-text {
+  color: #5E6C84; 
+  font-size: 14px;
+}
+.mx-1 {
+  margin: 0 4px;
+}
+
+.auth-footer {
+  margin-top: 36px;
+  text-align: center;
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: 13px;
+  color: #8993A4;
+}
+
+.footer-links a {
+  color: #8993A4;
+  text-decoration: none;
+  font-weight: 500;
   transition: color 0.2s;
 }
 
-.auth-small-links a:hover {
-  color: var(--color-text-primary);
+.footer-links a:hover {
+  color: #172B4D;
+}
+
+.dot {
+  font-size: 10px;
+  opacity: 0.5;
+}
+
+.mb-5 { margin-bottom: 20px; }
+.mt-5 { margin-top: 20px; }
+
+/* Register specific styles */
+.otp-instruction {
+  text-align: center;
+  font-size: 14px;
+  color: #5E6C84;
+  margin-bottom: 24px;
+  background: #EBECF0;
+  padding: 12px;
+  border-radius: 6px;
+  line-height: 1.6;
+}
+
+:deep(.otp-input .el-input__inner) {
+  text-align: center !important;
+  letter-spacing: 8px !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 40px 24px;
+    box-shadow: 0 4px 12px rgba(9, 30, 66, 0.05);
+    border: 1px solid #DFE1E6;
+  }
+  
+  .auth-container {
+    padding: 16px;
+    max-width: 100%;
+  }
+
+  .auth-wrapper {
+    background: #FAFBFC;
+  }
+  
+  .bg-shape {
+    opacity: 0.3;
+    filter: blur(60px);
+  }
+  
+  .back-button {
+    top: 16px;
+    left: 16px;
+    padding: 6px 12px;
+  }
 }
 </style>
-

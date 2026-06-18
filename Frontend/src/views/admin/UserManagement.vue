@@ -9,7 +9,7 @@
 
         <div class="page-actions">
           <button type="button" class="primary-btn" @click.stop="openInvitePanel">
-            <i class="fa-solid fa-user-plus"></i>
+            <UserPlus class="w-4 h-4 inline-block" />
             {{ t('Invite users', 'Mời người dùng') }}
           </button>
           <button type="button" class="neutral-btn" @click="handleApproveRequests">
@@ -24,7 +24,7 @@
               @click="openTopActionMenu = !openTopActionMenu"
               aria-label="More actions"
             >
-              <i class="fa-solid fa-ellipsis"></i>
+              <MoreVertical class="w-4 h-4 inline-block" />
             </button>
             <div v-if="openTopActionMenu" class="action-menu top-action-menu">
               <button type="button" @click="openExportModal">{{ t('Export users', 'Xuất danh sách') }}</button>
@@ -59,7 +59,7 @@
                 </div>
                 <div class="table-search" v-if="!selectedDepartmentView" style="margin-top: 0;">
                   <div class="search-input-wrapper">
-                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <Search class="w-4 h-4 inline-block" />
                     <input v-model="departmentSearchQuery" type="text" :placeholder="t('Search departments', 'Tìm kiếm phòng ban...')" class="search-input" />
                   </div>
                 </div>
@@ -76,7 +76,7 @@
                 <span>{{ t('Require 2FA', 'Bắt buộc 2FA') }}</span>
               </label>
               <button type="button" class="primary-btn" @click="createDepartmentFromDraft">
-                <i class="fa-solid fa-plus"></i>
+                <Plus class="w-4 h-4 inline-block" />
                 {{ t('Add department', 'Thêm phòng ban') }}
               </button>
             </div>
@@ -108,7 +108,7 @@
                 <div style="display: flex; gap: 16px; align-items: center;">
                   <div class="table-search" style="margin-top: 0; min-width: 250px;">
                     <div class="search-input-wrapper">
-                      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                      <Search class="w-4 h-4 inline-block" />
                       <input v-model="departmentMemberSearchQuery" type="text" :placeholder="t('Search by name or email', 'Tìm theo tên hoặc email...')" class="search-input" />
                     </div>
                   </div>
@@ -118,7 +118,7 @@
                     </el-option>
                   </el-select>
                   <button type="button" class="accent-back-btn" @click="selectedDepartmentView = null; departmentPage = 1">
-                    <i class="fa-solid fa-arrow-left"></i> {{ t('Back', 'Quay lại') }}
+                    <ArrowLeft class="w-4 h-4 inline-block" /> {{ t('Back', 'Quay lại') }}
                   </button>
                 </div>
               </div>
@@ -162,7 +162,7 @@
                 </div>
                 <div class="table-search" v-if="!selectedProjectView" style="margin-top: 0;">
                   <div class="search-input-wrapper">
-                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <Search class="w-4 h-4 inline-block" />
                     <input v-model="projectRoleSearchQuery" type="text" :placeholder="t('Search projects', 'Tìm kiếm dự án...')" class="search-input" />
                   </div>
                 </div>
@@ -177,7 +177,7 @@
               </el-select>
               <input v-model="departmentRoleDraft.roleName" type="text" :placeholder="t('Role name', 'Tên vai trò')" style="flex: 1;" />
               <button type="button" class="primary-btn" @click="saveDepartmentProjectRole">
-                <i class="fa-solid fa-floppy-disk"></i>
+                <Save class="w-4 h-4 inline-block" />
                 {{ t('Save mapping', 'Lưu mapping') }}
               </button>
             </div>
@@ -197,12 +197,12 @@
                 <div style="display: flex; gap: 16px; align-items: center;">
                   <div class="table-search" style="margin-top: 0;">
                     <div class="search-input-wrapper">
-                      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                      <Search class="w-4 h-4 inline-block" />
                       <input v-model="projectDepartmentSearchQuery" type="text" :placeholder="t('Search departments', 'Tìm phòng ban...')" class="search-input" />
                     </div>
                   </div>
                   <button type="button" class="accent-back-btn" @click="selectedProjectView = null; projectRolePage = 1">
-                    <i class="fa-solid fa-arrow-left"></i> {{ t('Back', 'Quay lại') }}
+                    <ArrowLeft class="w-4 h-4 inline-block" /> {{ t('Back', 'Quay lại') }}
                   </button>
                 </div>
               </div>
@@ -238,11 +238,11 @@
               </div>
               <div class="department-actions">
                 <button type="button" class="neutral-btn" @click="router.push('/admin/roles')">
-                  <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                  <ExternalLink class="w-4 h-4 inline-block" />
                   {{ t('Open role management', 'Mở quản lý vai trò') }}
                 </button>
                 <button type="button" class="primary-btn" @click="saveRoleDraft">
-                  <i class="fa-solid fa-shield-halved"></i>
+                  <Shield class="w-4 h-4 inline-block" />
                   {{ editingRoleId ? t('Update role', 'Cập nhật vai trò') : t('Add role', 'Thêm vai trò') }}
                 </button>
               </div>
@@ -331,7 +331,7 @@
           <el-tab-pane :label="t('Members list', 'Danh sách thành viên')" name="members">
             <section class="filters-row" aria-label="User filters" style="margin-top: 16px;">
           <div class="table-search">
-            <i class="fa-solid fa-magnifying-glass"></i>
+            <Search class="w-4 h-4 inline-block" />
             <input
               v-model="searchQuery"
               type="text"
@@ -348,12 +348,12 @@
               @click="toggleFilterMenu('role')"
             >
               {{ t('Role', 'Vai trò') }}
-              <i class="fa-solid fa-chevron-down"></i>
+              <ChevronDown class="w-4 h-4 inline-block" />
             </button>
             <div v-if="openFilterMenu === 'role'" class="filter-menu role-filter-menu">
               <div class="filter-search">
                 <input v-model="filterSearch.role" type="text" :placeholder="t('Search', 'Tìm kiếm')" />
-                <i class="fa-solid fa-magnifying-glass"></i>
+                <Search class="w-4 h-4 inline-block" />
               </div>
               <label v-for="option in visibleRoleFilterOptions" :key="option.value" class="check-option">
                 <input v-model="roleFilterValues" type="checkbox" :value="option.value" />
@@ -371,12 +371,12 @@
               @click="toggleFilterMenu('apps')"
             >
               {{ t('Apps', 'Ứng dụng') }}
-              <i class="fa-solid fa-chevron-down"></i>
+              <ChevronDown class="w-4 h-4 inline-block" />
             </button>
             <div v-if="openFilterMenu === 'apps'" class="filter-menu apps-filter-menu">
               <div class="filter-search">
                 <input v-model="filterSearch.apps" type="text" :placeholder="t('Search', 'Tìm kiếm')" />
-                <i class="fa-solid fa-magnifying-glass"></i>
+                <Search class="w-4 h-4 inline-block" />
               </div>
               <p class="filter-org-label">{{ organizationHandle }}</p>
               <label v-for="option in visibleAppFilterOptions" :key="option.value" class="app-check-option">
@@ -401,12 +401,12 @@
               @click="toggleFilterMenu('status')"
             >
               {{ t('Status', 'Trạng thái') }}
-              <i class="fa-solid fa-chevron-down"></i>
+              <ChevronDown class="w-4 h-4 inline-block" />
             </button>
             <div v-if="openFilterMenu === 'status'" class="filter-menu status-filter-menu">
               <div class="filter-search">
                 <input v-model="filterSearch.status" type="text" :placeholder="t('Search', 'Tìm kiếm')" />
-                <i class="fa-solid fa-magnifying-glass"></i>
+                <Search class="w-4 h-4 inline-block" />
               </div>
               <label v-for="option in visibleStatusFilterOptions" :key="option.value" class="check-option">
                 <input v-model="statusFilterValues" type="checkbox" :value="option.value" />
@@ -464,12 +464,12 @@
 
         <section class="users-table-shell">
           <div v-if="loading && !users.length" class="table-state">
-            <i class="fa-solid fa-spinner fa-spin"></i>
+            <Loader2 class="w-4 h-4 animate-spin inline-block" />
             <span>{{ t('Loading users...', 'Đang tải người dùng...') }}</span>
           </div>
 
           <div v-else-if="!filteredUsers.length" class="table-state">
-            <i class="fa-regular fa-user"></i>
+            <User class="w-4 h-4 inline-block" />
             <span>{{ t('No users match these filters.', 'Không có người dùng nào phù hợp.') }}</span>
             <button type="button" class="primary-btn" @click.stop="openInvitePanel">{{ t('Invite users', 'Mời người dùng') }}</button>
           </div>
@@ -511,7 +511,7 @@
                       @click="toggleRowMenu(user)"
                       aria-label="User actions"
                     >
-                      <i class="fa-solid fa-ellipsis"></i>
+                      <MoreVertical class="w-4 h-4 inline-block" />
                     </button>
                     <div v-if="openRowMenu === (user.id || user.email)" class="action-menu row-action-menu">
                       <button v-if="getStatusMeta(user).value === 'invited'" type="button" @click="resendInvite(user)">
@@ -538,7 +538,7 @@
 
     <section v-if="showInvitePanel" class="invite-panel">
       <button class="close-invite" type="button" aria-label="Close invite panel" @click="closeInvitePanel">
-        <i class="fa-solid fa-xmark"></i>
+        <X class="w-4 h-4 inline-block" />
       </button>
 
       <div class="invite-shell" @click.stop="closeInviteFloatingMenus">
@@ -555,7 +555,7 @@
             <span v-for="email in inviteEmails" :key="email" class="email-chip">
               {{ email }}
               <button type="button" @click="removeInviteEmail(email)">
-                <i class="fa-solid fa-xmark"></i>
+                <X class="w-4 h-4 inline-block" />
               </button>
             </span>
             <input
@@ -599,7 +599,7 @@
                 @click="toggleRoleMenu(row.key)"
               >
                 <span>{{ getSelectedAppOption(row)?.label || 'None' }}</span>
-                <i class="fa-solid fa-chevron-down"></i>
+                <ChevronDown class="w-4 h-4 inline-block" />
               </button>
 
               <div v-if="openRoleMenu === row.key" class="role-menu">
@@ -633,7 +633,7 @@
             <span v-for="group in selectedGroups" :key="group.name" class="group-chip">
               {{ group.name }}
               <button type="button" @click="removeGroup(group.name)">
-                <i class="fa-solid fa-xmark"></i>
+                <X class="w-4 h-4 inline-block" />
               </button>
             </span>
             <input
@@ -698,7 +698,7 @@
             {{ t('Personalize invitation email', 'Tùy chỉnh email mời') }}
           </button>
 
-          <el-input
+          <SprintaInput
             v-if="showPersonalMessage"
             v-model="inviteForm.message"
             type="textarea"
@@ -767,6 +767,8 @@
 </template>
 
 <script setup>
+import SprintaInput from '@/components/ui/SprintaInput.vue';
+import { UserPlus, MoreVertical, Search, Plus, ArrowLeft, Save, ExternalLink, Shield, ChevronDown, Loader2, User, X } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElMessage, ElMessageBox } from 'element-plus'

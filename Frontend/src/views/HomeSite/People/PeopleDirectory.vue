@@ -19,18 +19,95 @@
     <div class="module-content">
       <div class="list-controls" style="display: flex; flex-direction: column; gap: 16px;">
         <div class="search-box-wrapper" style="width: 100%;">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <Search class="w-4 h-4 search-icon"></Search>
           <input type="text" v-model="searchQuery" placeholder="Tìm kiếm người" class="search-input" />
         </div>
         
         <div class="filter-chips" style="display: flex; flex-wrap: wrap; gap: 8px;">
-          <button class="filter-chip"><i class="fa-solid fa-rocket"></i> Lọc theo Dự án</button>
-          <button class="filter-chip"><i class="fa-solid fa-bullseye"></i> Mục tiêu</button>
-          <button class="filter-chip"><i class="fa-solid fa-users"></i> Nhóm</button>
-          <button class="filter-chip"><i class="fa-solid fa-briefcase"></i> Chức danh</button>
-          <button class="filter-chip"><i class="fa-regular fa-user"></i> Người quản lý</button>
-          <button class="filter-chip"><i class="fa-solid fa-building"></i> Phòng ban</button>
-          <button class="filter-chip"><i class="fa-solid fa-location-dot"></i> Vị trí</button>
+          <el-dropdown trigger="click" @command="val => selectedProject = val">
+            <button class="filter-chip" :class="{ 'active-filter': selectedProject }">
+              <Rocket class="w-4 h-4"></Rocket> {{ selectedProject || 'Lọc theo Dự án' }}
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu class="filter-dropdown-menu">
+                <el-dropdown-item command="">Tất cả</el-dropdown-item>
+                <el-dropdown-item v-if="uniqueProjects.length === 0" disabled>Không có thông tin</el-dropdown-item>
+                <el-dropdown-item v-for="item in uniqueProjects" :key="item" :command="item">{{ item }}</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+
+          <el-dropdown trigger="click" @command="val => selectedGoal = val">
+            <button class="filter-chip" :class="{ 'active-filter': selectedGoal }">
+              <Target class="w-4 h-4"></Target> {{ selectedGoal || 'Mục tiêu' }}
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu class="filter-dropdown-menu">
+                <el-dropdown-item command="">Tất cả</el-dropdown-item>
+                <el-dropdown-item v-if="uniqueGoals.length === 0" disabled>Không có thông tin</el-dropdown-item>
+                <el-dropdown-item v-for="item in uniqueGoals" :key="item" :command="item">{{ item }}</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+
+          <el-dropdown trigger="click" @command="val => selectedTeam = val">
+            <button class="filter-chip" :class="{ 'active-filter': selectedTeam }">
+              <User class="w-4 h-4"></User> {{ selectedTeam || 'Nhóm' }}
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu class="filter-dropdown-menu">
+                <el-dropdown-item command="">Tất cả</el-dropdown-item>
+                <el-dropdown-item v-if="uniqueTeams.length === 0" disabled>Không có thông tin</el-dropdown-item>
+                <el-dropdown-item v-for="item in uniqueTeams" :key="item" :command="item">{{ item }}</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+
+          <el-dropdown trigger="click" @command="val => selectedPosition = val">
+            <button class="filter-chip" :class="{ 'active-filter': selectedPosition }">
+              <Briefcase class="w-4 h-4"></Briefcase> {{ selectedPosition || 'Chức danh' }}
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu class="filter-dropdown-menu">
+                <el-dropdown-item command="">Tất cả</el-dropdown-item>
+                <el-dropdown-item v-if="uniquePositions.length === 0" disabled>Không có thông tin</el-dropdown-item>
+                <el-dropdown-item v-for="item in uniquePositions" :key="item" :command="item">{{ item }}</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+
+
+
+          <el-dropdown trigger="click" @command="val => selectedDepartment = val">
+            <button class="filter-chip" :class="{ 'active-filter': selectedDepartment }">
+              <Building class="w-4 h-4"></Building> {{ selectedDepartment || 'Phòng ban' }}
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu class="filter-dropdown-menu">
+                <el-dropdown-item command="">Tất cả</el-dropdown-item>
+                <el-dropdown-item v-if="uniqueDepartments.length === 0" disabled>Không có thông tin</el-dropdown-item>
+                <el-dropdown-item v-for="item in uniqueDepartments" :key="item" :command="item">{{ item }}</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+
+          <el-dropdown trigger="click" @command="val => selectedLocation = val">
+            <button class="filter-chip" :class="{ 'active-filter': selectedLocation }">
+              <i class="fa-solid fa-location-dot"></i> {{ selectedLocation || 'Vị trí' }}
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu class="filter-dropdown-menu">
+                <el-dropdown-item command="">Tất cả</el-dropdown-item>
+                <el-dropdown-item v-if="uniqueLocations.length === 0" disabled>Không có thông tin</el-dropdown-item>
+                <el-dropdown-item v-for="item in uniqueLocations" :key="item" :command="item">{{ item }}</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+
+          <!-- Clear Filters Button -->
+          <button v-if="hasActiveFilters" class="clear-filters-btn" @click="clearFilters">
+            Xóa bộ lọc
+          </button>
         </div>
       </div>
 
@@ -38,18 +115,19 @@
         <div style="font-size: 14px; font-weight: 600; color: #172B4D;">{{ filteredUsers.length }} người</div>
         
         <div class="view-toggle" style="display: flex; border: 1px solid #DFE1E6; border-radius: 3px; overflow: hidden; height: 32px;">
-          <button class="icon-btn" :style="{ background: viewMode === 'grid' ? '#DEEBFF' : 'white', color: viewMode === 'grid' ? '#0052CC' : '#6B778C' }" @click="viewMode = 'grid'" style="border: none; border-radius: 0; padding: 0 12px; height: 100%; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-table-cells-large"></i></button>
+          <button class="icon-btn" :style="{ background: viewMode === 'grid' ? '#DEEBFF' : 'white', color: viewMode === 'grid' ? '#0052CC' : '#6B778C' }" @click="viewMode = 'grid'" style="border: none; border-radius: 0; padding: 0 12px; height: 100%; display: flex; align-items: center; justify-content: center;"><Grid class="w-4 h-4"></Grid></button>
           <div style="width: 1px; background-color: #DFE1E6; height: 100%;"></div>
           <button class="icon-btn" :style="{ background: viewMode === 'table' ? '#DEEBFF' : 'white', color: viewMode === 'table' ? '#0052CC' : '#6B778C' }" @click="viewMode = 'table'" style="border: none; border-radius: 0; padding: 0 12px; height: 100%; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-list"></i></button>
           <div style="width: 1px; background-color: #DFE1E6; height: 100%;"></div>
-          <button class="icon-btn" style="border: none; border-radius: 0; background: white; color: #6B778C; padding: 0 12px; height: 100%; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-ellipsis"></i></button>
+          <button class="icon-btn" style="border: none; border-radius: 0; background: white; color: #6B778C; padding: 0 12px; height: 100%; display: flex; align-items: center; justify-content: center;"><MoreHorizontal class="w-4 h-4"></MoreHorizontal></button>
         </div>
       </div>
 
       <div class="table-container" v-if="!isLoading">
         <!-- Grid View -->
-        <div v-if="viewMode === 'grid' && filteredUsers.length > 0" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
-          <div class="people-card" v-for="user in filteredUsers" :key="user.id" @click="goToProfile(user.id)" style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 16px; text-align: center; cursor: pointer; transition: background 0.2s, box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 8px rgba(9, 30, 66, 0.15)'" onmouseout="this.style.boxShadow='none'">
+        <div v-if="viewMode === 'grid' && filteredUsers.length > 0" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px;">
+          <div class="people-card" v-for="(user, idx) in filteredUsers" :key="user.id" @click="goToProfile(user.id)" style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 24px 16px; text-align: center; cursor: pointer; transition: background 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; align-items: center;" onmouseover="this.style.boxShadow='0 4px 8px rgba(9, 30, 66, 0.15)'" onmouseout="this.style.boxShadow='none'">
+            <div class="grid-avatar" :style="{ backgroundColor: getAvatarColor(user.fullName || user.email) }">{{ user.avatar }}</div>
             <div style="font-size: 14px; font-weight: 500; color: #172B4D; margin-bottom: 4px;">{{ user.fullName }}</div>
             <div v-if="user.email && user.email.includes('@')" style="font-size: 12px; color: #6B778C;">{{ user.email }}</div>
             <div v-if="!user.email || !user.email.includes('@')" style="font-size: 12px; color: #6B778C;">
@@ -71,10 +149,10 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in filteredUsers" :key="user.id" @click="goToProfile(user.id)">
+            <tr v-for="(user, idx) in filteredUsers" :key="user.id" @click="goToProfile(user.id)">
               <td>
                 <div class="user-cell">
-                  <div class="user-avatar">{{ user.avatar }}</div>
+                  <div class="user-avatar" :style="{ backgroundColor: getAvatarColor(user.fullName || user.email) }">{{ user.avatar }}</div>
                   <div class="user-info-stack">
                     <span class="user-name">{{ user.fullName }}</span>
                   </div>
@@ -90,7 +168,7 @@
         
         <div class="empty-state" v-if="filteredUsers.length === 0">
           <div class="empty-icon-wrapper">
-            <i class="fa-solid fa-user-group"></i>
+            <User class="w-4 h-4"></User>
           </div>
           <h3>Không tìm thấy ai</h3>
           <p>Chúng tôi không tìm thấy ai khớp với tiêu chí tìm kiếm của bạn.</p>
@@ -116,7 +194,7 @@
             <div class="email-input-container" @click="focusEmailInput">
               <div class="email-chip" v-for="(email, index) in inviteEmails" :key="index">
                 {{ email }}
-                <i class="fa-solid fa-xmark remove-chip" @click.stop="removeEmail(index)"></i>
+                <X class="w-4 h-4 remove-chip" @click.stop="removeEmail(index)"></X>
               </div>
               <input 
                 type="text" 
@@ -133,7 +211,7 @@
           </div>
           
           <div class="success-message" v-if="inviteSuccess">
-            <i class="fa-solid fa-circle-check"></i> Đã gửi lời mời thành công!
+            <CheckCircle2 class="w-4 h-4"></CheckCircle2> Đã gửi lời mời thành công!
           </div>
         </div>
         <div class="modal-footer">
@@ -148,15 +226,102 @@
 </template>
 
 <script setup>
+import { Search, Rocket, Target, User, Briefcase, Building, Grid, MoreHorizontal, X, CheckCircle2 } from 'lucide-vue-next';
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePeopleStore } from '@/store/usePeopleStore'
+import { useTeamStore } from '@/store/useTeamStore'
+import { useProjectStore } from '@/store/useProjectStore'
+import { useGoalStore } from '@/store/useGoalStore'
+import { getInitials, getAvatarColor } from '@/utils/avatarUtils'
 
 const router = useRouter()
 const peopleStore = usePeopleStore()
+const teamStore = useTeamStore()
+const projectStore = useProjectStore()
+const goalStore = useGoalStore()
 
 const searchQuery = ref('')
 const viewMode = ref('grid')
+
+// Filter States
+const selectedProject = ref('')
+const selectedGoal = ref('')
+const selectedTeam = ref('')
+const selectedPosition = ref('')
+const selectedDepartment = ref('')
+const selectedLocation = ref('')
+
+const hasActiveFilters = computed(() => {
+  return selectedProject.value || selectedGoal.value || selectedTeam.value || 
+         selectedPosition.value || selectedDepartment.value || selectedLocation.value
+})
+
+const clearFilters = () => {
+  selectedProject.value = ''
+  selectedGoal.value = ''
+  selectedTeam.value = ''
+  selectedPosition.value = ''
+  selectedDepartment.value = ''
+  selectedLocation.value = ''
+}
+
+// Compute unique options
+const uniqueProjects = computed(() => {
+  const items = new Set()
+  // Add from projects store
+  if (projectStore.projects) {
+    projectStore.projects.forEach(p => items.add(p.name))
+  }
+  // Fallback check users
+  peopleStore.users?.forEach(u => {
+    u.linkedProjects?.forEach(p => items.add(p.title || p.name))
+  })
+  return Array.from(items).filter(Boolean).sort()
+})
+
+const uniqueGoals = computed(() => {
+  const items = new Set()
+  if (goalStore.goals) {
+    goalStore.goals.forEach(g => items.add(g.title))
+  }
+  peopleStore.users?.forEach(u => {
+    u.linkedGoals?.forEach(g => items.add(g.title))
+  })
+  return Array.from(items).filter(Boolean).sort()
+})
+
+const uniqueTeams = computed(() => {
+  const items = new Set()
+  if (teamStore.allTeams) {
+    teamStore.allTeams.forEach(t => { if (t.name) items.add(t.name) })
+  }
+  peopleStore.users?.forEach(u => {
+    u.teamsList?.forEach(t => { if (t.name) items.add(t.name) })
+  })
+  return Array.from(items).filter(Boolean).sort()
+})
+
+const extractUnique = (extractor) => {
+  const items = new Set()
+  peopleStore.users?.forEach(u => extractor(u, items))
+  return Array.from(items).sort()
+}
+
+const uniquePositions = computed(() => extractUnique((u, set) => {
+  const val = u.position?.trim()
+  if (val) set.add(val)
+}))
+
+const uniqueDepartments = computed(() => extractUnique((u, set) => {
+  const val = u.department?.trim()
+  if (val) set.add(val)
+}))
+
+const uniqueLocations = computed(() => extractUnique((u, set) => {
+  const val = u.location?.trim()
+  if (val) set.add(val)
+}))
 
 // Invite Modal State
 const isInviteModalOpen = ref(false)
@@ -223,7 +388,12 @@ const sendInvites = async () => {
 }
 
 onMounted(async () => {
-  await peopleStore.fetchPeople()
+  await Promise.all([
+    peopleStore.fetchPeople(),
+    teamStore.fetchAllTeams(),
+    projectStore.fetchAllProjects(),
+    goalStore.fetchGoals()
+  ])
 })
 
 const isLoading = computed(() => peopleStore.isLoading)
@@ -231,20 +401,70 @@ const isLoading = computed(() => peopleStore.isLoading)
 const filteredUsers = computed(() => {
   let list = peopleStore.users || []
 
+  // Apply Search
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
     list = list.filter(u => 
-      u.fullName.toLowerCase().includes(q) || 
-      (u.position && u.position.toLowerCase().includes(q)) || 
-      (u.team && u.team.toLowerCase().includes(q)) ||
-      (u.department && u.department.toLowerCase().includes(q))
+      u.fullName?.toLowerCase().includes(q) || 
+      u.position?.toLowerCase().includes(q) || 
+      u.team?.toLowerCase().includes(q) ||
+      u.department?.toLowerCase().includes(q)
     )
   }
 
-  // Map to format with avatar if missing
+  // Apply Filters
+  if (selectedProject.value) {
+    const projInfo = projectStore.projects?.find(p => p.name === selectedProject.value || p.title === selectedProject.value)
+    list = list.filter(u => {
+      if (u.linkedProjects?.some(p => (p.title || p.name) === selectedProject.value)) return true;
+      if (projInfo) {
+        if (projInfo.leadId === u.id) return true;
+        if (projInfo.members?.some(m => m.id === u.id || m.userId === u.id)) return true;
+      }
+      return false;
+    })
+  }
+  
+  if (selectedGoal.value) {
+    const goalInfo = goalStore.goals?.find(g => g.title === selectedGoal.value)
+    list = list.filter(u => {
+      if (u.linkedGoals?.some(g => g.title === selectedGoal.value)) return true;
+      if (goalInfo) {
+         if (goalInfo.ownerId === u.id || goalInfo.assignedUserId === u.id) return true;
+         if (goalInfo.members?.some(m => m.id === u.id || m.userId === u.id)) return true;
+      }
+      return false;
+    })
+  }
+  
+  if (selectedTeam.value) {
+    const teamInfo = teamStore.allTeams?.find(t => t.name === selectedTeam.value)
+    list = list.filter(u => {
+      if (u.teamsList?.some(t => t.name === selectedTeam.value)) return true;
+      if (teamInfo) {
+        if (teamInfo.leadId === u.id) return true;
+        if (teamInfo.members?.some(m => m.id === u.id || m.userId === u.id)) return true;
+      }
+      return false;
+    })
+  }
+  
+  if (selectedPosition.value) {
+    list = list.filter(u => u.position?.trim() === selectedPosition.value)
+  }
+  
+  if (selectedDepartment.value) {
+    list = list.filter(u => u.department?.trim() === selectedDepartment.value)
+  }
+  
+  if (selectedLocation.value) {
+    list = list.filter(u => u.location?.trim() === selectedLocation.value)
+  }
+
+  // Map to format with standard initials
   return list.map(u => ({
     ...u,
-    avatar: u.avatar || (u.fullName ? u.fullName.substring(0, 2).toUpperCase() : 'U')
+    avatar: getInitials(u.fullName || u.email)
   }))
 })
 
@@ -351,11 +571,33 @@ const goToProfile = (id) => {
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
 
 .filter-chip:hover {
   background: #FAFBFC;
+}
+
+.filter-chip.active-filter {
+  background: #E6FCFF;
+  color: #0052CC;
+  border-color: #0052CC;
+}
+
+.clear-filters-btn {
+  background: transparent;
+  border: none;
+  color: #0052CC;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 12px;
+  transition: color 0.2s;
+}
+
+.clear-filters-btn:hover {
+  color: #0047B3;
+  text-decoration: underline;
 }
 
 .search-box-wrapper {
@@ -437,14 +679,26 @@ const goToProfile = (id) => {
 .user-avatar {
   width: 24px;
   height: 24px;
-  background-color: #0052CC;
   color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: bold;
+}
+
+.grid-avatar {
+  width: 56px;
+  height: 56px;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 12px;
 }
 
 .user-info-stack {

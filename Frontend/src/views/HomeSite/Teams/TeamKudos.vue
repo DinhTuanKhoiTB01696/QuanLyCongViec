@@ -3,7 +3,7 @@
     <div class="kudos-empty-state">
       <div class="kudos-illustration">
         <div class="mock-star-medal">
-          <i class="fa-solid fa-star"></i>
+          <Star class="w-4 h-4"></Star>
           <div class="ribbon ribbon-left"></div>
           <div class="ribbon ribbon-right"></div>
         </div>
@@ -18,7 +18,7 @@
        
        <!-- Header -->
        <div style="padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;">
-          <button class="icon-btn" @click="isGiveKudosOpen = false" style="background: transparent; border: none; font-size: 16px; cursor: pointer; color: #42526E;"><i class="fa-solid fa-arrow-left"></i></button>
+          <button class="icon-btn" @click="isGiveKudosOpen = false" style="background: transparent; border: none; font-size: 16px; cursor: pointer; color: #42526E;"><ArrowLeft class="w-4 h-4"></ArrowLeft></button>
           
           <div></div> <!-- Empty center to push button right -->
 
@@ -45,7 +45,7 @@
                     <div v-for="t in mockTeamList" :key="t.id" @click="selectKudosTarget('team', t)" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; transition: background 0.1s; background: #E6FCFF;" onmouseover="this.style.background='#B3F5FF'" onmouseout="this.style.background='#E6FCFF'">
                        <div class="member-avatar-micro" style="background-color: #36B37E; color: white; width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px;">{{ t.initials }}</div>
                        <div style="display: flex; flex-direction: column;">
-                         <span style="font-size: 14px; color: #0052CC;">{{ t.name }} <i class="fa-solid fa-circle-check" style="font-size: 10px;"></i></span>
+                         <span style="font-size: 14px; color: #0052CC;">{{ t.name }} <CheckCircle2 class="w-4 h-4" style="font-size: 10px;"></CheckCircle2></span>
                          <span style="font-size: 11px; color: #6B778C;">Đội ngũ chính thức • {{ t.memberCount }} thành viên, kể cả bạn</span>
                        </div>
                     </div>
@@ -70,7 +70,7 @@
              <!-- Icons toolbar -->
              <div style="display: flex; gap: 16px; color: #6B778C; font-size: 18px; align-items: center;">
                <div style="position: relative;">
-                 <i class="fa-regular fa-face-smile" style="cursor: pointer;" @click.stop="isKudosEmojiDropdownOpen = !isKudosEmojiDropdownOpen"></i>
+                 <Smile class="w-4 h-4" style="cursor: pointer;" @click.stop="isKudosEmojiDropdownOpen = !isKudosEmojiDropdownOpen"></Smile>
                  
                  <!-- Emoji Dropdown -->
                  <div v-if="isKudosEmojiDropdownOpen" @click.stop class="dropdown-menu" style="position: absolute; top: 28px; left: 0; z-index: 10; background: white; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #DFE1E6; padding: 8px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px;">
@@ -141,6 +141,7 @@
 </template>
 
 <script setup>
+import { Star, ArrowLeft, CheckCircle2, Smile } from 'lucide-vue-next';
 import { ref } from 'vue'
 
 const isGiveKudosOpen = ref(false)

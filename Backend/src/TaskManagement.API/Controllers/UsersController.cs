@@ -92,9 +92,10 @@ namespace TaskManagement.API.Controllers
                     coverUrl = user.CoverUrl,
                     publicName = string.IsNullOrEmpty(extra.PublicName) ? user.FullName : extra.PublicName,
                     jobTitle = extra.JobTitle,
-                    departmentName = activeDepartment?.Name ?? extra.DepartmentName,
-                    organizationName = extra.OrganizationName,
-                    collaborationRules = extra.CollaborationRules,
+                    department = activeDepartment?.Name ?? extra.DepartmentName,
+                    location = extra.Location,
+                    organization = extra.OrganizationName,
+                    collaboration = extra.CollaborationRules,
                     coverPositionY = extra.CoverPositionY,
                     hasPassword = !string.IsNullOrEmpty(user.PasswordHash),
                     is2FaEnabled = user.Is2FAEnabled,
@@ -104,14 +105,201 @@ namespace TaskManagement.API.Controllers
             });
         }
 
+        [HttpGet("directory")]
+        public async Task<IActionResult> GetUserDirectory([FromQuery] string? search)
+        {
+            try
+            {
+                var query = _context.Users
+                    .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                    .Include(u => u.DepartmentMemberships)
+                    .ThenInclude(dm => dm.Department)
+                    .Include(u => u.ProjectMemberships)
+                    .ThenInclude(pm => pm.Project)
+                    .Where(u => !u.IsDeleted && u.IsActive)
+                    .AsQueryable();
+
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    query = query.Where(u =>
+                        u.Email.Contains(search) ||
+                        (u.FullName != null && u.FullName.Contains(search)));
+                }
+
+                var dbUsers = await query
+                    .OrderBy(u => u.FullName)
+                    .Select(u => new
+                    {
+                        u.Id,
+                        u.FullName,
+                        u.Email,
+                        u.AvatarUrl,
+                        Role = u.UserRoles.Select(ur => ur.Role.Name).FirstOrDefault(),
+                        Teams = u.DepartmentMemberships.Select(dm => dm.Department.Name).ToList(),
+                        Projects = u.ProjectMemberships.Select(pm => new { title = pm.Project.Name, name = pm.Project.Name }).ToList(),
+                        Goals = _context.Goals.Where(g => g.OwnerId == u.Id && !g.IsArchived).Select(g => new { title = g.Title }).ToList()
+                    })
+                    .ToListAsync();
+
+                var userIds = dbUsers.Select(u => u.Id).ToList();
+                var profileSettings = await _context.SystemSettings
+                    .Where(s => s.Key.StartsWith("Profile_"))
+                    .ToListAsync();
+
+                var users = dbUsers.Select(u => {
+                    var setting = profileSettings.FirstOrDefault(s => s.Key == "Profile_" + u.Id.ToString());
+                    UpdateProfileRequest profile = null;
+                    if (setting != null && !string.IsNullOrEmpty(setting.Value))
+                    {
+                        try { profile = JsonSerializer.Deserialize<UpdateProfileRequest>(setting.Value); } catch { }
+                    }
+
+                    return new
+                    {
+                        id = u.Id,
+                        fullName = string.IsNullOrEmpty(u.FullName) ? u.Email.Split('@')[0] : u.FullName,
+                        email = u.Email,
+                        avatar = u.AvatarUrl,
+                        position = profile?.JobTitle ?? u.Role ?? "Member",
+                        department = profile?.DepartmentName ?? string.Empty,
+                        location = profile?.Location ?? string.Empty,
+                        team = u.Teams.FirstOrDefault(),
+                        teamsList = u.Teams.Select(t => new { name = t }).ToList(),
+                        linkedProjects = u.Projects,
+                        linkedGoals = u.Goals,
+                        status = "Active"
+                    };
+                }).ToList();
+
+                return Ok(new { statusCode = 200, message = "Success", data = users });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { statusCode = 500, message = ex.Message });
+            }
+        }
+
+        [HttpGet("directory/{id}")]
+        public async Task<IActionResult> GetUserProfile(Guid id)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                    .Include(u => u.DepartmentMemberships)
+                    .ThenInclude(dm => dm.Department)
+                    .Include(u => u.ProjectMemberships)
+                    .ThenInclude(pm => pm.Project)
+                    .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+
+                if (user == null)
+                {
+                    return NotFound(new { statusCode = 404, message = "User not found." });
+                }
+
+                // Fetch Linked Goals
+                var linkedGoals = await _context.Goals
+                    .Where(g => g.OwnerId == id && !g.IsArchived)
+                    .Select(g => new { id = g.Id, title = g.Title, status = g.Status })
+                    .ToListAsync();
+
+                // Get Kudos (From point transactions with type Kudos)
+                var kudos = await _context.PointTransactions
+                    .Where(pt => pt.UserWalletUserId == id && pt.TransactionType == "Kudos")
+                    .OrderByDescending(pt => pt.CreatedAt)
+                    .Select(pt => new { 
+                        id = pt.Id, 
+                        message = pt.Reason, 
+                        sender = "System", 
+                        date = pt.CreatedAt.ToString("MMM dd, yyyy")
+                    })
+                    .Take(10)
+                    .ToListAsync();
+                    
+                // History (from AuditLogs)
+                var history = await _context.AuditLogs
+                    .Where(al => al.UserId == id)
+                    .OrderByDescending(al => al.CreatedAt)
+                    .Select(al => new {
+                        id = al.Id,
+                        action = "Changed " + al.FieldChanged,
+                        time = al.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                    })
+                    .Take(10)
+                    .ToListAsync();
+
+                var profileSetting = await _context.SystemSettings
+                    .FirstOrDefaultAsync(s => s.Key == "Profile_" + id.ToString());
+                
+                UpdateProfileRequest profile = null;
+                if (profileSetting != null && !string.IsNullOrEmpty(profileSetting.Value))
+                {
+                    try { profile = JsonSerializer.Deserialize<UpdateProfileRequest>(profileSetting.Value); } catch { }
+                }
+
+                var userData = new
+                {
+                    id = user.Id,
+                    fullName = string.IsNullOrEmpty(user.FullName) ? user.Email.Split('@')[0] : user.FullName,
+                    publicName = profile?.PublicName ?? string.Empty,
+                    email = user.Email,
+                    isActive = user.IsActive,
+                    status = user.IsActive ? "Active" : "Invited",
+                    avatar = user.AvatarUrl,
+                    bio = "Passionate team member.",
+                    position = profile?.JobTitle ?? user.UserRoles.Select(ur => ur.Role.Name).FirstOrDefault() ?? "Member",
+                    department = profile?.DepartmentName ?? string.Empty,
+                    location = profile?.Location ?? string.Empty,
+                    organization = profile?.OrganizationName ?? string.Empty,
+                    collaboration = profile?.CollaborationRules ?? string.Empty,
+                    coverPositionY = profile?.CoverPositionY ?? 50,
+                    team = user.DepartmentMemberships.Select(dm => dm.Department.Name).FirstOrDefault(),
+                    linkedProjects = user.ProjectMemberships.Select(pm => new { id = pm.ProjectId, title = pm.Project.Name, name = pm.Project.Name, status = "Active" }).ToList(),
+                    linkedGoals = linkedGoals,
+                    kudos = kudos,
+                    history = history
+                };
+
+                return Ok(new { statusCode = 200, message = "Success", data = userData });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { statusCode = 500, message = ex.Message });
+            }
+        }
+
         public class UpdateProfileRequest
         {
+            [System.Text.Json.Serialization.JsonPropertyName("fullName")]
             public string FullName { get; set; } = string.Empty;
+
+            [System.Text.Json.Serialization.JsonPropertyName("publicName")]
             public string PublicName { get; set; } = string.Empty;
+
+            [System.Text.Json.Serialization.JsonPropertyName("jobTitle")]
             public string JobTitle { get; set; } = string.Empty;
+
+            [System.Text.Json.Serialization.JsonPropertyName("departmentName")]
             public string DepartmentName { get; set; } = string.Empty;
+
+            [System.Text.Json.Serialization.JsonPropertyName("department")]
+            public string Department { get; set; } = string.Empty;
+
+            [System.Text.Json.Serialization.JsonPropertyName("organizationName")]
             public string OrganizationName { get; set; } = string.Empty;
+
+            [System.Text.Json.Serialization.JsonPropertyName("organization")]
+            public string Organization { get; set; } = string.Empty;
+
+            [System.Text.Json.Serialization.JsonPropertyName("collaborationRules")]
             public string CollaborationRules { get; set; } = string.Empty;
+
+            [System.Text.Json.Serialization.JsonPropertyName("location")]
+            public string Location { get; set; } = string.Empty;
+
+            [System.Text.Json.Serialization.JsonPropertyName("coverPositionY")]
             public int CoverPositionY { get; set; } = 50;
         }
 
@@ -142,19 +330,23 @@ namespace TaskManagement.API.Controllers
                 _context.SystemSettings.Add(extraProfileSetting);
             }
 
+            var actualDepartmentName = !string.IsNullOrWhiteSpace(request.DepartmentName) ? request.DepartmentName : request.Department;
+            var actualOrganizationName = !string.IsNullOrWhiteSpace(request.OrganizationName) ? request.OrganizationName : request.Organization;
+
             extraProfileSetting.Value = JsonSerializer.Serialize(new UpdateProfileRequest
             {
                 FullName = user.FullName,
                 PublicName = request.PublicName?.Trim() ?? string.Empty,
                 JobTitle = request.JobTitle?.Trim() ?? string.Empty,
-                DepartmentName = request.DepartmentName?.Trim() ?? string.Empty,
-                OrganizationName = request.OrganizationName?.Trim() ?? string.Empty,
+                DepartmentName = actualDepartmentName?.Trim() ?? string.Empty,
+                OrganizationName = actualOrganizationName?.Trim() ?? string.Empty,
                 CollaborationRules = request.CollaborationRules?.Trim() ?? string.Empty,
+                Location = request.Location?.Trim() ?? string.Empty,
                 CoverPositionY = request.CoverPositionY
             });
             extraProfileSetting.LastModifiedAt = DateTime.UtcNow;
 
-            var normalizedDepartmentName = request.DepartmentName?.Trim();
+            var normalizedDepartmentName = actualDepartmentName?.Trim();
             var currentMemberships = await _context.DepartmentMembers
                 .Where(dm => dm.UserId == userId)
                 .ToListAsync();

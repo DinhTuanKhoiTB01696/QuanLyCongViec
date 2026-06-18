@@ -2,7 +2,7 @@
   <aside class="admin-sidebar shadow-sm">
     <div class="sidebar-header">
       <router-link to="/dashboard" class="back-link">
-        <i class="fa-solid fa-arrow-left"></i>
+        <ArrowLeft class="w-4 h-4" />
         <span>{{ t('Jira admin settings', 'Jira admin settings') }}</span>
       </router-link>
     </div>
@@ -13,24 +13,24 @@
       <el-dropdown trigger="click" @command="handleCategorySwitch" class="switch-settings-dropdown" style="width: 100%;" popper-class="jira-switch-dropdown-popper">
         <div class="switch-trigger-btn">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <i :class="currentCategoryIcon"></i>
+            <component :is="currentCategoryIcon" class="w-4 h-4" />
             <span>{{ t(activeCategory, activeCategory) }}</span>
           </div>
-          <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
+          <ChevronDown class="w-3 h-3" />
         </div>
         <template #dropdown>
           <el-dropdown-menu class="jira-switch-dropdown-menu">
             <el-dropdown-item command="/admin/system/general-configuration" :disabled="activeCategory === 'System'">
-              <i class="fa-solid fa-desktop" style="margin-right: 8px;"></i> {{ t('System', 'System') }}
+              <Monitor class="w-4 h-4 mr-2" /> {{ t('System', 'System') }}
             </el-dropdown-item>
             <el-dropdown-item command="/admin/users" :disabled="activeCategory === 'Jira apps'">
-              <i class="fa-solid fa-users" style="margin-right: 8px;"></i> {{ t('Jira apps', 'Jira apps') }}
+              <Users class="w-4 h-4 mr-2" /> {{ t('Jira apps', 'Jira apps') }}
             </el-dropdown-item>
             <el-dropdown-item command="/spaces" :disabled="activeCategory === 'Spaces'">
-              <i class="fa-solid fa-rocket" style="margin-right: 8px;"></i> {{ t('Spaces', 'Spaces') }}
+              <Rocket class="w-4 h-4 mr-2" /> {{ t('Spaces', 'Spaces') }}
             </el-dropdown-item>
             <el-dropdown-item command="/admin/configuration" :disabled="activeCategory === 'Work items'">
-              <i class="fa-regular fa-folder-open" style="margin-right: 8px;"></i> {{ t('Work items', 'Work items') }}
+              <FolderOpen class="w-4 h-4 mr-2" /> {{ t('Work items', 'Work items') }}
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -146,7 +146,7 @@
         <div class="lang-current">
           <span class="lang-flag">{{ locale === 'vi' ? 'VN' : 'EN' }}</span>
           <span class="lang-name">{{ locale === 'vi' ? 'Vietnamese' : 'English' }}</span>
-          <i class="fa-solid fa-chevron-down lang-arrow" :class="{ 'is-open': langMenuOpen }"></i>
+          <ChevronDown class="lang-arrow" :class="{ 'is-open': langMenuOpen }" />
         </div>
 
         <Transition name="lang-dropdown">
@@ -159,7 +159,7 @@
             >
               <span class="lang-flag">VN</span>
               <span>Vietnamese</span>
-              <i v-if="locale === 'vi'" class="fa-solid fa-check lang-check"></i>
+              <Check v-if="locale === 'vi'" class="lang-check" />
             </button>
             <button
               type="button"
@@ -169,7 +169,7 @@
             >
               <span class="lang-flag">EN</span>
               <span>English</span>
-              <i v-if="locale === 'en'" class="fa-solid fa-check lang-check"></i>
+              <Check v-if="locale === 'en'" class="lang-check" />
             </button>
           </div>
         </Transition>
@@ -183,6 +183,7 @@ import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useLocale } from '@/composables/useLocale'
 import { canAccessAdminUserDirectory, getStoredUser, hasSystemAdminAccess } from '@/utils/permissions'
+import { ArrowLeft, ChevronDown, Monitor, Users, Rocket, FolderOpen, Check } from 'lucide-vue-next'
 
 const { locale, toggleLocale, t } = useLocale()
 
@@ -228,11 +229,11 @@ const activeCategory = computed(() => {
 
 const currentCategoryIcon = computed(() => {
   switch (activeCategory.value) {
-    case 'System': return 'fa-solid fa-desktop'
-    case 'Jira apps': return 'fa-solid fa-users'
-    case 'Spaces': return 'fa-solid fa-rocket'
-    case 'Work items': return 'fa-regular fa-folder-open'
-    default: return 'fa-solid fa-desktop'
+    case 'System': return Monitor
+    case 'Jira apps': return Users
+    case 'Spaces': return Rocket
+    case 'Work items': return FolderOpen
+    default: return Monitor
   }
 })
 
@@ -298,8 +299,8 @@ const handleCategorySwitch = (path) => {
   border: 1px solid var(--color-border);
   color: var(--color-text-primary);
   padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 13px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
   font-weight: 600;
   transition: all 0.2s;
   box-sizing: border-box;
@@ -307,10 +308,6 @@ const handleCategorySwitch = (path) => {
 
 .switch-trigger-btn:hover {
   background: var(--color-surface-hover);
-}
-
-.switch-trigger-btn i {
-  color: var(--color-text-secondary);
 }
 
 .sidebar-menu {
@@ -339,8 +336,8 @@ const handleCategorySwitch = (path) => {
 .menu-item {
   display: block;
   padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 13px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
   color: var(--color-text-secondary);
   text-decoration: none;
   transition: all 0.2s;
@@ -398,7 +395,8 @@ const handleCategorySwitch = (path) => {
 }
 
 .lang-arrow {
-  font-size: 9px;
+  width: 12px;
+  height: 12px;
   color: var(--color-text-muted);
   transition: transform 0.2s ease;
 }
@@ -427,10 +425,10 @@ const handleCategorySwitch = (path) => {
   width: 100%;
   padding: 8px 10px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-text-secondary);
-  font-size: 12.5px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.15s ease;
   text-align: left;
@@ -449,7 +447,8 @@ const handleCategorySwitch = (path) => {
 
 .lang-check {
   margin-left: auto;
-  font-size: 10px;
+  width: 14px;
+  height: 14px;
   color: var(--color-accent);
 }
 </style>

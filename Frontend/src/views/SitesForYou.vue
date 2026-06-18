@@ -166,7 +166,9 @@ const i18nStore = useI18nStore()
 const t = i18nStore.t
 
 const currentUser = getStoredUser()
-const userName = currentUser?.username || 'Tua20000'
+const userEmail = currentUser?.email || ''
+const derivedName = userEmail ? userEmail.split('@')[0] : 'User'
+const userName = currentUser?.username || currentUser?.name || currentUser?.publicName || derivedName
 
 // Format current date in Vietnamese
 const currentDate = computed(() => {

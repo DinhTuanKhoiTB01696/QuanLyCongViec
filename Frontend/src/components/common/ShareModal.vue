@@ -15,7 +15,7 @@
         <div class="search-container" :class="{ 'has-selection': selectedUsers.length > 0 }">
           <div class="selected-chips" v-if="selectedUsers.length > 0">
             <div class="chip" v-for="(user, index) in selectedUsers" :key="user.id">
-              <div class="chip-avatar">{{ getInitials(user.name) }}</div>
+              <UserAvatar :user="user" size="sm" style="width: 20px; height: 20px; font-size: 10px;" />
               <span class="chip-name">{{ user.name }}</span>
               <button class="chip-remove" @click="removeUser(index)"><i class="fa-solid fa-xmark"></i></button>
             </div>
@@ -90,10 +90,10 @@
               <h4 class="section-label">Specific access</h4>
               <div class="access-list">
                 <div class="access-row">
-                  <div class="user-avatar-current" style="background-color: #36B37E;">T</div>
+                  <UserAvatar :user="currentUser" size="md" />
                   <div class="access-info">
-                    <div class="access-title">Tua20000 (You)</div>
-                    <div class="access-desc">tua4699@gmail.com</div>
+                    <div class="access-title">{{ userName }} (You)</div>
+                    <div class="access-desc">{{ userEmail }}</div>
                   </div>
                   <div class="access-role text-muted">
                     Owner
@@ -120,7 +120,7 @@
             
             <div v-else class="access-list">
               <div class="access-row" v-for="follower in followers" :key="follower.id">
-                <div class="user-avatar-current">{{ getInitials(follower.name) }}</div>
+                <UserAvatar :user="follower" size="md" />
                 <div class="access-info">
                   <div class="access-title">{{ follower.name }}</div>
                   <div class="access-desc">{{ follower.email }}</div>
@@ -147,6 +147,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axiosClient from '@/api/axiosClient'
+import { getStoredUser } from '@/utils/permissions'
+import { getInitials } from '@/utils/avatarUtils'
+import UserAvatar from '@/components/common/UserAvatar.vue'
+
+const currentUser = getStoredUser()
+const userEmail = currentUser?.email || ''
+const derivedName = userEmail ? userEmail.split('@')[0] : 'User'
+const userName = currentUser?.fullName || currentUser?.username || currentUser?.name || currentUser?.publicName || derivedName
+const userInitials = getInitials(userName)
 
 const props = defineProps({
   isOpen: Boolean,
@@ -182,10 +191,7 @@ const filteredSuggestions = computed(() => {
   )
 })
 
-const getInitials = (name) => {
-  if (!name) return '?'
-  return name.charAt(0).toUpperCase()
-}
+
 
 const selectUser = (user) => {
   selectedUsers.value.push(user)

@@ -40,7 +40,7 @@
             <span class="setting-label">{{ t('Notification Email', 'Email nhận thông báo') }}</span>
             <span class="setting-desc">{{ t('Email address to receive new contact or support requests.', 'Địa chỉ email để nhận các yêu cầu liên hệ hoặc hỗ trợ mới.') }}</span>
           </div>
-          <el-input v-model="settings.notificationEmail" placeholder="support@yourorg.com" style="width: 300px" />
+          <SprintaInput v-model="settings.notificationEmail" placeholder="support@yourorg.com" style="width: 300px" />
         </div>
 
         <div class="divider"></div>
@@ -59,8 +59,8 @@
       </div>
 
       <div class="action-footer">
-        <el-button @click="fetchSettings">{{ t('Cancel', 'Hủy') }}</el-button>
-        <el-button type="primary" :loading="isSaving" @click="saveSettings">{{ t('Save configuration', 'Lưu cấu hình') }}</el-button>
+        <SprintaButton @click="fetchSettings">{{ t('Cancel', 'Hủy') }}</SprintaButton>
+        <SprintaButton type="primary" :loading="isSaving" @click="saveSettings">{{ t('Save configuration', 'Lưu cấu hình') }}</SprintaButton>
       </div>
     </div>
   </div>
@@ -68,6 +68,8 @@
 </template>
 
 <script setup>
+import SprintaButton from '@/components/ui/SprintaButton.vue';
+import SprintaInput from '@/components/ui/SprintaInput.vue';
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'

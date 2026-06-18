@@ -5,12 +5,12 @@
     </div>
     <div class="list-controls">
       <div class="search-box-wrapper">
-        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <Search class="w-4 h-4 search-icon"></Search>
         <input type="text" v-model="searchQuery" placeholder="Tìm kiếm các đội ngũ" class="search-input" />
       </div>
       <div class="view-toggle">
         <button class="toggle-btn" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'" title="Chế độ lưới">
-          <i class="fa-solid fa-table-cells-large"></i>
+          <Grid class="w-4 h-4"></Grid>
         </button>
         <button class="toggle-btn" :class="{ active: viewMode === 'table' }" @click="viewMode = 'table'" title="Chế độ danh sách">
           <i class="fa-solid fa-list"></i>
@@ -66,6 +66,7 @@
 </template>
 
 <script setup>
+import { Search, Grid } from 'lucide-vue-next';
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTeamStore } from '@/store/useTeamStore'

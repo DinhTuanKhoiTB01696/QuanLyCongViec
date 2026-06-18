@@ -40,7 +40,7 @@
           </div>
 
           <div class="metric-card">
-            <div class="m-icon bg-teal"><i class="fa-solid fa-users"></i></div>
+            <div class="m-icon bg-teal"><Users class="w-4 h-4 inline-block" /></div>
             <div class="m-content">
               <span class="m-label">{{ t('Active sessions', 'Active sessions') }}</span>
               <span class="m-val">24 users</span>
@@ -130,6 +130,7 @@
 </template>
 
 <script setup>
+import { Users } from 'lucide-vue-next';
 import { ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { useLocale } from '@/composables/useLocale'

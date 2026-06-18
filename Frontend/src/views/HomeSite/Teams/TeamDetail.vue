@@ -18,8 +18,8 @@
             <h1 style="margin: 0; font-size: 28px;">{{ team.name }}</h1>
           </div>
           <div class="team-status-row" style="margin-top: 4px; font-size: 13px; color: #42526E; display: flex; align-items: center;">
-            <span v-if="!isArchived"><i class="fa-solid fa-circle-check" style="color: #0052cc;"></i> Đội ngũ chính thức</span>
-            <span v-else><i class="fa-solid fa-box-archive"></i> Đã lưu trữ</span>
+            <span v-if="!isArchived"><CheckCircle2 class="w-4 h-4" style="color: #0052cc;"></CheckCircle2> Đội ngũ chính thức</span>
+            <span v-else><Archive class="w-4 h-4"></Archive> Đã lưu trữ</span>
             <span class="ms-2 status-badge" :class="!isArchived ? 'active' : 'archived'" style="font-size: 10px; padding: 2px 6px;">{{ !isArchived ? 'ACTIVE' : 'ARCHIVED' }}</span>
           </div>
         </div>
@@ -29,23 +29,29 @@
         <!-- Add Member -->
         <button class="primary-btn" :disabled="isArchived" @click="isAddMemberOpen = true">Add Member</button>
         <!-- Search -->
-        <button class="icon-btn" title="Search member"><i class="fa-solid fa-magnifying-glass"></i></button>
+        <button class="icon-btn" title="Search member"><Search class="w-4 h-4"></Search></button>
         <!-- Star -->
         <button class="icon-btn" @click="teamStore.toggleStar()" :class="{ starred: team.isStarred }" title="Star team">
-          <i :class="team.isStarred ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i>
+          <Star :class="['w-4 h-4', team.isStarred ? 'text-yellow-400' : 'text-gray-400']"></Star>
         </button>
-        <!-- Menu -->
-        <div class="dropdown-container">
-          <button class="icon-btn" @click="isMenuOpen = !isMenuOpen" title="More options"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-          <div class="dropdown-menu" v-if="isMenuOpen">
-            <button class="menu-item" :disabled="isArchived"><i class="fa-solid fa-gear"></i> Settings</button>
-            <button class="menu-item" @click="toggleArchive">
-              <i :class="isArchived ? 'fa-solid fa-box-open' : 'fa-solid fa-box-archive'"></i> {{ isArchived ? 'Restore Team' : 'Archive Team' }}
-            </button>
-            <div class="menu-divider"></div>
-            <button class="menu-item danger" @click="isDeleteConfirmOpen = true; isMenuOpen = false"><i class="fa-solid fa-trash"></i> Delete Team</button>
-          </div>
-        </div>
+        <button class="secondary-btn icon-only" @click="toggleShare">
+          <i class="fa-solid fa-share-nodes"></i>
+        </button>
+        <SprintaDropdown trigger="click" @command="handleMoreAction">
+          <button class="secondary-btn icon-only">
+            <MoreHorizontal class="w-4 h-4"></MoreHorizontal>
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="archive">
+                <component :is="isArchived ? RotateCcw : Archive" class="w-4 h-4 mr-2"></component> {{ isArchived ? 'Restore Team' : 'Archive Team' }}
+              </el-dropdown-item>
+              <el-dropdown-item command="delete" class="text-red-600">
+                <i class="fa-solid fa-trash mr-2"></i> Delete Team
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </SprintaDropdown>
       </div>
     </div>
 
@@ -81,8 +87,8 @@
           <div class="bio-editor" v-else>
             <textarea v-model="tempBio" class="bio-textarea" placeholder="Chia sẻ những gì nhóm bạn đang thực hiện" style="width: 100%; min-height: 80px; padding: 8px; border: 2px solid #4c9aff; border-radius: 3px; resize: vertical; outline: none;"></textarea>
             <div class="bio-actions" style="display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px;">
-              <button class="icon-btn small" style="background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); border-radius: 3px; width: 32px; height: 32px; color: #172B4D;" @click="saveBio"><i class="fa-solid fa-check"></i></button>
-              <button class="icon-btn small" style="background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); border-radius: 3px; width: 32px; height: 32px; color: #172B4D;" @click="cancelBio"><i class="fa-solid fa-xmark"></i></button>
+              <button class="icon-btn small" style="background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); border-radius: 3px; width: 32px; height: 32px; color: #172B4D;" @click="saveBio"><Check class="w-4 h-4"></Check></button>
+              <button class="icon-btn small" style="background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); border-radius: 3px; width: 32px; height: 32px; color: #172B4D;" @click="cancelBio"><X class="w-4 h-4"></X></button>
             </div>
           </div>
         </section>
@@ -127,7 +133,7 @@
 
           <div class="jira-empty-box" style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 24px; display: flex; align-items: center; gap: 24px;">
             <div style="width: 80px; height: 60px; background-color: #F4F5F7; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
-               <i class="fa-brands fa-jira" style="font-size: 32px; color: #0052cc;"></i>
+               <Trello class="w-4 h-4" style="font-size: 32px; color: #0052cc;"></Trello>
             </div>
             <div>
               <h4 style="font-size: 14px; color: #172B4D; margin-bottom: 4px; font-weight: 600;">Hạng mục công việc Jira được chỉ định cho đội ngũ</h4>
@@ -152,11 +158,11 @@
                <div class="member-avatar-micro" style="background-color: #FF5630; color: white;">{{ hierarchy.parent.name.substring(0,2).toUpperCase() }}</div>
                <div style="display: flex; flex-direction: column;">
                  <span style="font-size: 13px; font-weight: 500; color: #172B4D;">{{ hierarchy.parent.name }}</span>
-                 <span style="font-size: 11px; color: #6B778C;">Đội ngũ chính thức <i class="fa-solid fa-circle-check text-primary"></i> • 1 members</span>
+                 <span style="font-size: 11px; color: #6B778C;">Đội ngũ chính thức <CheckCircle2 class="w-4 h-4 text-primary"></CheckCircle2> • 1 members</span>
                </div>
             </div>
             <div class="add-node-box" v-else @click.stop="openParentDropdown" style="border: 1px dashed #DFE1E6; border-radius: 3px; padding: 8px 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; color: #6B778C; min-width: 240px; justify-content: center; background-color: #FAFBFC;">
-               <i class="fa-solid fa-plus"></i> <span style="font-size: 13px;">Add parent team</span>
+               <Plus class="w-4 h-4"></Plus> <span style="font-size: 13px;">Add parent team</span>
             </div>
 
             <!-- Parent Dropdown Menu -->
@@ -181,7 +187,7 @@
                <div class="member-avatar-micro" style="background-color: #6554C0; color: white;">{{ team.avatarText }}</div>
                <div style="display: flex; flex-direction: column;">
                  <span style="font-size: 13px; font-weight: 600; color: #172B4D;">{{ team.name }}</span>
-                 <span style="font-size: 11px; color: #6B778C;">Đội ngũ chính thức <i class="fa-solid fa-circle-check text-primary"></i> • {{ members.length }} members</span>
+                 <span style="font-size: 11px; color: #6B778C;">Đội ngũ chính thức <CheckCircle2 class="w-4 h-4 text-primary"></CheckCircle2> • {{ members.length }} members</span>
                </div>
                <div style="margin-left: auto; background-color: #DEEBFF; color: #0052CC; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 3px;">Bạn</div>
             </div>
@@ -204,7 +210,7 @@
                   <div class="member-avatar-micro" style="background-color: #36B37E; color: white;">{{ child.name.substring(0,2).toUpperCase() }}</div>
                   <div style="display: flex; flex-direction: column;">
                     <span style="font-size: 13px; font-weight: 500; color: #172B4D;">{{ child.name }}</span>
-                    <span style="font-size: 11px; color: #6B778C;">Đội ngũ chính thức <i class="fa-solid fa-circle-check text-primary"></i> • 1 members</span>
+                    <span style="font-size: 11px; color: #6B778C;">Đội ngũ chính thức <CheckCircle2 class="w-4 h-4 text-primary"></CheckCircle2> • 1 members</span>
                   </div>
                 </div>
               </div>
@@ -219,7 +225,7 @@
                 <div class="tree-line-vertical-up" style="width: 1px; height: 24px; background-color: #DFE1E6;"></div>
                 
                 <div class="add-node-box" @click.stop="openChildDropdown" style="border: 1px dashed #DFE1E6; border-radius: 3px; padding: 8px 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; color: #6B778C; min-width: 200px; justify-content: center; background-color: #FAFBFC;">
-                  <i class="fa-solid fa-plus"></i> <span style="font-size: 13px;">Add sub-teams</span>
+                  <Plus class="w-4 h-4"></Plus> <span style="font-size: 13px;">Add sub-teams</span>
                 </div>
 
                 <!-- Child Dropdown Menu -->
@@ -250,10 +256,10 @@
            <div style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 24px; display: flex; align-items: flex-start; gap: 24px;">
               <div style="position: relative;">
                  <div style="width: 80px; height: 80px; background-color: #EBECF0; border-radius: 8px; display: flex; align-items: center; justify-content: center; transform: rotate(-5deg);">
-                    <i class="fa-solid fa-bullseye" style="font-size: 32px; color: #172B4D;"></i>
+                    <Target class="w-4 h-4" style="font-size: 32px; color: #172B4D;"></Target>
                  </div>
                  <div style="position: absolute; bottom: -8px; right: -8px; width: 32px; height: 32px; background-color: #0052CC; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" @click.stop="isGoalDropdownOpen = !isGoalDropdownOpen">
-                    <i class="fa-solid fa-plus" style="font-size: 16px;"></i>
+                    <Plus class="w-4 h-4" style="font-size: 16px;"></Plus>
                  </div>
               </div>
               <div style="flex: 1;">
@@ -268,7 +274,7 @@
                  <h5 style="font-size: 11px; color: #6B778C; text-transform: uppercase; padding: 0 8px 8px;">Mục tiêu gần đây</h5>
                  <div class="goal-list-options" style="max-height: 200px; overflow-y: auto;">
                    <div class="team-option" v-for="g in mockRecentGoals" :key="g.id" @click="linkGoal(g)" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 3px;">
-                     <i class="fa-solid fa-bullseye" style="color: #6B778C; font-size: 14px;"></i>
+                     <Target class="w-4 h-4" style="color: #6B778C; font-size: 14px;"></Target>
                      <div style="display: flex; flex-direction: column;">
                        <span style="font-size: 13px; color: #172B4D;">{{ g.title }}</span>
                        <span style="font-size: 11px; color: #6B778C;">{{ g.owner }}</span>
@@ -277,7 +283,7 @@
                  </div>
                  <div style="border-top: 1px solid #DFE1E6; margin-top: 8px; padding-top: 8px;">
                     <div class="team-option" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; color: #172B4D;" @click="isCreateGoalOpen = true">
-                       <i class="fa-solid fa-plus"></i> <span style="font-size: 13px;">Tạo mục tiêu</span>
+                       <Plus class="w-4 h-4"></Plus> <span style="font-size: 13px;">Tạo mục tiêu</span>
                     </div>
                  </div>
               </div>
@@ -291,14 +297,14 @@
              <div style="display: flex; gap: 8px;">
                <button class="secondary-btn" style="height: 32px;">Theo dõi</button>
                <div style="position: relative;">
-                 <button class="secondary-btn icon-only" style="height: 32px; width: 32px;" @click.stop="isGoalDropdownOpen = !isGoalDropdownOpen"><i class="fa-solid fa-plus"></i></button>
+                 <button class="secondary-btn icon-only" style="height: 32px; width: 32px;" @click.stop="isGoalDropdownOpen = !isGoalDropdownOpen"><Plus class="w-4 h-4"></Plus></button>
                  <!-- Goal Dropdown Menu -->
                  <div class="dropdown-menu search-dropdown" v-if="isGoalDropdownOpen" @click.stop style="position: absolute; top: 40px; right: 0; z-index: 100; width: 300px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 3px; border: 1px solid #DFE1E6; background: white;">
                     <input type="text" v-model="goalSearch" placeholder="Tìm kiếm mục tiêu hoặc dán liên kết" class="search-input" style="width: 100%; margin-bottom: 12px; padding-left: 12px !important;" />
                     <h5 style="font-size: 11px; color: #6B778C; text-transform: uppercase; padding: 0 8px 8px;">Mục tiêu gần đây</h5>
                     <div class="goal-list-options" style="max-height: 200px; overflow-y: auto;">
                       <div class="team-option" v-for="g in mockRecentGoals" :key="g.id" @click="linkGoal(g)" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 3px;">
-                        <i class="fa-solid fa-bullseye" style="color: #6B778C; font-size: 14px;"></i>
+                        <Target class="w-4 h-4" style="color: #6B778C; font-size: 14px;"></Target>
                         <div style="display: flex; flex-direction: column;">
                           <span style="font-size: 13px; color: #172B4D;">{{ g.title }}</span>
                           <span style="font-size: 11px; color: #6B778C;">{{ g.owner }}</span>
@@ -307,7 +313,7 @@
                     </div>
                     <div style="border-top: 1px solid #DFE1E6; margin-top: 8px; padding-top: 8px;">
                        <div class="team-option" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; color: #172B4D;" @click="isCreateGoalOpen = true">
-                          <i class="fa-solid fa-plus"></i> <span style="font-size: 13px;">Tạo mục tiêu</span>
+                          <Plus class="w-4 h-4"></Plus> <span style="font-size: 13px;">Tạo mục tiêu</span>
                        </div>
                     </div>
                  </div>
@@ -319,7 +325,7 @@
              <div class="goal-card" v-for="goal in goals" :key="goal.id" style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 16px; width: 320px; cursor: pointer; transition: background 0.2s, box-shadow 0.2s;">
                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
                  <div style="width: 24px; height: 24px; background-color: #EBECF0; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
-                   <i class="fa-solid fa-bullseye" style="color: #6B778C; font-size: 14px;"></i>
+                   <Target class="w-4 h-4" style="color: #6B778C; font-size: 14px;"></Target>
                  </div>
                  <span class="status-badge" style="background-color: #DFE1E6; color: #42526E; font-size: 11px; font-weight: bold; text-transform: uppercase; padding: 2px 6px;">{{ goal.status || 'Đã hoàn tất 🚀' }}</span>
                </div>
@@ -342,10 +348,10 @@
            <div style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 24px; display: flex; align-items: flex-start; gap: 24px;">
               <div style="position: relative;">
                  <div style="width: 80px; height: 80px; background-color: #EBECF0; border-radius: 8px; display: flex; align-items: center; justify-content: center; transform: rotate(-5deg);">
-                    <i class="fa-solid fa-rocket" style="font-size: 32px; color: #172B4D;"></i>
+                    <Rocket class="w-4 h-4" style="font-size: 32px; color: #172B4D;"></Rocket>
                  </div>
                  <div style="position: absolute; bottom: -8px; right: -8px; width: 32px; height: 32px; background-color: #0052CC; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" @click="goToProjects">
-                    <i class="fa-solid fa-plus" style="font-size: 16px;"></i>
+                    <Plus class="w-4 h-4" style="font-size: 16px;"></Plus>
                  </div>
               </div>
               <div style="flex: 1;">
@@ -361,7 +367,7 @@
              <div class="goal-card" v-for="proj in projects" :key="proj.id" style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 16px; width: 320px; cursor: pointer;" @click="goToProjectDetail(proj.id)">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
                   <div style="width: 24px; height: 24px; background-color: #0052CC; color: white; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
-                    <i class="fa-solid fa-rocket" style="font-size: 12px;"></i>
+                    <Rocket class="w-4 h-4" style="font-size: 12px;"></Rocket>
                   </div>
                   <span class="status-badge" style="background-color: #DFE1E6; color: #42526E; font-size: 11px; font-weight: bold; text-transform: uppercase; padding: 2px 6px;">{{ proj.status || 'Đang thực hiện' }}</span>
                 </div>
@@ -411,11 +417,11 @@
       <div class="sidebar-section">
         <h3>Liên kết đội ngũ <span class="badge" style="background-color: #DFE1E6; color: #172B4D; padding: 2px 6px; border-radius: 12px; font-size: 11px;">0</span></h3>
         <div style="display: flex; justify-content: flex-end; margin-top: -28px; margin-bottom: 16px;">
-           <button class="icon-btn small" title="Add Link" style="width: 24px; height: 24px;"><i class="fa-solid fa-plus"></i></button>
+           <button class="icon-btn small" title="Add Link" style="width: 24px; height: 24px;"><Plus class="w-4 h-4"></Plus></button>
         </div>
         <div class="link-items" style="display: flex; flex-direction: column; gap: 16px;">
           <div class="link-item" style="display: flex; align-items: center; gap: 12px; color: #6B778C; cursor: pointer;">
-            <div style="width: 24px; height: 24px; border-radius: 4px; background-color: #0052CC; color: white; display: flex; align-items: center; justify-content: center;"><i class="fa-brands fa-jira" style="font-size: 14px;"></i></div>
+            <div style="width: 24px; height: 24px; border-radius: 4px; background-color: #0052CC; color: white; display: flex; align-items: center; justify-content: center;"><Trello class="w-4 h-4" style="font-size: 14px;"></Trello></div>
             <span style="font-size: 14px;">Thêm dự án Jira</span>
           </div>
           <div class="link-item" style="display: flex; align-items: center; gap: 12px; color: #6B778C; cursor: pointer;">
@@ -438,7 +444,7 @@
              <div class="team-identity-small" style="font-size: 13px; display: flex; align-items: center; gap: 8px;">
                <div class="member-avatar-micro" style="width: 16px; height: 16px; font-size: 10px; background-color: #FFAB00; color: #172B4D;">{{ hierarchy.parent.name.substring(0,2).toUpperCase() }}</div>
                <span>{{ hierarchy.parent.name }}</span>
-               <i class="fa-solid fa-circle-check" style="color: #0052cc;"></i>
+               <CheckCircle2 class="w-4 h-4" style="color: #0052cc;"></CheckCircle2>
              </div>
            </div>
            <span v-else style="flex: 1; font-size: 13px; color: #172B4D;">Không có đội ngũ gốc</span>
@@ -459,7 +465,7 @@
 
         <div class="meta-item-row" style="display: flex; align-items: center; margin-bottom: 16px;">
            <span style="width: 120px; color: #6B778C; font-size: 13px;">Loại đội ngũ</span>
-           <span style="flex: 1; font-size: 13px; color: #172B4D; font-weight: 500;">Đội ngũ chính thức <i class="fa-solid fa-circle-check" style="color: #0052cc;"></i></span>
+           <span style="flex: 1; font-size: 13px; color: #172B4D; font-weight: 500;">Đội ngũ chính thức <CheckCircle2 class="w-4 h-4" style="color: #0052cc;"></CheckCircle2></span>
         </div>
 
         <div class="meta-item-row" style="display: flex; align-items: center;">
@@ -483,7 +489,7 @@
         <div class="modal-body">
           <p class="info-text">Search and add members to your team. You can add up to 50 members at once.</p>
           <div class="search-box">
-            <i class="fa-solid fa-magnifying-glass search-icon" style="z-index: 1;"></i>
+            <Search class="w-4 h-4 search-icon" style="z-index: 1;"></Search>
             <input type="text" placeholder="Search by name or email..." v-model="memberSearch" @focus="isMemberDropdownOpen = true" style="padding-left: 44px; position: relative; z-index: 0;" />
           </div>
 
@@ -491,7 +497,7 @@
           <div class="selected-tags" v-if="selectedMembers.length > 0">
             <div class="tag-chip" v-for="id in selectedMembers" :key="id">
                {{ getSelectedUserName(id) }}
-               <i class="fa-solid fa-xmark remove-tag" @click="toggleSelectMember(id)"></i>
+               <X class="w-4 h-4 remove-tag" @click="toggleSelectMember(id)"></X>
             </div>
           </div>
 
@@ -506,7 +512,7 @@
                 <span class="user-name">{{ user.name }}</span>
                 <span class="user-email">{{ user.email }}</span>
               </div>
-              <i class="fa-solid fa-check check-icon" v-if="selectedMembers.includes(user.id)"></i>
+              <Check class="w-4 h-4 check-icon" v-if="selectedMembers.includes(user.id)"></Check>
             </div>
           </div>
         </div>
@@ -584,7 +590,7 @@
        
        <!-- Header -->
        <div style="padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;">
-          <button class="icon-btn" @click="isGiveKudosOpen = false" style="background: transparent; border: none; font-size: 16px; cursor: pointer; color: #42526E;"><i class="fa-solid fa-arrow-left"></i></button>
+          <button class="icon-btn" @click="isGiveKudosOpen = false" style="background: transparent; border: none; font-size: 16px; cursor: pointer; color: #42526E;"><ArrowLeft class="w-4 h-4"></ArrowLeft></button>
           
           <div></div> <!-- Empty center to push button right -->
 
@@ -611,7 +617,7 @@
                     <div v-for="t in mockTeamList" :key="t.id" @click="selectKudosTarget('team', t)" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; transition: background 0.1s; background: #E6FCFF;" onmouseover="this.style.background='#B3F5FF'" onmouseout="this.style.background='#E6FCFF'">
                        <div class="member-avatar-micro" style="background-color: #36B37E; color: white; width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px;">{{ t.initials }}</div>
                        <div style="display: flex; flex-direction: column;">
-                         <span style="font-size: 14px; color: #0052CC;">{{ t.name }} <i class="fa-solid fa-circle-check" style="font-size: 10px;"></i></span>
+                         <span style="font-size: 14px; color: #0052CC;">{{ t.name }} <CheckCircle2 class="w-4 h-4" style="font-size: 10px;"></CheckCircle2></span>
                          <span style="font-size: 11px; color: #6B778C;">Đội ngũ chính thức • {{ t.memberCount }} thành viên, kể cả bạn</span>
                        </div>
                     </div>
@@ -636,7 +642,7 @@
              <!-- Icons toolbar -->
              <div style="display: flex; gap: 16px; color: #6B778C; font-size: 18px; align-items: center;">
                <div style="position: relative;">
-                 <i class="fa-regular fa-face-smile" style="cursor: pointer;" @click.stop="isKudosEmojiDropdownOpen = !isKudosEmojiDropdownOpen"></i>
+                 <Smile class="w-4 h-4" style="cursor: pointer;" @click.stop="isKudosEmojiDropdownOpen = !isKudosEmojiDropdownOpen"></Smile>
                  
                  <!-- Emoji Dropdown -->
                  <div v-if="isKudosEmojiDropdownOpen" @click.stop class="dropdown-menu" style="position: absolute; top: 28px; left: 0; z-index: 10; background: white; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #DFE1E6; padding: 8px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px;">
@@ -714,6 +720,7 @@
 </template>
 
 <script setup>
+import { CheckCircle2, Archive, Search, Star, MoreHorizontal, Check, X, Plus, Target, Rocket, ArrowLeft, Smile, RotateCcw, Trello } from 'lucide-vue-next';
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTeamStore } from '@/store/useTeamStore'

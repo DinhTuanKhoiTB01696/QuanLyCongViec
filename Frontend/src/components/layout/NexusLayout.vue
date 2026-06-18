@@ -25,21 +25,23 @@
 
     <transition name="slide-right">
       <aside v-if="aiVisible" class="ai-sidebar">
-        <div class="ai-header">
-          <h4><i class="fa-solid fa-robot"></i> AI Assistant</h4>
-          <button class="close-ai" @click="toggleAI">
-            <i class="fa-solid fa-xmark"></i>
+        <div class="ai-header border-b border-border p-5 flex justify-between items-center">
+          <h4 class="m-0 flex items-center gap-2 text-accent text-lg font-bold">
+            <Bot class="w-5 h-5" /> AI Assistant
+          </h4>
+          <button class="close-ai bg-transparent border-none text-muted cursor-pointer hover:text-primary transition-colors" @click="toggleAI">
+            <X class="w-5 h-5" />
           </button>
         </div>
 
         <div ref="aiContentRef" class="ai-content">
-          <div class="quick-actions">
-            <el-button size="small" round plain @click="useQuickPrompt('Tom tat cong viec dang mo')">
-              Tom tat cong viec
-            </el-button>
-            <el-button size="small" round plain @click="useQuickPrompt('Goi y uu tien viec can lam tiep theo')">
-              Goi y uu tien
-            </el-button>
+          <div class="quick-actions flex flex-wrap gap-2 mb-6">
+            <SprintaButton size="small" variant="subtle" class="rounded-full border border-border" @click="useQuickPrompt('Tóm tắt công việc đang mở')">
+              Tóm tắt công việc
+            </SprintaButton>
+            <SprintaButton size="small" variant="subtle" class="rounded-full border border-border" @click="useQuickPrompt('Gợi ý ưu tiên việc cần làm tiếp theo')">
+              Gợi ý ưu tiên
+            </SprintaButton>
           </div>
 
           <div
@@ -54,18 +56,19 @@
           </div>
         </div>
 
-        <div class="ai-input-area">
-          <div class="ai-input-wrapper">
+        <div class="ai-input-area p-5 border-t border-border">
+          <div class="ai-input-wrapper flex items-center bg-bg rounded-full py-2 px-4 gap-2.5">
             <input
               v-model="aiInput"
               type="text"
-              placeholder="Hoi AI..."
+              class="flex-1 bg-transparent border-none outline-none text-primary"
+              placeholder="Hỏi AI..."
               @keyup.enter="sendAiMessage"
             />
             <div class="ai-input-actions">
-              <button class="send-btn" :disabled="aiSending || !aiInput.trim()" @click="sendAiMessage">
-                <i v-if="!aiSending" class="fa-solid fa-paper-plane"></i>
-                <i v-else class="fa-solid fa-spinner fa-spin"></i>
+              <button class="send-btn bg-accent text-white border-none w-8 h-8 rounded-full cursor-pointer flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed hover:bg-accent-hover transition-colors" :disabled="aiSending || !aiInput.trim()" @click="sendAiMessage">
+                <Send v-if="!aiSending" class="w-4 h-4 ml-[-2px]" />
+                <Loader2 v-else class="w-4 h-4 animate-spin" />
               </button>
             </div>
           </div>
@@ -81,11 +84,13 @@
 <script setup>
 import { nextTick, onMounted, onUnmounted, ref, defineProps } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Bot, X, Send, Loader2 } from 'lucide-vue-next'
 import axiosClient from '@/api/axiosClient'
 import CreateProjectModal from '../CreateProjectModal.vue'
 import CreateSpaceModal from '../CreateSpaceModal.vue'
 import AppTopBar from './AppTopBar.vue'
 import NexusSidebar from './NexusSidebar.vue'
+import SprintaButton from '@/components/ui/SprintaButton.vue'
 
 const props = defineProps({
   hideSidebar: {
@@ -291,36 +296,6 @@ const handleProjectCreated = (newProject) => {
   align-items: center;
 }
 
-.ai-header h4 {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #3b82f6;
-  font-size: 18px;
-}
-
-.close-ai {
-  background: transparent;
-  border: none;
-  font-size: 18px;
-  color: var(--color-text-muted);
-  cursor: pointer;
-}
-
-.ai-content {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-}
-
-.quick-actions {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-}
-
 .chat-message {
   display: flex;
   margin-bottom: 12px;
@@ -342,49 +317,9 @@ const handleProjectCreated = (newProject) => {
 }
 
 .chat-message.user .message-bubble {
-  background: rgba(59, 130, 246, 0.16);
+  background: color-mix(in srgb, var(--color-accent) 16%, transparent);
   border-top-left-radius: 16px;
   border-top-right-radius: 4px;
-}
-
-.ai-input-area {
-  padding: 20px;
-  border-top: 1px solid var(--color-border);
-}
-
-.ai-input-wrapper {
-  display: flex;
-  background: var(--color-bg);
-  border-radius: 20px;
-  padding: 8px 16px;
-  align-items: center;
-  gap: 10px;
-}
-
-.ai-input-wrapper input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--color-text-primary);
-}
-
-.send-btn {
-  background: #3b82f6;
-  color: white;
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.send-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .slide-right-enter-active,

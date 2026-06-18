@@ -12,7 +12,7 @@
     <div class="page-content">
       <div class="filter-container">
         <div class="search-input-wrapper">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <Search class="w-4 h-4 search-icon"></Search>
           <input type="text" placeholder="Lọc theo tiêu đề" class="search-input" />
         </div>
       </div>
@@ -36,7 +36,7 @@
         <div class="time-group">
           <h3 class="time-label">Tuần này</h3>
           <div class="audit-item">
-            <div class="item-icon light-blue"><i class="fa-solid fa-file-lines"></i></div>
+            <div class="item-icon light-blue"><FileText class="w-4 h-4"></FileText></div>
             <div class="item-details">
               <div class="item-title">Chưa có tiêu đề</div>
               <div class="item-path">Content • Confluence • Dự Án Tốt Nghiệp</div>
@@ -47,7 +47,7 @@
             </div>
           </div>
           <div class="audit-item">
-            <div class="item-icon light-blue"><i class="fa-solid fa-file-lines"></i></div>
+            <div class="item-icon light-blue"><FileText class="w-4 h-4"></FileText></div>
             <div class="item-details">
               <div class="item-title">Dự Án Tốt Nghiệp Home</div>
               <div class="item-path">Trang • Confluence • Dự Án Tốt Nghiệp</div>
@@ -57,7 +57,7 @@
             </div>
           </div>
           <div class="audit-item">
-            <div class="item-icon light-blue square"><i class="fa-solid fa-check"></i></div>
+            <div class="item-icon light-blue square"><Check class="w-4 h-4"></Check></div>
             <div class="item-details">
               <div class="item-title">fw</div>
               <div class="item-path">Task • Jira • DTN-12 • Dự Án Tốt Nghiệp</div>
@@ -68,7 +68,7 @@
             </div>
           </div>
           <div class="audit-item">
-            <div class="item-icon light-blue square"><i class="fa-solid fa-check"></i></div>
+            <div class="item-icon light-blue square"><Check class="w-4 h-4"></Check></div>
             <div class="item-details">
               <div class="item-title">qdw</div>
               <div class="item-path">Task • Jira • DTN-11 • Dự Án Tốt Nghiệp</div>
@@ -79,7 +79,7 @@
             </div>
           </div>
           <div class="audit-item">
-            <div class="item-icon green-bg square"><i class="fa-solid fa-code-branch"></i></div>
+            <div class="item-icon green-bg square"><GitBranch class="w-4 h-4"></GitBranch></div>
             <div class="item-details">
               <div class="item-title">Làm trang quản lý riêng cho space</div>
               <div class="item-path">Subtask • Jira • DTN-9 • Dự Án Tốt Nghiệp</div>
@@ -90,7 +90,7 @@
             </div>
           </div>
           <div class="audit-item">
-            <div class="item-icon light-blue square"><i class="fa-solid fa-code-branch"></i></div>
+            <div class="item-icon light-blue square"><GitBranch class="w-4 h-4"></GitBranch></div>
             <div class="item-details">
               <div class="item-title">Làm trang quản lý system</div>
               <div class="item-path">Subtask • Jira • DTN-10 • Dự Án Tốt Nghiệp</div>
@@ -101,7 +101,7 @@
             </div>
           </div>
           <div class="audit-item">
-            <div class="item-icon light-blue square"><i class="fa-solid fa-check"></i></div>
+            <div class="item-icon light-blue square"><Check class="w-4 h-4"></Check></div>
             <div class="item-details">
               <div class="item-title">Thiết Kế giao diện Trang Admin</div>
               <div class="item-path">Task • Jira • DTN-8 • Dự Án Tốt Nghiệp</div>
@@ -123,7 +123,7 @@
               <div class="item-path">Dự án • Dự án • TUA46-3</div>
             </div>
             <div class="item-meta">
-              <span class="status-badge completed">COMPLETED <i class="fa-solid fa-check"></i></span>
+              <span class="status-badge completed">COMPLETED <Check class="w-4 h-4"></Check></span>
               <span class="time-ago">7 ngày trước</span>
             </div>
           </div>
@@ -134,7 +134,7 @@
               <div class="item-path">Dự án • Dự án • TUA46-4</div>
             </div>
             <div class="item-meta">
-              <span class="status-badge completed">COMPLETED <i class="fa-solid fa-check"></i></span>
+              <span class="status-badge completed">COMPLETED <Check class="w-4 h-4"></Check></span>
               <span class="time-ago">7 ngày trước</span>
             </div>
           </div>
@@ -145,6 +145,7 @@
 </template>
 
 <script setup>
+import { Search, FileText, Check, GitBranch } from 'lucide-vue-next';
 import { useI18nStore } from '@/store/useI18nStore'
 
 const i18nStore = useI18nStore()

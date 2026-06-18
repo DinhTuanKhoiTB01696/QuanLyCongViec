@@ -18,25 +18,25 @@
     <div class="module-content">
       <div class="list-controls-section">
         <div class="search-box-full">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <Search class="w-4 h-4 search-icon"></Search>
           <input type="text" v-model="searchQuery" placeholder="Tìm kiếm dự án" class="search-input" />
         </div>
         
         <div class="filters-row mt-16" v-if="isDirectory || isArchived">
-          <button class="filter-btn"><i class="fa-solid fa-hashtag"></i> Lọc theo Thẻ</button>
-          <button class="filter-btn"><i class="fa-solid fa-signal"></i> Trạng thái</button>
-          <button class="filter-btn"><i class="fa-solid fa-bullseye"></i> Mục tiêu</button>
-          <button class="filter-btn"><i class="fa-solid fa-users"></i> Nhóm</button>
-          <button class="filter-btn"><i class="fa-regular fa-user"></i> Chủ sở hữu</button>
-          <button class="filter-btn"><i class="fa-solid fa-user-group"></i> Người đóng góp</button>
-          <button class="filter-btn"><i class="fa-regular fa-eye"></i> Đang theo dõi</button>
-          <button class="filter-btn"><i class="fa-regular fa-star"></i> Có gắn sao</button>
-          <button class="filter-btn"><i class="fa-solid fa-network-wired"></i> Tuyến báo cáo</button>
+          <button class="filter-btn"><Hash class="w-4 h-4"></Hash> Lọc theo Thẻ</button>
+          <button class="filter-btn"><Signal class="w-4 h-4"></Signal> Trạng thái</button>
+          <button class="filter-btn"><Target class="w-4 h-4"></Target> Mục tiêu</button>
+          <button class="filter-btn"><User class="w-4 h-4"></User> Nhóm</button>
+          <button class="filter-btn"><User class="w-4 h-4"></User> Chủ sở hữu</button>
+          <button class="filter-btn"><User class="w-4 h-4"></User> Người đóng góp</button>
+          <button class="filter-btn"><Eye class="w-4 h-4"></Eye> Đang theo dõi</button>
+          <button class="filter-btn"><Star class="w-4 h-4"></Star> Có gắn sao</button>
+          <button class="filter-btn"><Network class="w-4 h-4"></Network> Tuyến báo cáo</button>
         </div>
         
         <div class="filters-row mt-16" v-if="isFollowing">
           <div class="active-filter-chip">
-            <i class="fa-regular fa-eye"></i> Đang theo dõi <i class="fa-solid fa-xmark chip-close"></i>
+            <Eye class="w-4 h-4"></Eye> Đang theo dõi <X class="w-4 h-4 chip-close"></X>
           </div>
           <button class="filter-btn">Thêm bộ lọc +</button>
         </div>
@@ -46,12 +46,12 @@
         <div class="results-count">Đang hiển thị {{ filteredProjects.length }} dự án</div>
         <div class="toolbar-actions">
           <div class="view-toggles">
-            <button class="icon-btn active"><i class="fa-solid fa-list-ul"></i></button>
-            <button class="icon-btn"><i class="fa-solid fa-bars-staggered"></i></button>
+            <button class="icon-btn active"><List class="w-4 h-4"></List></button>
+            <button class="icon-btn"><List class="w-4 h-4"></List></button>
           </div>
-          <button class="secondary-btn small-btn">Sắp xếp theo đang theo dõi <i class="fa-solid fa-chevron-down"></i></button>
-          <button class="secondary-btn small-btn"><i class="fa-solid fa-table-columns"></i> Cột</button>
-          <button class="icon-btn"><i class="fa-solid fa-ellipsis"></i></button>
+          <button class="secondary-btn small-btn">Sắp xếp theo đang theo dõi <ChevronDown class="w-4 h-4"></ChevronDown></button>
+          <button class="secondary-btn small-btn"><Kanban class="w-4 h-4"></Kanban> Cột</button>
+          <button class="icon-btn"><MoreHorizontal class="w-4 h-4"></MoreHorizontal></button>
         </div>
       </div>
 
@@ -78,12 +78,12 @@
               </td>
               <td>
                 <span class="status-badge" :class="getStatusClass(proj.status || 'ĐÚNG TIẾN ĐỘ')">
-                  {{ proj.status || 'ĐÚNG TIẾN ĐỘ' }} <i class="fa-solid fa-chevron-down ms-1" v-if="proj.status !== 'ĐÃ HOÀN TẤT'"></i>
+                  {{ proj.status || 'ĐÚNG TIẾN ĐỘ' }} <ChevronDown class="w-4 h-4 ms-1" v-if="proj.status !== 'ĐÃ HOÀN TẤT'"></ChevronDown>
                 </span>
               </td>
               <td>
                 <div class="target-date-badge" :class="{ 'overdue': false }">
-                  <i class="fa-regular fa-calendar"></i> 15 thg 6
+                  <Calendar class="w-4 h-4"></Calendar> 15 thg 6
                 </div>
               </td>
               <td>
@@ -96,7 +96,7 @@
                 <span class="updated-text">Hôm qua</span>
               </td>
               <td class="actions-col" @click.stop>
-                <button class="icon-btn"><i class="fa-solid fa-ellipsis"></i></button>
+                <button class="icon-btn"><MoreHorizontal class="w-4 h-4"></MoreHorizontal></button>
               </td>
             </tr>
           </tbody>
@@ -104,7 +104,7 @@
         
         <div class="empty-state-large" v-else>
           <div class="empty-icon-wrapper-large">
-            <i class="fa-solid fa-magnifying-glass"></i>
+            <Search class="w-4 h-4"></Search>
           </div>
           <p class="empty-text-main">Chúng tôi không tìm được dự án nào phù hợp với nội dung tìm kiếm của bạn.</p>
           <p class="empty-text-sub">Hãy thử thay đổi tiêu chí tìm kiếm hoặc <a href="#">xóa tất cả bộ lọc</a>.</p>
@@ -120,9 +120,9 @@
     <div class="modal-overlay" v-if="isCreateModalOpen" @click.self="isCreateModalOpen = false">
       <div class="jira-dialog">
         <div class="jira-dialog-header">
-          <button class="icon-btn-header" @click="isCreateModalOpen = false"><i class="fa-solid fa-arrow-left"></i></button>
+          <button class="icon-btn-header" @click="isCreateModalOpen = false"><ArrowLeft class="w-4 h-4"></ArrowLeft></button>
           <div class="dialog-title">
-            <span class="dialog-icon"><i class="fa-solid fa-rocket"></i></span>
+            <span class="dialog-icon"><Rocket class="w-4 h-4"></Rocket></span>
             <h2>Dự án</h2>
           </div>
         </div>
@@ -169,6 +169,7 @@
 </template>
 
 <script setup>
+import { Search, Hash, Signal, Target, User, Eye, Star, Network, X, List, ChevronDown, Kanban, MoreHorizontal, Calendar, ArrowLeft, Rocket } from 'lucide-vue-next';
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useHomeProjectStore } from '@/store/useHomeProjectStore'

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import axiosClient from '@/api/axiosClient'
+import { getStoredUser } from '@/utils/permissions'
 
 export const usePeopleStore = defineStore('people', {
   state: () => ({
@@ -21,37 +22,53 @@ export const usePeopleStore = defineStore('people', {
       this.isEmpty = false
       this.isSuccess = false
       try {
-        const response = await axiosClient.get('/admin/users')
-        const data = response.data?.data || response.data || []
+        let data = []
+        try {
+          const response = await axiosClient.get('/users/directory')
+          data = response.data?.data || response.data || []
+        } catch (apiErr) {
+          console.warn("Failed to fetch /users/directory, falling back to mock data:", apiErr)
+        }
         
-        // Add mock data to ensure the UI looks like the screenshot if API is empty
-        const mockUsers = [
-          { id: 'u1', fullName: 'Thịnh Phát Bùi', email: 'phat@example.com', location: 'Việt Nam' },
-          { id: 'u2', fullName: 'Tua20000', email: 'Lập trình viên', location: 'Đồng Nai - Việt Nam' },
-          { id: 'u3', fullName: 'ngkiet2805', email: 'kiet@example.com', location: 'Việt Nam' },
-          { id: 'u4', fullName: 'Anh Quan Ng Hoang', email: 'quan@example.com', location: 'Việt Nam' },
-          { id: 'u5', fullName: 'Tuấn Khôi Đinh', email: 'khoi@example.com', location: 'Việt Nam' },
-          { id: 'u6', fullName: 'Quân Đạt Võ', email: 'dat@example.com', location: 'Việt Nam' }
-        ]
+        const currentUserData = getStoredUser()
+        const currentEmail = currentUserData?.email || 'user@example.com'
+        const currentName = currentUserData?.fullName || currentUserData?.name || currentUserData?.publicName || currentUserData?.username || currentEmail.split('@')[0]
 
-        const combinedData = data.length > 0 ? data : mockUsers;
+        let fetchedUsers = Array.isArray(data) ? data : []
+        
+        // Ensure current user is at the top
+        const currentIdx = fetchedUsers.findIndex(u => u.id === currentUserData?.id || u.email === currentEmail)
+        if (currentIdx > 0) {
+          const [curr] = fetchedUsers.splice(currentIdx, 1)
+          fetchedUsers.unshift(curr)
+        } else if (currentIdx === -1 && currentUserData) {
+          fetchedUsers.unshift({
+             id: currentUserData.id || 'u_curr',
+             fullName: currentName,
+             email: currentEmail,
+             location: 'Việt Nam',
+             roles: ['Lập trình viên']
+          })
+        }
 
-        this.users = combinedData.map(u => ({
-          id: u.id,
-          fullName: u.fullName || u.name || u.email,
-          email: u.email,
+        this.users = fetchedUsers.map(u => ({
+          id: u.id || Math.random().toString(36).substr(2, 9),
+          fullName: u.fullName || u.name || u.email || 'User',
+          email: u.email || '',
           location: u.location || '',
-          avatar: u.avatar || (u.fullName || u.name ? (u.fullName || u.name).substring(0, 2).toUpperCase() : u.email.substring(0, 2).toUpperCase()),
-          department: u.departments && u.departments.length > 0 ? u.departments[0] : 'N/A',
-          position: u.roles && u.roles.length > 0 ? u.roles[0] : 'Member',
-          team: u.projects && u.projects.length > 0 ? u.projects[0] : 'N/A',
+          avatar: u.avatar || String(u.fullName || u.name || u.email || 'U').substring(0, 2).toUpperCase(),
+          department: u.departments && u.departments.length > 0 ? u.departments[0] : (u.department || 'N/A'),
+          position: u.roles && u.roles.length > 0 ? u.roles[0] : (u.position || 'Member'),
+          team: u.projects && u.projects.length > 0 ? u.projects[0] : (u.team || 'N/A'),
           status: u.status,
-          bio: 'Passionate team member.'
+          bio: u.bio || 'Passionate team member.'
         }))
         this.isEmpty = this.users.length === 0
         this.isSuccess = true
       } catch (err) {
+        console.error("fetchPeople Error:", err)
         this.error = err.message || 'Failed to fetch people'
+        // Fallback to empty only on critical fatal errors outside the API call
         this.users = []
       } finally {
         this.isLoading = false
@@ -61,7 +78,7 @@ export const usePeopleStore = defineStore('people', {
       this.isLoading = true
       this.error = null
       try {
-        const response = await axiosClient.get(`/admin/users/${id}`)
+        const response = await axiosClient.get(`/users/directory/${id}`)
         const data = response.data?.data || response.data
         
         if (!data) {

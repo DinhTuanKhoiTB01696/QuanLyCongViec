@@ -8,44 +8,44 @@
         
         <div class="cm-badge-row">
            <div class="cm-badge">
-             <i class="fa-solid fa-bell" style="color: #F59E0B"></i> {{ currentProjectBadge }}
+             <Bell class="w-4 h-4 " /> {{ currentProjectBadge }}
            </div>
         </div>
 
         <div class="cm-form-group">
-          <input type="text" class="cm-inputbox" placeholder="Title" v-model="selectedTask.title" />
-          <textarea class="cm-textareabox" placeholder="Click to add description" v-model="selectedTask.description"></textarea>
+          <input type="text" class="sprinta-input" placeholder="Title" v-model="selectedTask.title" />
+          <textarea class="sprinta-textarea" placeholder="Click to add description" v-model="selectedTask.description"></textarea>
         </div>
         
         <div class="cm-toolbar-row">
            <!-- STATUS -->
-           <el-dropdown trigger="click" @command="(cmd) => selectStatus(cmd)">
+           <SprintaDropdown trigger="click" @command="(cmd) => selectStatus(cmd)">
              <div class="t-btn"><i :class="getStatusIcon(selectedTask?.statusName)"></i> <span>State</span> {{ selectedTask?.statusName || 'Todo' }}</div>
              <template #dropdown>
                <el-dropdown-menu class="theme-dropdown">
                  <el-dropdown-item v-for="status in projectStatuses" :key="status.id" :command="status.name"><i :class="getStatusIcon(status.name)" class="mr-2"></i> {{ status.displayName || status.name }}</el-dropdown-item>
                </el-dropdown-menu>
              </template>
-           </el-dropdown>
+           </SprintaDropdown>
 
            <!-- PRIORITY -->
-           <el-dropdown  trigger="click" @command="(cmd) => selectedTask.priority = cmd">
+           <SprintaDropdown  trigger="click" @command="(cmd) => selectedTask.priority = cmd">
              <div class="t-btn"><i :class="getPrioIcon(selectedTask?.priority)"></i> <span>Priority</span> {{ getPrioLabel(selectedTask?.priority) }}</div>
              <template #dropdown>
                <el-dropdown-menu class="theme-dropdown">
-                 <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: #ef4444"></i> Urgent</el-dropdown-item>
-                 <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: #f59e0b"></i> High</el-dropdown-item>
-                 <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: #3b82f6"></i> Medium</el-dropdown-item>
-                 <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: var(--color-text-muted)"></i> Low</el-dropdown-item>
-                 <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-muted"></i> None</el-dropdown-item>
+                 <el-dropdown-item :command="1"><ChevronsUp class="w-4 h-4 mr-2" /> Urgent</el-dropdown-item>
+                 <el-dropdown-item :command="2"><ChevronUp class="w-4 h-4 mr-2" /> High</el-dropdown-item>
+                 <el-dropdown-item :command="3"><Minus class="w-4 h-4 mr-2" /> Medium</el-dropdown-item>
+                 <el-dropdown-item :command="4"><ArrowDown class="w-4 h-4 mr-2" /> Low</el-dropdown-item>
+                 <el-dropdown-item :command="0"><Ban class="w-4 h-4 mr-2 text-muted" /> None</el-dropdown-item>
                </el-dropdown-menu>
              </template>
-           </el-dropdown>
+           </SprintaDropdown>
 
            <!-- ASSIGNEES -->
            <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover" :width="220" :disabled="!canManageTaskAssignees" @show="assigneeSearch = ''">
              <template #reference>
-               <div class="t-btn" :class="{ disabled: !canManageTaskAssignees }"><i class="fa-regular fa-user"></i> <span>Assignees</span> {{ getAssigneeSummary() }}</div>
+               <div class="t-btn" :class="{ disabled: !canManageTaskAssignees }"><User class="w-4 h-4 " /> <span>Assignees</span> {{ getAssigneeSummary() }}</div>
              </template>
              <div class="popover-content">
                <input type="text" v-model="assigneeSearch" class="popover-search" placeholder="Type to search..." />
@@ -100,7 +100,7 @@
            <!-- LABELS -->
            <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover" :width="220" @show="labelSearch = ''">
              <template #reference>
-               <div class="t-btn"><i class="fa-solid fa-tag"></i> {{ selectedTask?.labelIds?.length ? selectedTask.labelIds.length + ' Labels' : 'Labels' }}</div>
+               <div class="t-btn"><Tag class="w-4 h-4 " /> {{ selectedTask?.labelIds?.length ? selectedTask.labelIds.length + ' Labels' : 'Labels' }}</div>
              </template>
              <div class="popover-content">
                <input type="text" v-model="labelSearch" class="popover-search" placeholder="Search" />
@@ -141,7 +141,7 @@
              @change="val => handleTaskDateChange('dueDate', val)"
            />
            <div class="t-btn t-btn-number">
-             <i class="fa-regular fa-hourglass-half"></i>
+             <Hourglass class="w-4 h-4 " />
              <span>Estimate</span>
              <input
                :value="getEstimatedHours(selectedTask)"
@@ -154,9 +154,9 @@
              <small>h</small>
            </div>
 
-           <el-dropdown v-if="isRoleVisibilityEnabled" trigger="click" @command="(cmd) => selectVisibilityMode(cmd, selectedTask)">
+           <SprintaDropdown v-if="isRoleVisibilityEnabled" trigger="click" @command="(cmd) => selectVisibilityMode(cmd, selectedTask)">
              <div class="t-btn">
-               <i class="fa-solid fa-eye"></i>
+               <Eye class="w-4 h-4 " />
                <span>Visibility</span>
                {{ getVisibilityLabel(selectedTask) }}
              </div>
@@ -167,12 +167,12 @@
                  <el-dropdown-item command="role">Role scoped</el-dropdown-item>
                </el-dropdown-menu>
              </template>
-           </el-dropdown>
+           </SprintaDropdown>
 
            <el-popover v-if="isRoleVisibilityEnabled && selectedTask?.visibilityMode === 'role'" placement="bottom-start" trigger="click" popper-class="plane-popover" :width="260" :disabled="!canEditTaskVisibility">
              <template #reference>
                <div class="t-btn" :class="{ disabled: !canEditTaskVisibility }">
-                 <i class="fa-solid fa-user-shield"></i>
+                 <Shield class="w-4 h-4 " />
                  <span>Roles</span>
                  {{ selectedTask?.visibleToRoles?.length ? selectedTask.visibleToRoles.join(', ') : 'Select roles' }}
                </div>
@@ -190,17 +190,17 @@
            <!-- CYCLE -->
            <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover" :width="280" @show="cycleSearch = ''">
              <template #reference>
-               <div class="t-btn"><i class="fa-solid fa-circle-half-stroke"></i> {{ getCycleLabel(selectedTask?.sprintId) }}</div>
+               <div class="t-btn"><CircleDashed class="w-4 h-4 " /> {{ getCycleLabel(selectedTask?.sprintId) }}</div>
              </template>
              <div class="popover-content">
                <input type="text" v-model="cycleSearch" class="popover-search" placeholder="Search" />
                <div class="popover-list">
                  <div class="popover-item" @click="selectedTask.sprintId = null">
-                   <i class="fa-solid fa-circle-half-stroke mr-2 w-4 text-center"></i> No cycle
+                   <CircleDashed class="w-4 h-4 mr-2 w-4 text-center" /> No cycle
                    <i v-if="!selectedTask?.sprintId" class="fa-solid fa-check ms-auto"></i>
                  </div>
                  <div class="popover-item" v-for="c in filteredCycles" :key="c.id" @click="selectedTask.sprintId = c.id">
-                   <i class="fa-solid fa-certificate mr-2 w-4 text-center text-blue-500"></i>
+                   <Award class="w-4 h-4 mr-2 w-4 text-center text-blue-500" />
                    <span class="truncate flex-1">{{ c.name }}</span>
                    <i v-if="selectedTask?.sprintId === c.id" class="fa-solid fa-check ms-auto"></i>
                  </div>
@@ -212,16 +212,16 @@
            <!-- MODULES -->
            <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover" :width="280" @show="moduleSearch = ''">
              <template #reference>
-               <div class="t-btn"><i class="fa-solid fa-cube"></i> {{ getModuleLabel(selectedTask?.moduleId) }}</div>
+               <div class="t-btn"><Box class="w-4 h-4 " /> {{ getModuleLabel(selectedTask?.moduleId) }}</div>
              </template>
              <div class="popover-content">
                <input type="text" v-model="moduleSearch" class="popover-search" placeholder="Search" />
                <div class="popover-list">
                  <div class="popover-item" @click="selectedTask.moduleId = null">
-                   <i class="fa-solid fa-cube mr-2"></i> No module
+                   <Box class="w-4 h-4 mr-2" /> No module
                  </div>
                  <div class="popover-item" v-for="m in filteredModules" :key="m.id" @click="selectedTask.moduleId = m.id">
-                   <i class="fa-solid fa-box mr-2 text-orange-500"></i>
+                   <Box class="w-4 h-4 mr-2 text-orange-500" />
                    <span class="truncate flex-1">{{ m.name }}</span>
                  </div>
                </div>
@@ -231,18 +231,18 @@
            <!-- PARENT -->
            <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover" :width="350" @show="parentSearch = ''">
              <template #reference>
-               <div class="t-btn"><i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i> {{ getParentId(selectedTask) ? 'Parent selected' : 'Add parent' }}</div>
+               <div class="t-btn"><CornerDownRight class="w-4 h-4 " /> {{ getParentId(selectedTask) ? 'Parent selected' : 'Add parent' }}</div>
              </template>
              <div class="popover-content h-[250px] flex flex-col bg-surface-elevation">
                <div class="p-2 border-b border-theme">
                  <div class="relative flex items-center">
-                   <i class="fa-solid fa-magnifying-glass absolute left-2 text-muted"></i>
+                   <Search class="w-4 h-4 absolute left-2 text-muted" />
                    <input type="text" v-model="parentSearch" class="w-full bg-transparent border-none text-primary pl-8 focus:outline-none" placeholder="Type to search..." />
                  </div>
                </div>
                <div class="flex-1 overflow-y-auto no-scrollbar p-2">
                  <div class="popover-item text-xs text-muted hover:text-primary cursor-pointer p-2 rounded hover:bg-surface-hover flex items-center" @click="setTaskParent(selectedTask, null)">
-                   <i class="fa-solid fa-ban mr-2"></i> Remove parent
+                   <Ban class="w-4 h-4 mr-2" /> Remove parent
                  </div>
                  <div class="popover-item text-xs text-secondary hover:text-primary cursor-pointer p-2 rounded hover:bg-surface-hover flex items-center" v-for="pt in filteredParents" :key="pt.id" @click="setTaskParent(selectedTask, pt.id)">
                    <span class="text-muted mr-3 w-16 truncate font-mono">{{ pt.sequenceId || pt.id.substring(0,8) }}</span>
@@ -265,36 +265,15 @@
       
       <!-- MODE: TASK DETAIL SLIDEOUT (Image 2 & 3) -->
       <div class="task-side-panel slide-in-right" v-else>
-         <div class="sp-header">
-            <div class="sph-left">
-               <button v-if="canGoBack" class="nav-icon-btn" type="button" @click="emit('back')">
-                 <i class="fa-solid fa-arrow-left"></i>
-               </button>
-               <i class="fa-solid fa-arrow-right icon-btn" @click="showTaskModal = false"></i>
-            </div>
-             <div class="sph-right">
-                <button class="s-btn s-btn-outline" @click="toggleSubscription">
-                   <i :class="isSubscribed ? 'fa-regular fa-bell-slash' : 'fa-regular fa-bell'"></i> 
-                   {{ isSubscribed ? 'Unsubscribe' : 'Subscribe' }}
-                </button>
-                <button class="s-btn" @click="copyTaskLink">
-                   <i class="fa-solid fa-link"></i> 
-                   Copy link
-                </button>
-                <el-dropdown trigger="click" @command="handleTaskMenuCommand">
-                  <button class="s-btn s-btn-icon" title="More actions">
-                     <i class="fa-solid fa-ellipsis"></i>
-                  </button>
-                  <template #dropdown>
-                    <el-dropdown-menu class="theme-dropdown">
-                      <el-dropdown-item command="copy"><i class="fa-solid fa-link mr-2"></i> Copy link</el-dropdown-item>
-                      <el-dropdown-item command="duplicate"><i class="fa-regular fa-clone mr-2"></i> Duplicate</el-dropdown-item>
-                      <el-dropdown-item command="archive"><i class="fa-solid fa-box-archive mr-2"></i> Archive soon</el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-             </div>
-         </div>
+         <TaskHeader 
+            :can-go-back="canGoBack" 
+            :is-subscribed="isSubscribed" 
+            @back="emit('back')" 
+            @close="showTaskModal = false" 
+            @toggle-subscription="toggleSubscription" 
+            @copy-link="copyTaskLink" 
+            @menu-command="handleTaskMenuCommand" 
+         />
          
          <div class="sp-body">
             <!-- Header Title -->
@@ -325,19 +304,19 @@
                     <button v-for="color in backgroundColors" :key="'bg-' + color" :style="{ background: color }" @click="applyBackgroundColor(color)"></button>
                   </div>
                 </div>
-                <i class="fa-solid fa-align-left icon-hover" @mousedown.prevent="execEditorCommand('justifyLeft', null, 'description')"></i>
-                <i class="fa-solid fa-align-center icon-hover" @mousedown.prevent="execEditorCommand('justifyCenter', null, 'description')"></i>
-                <i class="fa-solid fa-align-right icon-hover" @mousedown.prevent="execEditorCommand('justifyRight', null, 'description')"></i>
+                <AlignLeft class="w-4 h-4 icon-hover" />
+                <AlignCenter class="w-4 h-4 icon-hover" />
+                <AlignRight class="w-4 h-4 icon-hover" />
                 <div class="toolbar-sep"></div>
-                <i class="fa-solid fa-bold icon-hover" @mousedown.prevent="execEditorCommand('bold', null, 'description')"></i>
-                <i class="fa-solid fa-italic icon-hover" @mousedown.prevent="execEditorCommand('italic', null, 'description')"></i>
-                <i class="fa-solid fa-underline icon-hover" @mousedown.prevent="execEditorCommand('underline', null, 'description')"></i>
-                <i class="fa-solid fa-strikethrough icon-hover" @mousedown.prevent="execEditorCommand('strikeThrough', null, 'description')"></i>
-                <i class="fa-solid fa-list-ul icon-hover" @mousedown.prevent="execEditorCommand('insertUnorderedList', null, 'description')"></i>
-                <i class="fa-solid fa-list-ol icon-hover" @mousedown.prevent="execEditorCommand('insertOrderedList', null, 'description')"></i>
-                <i class="fa-solid fa-file-code icon-hover" :class="{ 'is-active': codeMode.description }" @mousedown.prevent="toggleCodeBlockMode('description')"></i>
+                <Bold class="w-4 h-4 icon-hover" />
+                <Italic class="w-4 h-4 icon-hover" />
+                <Underline class="w-4 h-4 icon-hover" />
+                <Strikethrough class="w-4 h-4 icon-hover" />
+                <List class="w-4 h-4 icon-hover" />
+                <ListOrdered class="w-4 h-4 icon-hover" />
+                <Code class="w-4 h-4 icon-hover" />
                 <div class="toolbar-sep"></div>
-                <i class="fa-regular fa-image icon-hover" @mousedown.prevent="triggerDescriptionImageUpload"></i>
+                <Image class="w-4 h-4 icon-hover" />
               </div>
               <div
                 ref="descriptionEditor"
@@ -358,21 +337,21 @@
             </div>
             
             <div class="sp-sub-actions">
-               <i class="fa-regular fa-face-smile icon-btn" style="font-size: 16px;"></i>
+               <Smile class="w-4 h-4 icon-btn" />
                <div class="sp-edit-info">
-                  <i class="fa-solid fa-clock-rotate-left"></i> Last edited by <b>{{ lastEditedBy }}</b> {{ lastEditedRelative }}
+                  <History class="w-4 h-4 " /> Last edited by <b>{{ lastEditedBy }}</b> {{ lastEditedRelative }}
                 </div>
             </div>
 
             <!-- Action Chips -->
              <div class="sp-toolbar">
-                <button class="s-btn" @click="startCreateSubtask"><i class="fa-solid fa-layer-group"></i> Add sub-work item</button>
+                <button class="s-btn" @click="startCreateSubtask"><Layers class="w-4 h-4 " /> Add sub-work item</button>
                 <button class="s-btn s-btn-primary" :disabled="isAiBreakingDown" @click="createSubtasksWithAI">
-                  <i class="fa-solid fa-wand-magic-sparkles"></i>
+                  <Sparkles class="w-4 h-4 " />
                   {{ isAiBreakingDown ? 'AI is preparing...' : 'AI split into subtasks' }}
                 </button>
                 
-                <button class="s-btn" @click="triggerDescriptionFileUpload"><i class="fa-solid fa-paperclip"></i> Attach</button>
+                <button class="s-btn" @click="triggerDescriptionFileUpload"><Paperclip class="w-4 h-4 " /> Attach</button>
              </div>
             <div v-if="aiSubtaskPreview.length" class="ai-preview-panel">
               <div class="ai-preview-head">
@@ -429,7 +408,7 @@
                   <span class="subtask-title">{{ subtask.title }}</span>
                 </button>
                 <div class="subtask-controls" @click.stop>
-                  <el-dropdown trigger="click" @command="(cmd) => selectStatus({ name: cmd }, subtask)">
+                  <SprintaDropdown trigger="click" @command="(cmd) => selectStatus({ name: cmd }, subtask)">
                     <button class="subtask-chip" type="button">
                       <i :class="getStatusIcon(subtask.statusName)"></i>
                       <span>{{ getStatusLabel(subtask.statusName) }}</span>
@@ -442,28 +421,28 @@
                         </el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
-                  </el-dropdown>
+                  </SprintaDropdown>
 
-                  <el-dropdown trigger="click" @command="(cmd) => selectPriority(cmd, subtask)">
+                  <SprintaDropdown trigger="click" @command="(cmd) => selectPriority(cmd, subtask)">
                     <button class="subtask-chip" type="button">
                       <i :class="getPrioIcon(subtask.priority)"></i>
                       <span>{{ getPrioLabel(subtask.priority) }}</span>
                     </button>
                     <template #dropdown>
                       <el-dropdown-menu class="theme-dropdown">
-                        <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: var(--color-danger)"></i> Urgent</el-dropdown-item>
-                        <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: var(--color-warning)"></i> High</el-dropdown-item>
-                        <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: var(--color-accent)"></i> Medium</el-dropdown-item>
-                        <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: var(--color-text-muted)"></i> Low</el-dropdown-item>
-                        <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-muted"></i> None</el-dropdown-item>
+                        <el-dropdown-item :command="1"><ChevronsUp class="w-4 h-4 mr-2" /> Urgent</el-dropdown-item>
+                        <el-dropdown-item :command="2"><ChevronUp class="w-4 h-4 mr-2" /> High</el-dropdown-item>
+                        <el-dropdown-item :command="3"><Minus class="w-4 h-4 mr-2" /> Medium</el-dropdown-item>
+                        <el-dropdown-item :command="4"><ArrowDown class="w-4 h-4 mr-2" /> Low</el-dropdown-item>
+                        <el-dropdown-item :command="0"><Ban class="w-4 h-4 mr-2 text-muted" /> None</el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
-                  </el-dropdown>
+                  </SprintaDropdown>
 
                   <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="240" @show="assigneeSearch = ''">
                     <template #reference>
                       <button class="subtask-chip" type="button">
-                        <i class="fa-regular fa-user"></i>
+                        <User class="w-4 h-4 " />
                         <span>{{ getAssigneeSummary(subtask) }}</span>
                       </button>
                     </template>
@@ -500,7 +479,7 @@
             <h3 class="sp-section-title">Properties</h3>
             <div class="props-grid">
                 <div class="p-row">
-                  <div class="p-label"><i class="fa-regular fa-circle-dot"></i> State</div>
+                  <div class="p-label"><CircleDot class="w-4 h-4 " /> State</div>
                   <div class="p-val">
                     <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="260" @show="statusSearch = ''">
                       <template #reference>
@@ -524,7 +503,7 @@
                   </div>
                 </div>
                 <div class="p-row">
-                  <div class="p-label"><i class="fa-solid fa-percent"></i> Progress</div>
+                  <div class="p-label"><Percent class="w-4 h-4 " /> Progress</div>
                   <div class="p-val">
                     <div class="task-progress-editor">
                       <input
@@ -545,12 +524,12 @@
                   </div>
                 </div>
                 <div class="p-row">
-                  <div class="p-label"><i class="fa-regular fa-user"></i> Assignees</div>
+                  <div class="p-label"><User class="w-4 h-4 " /> Assignees</div>
                   <div class="p-val">
                     <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="260" :disabled="!canManageTaskAssignees" @show="assigneeSearch = ''">
                       <template #reference>
                         <button class="property-trigger" :class="{ 'muted-val': !getAssigneeIds().length }" :disabled="!canManageTaskAssignees">
-                          <i class="fa-regular fa-user"></i>
+                          <User class="w-4 h-4 " />
                           <span>Assignees</span>
                           <span class="property-value">{{ getAssigneeSummary() }}</span>
                         </button>
@@ -567,7 +546,7 @@
                       </div>
                     </el-popover>
                     <button v-if="canUseAiAssigneeSuggestion" class="property-trigger estimate-suggestion-btn ai-estimate-btn mt-2" :disabled="isAiSuggestingAssignees" @click="suggestAssigneesWithAI()">
-                      <i class="fa-solid fa-user-group"></i>
+                      <Users class="w-4 h-4 " />
                       <span>{{ isAiSuggestingAssignees ? 'AI is matching...' : 'AI suggest assignees' }}</span>
                     </button>
                     <div v-if="canUseAiAssigneeSuggestion && aiAssigneeSuggestion" class="estimate-breakdown ai-suggestion-panel ai-assignee-panel">
@@ -601,11 +580,11 @@
                   </div>
                 </div>
                 <div v-if="isRoleVisibilityEnabled" class="p-row">
-                  <div class="p-label"><i class="fa-solid fa-eye"></i> Visibility</div>
+                  <div class="p-label"><Eye class="w-4 h-4 " /> Visibility</div>
                   <div class="p-val">
-                    <el-dropdown trigger="click" @command="(cmd) => selectVisibilityMode(cmd)">
+                    <SprintaDropdown trigger="click" @command="(cmd) => selectVisibilityMode(cmd)">
                       <div class="property-trigger" :class="{ 'muted-val': !selectedTask?.visibilityMode }">
-                        <i class="fa-solid fa-eye"></i>
+                        <Eye class="w-4 h-4 " />
                         <span>Visibility</span>
                         <span class="property-value">{{ getVisibilityLabel(selectedTask) }}</span>
                       </div>
@@ -616,7 +595,7 @@
                           <el-dropdown-item command="role">Role scoped</el-dropdown-item>
                         </el-dropdown-menu>
                       </template>
-                    </el-dropdown>
+                    </SprintaDropdown>
                     <div v-if="selectedTask?.visibilityMode === 'role'" class="estimate-breakdown mt-2">
                       <div class="estimate-breakdown-row">
                         <span>Visible roles</span>
@@ -638,20 +617,20 @@
                   </div>
                 </div>
                <div class="p-row">
-                 <div class="p-label"><i class="fa-solid fa-chart-simple"></i> Priority</div>
+                 <div class="p-label"><BarChart class="w-4 h-4 " /> Priority</div>
                  <div class="p-val">
-                   <el-dropdown  trigger="click" @command="(cmd) => selectPriority(cmd)">
+                   <SprintaDropdown  trigger="click" @command="(cmd) => selectPriority(cmd)">
                      <div class="property-trigger" :class="{ 'muted-val': !selectedTask?.priority }"><i :class="getPrioIcon(selectedTask?.priority)"></i><span>Priority</span><span class="property-value">{{ getPrioLabel(selectedTask?.priority) }}</span></div>
                      <template #dropdown>
                        <el-dropdown-menu class="theme-dropdown">
-                         <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: var(--color-danger)"></i> Urgent</el-dropdown-item>
-                         <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: var(--color-warning)"></i> High</el-dropdown-item>
-                         <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: var(--color-accent)"></i> Medium</el-dropdown-item>
-                         <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: var(--color-text-muted)"></i> Low</el-dropdown-item>
-                         <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-muted"></i> None</el-dropdown-item>
+                         <el-dropdown-item :command="1"><ChevronsUp class="w-4 h-4 mr-2" /> Urgent</el-dropdown-item>
+                         <el-dropdown-item :command="2"><ChevronUp class="w-4 h-4 mr-2" /> High</el-dropdown-item>
+                         <el-dropdown-item :command="3"><Minus class="w-4 h-4 mr-2" /> Medium</el-dropdown-item>
+                         <el-dropdown-item :command="4"><ArrowDown class="w-4 h-4 mr-2" /> Low</el-dropdown-item>
+                         <el-dropdown-item :command="0"><Ban class="w-4 h-4 mr-2 text-muted" /> None</el-dropdown-item>
                        </el-dropdown-menu>
                      </template>
-                   </el-dropdown>
+                   </SprintaDropdown>
                  </div>
                </div>
                <div class="p-row">
@@ -672,18 +651,18 @@
                  </div>
                </div>
                <div class="p-row">
-                 <div class="p-label"><i class="fa-regular fa-circle-user"></i> Created by</div>
+                 <div class="p-label"><UserCircle class="w-4 h-4 " /> Created by</div>
                  <div class="p-val flex items-center gap-2">
                     <div class="avatar-xxs bg-green-700 rounded-full w-5 h-5 flex-center text-white text-[10px]">{{ getCreatorName(selectedTask)[0]?.toUpperCase() || 'U' }}</div>
                     <span class="text-[13px] font-medium">{{ getCreatorName(selectedTask) }}</span>
                  </div>
                </div>
                <div class="p-row">
-                 <div class="p-label"><i class="fa-regular fa-calendar"></i> Start date</div>
+                 <div class="p-label"><Calendar class="w-4 h-4 " /> Start date</div>
                  <div class="p-val">
                    <div style="position: relative; display: inline-flex;">
                      <button class="property-trigger" :class="{ 'muted-val': !selectedTask?.plannedStartDate }" @click="openPicker('detail_start')">
-                       <i class="fa-regular fa-calendar"></i>
+                       <Calendar class="w-4 h-4 " />
                        <span>Start date</span>
                        <span class="property-value">{{ selectedTask?.plannedStartDate || 'Add start date' }}</span>
                      </button>
@@ -701,11 +680,11 @@
                  </div>
                </div>
                <div class="p-row">
-                 <div class="p-label"><i class="fa-regular fa-calendar-check"></i> Due date</div>
+                 <div class="p-label"><Calendar class="w-4 h-4 -check" /> Due date</div>
                  <div class="p-val">
                    <div style="position: relative; display: inline-flex;">
                      <button class="property-trigger" :class="{ 'muted-val': !selectedTask?.dueDate }" @click="openPicker('detail_due')">
-                       <i class="fa-regular fa-calendar-check"></i>
+                       <Calendar class="w-4 h-4 -check" />
                        <span>Due date</span>
                        <span class="property-value">{{ selectedTask?.dueDate || 'Add due date' }}</span>
                      </button>
@@ -723,7 +702,7 @@
                  </div>
                </div>
                <div class="p-row">
-                 <div class="p-label"><i class="fa-regular fa-hourglass-half"></i> Estimate</div>
+                 <div class="p-label"><Hourglass class="w-4 h-4 " /> Estimate</div>
                  <div class="p-val estimate-property">
                    <div class="estimate-editor">
                      <input
@@ -844,7 +823,7 @@
                      </div>
                    </div>
                    <button class="property-trigger estimate-suggestion-btn" @click="applySuggestedEstimate()">
-                     <i class="fa-solid fa-wand-magic-sparkles"></i>
+                     <Sparkles class="w-4 h-4 " />
                      <span>Use suggestion</span>
                      <span class="property-value">{{ suggestedEstimateHours }}h</span>
                    </button>
@@ -876,12 +855,12 @@
                  </div>
                </div>
                <div class="p-row">
-                 <div class="p-label"><i class="fa-solid fa-cube"></i> Modules</div>
+                 <div class="p-label"><Box class="w-4 h-4 " /> Modules</div>
                  <div class="p-val">
                    <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="280" @show="moduleSearch = ''">
                      <template #reference>
                        <button class="property-trigger" :class="{ 'muted-val': !selectedTask?.moduleId }">
-                         <i class="fa-solid fa-cube"></i>
+                         <Box class="w-4 h-4 " />
                          <span>Module</span>
                          <span class="property-value">{{ getModuleLabel(selectedTask?.moduleId) }}</span>
                        </button>
@@ -890,12 +869,12 @@
                        <input v-model="moduleSearch" type="text" class="popover-search" placeholder="Search modules..." />
                        <div class="popover-list">
                          <div class="popover-item" @click="updateTaskField(selectedTask, 'moduleId', null); selectedTask.moduleId = null">
-                           <i class="fa-solid fa-cube mr-2"></i>
+                           <Box class="w-4 h-4 mr-2" />
                            <span>No module</span>
                            <i v-if="!selectedTask?.moduleId" class="fa-solid fa-check ms-auto"></i>
                          </div>
                          <div class="popover-item" v-for="module in filteredModules" :key="module.id" @click="updateTaskField(selectedTask, 'moduleId', module.id); selectedTask.moduleId = module.id">
-                           <i class="fa-solid fa-box mr-2 text-orange-500"></i>
+                           <Box class="w-4 h-4 mr-2 text-orange-500" />
                            <span>{{ module.name }}</span>
                            <i v-if="selectedTask?.moduleId === module.id" class="fa-solid fa-check ms-auto"></i>
                          </div>
@@ -905,12 +884,12 @@
                  </div>
                </div>
                <div class="p-row">
-                  <div class="p-label"><i class="fa-solid fa-circle-half-stroke"></i> Cycle</div>
+                  <div class="p-label"><CircleDashed class="w-4 h-4 " /> Cycle</div>
                   <div class="p-val">
                     <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="280" @show="cycleSearch = ''">
                       <template #reference>
                         <button class="property-trigger" :class="{ 'muted-val': !selectedTask?.sprintId }">
-                          <i class="fa-solid fa-circle-half-stroke"></i>
+                          <CircleDashed class="w-4 h-4 " />
                           <span>Cycle</span>
                           <span class="property-value">{{ getCycleLabel(selectedTask?.sprintId) }}</span>
                         </button>
@@ -919,12 +898,12 @@
                         <input v-model="cycleSearch" type="text" class="popover-search" placeholder="Search cycles..." />
                         <div class="popover-list">
                           <div class="popover-item" @click="updateTaskField(selectedTask, 'sprintId', null); selectedTask.sprintId = null">
-                            <i class="fa-solid fa-circle-half-stroke mr-2"></i>
+                            <CircleDashed class="w-4 h-4 mr-2" />
                             <span>No cycle</span>
                             <i v-if="!selectedTask?.sprintId" class="fa-solid fa-check ms-auto"></i>
                           </div>
                           <div class="popover-item" v-for="cycle in filteredCycles" :key="cycle.id" @click="updateTaskField(selectedTask, 'sprintId', cycle.id); selectedTask.sprintId = cycle.id">
-                            <i class="fa-solid fa-certificate mr-2 text-blue-500"></i>
+                            <Award class="w-4 h-4 mr-2 text-blue-500" />
                             <span>{{ cycle.name }}</span>
                             <i v-if="selectedTask?.sprintId === cycle.id" class="fa-solid fa-check ms-auto"></i>
                           </div>
@@ -934,12 +913,12 @@
                   </div>
                </div>
                <div class="p-row">
-                  <div class="p-label"><i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i> Parent</div>
+                  <div class="p-label"><CornerDownRight class="w-4 h-4 " /> Parent</div>
                   <div class="p-val">
                     <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="340" @show="parentSearch = ''">
                       <template #reference>
                         <button class="property-trigger" :class="{ 'muted-val': !currentParentId }">
-                          <i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i>
+                          <CornerDownRight class="w-4 h-4 " />
                           <span>Parent</span>
                           <span class="property-value">{{ currentParentLabel }}</span>
                         </button>
@@ -948,7 +927,7 @@
                         <input v-model="parentSearch" type="text" class="popover-search" placeholder="Search parent task..." />
                         <div class="popover-list">
                           <div class="popover-item" @click="setTaskParent(selectedTask, null)">
-                            <i class="fa-solid fa-ban mr-2"></i>
+                            <Ban class="w-4 h-4 mr-2" />
                             <span>No parent</span>
                             <i v-if="!currentParentId" class="fa-solid fa-check ms-auto"></i>
                           </div>
@@ -963,12 +942,12 @@
                   </div>
                </div>
                <div class="p-row">
-                  <div class="p-label"><i class="fa-solid fa-tags"></i> Labels</div>
+                  <div class="p-label"><Tag class="w-4 h-4 s" /> Labels</div>
                   <div class="p-val flex flex-wrap gap-2 items-center">
                      <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="280" @show="labelSearch = ''">
                        <template #reference>
                          <button class="property-trigger" :class="{ 'muted-val': !(selectedTask?.labelIds || []).length }">
-                           <i class="fa-solid fa-tags"></i>
+                           <Tag class="w-4 h-4 s" />
                            <span>Labels</span>
                            <span class="property-value">{{ getLabelsSummary(selectedTask?.labelIds || []) }}</span>
                          </button>
@@ -982,7 +961,7 @@
                              <i v-if="(selectedTask?.labelIds || []).includes(label.id)" class="fa-solid fa-check ms-auto"></i>
                            </div>
                            <div class="popover-item" v-if="filteredLabels.length === 0 && labelSearch" @click="createLabelDetail(labelSearch)">
-                             <i class="fa-solid fa-plus mr-2"></i>
+                             <Plus class="w-4 h-4 mr-2" />
                              <span>Add "{{ labelSearch }}"</span>
                            </div>
                          </div>
@@ -995,8 +974,8 @@
             <div class="flex-between mb-6" style="margin-top: 56px;">
                <h3 class="sp-section-title mb-0">Activity</h3>
                <div class="flex-center gap-2">
-                  <button class="icon-filter-btn" @click="toggleActivitySort" :title="activitySortNewestFirst ? 'Newest first' : 'Oldest first'"><i class="fa-solid fa-arrow-down-short-wide"></i></button>
-                  <button class="icon-filter-btn" @click="showActivityFilterInfo"><i class="fa-solid fa-bars-staggered"></i></button>
+                  <button class="icon-filter-btn" @click="toggleActivitySort" :title="activitySortNewestFirst ? 'Newest first' : 'Oldest first'"><ArrowDownAZ class="w-4 h-4 " /></button>
+                  <button class="icon-filter-btn" @click="showActivityFilterInfo"><Menu class="w-4 h-4 " /></button>
                </div>
             </div>
 
@@ -1008,7 +987,7 @@
 
                <div v-for="entry in activityEntries" :key="entry.id" class="feed-item group">
                  <template v-if="entry.type === 'audit'">
-                   <div class="feed-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                   <div class="feed-icon"><History class="w-4 h-4 " /></div>
                    <div class="feed-content w-full">
                      <div class="feed-text">
                        <b>{{ entry.user || 'System' }}</b> {{ entry.summary }}
@@ -1029,11 +1008,11 @@
                        <div class="hidden group-hover:flex items-center gap-1 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded p-0.5 shadow-lg absolute right-0 -top-2">
                           <el-popover  placement="bottom-end" trigger="click" popper-class="plane-popover dark !p-0" :width="320">
                              <template #reference>
-                                <i class="fa-regular fa-face-smile text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] cursor-pointer px-1.5 py-1 rounded hover:bg-[var(--color-surface-hover)]"></i>
+                                <Smile class="w-4 h-4 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] cursor-pointer px-1.5 py-1 rounded hover:bg-[var(--color-surface-hover)]" />
                              </template>
                              <div class="popover-content bg-[var(--bg-secondary)]">
                                 <div class="p-2 border-b border-[var(--border-color)] relative">
-                                  <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
+                                  <Search class="w-4 h-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
                                   <input type="text" v-model="emojiSearch" class="w-full bg-[var(--color-surface)] border border-[var(--border-color)] rounded text-[var(--color-text-primary)] py-1.5 pl-8 pr-2 text-xs focus:outline-none focus:border-blue-500" placeholder="Search..." />
                                 </div>
                                 <div class="p-2 text-xs font-semibold text-gray-400">Smileys & emotion</div>
@@ -1043,16 +1022,16 @@
                              </div>
                           </el-popover>
                           
-                          <el-dropdown  trigger="click" placement="bottom-end">
-                             <i class="fa-solid fa-ellipsis text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] cursor-pointer px-1.5 py-1 rounded hover:bg-[var(--color-surface-hover)]"></i>
+                          <SprintaDropdown  trigger="click" placement="bottom-end">
+                             <MoreHorizontal class="w-4 h-4 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] cursor-pointer px-1.5 py-1 rounded hover:bg-[var(--color-surface-hover)]" />
                              <template #dropdown>
                                <el-dropdown-menu class="dark-dropdown" style="width: 150px;">
-                                 <el-dropdown-item @click="startEditingComment(entry.comment)"><i class="fa-solid fa-pen mr-2"></i> Edit</el-dropdown-item>
-                                 <el-dropdown-item @click="copyCommentLink(entry.comment.id)"><i class="fa-solid fa-link mr-2"></i> Copy link</el-dropdown-item>
-                                 <el-dropdown-item @click="deleteComment(entry.comment.id)" style="color: #f87171 !important;"><i class="fa-regular fa-trash-can mr-2"></i> Delete</el-dropdown-item>
+                                 <el-dropdown-item @click="startEditingComment(entry.comment)"><Pen class="w-4 h-4 mr-2" /> Edit</el-dropdown-item>
+                                 <el-dropdown-item @click="copyCommentLink(entry.comment.id)"><Link class="w-4 h-4 mr-2" /> Copy link</el-dropdown-item>
+                                 <el-dropdown-item @click="deleteComment(entry.comment.id)" style="color: #f87171 !important;"><Trash2 class="w-4 h-4 mr-2" /> Delete</el-dropdown-item>
                                </el-dropdown-menu>
                              </template>
-                          </el-dropdown>
+                          </SprintaDropdown>
                        </div>
                     </div>
                     
@@ -1102,9 +1081,9 @@
                <div class="editor-wrap !pt-2">
                   <div v-if="pendingAttachments.length > 0" class="px-3 pb-2 flex flex-wrap gap-2">
                      <div v-for="(file, idx) in pendingAttachments" :key="idx" class="flex items-center gap-1.5 bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded px-2 py-1 text-xs text-[var(--color-text-secondary)]">
-                        <i class="fa-regular fa-file-lines text-[var(--color-text-muted)]"></i>
+                        <FileText class="w-4 h-4 text-[var(--color-text-muted)]" />
                         <span class="max-w-[150px] truncate">{{ file.name }}</span>
-                        <i class="fa-solid fa-xmark ml-1 cursor-pointer hover:text-red-400" @click="pendingAttachments.splice(idx, 1)"></i>
+                        <X class="w-4 h-4 ml-1 cursor-pointer hover:text-red-400" />
                      </div>
                   </div>
                   <div
@@ -1121,28 +1100,28 @@
                   <div class="c-toolbar">
                      <div class="ct-left">
                        <!-- Group 1: Text -->
-                       <i class="fa-solid fa-bold icon-hover" @mousedown.prevent="execEditorCommand('bold', null, 'comment')"></i> 
-                       <i class="fa-solid fa-italic icon-hover" @mousedown.prevent="execEditorCommand('italic', null, 'comment')"></i> 
-                       <i class="fa-solid fa-underline icon-hover" @mousedown.prevent="execEditorCommand('underline', null, 'comment')"></i> 
-                       <i class="fa-solid fa-strikethrough icon-hover" @mousedown.prevent="execEditorCommand('strikeThrough', null, 'comment')"></i>
+                       <Bold class="w-4 h-4 icon-hover" /> 
+                       <Italic class="w-4 h-4 icon-hover" /> 
+                       <Underline class="w-4 h-4 icon-hover" /> 
+                       <Strikethrough class="w-4 h-4 icon-hover" />
                        
                        <div class="toolbar-sep"></div>
                        
                        <!-- Group 2: Code -->
-                       <i class="fa-solid fa-code icon-hover" @mousedown.prevent="wrapSelectionWithInlineCode('comment')"></i>
-                       <i class="fa-solid fa-file-code icon-hover" :class="{ 'is-active': codeMode.comment }" @mousedown.prevent="toggleCodeBlockMode('comment')"></i>
+                       <Code2 class="w-4 h-4 icon-hover" />
+                       <Code class="w-4 h-4 icon-hover" />
                        
                        <div class="toolbar-sep"></div>
                        
                        <!-- Group 3: List -->
-                       <i class="fa-solid fa-list-ul icon-hover" @mousedown.prevent="execEditorCommand('insertUnorderedList', null, 'comment')"></i> 
-                       <i class="fa-solid fa-list-ol icon-hover" @mousedown.prevent="execEditorCommand('insertOrderedList', null, 'comment')"></i> 
+                       <List class="w-4 h-4 icon-hover" /> 
+                       <ListOrdered class="w-4 h-4 icon-hover" /> 
                        
                        <div class="toolbar-sep"></div>
                        
                        <!-- Group 4: Insert -->
-                       <i class="fa-regular fa-image icon-hover" @mousedown.prevent="triggerCommentImageUpload"></i> 
-                       <i class="fa-solid fa-paperclip icon-hover" @mousedown.prevent="triggerCommentFileUpload"></i>
+                       <Image class="w-4 h-4 icon-hover" /> 
+                       <Paperclip class="w-4 h-4 icon-hover" />
                      </div>
                      <button class="c-submit" :disabled="!commentHasContent" @click="submitComment">Comment</button>
                   </div>
@@ -1156,18 +1135,18 @@
 
   <div v-if="previewImage" class="image-lightbox" @click.self="previewImage = null">
     <div class="image-lightbox-panel">
-      <button class="lightbox-close" @click="previewImage = null"><i class="fa-solid fa-xmark"></i></button>
+      <button class="lightbox-close" @click="previewImage = null"><X class="w-4 h-4 " /></button>
       <img :src="previewImage.url" :alt="previewImage.fileName" :style="{ transform: `scale(${previewZoom})` }" />
       <div class="lightbox-footer">
         <span>{{ previewImage.fileName }}</span>
         <div class="lightbox-actions">
           <label class="zoom-control">
-            <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
+            <Maximize class="w-4 h-4 " />
             <input v-model="previewZoom" type="range" min="1" max="3" step="0.1" />
           </label>
-          <button class="lightbox-delete" @click="removePreviewAttachment"><i class="fa-regular fa-trash-can"></i> Delete</button>
+          <button class="lightbox-delete" @click="removePreviewAttachment"><Trash2 class="w-4 h-4 " /> Delete</button>
           <a :href="previewImage.url" :download="previewImage.fileName" class="download-btn">
-            <i class="fa-solid fa-download"></i> Download
+            <Download class="w-4 h-4 " /> Download
           </a>
         </div>
       </div>
@@ -1178,6 +1157,7 @@
 
 <script setup>
 import { ref, watch, computed, nextTick, onMounted, onUnmounted } from 'vue';
+import TaskHeader from './task/TaskHeader.vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import axiosClient from '@/api/axiosClient';
 import DOMPurify from 'dompurify';
@@ -1492,21 +1472,21 @@ const getPrioLabel = (p) => {
 };
 
 const getPrioIcon = (p) => {
-    if (p===1) return 'fa-solid fa-angles-up';
-    if (p===2) return 'fa-solid fa-chevron-up';
-    if (p===3) return 'fa-solid fa-minus';
-    if (p===4) return 'fa-solid fa-arrow-down';
-    return 'fa-solid fa-ban';
+    if (p===1) return 'lucide-chevrons-up';
+    if (p===2) return 'lucide-chevron-up';
+    if (p===3) return 'lucide-minus';
+    if (p===4) return 'lucide-arrow-down';
+    return 'lucide-ban';
 };
 
 const getStatusIcon = (s) => {
     const st = (s||'').toUpperCase();
-    if(st.includes('CANCEL')) return 'fa-regular fa-circle-xmark';
-    if(st.includes('DONE')) return 'fa-regular fa-circle-check';
-    if(st.includes('PROGRESS')) return 'fa-solid fa-circle-half-stroke';
-    if(st.includes('REVIEW')) return 'fa-regular fa-circle-play';
-    if(st.includes('TODO')) return 'fa-regular fa-circle';
-    return 'fa-solid fa-circle-dashed';
+    if(st.includes('CANCEL')) return 'lucide-x-circle';
+    if(st.includes('DONE')) return 'lucide-check-circle-2';
+    if(st.includes('PROGRESS')) return 'lucide-circle-dashed';
+    if(st.includes('REVIEW')) return 'lucide-play-circle';
+    if(st.includes('TODO')) return 'lucide-circle';
+    return 'lucide-circle-dashed';
 };
 
 const getStatusLabel = (statusName) => statusName || 'State';

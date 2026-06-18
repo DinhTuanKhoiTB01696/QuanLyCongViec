@@ -9,7 +9,8 @@ namespace TaskManagement.Domain.Entities
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string Status { get; set; } = "On Track"; // On Track, At Risk, Off Track, Completed
-        public DateTime? DueDate { get; set; }
+        public DateTime? StartDate { get; set; } // Ngày bắt đầu
+        public DateTime? DueDate { get; set; } // Ngày kết thúc
         public int Progress { get; set; } = 0; // 0-100%
         public bool IsArchived { get; set; } = false;
         

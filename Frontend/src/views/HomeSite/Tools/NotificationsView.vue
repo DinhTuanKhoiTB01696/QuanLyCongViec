@@ -9,15 +9,15 @@
       <aside class="filters-sidebar">
         <div class="filter-group">
           <button class="filter-btn" :class="{ active: currentFilter === 'all' }" @click="currentFilter = 'all'">
-            <i class="fa-regular fa-square-check"></i>
+            <CheckSquare class="w-4 h-4"></CheckSquare>
             Tất cả
           </button>
           <button class="filter-btn" :class="{ active: currentFilter === 'direct' }" @click="currentFilter = 'direct'">
-            <i class="fa-regular fa-flag"></i>
+            <Flag class="w-4 h-4"></Flag>
             Trực tiếp
           </button>
           <button class="filter-btn" :class="{ active: currentFilter === 'watching' }" @click="currentFilter = 'watching'">
-            <i class="fa-regular fa-eye"></i>
+            <Eye class="w-4 h-4"></Eye>
             Đang theo dõi
           </button>
         </div>
@@ -25,11 +25,11 @@
         <div class="filter-section">
           <h3 class="section-title">ỨNG DỤNG</h3>
           <button class="filter-btn" :class="{ active: currentApp === 'all' }" @click="currentApp = 'all'">
-            <i class="fa-solid fa-layer-group"></i>
+            <Layers class="w-4 h-4"></Layers>
             Tất cả ứng dụng
           </button>
           <button class="filter-btn" :class="{ active: currentApp === 'sprinta' }" @click="currentApp = 'sprinta'">
-            <i class="fa-brands fa-jira" style="color: #0052CC;"></i>
+            <Trello class="w-4 h-4" style="color: #0052CC;"></Trello>
             SprintA
           </button>
         </div>
@@ -61,7 +61,7 @@
                 <strong>Anh Quan Ng Hoang</strong> changed a subtask from In Progress to Done <span class="notif-time">3 ngày trước</span>
               </div>
               <div class="notif-link">
-                <i class="fa-solid fa-code-branch text-blue"></i>
+                <GitBranch class="w-4 h-4 text-blue"></GitBranch>
                 <a href="#">Làm trang quản lý riêng cho space</a>
               </div>
               <div class="notif-meta">DTN-9 • Done</div>
@@ -80,7 +80,7 @@
                 <strong>Anh Quan Ng Hoang</strong> updated a task <span class="notif-time">4 ngày trước</span>
               </div>
               <div class="notif-link">
-                <i class="fa-solid fa-check-square text-blue"></i>
+                <Check class="w-4 h-4 text-blue"></Check>
                 <a href="#">Thiết Kế giao diện Trang Admin</a>
               </div>
               <div class="notif-meta">DTN-8 • In Progress</div>
@@ -99,7 +99,7 @@
                 <strong>Thịnh Phát Bùi</strong> replied to a comment <span class="notif-time">1 tuần trước</span>
               </div>
               <div class="notif-link">
-                <i class="fa-solid fa-comment text-blue"></i>
+                <MessageSquare class="w-4 h-4 text-blue"></MessageSquare>
                 <a href="#">ok, tôi sẽ kiểm tra lại phần này.</a>
               </div>
               <div class="notif-meta">DTN-7 • In Review</div>
@@ -113,7 +113,7 @@
 
           <div class="notification-item">
             <div class="notif-avatar blue-icon">
-              <i class="fa-solid fa-layer-group"></i>
+              <Layers class="w-4 h-4"></Layers>
             </div>
             <div class="notif-content">
               <div class="notif-header">
@@ -134,6 +134,7 @@
 </template>
 
 <script setup>
+import { CheckSquare, Flag, Eye, Layers, GitBranch, Check, MessageSquare, Trello } from 'lucide-vue-next';
 import { ref } from 'vue'
 
 const currentFilter = ref('all')

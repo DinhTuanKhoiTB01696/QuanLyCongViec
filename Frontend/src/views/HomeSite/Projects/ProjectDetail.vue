@@ -28,10 +28,10 @@
           
           <div class="header-actions">
             <span class="status-badge status-on-track">
-              ĐÚNG TIẾN ĐỘ <i class="fa-solid fa-chevron-down ms-1"></i>
+              ĐÚNG TIẾN ĐỘ <ChevronDown class="w-4 h-4 ms-1"></ChevronDown>
             </span>
             <div class="target-date-badge">
-              <i class="fa-regular fa-calendar"></i> 15 thg 6 <i class="fa-solid fa-chevron-down ms-1"></i>
+              <Calendar class="w-4 h-4"></Calendar> 15 thg 6 <ChevronDown class="w-4 h-4 ms-1"></ChevronDown>
             </div>
             <button class="secondary-btn">
               Đang theo dõi
@@ -40,7 +40,7 @@
               <i class="fa-solid fa-share-nodes"></i> Chia sẻ
             </button>
             <button class="icon-btn-header"><i class="fa-solid fa-link"></i></button>
-            <button class="icon-btn-header"><i class="fa-solid fa-ellipsis"></i></button>
+            <button class="icon-btn-header"><MoreHorizontal class="w-4 h-4"></MoreHorizontal></button>
           </div>
         </div>
       </div>
@@ -110,7 +110,7 @@
           <div class="timeline-visual">
             <div class="timeline-line"></div>
             <div class="timeline-node current">
-              <i class="fa-solid fa-user-group"></i>
+              <User class="w-4 h-4"></User>
               <span>Tuần này</span>
             </div>
           </div>
@@ -121,7 +121,7 @@
                 <label>Trạng thái hiện tại</label>
                 <div class="status-dropdown-wrapper">
                   <span class="status-badge status-on-track" @click="showStatusMenu = !showStatusMenu" style="cursor: pointer;">
-                    ĐÚNG TIẾN ĐỘ <i class="fa-solid fa-chevron-down ms-1"></i>
+                    ĐÚNG TIẾN ĐỘ <ChevronDown class="w-4 h-4 ms-1"></ChevronDown>
                   </span>
                   <!-- Mock Status Dropdown -->
                   <div class="status-dropdown-menu" v-if="showStatusMenu">
@@ -139,11 +139,11 @@
               <div class="editor-field">
                 <label>Ngày mục tiêu</label>
                 <div class="target-date-badge date-dropdown">
-                  <i class="fa-regular fa-calendar"></i> 15 thg 6 <i class="fa-solid fa-chevron-down ms-1"></i>
+                  <Calendar class="w-4 h-4"></Calendar> 15 thg 6 <ChevronDown class="w-4 h-4 ms-1"></ChevronDown>
                 </div>
               </div>
               <div class="editor-field template-link">
-                <span>Mẫu <i class="fa-solid fa-chevron-down ms-1"></i></span>
+                <span>Mẫu <ChevronDown class="w-4 h-4 ms-1"></ChevronDown></span>
               </div>
             </div>
             
@@ -154,14 +154,14 @@
             <div class="update-editor-footer">
               <div class="editor-tools">
                 <span class="tool-ai"><i class="fa-solid fa-wand-magic-sparkles"></i> Soạn thảo bằng Rovo</span>
-                <button class="tool-btn"><i class="fa-solid fa-plus"></i></button>
+                <button class="tool-btn"><Plus class="w-4 h-4"></Plus></button>
                 <button class="tool-btn"><i class="fa-solid fa-image"></i></button>
                 <button class="tool-btn"><i class="fa-solid fa-at"></i></button>
                 <button class="tool-btn"><i class="fa-solid fa-link"></i></button>
               </div>
               <div class="editor-actions">
                 <span class="char-count">0/280 <i class="fa-solid fa-circle-question"></i></span>
-                <button class="secondary-btn"><i class="fa-solid fa-users"></i> 1</button>
+                <button class="secondary-btn"><User class="w-4 h-4"></User> 1</button>
                 <button class="secondary-btn">Lưu bản nháp</button>
                 <button class="primary-btn">Đăng bản cập nhật</button>
               </div>
@@ -181,14 +181,14 @@
                   </div>
                 </div>
                 <div class="post-status-meta">
-                  <span class="status-badge status-on-track">ĐÚNG TIẾN ĐỘ</span> cho <div class="target-date-badge"><i class="fa-regular fa-calendar"></i> 15 thg 6</div>
+                  <span class="status-badge status-on-track">ĐÚNG TIẾN ĐỘ</span> cho <div class="target-date-badge"><Calendar class="w-4 h-4"></Calendar> 15 thg 6</div>
                 </div>
               </div>
               
               <div class="post-content">
                 <p>qr</p>
                 <div class="status-change-log">
-                  Đã thay đổi trạng thái <span class="status-badge status-pending mx-1">ĐANG CHỜ XỬ LÝ</span> <i class="fa-solid fa-arrow-right mx-1"></i> <span class="status-badge status-on-track mx-1">ĐÚNG TIẾN ĐỘ</span>
+                  Đã thay đổi trạng thái <span class="status-badge status-pending mx-1">ĐANG CHỜ XỬ LÝ</span> <ArrowRight class="w-4 h-4 mx-1"></ArrowRight> <span class="status-badge status-on-track mx-1">ĐÚNG TIẾN ĐỘ</span>
                 </div>
               </div>
               
@@ -198,8 +198,8 @@
                 <button class="reaction-btn">👏</button>
                 <button class="reaction-btn">🎉</button>
                 <button class="reaction-btn">❤️</button>
-                <button class="reaction-btn"><i class="fa-solid fa-ellipsis"></i></button>
-                <button class="reaction-btn"><i class="fa-solid fa-bullseye"></i></button>
+                <button class="reaction-btn"><MoreHorizontal class="w-4 h-4"></MoreHorizontal></button>
+                <button class="reaction-btn"><Target class="w-4 h-4"></Target></button>
               </div>
               
               <div class="comment-input-mockup mt-16">
@@ -259,7 +259,7 @@
         <template v-if="currentTab === 'decisions'">
           <div v-if="!editing.decisions && !project.decisions" class="empty-state-large-tab">
             <div class="empty-illustration">
-              <i class="fa-solid fa-code-branch" style="color: #0052CC; font-size: 64px;"></i>
+              <GitBranch class="w-4 h-4" style="color: #0052CC; font-size: 64px;"></GitBranch>
             </div>
             <div class="empty-text-content">
               <h4>Truyền đạt các quyết định lớn</h4>
@@ -295,7 +295,7 @@
           
           <!-- Người đóng góp -->
           <div class="detail-row">
-            <div class="detail-label">Người đóng góp <span class="badge-count">1</span> <button class="icon-btn-micro"><i class="fa-solid fa-plus"></i></button></div>
+            <div class="detail-label">Người đóng góp <span class="badge-count">1</span> <button class="icon-btn-micro"><Plus class="w-4 h-4"></Plus></button></div>
             <div class="detail-value">
               <div class="owner-chip">
                 <div class="owner-avatar-micro">T</div>
@@ -309,7 +309,7 @@
 
           <!-- Người theo dõi -->
           <div class="detail-row">
-            <div class="detail-label">Người theo dõi <button class="icon-btn-micro" @click="isShareModalOpen = true"><i class="fa-solid fa-plus"></i></button></div>
+            <div class="detail-label">Người theo dõi <button class="icon-btn-micro" @click="isShareModalOpen = true"><Plus class="w-4 h-4"></Plus></button></div>
             <div class="detail-value flex-between">
               <span class="empty-value" style="cursor: pointer;" @click="isShareModalOpen = true">Thêm người theo dõi</span>
               <div class="follower-icons">
@@ -321,13 +321,13 @@
 
           <!-- Đóng góp vào mục tiêu -->
           <div class="detail-row relative-popover-container">
-            <div class="detail-label">Đóng góp vào mục tiêu <button class="icon-btn-micro" @click.stop="togglePopover('goal')"><i class="fa-solid fa-plus"></i></button></div>
+            <div class="detail-label">Đóng góp vào mục tiêu <button class="icon-btn-micro" @click.stop="togglePopover('goal')"><Plus class="w-4 h-4"></Plus></button></div>
             
             <div class="detail-value" v-if="linkedGoals.length > 0">
               <div class="linked-item" v-for="g in linkedGoals" :key="g.id">
-                <i class="fa-solid fa-bullseye item-icon"></i>
+                <Target class="w-4 h-4 item-icon"></Target>
                 <span class="item-name">{{ g.name }}</span>
-                <button class="remove-btn" @click="removeGoal(g.id)"><i class="fa-solid fa-xmark"></i></button>
+                <button class="remove-btn" @click="removeGoal(g.id)"><X class="w-4 h-4"></X></button>
               </div>
             </div>
 
@@ -337,7 +337,7 @@
               <div class="popover-list-title">Mục tiêu gần đây</div>
               <div class="popover-list">
                 <div class="popover-item" v-for="g in mockGoalsList" :key="g.id" @click="addGoal(g)">
-                  <i class="fa-solid fa-bullseye item-icon-muted"></i>
+                  <Target class="w-4 h-4 item-icon-muted"></Target>
                   <div class="item-details">
                     <div class="item-name">{{ g.name }}</div>
                     <div class="item-meta">{{ g.owner }}</div>
@@ -349,19 +349,19 @@
 
           <!-- Các dự án liên quan -->
           <div class="detail-row relative-popover-container">
-            <div class="detail-label">Các dự án liên quan <button class="icon-btn-micro" @click.stop="togglePopover('project')"><i class="fa-solid fa-plus"></i></button></div>
+            <div class="detail-label">Các dự án liên quan <button class="icon-btn-micro" @click.stop="togglePopover('project')"><Plus class="w-4 h-4"></Plus></button></div>
             
             <div class="detail-value" v-if="linkedProjects.length > 0">
               <div class="linked-item" v-for="p in linkedProjects" :key="p.id">
                 <span class="item-icon">{{ p.icon }}</span>
                 <span class="item-name">{{ p.name }}</span>
-                <button class="remove-btn" @click="removeProject(p.id)"><i class="fa-solid fa-xmark"></i></button>
+                <button class="remove-btn" @click="removeProject(p.id)"><X class="w-4 h-4"></X></button>
               </div>
             </div>
 
             <!-- Project Popover -->
             <div class="custom-popover" v-if="popovers.project" @click.stop>
-              <div class="popover-select-mock">Dự án liên quan đến <i class="fa-solid fa-chevron-down ms-auto"></i></div>
+              <div class="popover-select-mock">Dự án liên quan đến <ChevronDown class="w-4 h-4 ms-auto"></ChevronDown></div>
               <input type="text" class="popover-search mt-2" placeholder="Tìm kiếm dự án" v-model="searchQueries.project" />
               <div class="popover-list mt-2">
                 <div class="popover-item" v-for="p in mockProjectsList" :key="p.id" @click="addProject(p)">
@@ -374,13 +374,13 @@
 
           <!-- Công việc được theo dõi ở đâu? -->
           <div class="detail-row relative-popover-container">
-            <div class="detail-label">Công việc được theo dõi ở đâu? <button class="icon-btn-micro" @click.stop="togglePopover('tracked')"><i class="fa-solid fa-plus"></i></button></div>
+            <div class="detail-label">Công việc được theo dõi ở đâu? <button class="icon-btn-micro" @click.stop="togglePopover('tracked')"><Plus class="w-4 h-4"></Plus></button></div>
             
             <div class="detail-value" v-if="linkedTrackedUrl">
               <div class="linked-item">
                 <i class="fa-solid fa-link item-icon"></i>
                 <a :href="linkedTrackedUrl" target="_blank" class="item-name truncate">{{ linkedTrackedUrl }}</a>
-                <button class="remove-btn" @click="linkedTrackedUrl = ''"><i class="fa-solid fa-xmark"></i></button>
+                <button class="remove-btn" @click="linkedTrackedUrl = ''"><X class="w-4 h-4"></X></button>
               </div>
             </div>
 
@@ -399,13 +399,13 @@
 
           <!-- Liên kết -->
           <div class="detail-row relative-popover-container">
-            <div class="detail-label">Liên kết <button class="icon-btn-micro" @click.stop="togglePopover('link')"><i class="fa-solid fa-plus"></i></button></div>
+            <div class="detail-label">Liên kết <button class="icon-btn-micro" @click.stop="togglePopover('link')"><Plus class="w-4 h-4"></Plus></button></div>
             
             <div class="detail-value" v-if="linkedTasks.length > 0">
               <div class="linked-item" v-for="l in linkedTasks" :key="l.id">
-                <i class="fa-solid fa-file-lines item-icon text-blue"></i>
+                <FileText class="w-4 h-4 item-icon text-blue"></FileText>
                 <span class="item-name">{{ l.name }}</span>
-                <button class="remove-btn" @click="removeTask(l.id)"><i class="fa-solid fa-xmark"></i></button>
+                <button class="remove-btn" @click="removeTask(l.id)"><X class="w-4 h-4"></X></button>
               </div>
             </div>
 
@@ -414,7 +414,7 @@
               <input type="text" class="popover-search" placeholder="Dán liên kết hoặc tìm nội dung vừa xem" v-model="searchQueries.link" />
               <div class="popover-list mt-2">
                 <div class="popover-item" v-for="l in mockLinksList" :key="l.id" @click="addTask(l)">
-                  <i class="fa-solid fa-file-lines item-icon-muted text-blue"></i>
+                  <FileText class="w-4 h-4 item-icon-muted text-blue"></FileText>
                   <div class="item-name">{{ l.name }}</div>
                 </div>
               </div>
@@ -441,6 +441,7 @@
 </template>
 
 <script setup>
+import { ChevronDown, Calendar, MoreHorizontal, User, Plus, ArrowRight, Target, GitBranch, X, FileText } from 'lucide-vue-next';
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useHomeProjectStore } from '@/store/useHomeProjectStore'
