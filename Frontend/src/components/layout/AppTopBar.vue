@@ -4,7 +4,7 @@
       <div class="app-launcher-icon">
         <Grip class="w-5 h-5" />
       </div>
-      
+
       <div class="sprinta-logo" @click="router.push('/site-selection')">
         <img src="@/assets/logo_QLCV.png" alt="SprintA Logo" class="sprinta-logo-img" />
         <span class="logo-text">SprintA</span>
@@ -52,7 +52,7 @@
       <button class="icon-btn" @click="goToNotifications" v-else>
         <Bell class="w-4 h-4" />
       </button>
-      
+
       <button class="icon-btn" @click="toggleTheme()" :title="currentTheme === 'dark' ? 'Light mode' : 'Dark mode'">
         <Sun v-if="currentTheme === 'dark'" class="w-4 h-4" />
         <Moon v-else class="w-4 h-4" />
@@ -178,13 +178,13 @@ const openSearchResult = (result) => {
   searchAbortController?.abort()
   searchResults.value = []
   searchQuery.value = ''
-  
+
   if (isHomeContext.value) {
     // Navigate logic pending global search API implementation
     console.log('Global search item clicked:', result)
     return
   }
-  
+
   router.push(`/space/${result.projectId}?task=${result.id}`)
 }
 
@@ -441,6 +441,7 @@ onUnmounted(() => {
   color: var(--color-text-primary);
 }
 
+
 .search-icon { 
   color: var(--brand-text-light); 
   margin-right: 8px; 
@@ -453,6 +454,20 @@ onUnmounted(() => {
   font-size: 14px; 
   width: 100%; 
   outline: none; 
+.search-icon {
+  color: #DEEBFF;
+  font-size: 13px;
+  margin-right: 8px;
+}
+
+.search-input-wrapper input {
+  background: transparent;
+  border: none;
+  color: #DEEBFF;
+  font-size: 14px;
+  width: 100%;
+  outline: none;
+
 }
 
 .search-dropdown {

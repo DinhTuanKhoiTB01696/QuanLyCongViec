@@ -55,3 +55,24 @@ nunit-*.xml
 
 **/appsettings.Development.json
 node_modules/
+
+# Local SDK/runtime caches accidentally created inside the repo
+.dotnet/
+.dotnet-home/
+
+# Frontend build output
+Frontend/dist/
+
+# Backend publish/build artifacts
+**/publish_output/
+
+# Temporary analysis/extraction artifacts
+backend_tree.txt
+frontend_tree.txt
+pdf_extracted.txt
+temp_pdf.txt
+temp_spec_pdf.txt
+parse_pdf.js
+scratch/
+temp_pdf/
+*.lnk

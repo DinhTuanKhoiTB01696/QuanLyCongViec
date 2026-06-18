@@ -17,6 +17,7 @@
           <img :src="logoImg" alt="SprintA Logo" class="brand-logo" />
           <span class="brand-text">SprintA</span>
         </router-link>
+
       </div>
 
       <main class="auth-card">
@@ -44,11 +45,43 @@
           </div>
         </form>
 
+        <div class="nav-actions">
+          <router-link class="nav-link" to="/login">{{ t('auth.nav.login') }}</router-link>
+          <router-link class="nav-primary" to="/register">{{ t('auth.nav.register') }}</router-link>
+        </div>
+      </div>
+    </header>
+
+    <main class="auth-container">
+      <section class="auth-card">
+        <h1 class="auth-title">{{ requires2FA ? t('auth.otp.title') : t('auth.login.title') }}</h1>
+        <p class="auth-subtitle">
+          {{ requires2FA
+            ? t('auth.otp.subtitle')
+            : t('auth.login.subtitle') }}
+        </p>
+
+        <el-form v-if="requires2FA" class="auth-form" @submit.prevent="handleLogin2FA" label-position="top">
+          <el-form-item :label="t('auth.otp.codeLabel')">
+            <el-input v-model="otpCode" :placeholder="t('auth.otp.codePlaceholder')" size="large" />
+          </el-form-item>
+
+          <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">
+            {{ t('auth.otp.verify') }}
+          </el-button>
+
+          <p class="auth-footer-text">
+            {{ t('auth.otp.backPrompt') }} <button type="button" class="link-btn" @click="requires2FA = false">{{ t('auth.otp.backLink') }}</button>
+          </p>
+        </el-form>
+
+
         <form v-else class="auth-form" @submit.prevent="handleLogin">
           <div class="form-group mb-5">
             <label class="form-label">EMAIL</label>
             <SprintaInput v-model="form.email" type="email" placeholder="Nhập email của bạn" size="large" required class="premium-input" />
           </div>
+
 
           <div class="form-group mb-5">
             <div class="label-row">
@@ -56,6 +89,10 @@
               <a href="#" class="link-btn forgot-link">Quên mật khẩu?</a>
             </div>
             <SprintaInput
+
+          <el-form-item :label="t('auth.login.passwordLabel')">
+            <el-input
+
               v-model="form.password"
               type="password"
               placeholder="Nhập mật khẩu"
@@ -64,6 +101,7 @@
               class="premium-input"
             />
           </div>
+
 
           <div class="remember-action mb-6">
             <label class="checkbox-container">
@@ -80,6 +118,19 @@
         <div v-if="!requires2FA" class="social-section">
           <div class="divider"><span>HOẶC TIẾP TỤC VỚI</span></div>
 
+          <div class="remember-action">
+            <el-checkbox v-model="form.remember">{{ t('auth.login.remember') }}</el-checkbox>
+          </div>
+
+          <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">
+            {{ t('auth.login.submit') }}
+          </el-button>
+        </el-form>
+
+        <div v-if="!requires2FA" class="social-shell">
+          <div class="divider"><span>{{ t('auth.login.orContinueWith') }}</span></div>
+
+
           <div class="social-grid">
             <GoogleLogin :callback="handleGoogleLogin" popup-type="TOKEN" class="social-btn-wrap">
               <button type="button" class="social-btn">
@@ -95,8 +146,15 @@
               </button>
             </div>
           </div>
+
+
+          <p class="auth-footer-text">
+            {{ t('auth.login.noAccount') }} <router-link to="/register">{{ t('auth.nav.register') }}</router-link>
+          </p>
+
         </div>
       </main>
+
 
       <div class="auth-footer">
         <p class="signup-prompt">
@@ -110,17 +168,30 @@
           <a href="#">Hỗ trợ</a>
         </div>
       </div>
+
+    <div class="auth-bottom">
+      <p>© 2026 SprintA. {{ t('auth.footer.rights') }}</p>
+
     </div>
   </div>
 </template>
 
 <script setup>
+
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axiosClient from '../api/axiosClient'
 import { saveAuthSession } from '@/utils/authSession'
 import { ElMessage } from 'element-plus'
 import logoImg from '../assets/logo_QLCV.png'
+
+  import { reactive, ref } from 'vue'
+  import { useRouter } from 'vue-router'
+  import axiosClient from '../api/axiosClient'
+  import { saveAuthSession } from '@/utils/authSession'
+  import { useI18n } from '@/composables/useI18n'
+  import logoImg from '../assets/logo_QLCV.png'
+
 import googleIcon from '../assets/Icongoogle.png'
 import githubIcon from '../assets/Icongithub.png'
 import SprintaInput from '@/components/ui/SprintaInput.vue'
@@ -128,6 +199,7 @@ import SprintaButton from '@/components/ui/SprintaButton.vue'
 import { ArrowLeft } from 'lucide-vue-next'
 
 const router = useRouter()
+const { t } = useI18n()
 
 const form = reactive({
   email: '',
@@ -145,7 +217,11 @@ const getSafeRedirect = () => {
 
 const handleLogin = async () => {
   if (!form.email || !form.password) {
+
     ElMessage.warning('Vui lòng nhập đầy đủ email và mật khẩu')
+
+    ElMessage.warning(t('auth.messages.missingCredentials'))
+
     return
   }
 
@@ -158,15 +234,26 @@ const handleLogin = async () => {
 
     if (response.data.requires2FA) {
       requires2FA.value = true
+
       ElMessage.success('Tài khoản yêu cầu OTP. Vui lòng kiểm tra email.')
+
+      ElMessage.success(t('auth.messages.requires2fa'))
+
       return
     }
 
     saveAuthSession(response.data.data)
+
     ElMessage.success('Đăng nhập thành công')
     router.push(getSafeRedirect())
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Email hoặc mật khẩu không chính xác')
+
+    ElMessage.success(t('auth.messages.loginSuccess'))
+    router.push(getSafeRedirect())
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || t('auth.messages.loginFailed'))
+
   } finally {
     isLoading.value = false
   }
@@ -174,7 +261,11 @@ const handleLogin = async () => {
 
 const handleLogin2FA = async () => {
   if (!otpCode.value) {
+
     ElMessage.warning('Vui lòng nhập mã OTP')
+
+    ElMessage.warning(t('auth.messages.missingOtp'))
+
     return
   }
 
@@ -187,10 +278,17 @@ const handleLogin2FA = async () => {
     })
 
     saveAuthSession(response.data.data)
+
     ElMessage.success('Đăng nhập thành công')
     router.push(getSafeRedirect())
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'OTP không hợp lệ')
+
+    ElMessage.success(t('auth.messages.loginSuccess'))
+    router.push(getSafeRedirect())
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || t('auth.messages.otpInvalid'))
+
   } finally {
     isLoading.value = false
   }
@@ -199,7 +297,11 @@ const handleLogin2FA = async () => {
 const handleGoogleLogin = async (response) => {
   const token = response?.access_token || response?.credential
   if (!token) {
+
     ElMessage.error('Không nhận được token từ Google')
+
+    ElMessage.error(t('auth.messages.googleNoToken'))
+
     return
   }
 
@@ -210,10 +312,17 @@ const handleGoogleLogin = async (response) => {
     })
 
     saveAuthSession(res.data.data)
+
     ElMessage.success('Đăng nhập bằng Google thành công')
     router.push(getSafeRedirect())
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Không thể đăng nhập bằng Google')
+
+    ElMessage.success(t('auth.messages.googleSuccess'))
+    router.push(getSafeRedirect())
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || t('auth.messages.googleFailed'))
+
   } finally {
     isLoading.value = false
   }
