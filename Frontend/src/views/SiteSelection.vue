@@ -14,7 +14,7 @@
       </div>
       <div class="header-right">
         <button class="pill-btn blue" @click="goToSpaceProject(recentSite?.id)" :disabled="!recentSite">{{ t('siteSelection.goToSprintA') }}</button>
-        <div class="user-profile">
+        <div class="user-profile" v-if="userName">
           <div class="user-avatar-circle">{{ userInitials }}</div>
           <span class="user-name-text">{{ userName }}</span>
         </div>
@@ -24,11 +24,11 @@
     <main class="start-content">
       <div class="welcome-container">
         <h1 class="welcome-title">
-          {{ t('siteSelection.welcomeBack') }} <span class="highlight-wrapper">{{ userName }}.
+          {{ t('siteSelection.welcomeBack') }}<template v-if="userName"> <span class="highlight-wrapper">{{ userName }}.
             <svg class="squiggly-line" width="100%" height="12" viewBox="0 0 100 12" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M0 6 Q 12 0, 25 6 T 50 6 T 75 6 T 100 6" stroke="#FFAB00" stroke-width="3" stroke-linecap="round" fill="none"/>
             </svg>
-          </span>
+          </span></template>
         </h1>
       </div>
 
@@ -42,16 +42,36 @@
           <a href="#" class="create-site-link" @click.prevent="openCreateModal">{{ t('siteSelection.createNewSite') }}</a>
         </div>
 
-        <div class="recent-site-card" v-if="recentSite">
+        <!-- Loading state -->
+        <div v-if="siteStore.loading" class="state-box loading-box">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+          <span>{{ t('siteSelection.loadingSites') }}</span>
+        </div>
+
+        <!-- Error state -->
+        <div v-else-if="siteStore.error" class="state-box error-box">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>{{ t('siteSelection.fetchError') }}</span>
+          <button class="retry-btn" @click="siteStore.fetchSites()">Thử lại</button>
+        </div>
+
+        <!-- No sites -->
+        <div v-else-if="!recentSite" class="state-box empty-box">
+          <i class="fa-regular fa-folder-open"></i>
+          <span>{{ t('siteSelection.noSites') }}</span>
+        </div>
+
+        <!-- Recent site card -->
+        <div class="recent-site-card" v-else>
           <div class="site-card-left">
-            <div class="site-avatar-square" :style="{ backgroundColor: recentSite.color || '#b3df72' }">
-              {{ recentSite.avatarText || 'Tu' }}
+            <div class="site-avatar-square" :style="{ backgroundColor: recentSite.color || '#0052cc' }">
+              {{ siteAvatarText }}
             </div>
             <div class="site-info-stack">
-              <span class="site-name-bold">{{ recentSite.name || 'tua4699' }}</span>
+              <span class="site-name-bold">{{ recentSite.name }}</span>
               <div class="member-avatars">
-                <!-- Chỉ hiển thị người dùng hiện tại (dữ liệu thật). Chưa có API danh sách member nên không thêm avatar/"+N" giả. -->
-                <div class="member-circle" style="background-color: #00875A">{{ userInitials }}</div>
+                <!-- Chỉ hiển thị người dùng hiện tại. Chưa có API danh sách member → không thêm avatar/"+N" giả. -->
+                <div v-if="userInitials" class="member-circle" style="background-color: #00875A">{{ userInitials }}</div>
               </div>
             </div>
           </div>
@@ -61,8 +81,8 @@
         </div>
 
         <div class="card-footer-row">
-          <router-link to="/sites" class="different-site-link">{{ t('siteSelection.lookingForDifferent') }} &rarr;</router-link>
-          
+          <a href="#" class="different-site-link" @click.prevent="switchToJoinModal">{{ t('siteSelection.lookingForDifferent') }} &rarr;</a>
+
           <div class="decorative-stars">
             <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M40 10 L43 20 L53 23 L43 26 L40 36 L37 26 L27 23 L37 20 Z" stroke="#FFAB00" stroke-width="2" stroke-linejoin="round"/>
@@ -74,7 +94,7 @@
 
       <div class="explore-section">
         <p>{{ t('siteSelection.exploreQuestion') }}</p>
-        <!-- Chưa có route/tài liệu thật cho tính năng này -> disable rõ ràng, không để nút bấm im lặng. -->
+        <!-- Chưa có route/tài liệu thật cho tính năng này → disable rõ ràng, không để nút bấm im lặng. -->
         <button class="explore-btn" disabled :title="t('siteSelection.notSupportedTitle')">{{ t('siteSelection.exploreFeatures') }}</button>
       </div>
     </main>
@@ -84,20 +104,20 @@
       <div class="jira-modal">
         <div class="jira-modal-body">
           <h1 class="jira-modal-title text-center">
-            {{ t('siteSelection.welcomeBack') }} <span class="highlight-wrapper">{{ userName }}
+            {{ t('siteSelection.welcomeBack') }}<template v-if="userName"> <span class="highlight-wrapper">{{ userName }}
               <svg class="squiggly-line" width="100%" height="12" viewBox="0 0 100 12" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M0 6 Q 12 0, 25 6 T 50 6 T 75 6 T 100 6" stroke="#FFAB00" stroke-width="3" stroke-linecap="round" fill="none"/>
               </svg>
-            </span>
+            </span></template>
           </h1>
           <p class="jira-subtitle">{{ t('siteSelection.pickUpShort') }}</p>
 
           <div class="form-group">
             <label class="jira-label">{{ t('siteSelection.yourSite') }}</label>
             <div class="jira-input-wrapper" :class="validationState">
-              <input 
-                type="text" 
-                v-model="newSiteName" 
+              <input
+                type="text"
+                v-model="newSiteName"
                 class="jira-input"
               />
               <div class="jira-input-suffix">
@@ -112,39 +132,57 @@
             </div>
           </div>
 
-          <button 
-            class="pill-btn blue full-width jira-continue-btn" 
-            :disabled="isCreating || validationState !== 'success'" 
+          <button
+            class="pill-btn blue full-width jira-continue-btn"
+            :disabled="isCreating || validationState !== 'success'"
             @click="submitCreateSite"
           >
             {{ isCreating ? t('siteSelection.creating') : t('siteSelection.continueBtn') }}
           </button>
 
           <div class="jira-modal-footer">
-            <span class="or-text">or </span><a href="#" class="join-link" @click.prevent="switchToJoinModal">{{ t('siteSelection.joinExisting') }}</a>
+            <span class="or-text">{{ t('siteSelection.or') }}</span><a href="#" class="join-link" @click.prevent="switchToJoinModal">{{ t('siteSelection.joinExisting') }}</a>
           </div>
         </div>
       </div>
     </div>
-    <!-- Join Site Modal -->
+
+    <!-- Join / Pick Site Modal -->
     <div class="modal-overlay" v-if="isJoinModalOpen" @click.self="closeJoinModal">
       <div class="jira-modal join-modal">
         <div class="jira-modal-body">
           <h1 class="jira-modal-title text-center">
-            {{ t('siteSelection.welcomeBack') }} <span class="highlight-wrapper">{{ userName }}
+            {{ t('siteSelection.welcomeBack') }}<template v-if="userName"> <span class="highlight-wrapper">{{ userName }}
               <svg class="squiggly-line" width="100%" height="12" viewBox="0 0 100 12" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M0 6 Q 12 0, 25 6 T 50 6 T 75 6 T 100 6" stroke="#FFAB00" stroke-width="3" stroke-linecap="round" fill="none"/>
               </svg>
-            </span>
+            </span></template>
           </h1>
           <p class="jira-subtitle">{{ t('siteSelection.pickUpShort') }}</p>
 
-          <p class="logged-in-text">
-            {{ t('siteSelection.loggedInAs') }} <strong>{{ userEmail }}</strong>. <a href="#" class="switch-account-link">{{ t('siteSelection.switchAccount') }}</a>
+          <p class="logged-in-text" v-if="userEmail">
+            {{ t('siteSelection.loggedInAs') }} <strong>{{ userEmail }}</strong>.
+            <!-- switchAccount chưa có flow thật → disabled rõ ràng -->
+            <button
+              class="switch-account-btn"
+              disabled
+              :title="t('siteSelection.notSupportedTitle')"
+            >{{ t('siteSelection.switchAccount') }}</button>
           </p>
 
           <div class="site-list-container">
-            <div class="site-list-item" v-for="site in sites" :key="site.id">
+            <div v-if="siteStore.loading" class="state-box loading-box">
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+              <span>{{ t('siteSelection.loadingSites') }}</span>
+            </div>
+            <div v-else-if="siteStore.error" class="state-box error-box">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span>{{ t('siteSelection.fetchError') }}</span>
+            </div>
+            <div v-else-if="!sites.length" class="state-box empty-box">
+              <span>{{ t('siteSelection.noSites') }}</span>
+            </div>
+            <div class="site-list-item" v-for="site in sites" :key="site.id" v-else>
               <div class="site-list-item-left">
                 <div class="site-list-item-title">SprintA</div>
                 <div class="site-list-item-url">{{ site.name }}</div>
@@ -156,7 +194,7 @@
           </div>
 
           <div class="jira-modal-footer">
-            <span class="or-text">or </span><a href="#" class="join-link" @click.prevent="switchToCreateModal">{{ t('siteSelection.startNewSite') }}</a>
+            <span class="or-text">{{ t('siteSelection.or') }}</span><a href="#" class="join-link" @click.prevent="switchToCreateModal">{{ t('siteSelection.startNewSite') }}</a>
           </div>
         </div>
       </div>
@@ -175,42 +213,45 @@ const router = useRouter()
 const siteStore = useSiteStore()
 const { t } = useI18n()
 
+// ── User thật – không có fallback fake ──────────────────────────────────────
 const currentUser = getStoredUser()
-const userName = currentUser?.username || 'Tua20000'
-const userEmail = currentUser?.email || 'tua4699@gmail.com'
-const userInitials = userName.substring(0, 1).toUpperCase()
+const userName = currentUser?.username || ''
+const userEmail = currentUser?.email || ''
+const userInitials = userName ? userName.substring(0, 1).toUpperCase() : ''
 
+// ── Sites từ store (API thật) ───────────────────────────────────────────────
 const recentSite = computed(() => siteStore.recentSite)
 const sites = computed(() => siteStore.sites)
+
+// Avatar text tính từ tên site thật (không có fallback cứng)
+const siteAvatarText = computed(() => {
+  if (!recentSite.value?.name) return '?'
+  return recentSite.value.name.substring(0, 2).toUpperCase()
+})
 
 onMounted(async () => {
   await siteStore.fetchSites()
 })
 
+// ── Modal state ─────────────────────────────────────────────────────────────
 const isCreateModalOpen = ref(false)
 const isJoinModalOpen = ref(false)
 const newSiteName = ref('')
 const isCreating = ref(false)
 const errorMessage = ref('')
-const creationSuccess = ref(false)
-const createdSite = ref(null)
-
 const validationState = ref('idle') // idle, checking, success, error
-const siteUrlPreview = ref('')
 let debounceTimer = null
 
 watch(newSiteName, (newVal) => {
   if (!newVal) {
     validationState.value = 'idle'
-    siteUrlPreview.value = ''
     errorMessage.value = ''
     return
   }
-  
+
   validationState.value = 'checking'
   const formattedName = newVal.toLowerCase().replace(/[^a-z0-9-]/g, '')
-  siteUrlPreview.value = `${formattedName}.sprinta.vn`
-  
+
   clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => {
     if (formattedName.length < 3) {
@@ -225,22 +266,17 @@ watch(newSiteName, (newVal) => {
 
 const openCreateModal = () => {
   isCreateModalOpen.value = true
-  const baseName = userEmail ? userEmail.split('@')[0] : userName.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-  newSiteName.value = `${baseName}-${randomSuffix}`;
+  const baseName = userEmail
+    ? userEmail.split('@')[0]
+    : userName.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000)
+  newSiteName.value = baseName ? `${baseName}-${randomSuffix}` : ''
   validationState.value = 'idle'
-  siteUrlPreview.value = ''
   errorMessage.value = ''
-  creationSuccess.value = false
 }
 
-const closeCreateModal = () => {
-  isCreateModalOpen.value = false
-}
-
-const closeJoinModal = () => {
-  isJoinModalOpen.value = false
-}
+const closeCreateModal = () => { isCreateModalOpen.value = false }
+const closeJoinModal = () => { isJoinModalOpen.value = false }
 
 const switchToJoinModal = () => {
   isCreateModalOpen.value = false
@@ -258,7 +294,6 @@ const submitCreateSite = async () => {
   errorMessage.value = ''
   try {
     const site = await siteStore.createSite({ name: newSiteName.value })
-    // Direct redirect upon success instead of showing intermediate state
     goToSpaceProject(site.id)
   } catch (error) {
     validationState.value = 'error'
@@ -270,8 +305,6 @@ const submitCreateSite = async () => {
 
 const goToSpaceProject = (siteId) => {
   if (!siteId) return
-  // Ghi nhận site vừa chọn rồi đưa người dùng tới trang "Dành cho bạn" (/dashboard -> ForYou.vue),
-  // không vào thẳng project dashboard mặc định.
   siteStore.setRecentSite(siteStore.sites.find(s => s.id === siteId) || { id: siteId })
   router.push('/dashboard')
 }
@@ -361,14 +394,14 @@ const goToSpaceProject = (siteId) => {
   color: white;
   padding: 8px 16px;
 }
-.pill-btn.blue:hover { background-color: #0047b3; }
+.pill-btn.blue:hover:not(:disabled) { background-color: #0047b3; }
 
 .pill-btn.orange {
   background-color: #ff991f;
   color: #172b4d;
   padding: 8px 24px;
 }
-.pill-btn.orange:hover { background-color: #e2851e; }
+.pill-btn.orange:hover:not(:disabled) { background-color: #e2851e; }
 
 .user-profile {
   display: flex;
@@ -457,6 +490,33 @@ const goToSpaceProject = (siteId) => {
 }
 .create-site-link:hover { text-decoration: underline; }
 
+/* Loading / Error / Empty states */
+.state-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 24px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #5e6c84;
+  background: white;
+  border: 1px solid #dfe1e6;
+}
+.loading-box { color: #0052cc; }
+.error-box { color: #de350b; border-color: #ff8f73; }
+.empty-box { color: #5e6c84; }
+.retry-btn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid #de350b;
+  border-radius: 4px;
+  color: #de350b;
+  font-size: 13px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.retry-btn:hover { background: #fff4f4; }
+
 .recent-site-card {
   background: white;
   border: 1px solid #091e4224;
@@ -478,8 +538,8 @@ const goToSpaceProject = (siteId) => {
   width: 56px;
   height: 56px;
   border-radius: 4px;
-  background-color: #b3df72;
-  color: #172b4d;
+  background-color: #0052cc;
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -518,21 +578,6 @@ const goToSpaceProject = (siteId) => {
   margin-left: -6px;
 }
 .member-circle:first-child { margin-left: 0; }
-
-.member-count {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid white;
-  background-color: #dfe1e6;
-  color: #172b4d;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: bold;
-  margin-left: -6px;
-}
 
 .card-footer-row {
   margin-top: 16px;
@@ -589,7 +634,7 @@ const goToSpaceProject = (siteId) => {
   justify-content: center;
   z-index: 1000;
 }
-/* Jira Modal Styles */
+
 .jira-modal {
   background-color: #ffffff;
   border-radius: 8px;
@@ -604,9 +649,7 @@ const goToSpaceProject = (siteId) => {
   align-items: center;
 }
 
-.text-center {
-  text-align: center;
-}
+.text-center { text-align: center; }
 
 .jira-modal-title {
   font-size: 28px;
@@ -707,9 +750,7 @@ const goToSpaceProject = (siteId) => {
   text-align: center;
 }
 
-.or-text {
-  color: #5e6c84;
-}
+.or-text { color: #5e6c84; }
 
 .join-link {
   color: #0052cc;
@@ -729,15 +770,25 @@ const goToSpaceProject = (siteId) => {
   margin-top: -32px;
   margin-bottom: 24px;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: wrap;
 }
-.logged-in-text strong {
-  color: #172b4d;
+.logged-in-text strong { color: #172b4d; }
+
+/* switchAccount – chưa có flow → disabled dạng nút nhỏ */
+.switch-account-btn {
+  background: none;
+  border: none;
+  color: #a5adba;
+  font-size: 12px;
+  cursor: not-allowed;
+  text-decoration: underline;
+  padding: 0;
+  font-family: inherit;
 }
-.switch-account-link {
-  color: #0052cc;
-  text-decoration: none;
-}
-.switch-account-link:hover { text-decoration: underline; }
 
 .site-list-container {
   width: 100%;
@@ -747,16 +798,11 @@ const goToSpaceProject = (siteId) => {
   max-height: 350px;
   overflow-y: auto;
   margin-bottom: 8px;
-  /* Scrollbar styling */
   scrollbar-width: thin;
   scrollbar-color: #dfe1e6 transparent;
 }
-.site-list-container::-webkit-scrollbar {
-  width: 6px;
-}
-.site-list-container::-webkit-scrollbar-track {
-  background: transparent;
-}
+.site-list-container::-webkit-scrollbar { width: 6px; }
+.site-list-container::-webkit-scrollbar-track { background: transparent; }
 .site-list-container::-webkit-scrollbar-thumb {
   background-color: #dfe1e6;
   border-radius: 10px;
@@ -772,9 +818,7 @@ const goToSpaceProject = (siteId) => {
   background-color: white;
   transition: background-color 0.2s, box-shadow 0.2s;
 }
-.site-list-item:hover {
-  background-color: #f4f5f7;
-}
+.site-list-item:hover { background-color: #f4f5f7; }
 
 .site-list-item-left {
   display: flex;

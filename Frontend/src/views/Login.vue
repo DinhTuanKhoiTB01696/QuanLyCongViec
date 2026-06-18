@@ -37,15 +37,15 @@
         </el-form>
 
         <el-form v-else class="auth-form" @submit.prevent="handleLogin" label-position="top">
-          <el-form-item label="Email">
-            <el-input v-model="form.email" placeholder="name@email.com" size="large" />
+          <el-form-item :label="t('auth.login.emailLabel')">
+            <el-input v-model="form.email" :placeholder="t('auth.login.emailPlaceholder')" size="large" />
           </el-form-item>
 
           <el-form-item :label="t('auth.login.passwordLabel')">
             <el-input
               v-model="form.password"
               type="password"
-              placeholder="••••••••"
+              :placeholder="t('auth.login.passwordPlaceholder')"
               size="large"
               show-password
             />
@@ -53,6 +53,7 @@
 
           <div class="remember-action">
             <el-checkbox v-model="form.remember">{{ t('auth.login.remember') }}</el-checkbox>
+            <router-link to="/forgot-password" class="forgot-link">{{ t('auth.forgotPassword.title') }}?</router-link>
           </div>
 
           <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">
@@ -313,6 +314,18 @@ const handleGitHubLogin = () => {
 
 .remember-action {
   margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.forgot-link {
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 14px;
+}
+.forgot-link:hover {
+  text-decoration: underline;
 }
 
 .auth-btn {

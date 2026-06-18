@@ -7,9 +7,13 @@ export default {
     login: {
       title: 'Sign in to SprintA',
       subtitle: 'You need to sign in to access the main dashboard and internal features.',
+      emailLabel: 'Email address',
+      emailPlaceholder: 'name@email.com',
       passwordLabel: 'Password',
+      passwordPlaceholder: '••••••••',
       remember: 'Remember me',
       submit: 'Log in',
+      or: 'Or',
       orContinueWith: 'OR CONTINUE WITH',
       noAccount: "Don't have an account?"
     },
@@ -35,6 +39,74 @@ export default {
       googleNoToken: 'No token received from Google',
       googleSuccess: 'Signed in with Google successfully',
       googleFailed: 'Could not sign in with Google'
+    },
+    forgotPassword: {
+      title: 'Forgot Password',
+      subtitle: 'Enter your email to receive a password reset code.',
+      emailLabel: 'Email',
+      emailPlaceholder: 'name@email.com',
+      sendOtp: 'Send OTP',
+      verifyOtpTitle: 'Verify OTP',
+      verifyOtpSubtitle: 'Enter the OTP code sent to your email to continue.',
+      otpLabel: 'OTP Code',
+      otpPlaceholder: 'Enter 6 digits',
+      verifyOtpBtn: 'Verify',
+      resetTitle: 'New Password',
+      resetSubtitle: 'Please enter a new password for your account.',
+      passwordLabel: 'New password',
+      passwordPlaceholder: '••••••••',
+      resetBtn: 'Reset Password',
+      resetFailed: 'Failed to reset password',
+      successMessage: 'Password reset successfully. Please log in again.',
+      backToLogin: 'Back to login',
+      missingEmail: 'Please enter your email',
+      missingOtp: 'Please enter the OTP code',
+      missingPassword: 'Please enter a new password',
+      otpSentMessage: 'OTP code has been sent to your email',
+      otpVerifiedSuccess: 'OTP verified successfully'
+    },
+    register: {
+      titleStep1: 'Create an Account',
+      titleStep2: 'Verify Email',
+      titleStep3: 'Complete Registration',
+      subtitleStep1: 'Start managing your projects and tasks with SprintA.',
+      subtitleStep2: 'Enter the verification code sent to your email.',
+      subtitleStep3: 'Create a password and display name for your account.',
+      emailLabel: 'Email address',
+      emailPlaceholder: 'name@company.com',
+      sendOtpBtn: 'Send OTP',
+      hasAccount: 'Already have an account?',
+      otpInstructionHtml: 'We have sent a verification code to {email}. Please check your inbox.',
+      otpLabel: 'OTP verification code',
+      otpPlaceholder: '123456',
+      verifyOtpBtn: 'Verify Code',
+      noOtpCode: "Didn't receive code?",
+      changeEmail: 'Change email',
+      or: 'or',
+      resendOtp: 'Resend OTP',
+      fullNameLabel: 'Full Name',
+      fullNamePlaceholder: 'Enter full name',
+      passwordLabel: 'Password',
+      passwordPlaceholder: 'Create password',
+      submitBtn: 'Complete Registration',
+      terms: 'Terms of Service',
+      privacy: 'Privacy Policy',
+      rules: {
+        emailRequired: 'Please enter email address',
+        emailInvalid: 'Invalid email address format',
+        nameRequired: 'Please enter full name',
+        nameMin: 'Full name must be at least 2 characters',
+        passwordRequired: 'Please create password',
+        passwordMin: 'Password must be at least 6 characters',
+        passwordComplexity: 'Password must contain at least 1 uppercase letter, 1 number, and 1 special character'
+      },
+      messages: {
+        sendOtpFailed: 'Error occurred while sending OTP',
+        invalidOtpFormat: 'Please enter 6-digit OTP code',
+        otpVerified: 'Email verified successfully',
+        registerSuccess: 'Account created successfully! Start your session by logging in.',
+        registerFailed: 'Error occurred while creating account'
+      }
     }
   },
   spaceDashboard: {
@@ -71,7 +143,8 @@ export default {
     exploreFeatures: 'Explore features',
     notSupportedTitle: 'Not supported yet',
     siteNameMinLength: 'Site name must be at least 3 characters',
-    createSiteFailed: 'Failed to create site'
+    createSiteFailed: 'Failed to create site',
+    or: 'or '
   },
   common: {
     cancel: 'Cancel',
@@ -423,5 +496,29 @@ export default {
   messages: {
     createProjectFirst: 'Create a project before creating a work item.',
     noWorkItemsPermission: 'You do not have permission to load work items for this project.'
+  },
+  siteSelection: {
+    welcomeBack: 'Welcome back',
+    pickUpIn: 'Pick up where you left off in',
+    pickUpShort: 'Pick up where you left off',
+    createNewSite: 'Create new site',
+    goToSprintA: 'Go to SprintA',
+    lookingForDifferent: 'Looking for a different site',
+    exploreQuestion: 'Want to explore more features?',
+    exploreFeatures: 'Explore features',
+    notSupportedTitle: 'Not yet supported',
+    yourSite: 'Your site name',
+    continueBtn: 'Continue',
+    creating: 'Creating...',
+    createSiteFailed: 'Failed to create site',
+    siteNameMinLength: 'Site name must be at least 3 characters',
+    or: 'or ',
+    joinExisting: 'join an existing site',
+    startNewSite: 'start a new site',
+    loggedInAs: 'Logged in as',
+    switchAccount: 'Switch account',
+    loadingSites: 'Loading your sites...',
+    noSites: 'You have no sites yet. Create a new site to get started.',
+    fetchError: 'Failed to load sites. Please try again.'
   }
 }

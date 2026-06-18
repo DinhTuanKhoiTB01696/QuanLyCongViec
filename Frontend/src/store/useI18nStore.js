@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { setLanguage } from '@/i18n'
 
 const dictionary = {
   en: {
@@ -48,7 +49,26 @@ const dictionary = {
     'Create your first site': 'Create your first site',
     'Archive site': 'Archive site',
     'Search work items...': 'Search work items...',
-    'Filters': 'Filters'
+    'Filters': 'Filters',
+    'Light mode': 'Light mode',
+    'Dark mode': 'Dark mode',
+    'Personal Jira settings': 'Personal Jira settings',
+    'General settings': 'General settings',
+    'Manage language, time zone, and other personal preferences': 'Manage language, time zone, and other personal preferences',
+    'Notification settings': 'Notification settings',
+    'Manage email and in-app notifications from Jira': 'Manage email and in-app notifications from Jira',
+    'Jira admin settings': 'Jira admin settings',
+    'System': 'System',
+    'Manage general configuration, security, audit logs, and more': 'Manage general configuration, security, audit logs, and more',
+    'Jira apps': 'Jira apps',
+    'Manage access, settings, and integrations across Jira': 'Manage access, settings, and integrations across Jira',
+    'Spaces': 'Spaces',
+    'Manage space settings, categories, and more': 'Manage space settings, categories, and more',
+    'Work items': 'Work items',
+    'Configure work types, workflows, screens, fields, and more': 'Configure work types, workflows, screens, fields, and more',
+    'You do not have permission to access admin settings.': 'You do not have permission to access admin settings.',
+    'Searching...': 'Searching...',
+    'No items found.': 'No items found.'
   },
   vi: {
     'Teams': 'Nhóm',
@@ -97,13 +117,32 @@ const dictionary = {
     'Create your first site': 'Tạo site đầu tiên của bạn',
     'Archive site': 'Lưu trữ site',
     'Search work items...': 'Tìm kiếm công việc...',
-    'Filters': 'Bộ lọc'
+    'Filters': 'Bộ lọc',
+    'Light mode': 'Giao diện sáng',
+    'Dark mode': 'Giao diện tối',
+    'Personal Jira settings': 'Cấu hình Jira cá nhân',
+    'General settings': 'Cài đặt chung',
+    'Manage language, time zone, and other personal preferences': 'Quản lý ngôn ngữ, múi giờ và thiết lập cá nhân',
+    'Notification settings': 'Cài đặt thông báo',
+    'Manage email and in-app notifications from Jira': 'Quản lý email và thông báo trong ứng dụng từ Jira',
+    'Jira admin settings': 'Cài đặt quản trị Jira',
+    'System': 'Hệ thống',
+    'Manage general configuration, security, audit logs, and more': 'Quản lý cấu hình chung, bảo mật, nhật ký hoạt động...',
+    'Jira apps': 'Ứng dụng Jira',
+    'Manage access, settings, and integrations across Jira': 'Quản lý truy cập, thiết lập và tích hợp ứng dụng',
+    'Spaces': 'Không gian',
+    'Manage space settings, categories, and more': 'Quản lý thiết lập không gian, danh mục...',
+    'Work items': 'Công việc',
+    'Configure work types, workflows, screens, fields, and more': 'Cấu hình loại công việc, quy trình, màn hình, trường dữ liệu...',
+    'You do not have permission to access admin settings.': 'Bạn không có quyền truy cập cài đặt quản trị.',
+    'Searching...': 'Đang tìm kiếm...',
+    'No items found.': 'Không tìm thấy kết quả.'
   }
 }
 
 export const useI18nStore = defineStore('i18n', {
   state: () => ({
-    locale: localStorage.getItem('sprinta_locale') || 'en'
+    locale: localStorage.getItem('app_language') || localStorage.getItem('sprinta_locale') || localStorage.getItem('admin_locale') || 'vi'
   }),
   getters: {
     t: (state) => (key) => {
@@ -117,6 +156,11 @@ export const useI18nStore = defineStore('i18n', {
       if (dictionary[newLocale]) {
         this.locale = newLocale
         localStorage.setItem('sprinta_locale', newLocale)
+        try {
+          setLanguage(newLocale)
+        } catch (e) {
+          // Ignore
+        }
       }
     }
   }

@@ -33,7 +33,7 @@
         <i class="fa-solid fa-magnifying-glass search-icon"></i>
         <input type="text" :placeholder="isSpaceContext ? t('Search work items...') : t('Search')" v-model="searchQuery" @input="handleSearchInput" />
         <div v-if="showSearchDropdown" class="search-dropdown">
-          <div v-if="searching" class="search-state">{{ t('Searching...', 'Đang tìm kiếm...') }}</div>
+          <div v-if="searching" class="search-state">{{ t('Searching...') }}</div>
           <template v-else-if="searchResults.length">
             <button v-for="result in searchResults" :key="result.id" type="button" class="search-result" @click="openSearchResult(result)">
               <strong>{{ result.sequenceId || result.title || result.name }}</strong>
@@ -41,7 +41,7 @@
               <small v-if="result.projectName">{{ result.projectName }}</small>
             </button>
           </template>
-          <div v-else class="search-state">{{ t('No items found.', 'Không tìm thấy kết quả.') }}</div>
+          <div v-else class="search-state">{{ t('No items found.') }}</div>
         </div>
       </div>
       <button v-if="isHomeContext" class="topbar-btn create-btn" @click="handleGlobalCreate">{{ t('Create', 'Tạo') }}</button>
@@ -53,7 +53,7 @@
         <i class="fa-regular fa-bell"></i>
       </button>
 
-      <button class="icon-btn" @click="toggleTheme()" :title="currentTheme === 'dark' ? 'Light mode' : 'Dark mode'">
+      <button class="icon-btn" @click="toggleTheme()" :title="currentTheme === 'dark' ? t('Light mode') : t('Dark mode')">
         <i :class="currentTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i>
       </button>
 

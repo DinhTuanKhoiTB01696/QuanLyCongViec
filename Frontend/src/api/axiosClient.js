@@ -52,6 +52,7 @@ axiosClient.interceptors.response.use(
                               originalRequest.url.includes('/auth/register') ||
                               originalRequest.url.includes('/auth/send-otp') ||
                               originalRequest.url.includes('/auth/verify-otp') ||
+                              originalRequest.url.includes('/auth/reset-password') ||
                               originalRequest.url.includes('/auth/google-login') ||
                               originalRequest.url.includes('/auth/github-login') ||
                               originalRequest.url.includes('/auth/invite-info') ||

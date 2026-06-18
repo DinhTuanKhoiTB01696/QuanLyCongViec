@@ -41,12 +41,12 @@
           <div class="row-left">
             <span class="row-icon color-purple"><i class="fa-solid fa-fingerprint"></i></span>
             <div class="row-text">
-              <h4 class="item-title">Passkeys</h4>
+              <h4 class="item-title">{{ t('Passkeys', 'Khóa bảo mật (Passkeys)') }}</h4>
               <p class="item-desc">{{ t('Use biometric login (fingerprint, face recognition) for passwordless access.', 'Sử dụng vân tay, nhận diện khuôn mặt hoặc khóa bảo mật để đăng nhập không cần mật khẩu.') }}</p>
             </div>
           </div>
           <el-button type="primary" plain size="small" @click="addPasskey">
-            {{ t('Add passkey', 'Thêm passkey') }}
+            {{ t('Add passkey [FLOW REQUIRED]', 'Thêm passkey [CẦN FLOW]') }}
           </el-button>
         </div>
 
@@ -86,9 +86,12 @@
             <tbody>
               <tr v-for="act in recentActivities" :key="act.time">
                 <td>{{ act.time }}</td>
-                <td><i :class="act.icon"></i> {{ act.device }}</td>
+                <td>
+                  <i :class="act.icon"></i>
+                  {{ translateBrowser(act.device.browser) }} {{ t('on', 'trên') }} {{ translateDevice(act.device.device) }}
+                </td>
                 <td>{{ act.ip }}</td>
-                <td>{{ act.location }}</td>
+                <td>{{ act.location === 'Unknown' ? t('Unknown', 'Không xác định') : act.location }}</td>
                 <td>
                   <el-tag :type="act.status === 'Current' ? 'success' : 'info'" size="small" effect="plain">
                     {{ act.status === 'Current' ? t('Current', 'Hiện tại') : t('Success', 'Thành công') }}
@@ -123,7 +126,7 @@
             <i class="fa-solid fa-shield-halved"></i>
             <div>
               <strong>{{ t('Password changes are limited to once every 7 days.', 'Thay đổi mật khẩu bị giới hạn 7 ngày một lần.') }}</strong>
-              <p>{{ t('You can change your password again after ', 'Bạn có thể thay đổi mật khẩu lần nữa sau ') + passwordEligibleLabel + t('. If khẩn cấp, gửi yêu cầu hỗ trợ.', '. Nếu khẩn cấp, vui lòng gửi yêu cầu hỗ trợ tới Quản trị viên hệ thống.') }}</p>
+              <p>{{ t('You can change your password again after ', 'Bạn có thể thay đổi mật khẩu lần nữa sau ') + passwordEligibleLabel + t('. If this is urgent, please request admin support.', '. Nếu khẩn cấp, vui lòng gửi yêu cầu hỗ trợ tới Quản trị viên hệ thống.') }}</p>
             </div>
           </div>
 
@@ -308,11 +311,11 @@
             </div>
             <div class="session-info">
               <div class="session-header-row">
-                <h4 class="session-device-name">{{ s.device }}</h4>
+                <h4 class="session-device-name">{{ translateDevice(s.device) }}</h4>
                 <el-tag v-if="s.isCurrent" type="success" size="small">{{ t('Current Session', 'Phiên hiện tại') }}</el-tag>
               </div>
-              <p class="session-meta">{{ s.browser }} &bull; {{ s.ip }}</p>
-              <p class="session-location"><i class="fa-solid fa-location-dot"></i> {{ s.location }} &bull; {{ s.time }}</p>
+              <p class="session-meta">{{ translateBrowser(s.browser) }} &bull; {{ s.ip }}</p>
+              <p class="session-location"><i class="fa-solid fa-location-dot"></i> {{ s.location === 'Unknown' ? t('Unknown', 'Không xác định') : s.location }} &bull; {{ s.time }}</p>
             </div>
             <div class="session-action" v-if="!s.isCurrent">
               <el-button type="danger" plain size="small" @click="logoutSession(s.id)">
@@ -484,7 +487,7 @@ const loadSecurityData = async () => {
           icon: parsed.icon,
           browser: parsed.browser,
           ip: session.ip || 'Unknown',
-          location: 'Vietnam',
+          location: 'Unknown',
           time: session.isCurrent ? t('Active now', 'Đang hoạt động') : formatDate(session.createdAt),
           isCurrent: session.isCurrent
         }
@@ -505,10 +508,10 @@ const loadSecurityData = async () => {
 
         return {
           time: formatDate(act.createdAt),
-          device: `${parsedUA.browser} on ${parsedUA.device}`,
+          device: { browser: parsedUA.browser, device: parsedUA.device },
           icon: parsedUA.icon,
           ip: act.ipAddress || 'Unknown',
-          location: 'Vietnam',
+          location: 'Unknown',
           status: act.status
         }
       })
@@ -524,8 +527,25 @@ onMounted(() => {
   loadSecurityData()
 })
 
+const translateDevice = (device) => {
+  switch (device) {
+    case 'Desktop PC': return t('Desktop PC', 'Máy tính để bàn')
+    case 'Android Device': return t('Android Device', 'Thiết bị Android')
+    case 'Mobile Device': return t('Mobile Device', 'Thiết bị di động')
+    case 'Windows PC': return t('Windows PC', 'Máy tính Windows')
+    case 'Linux PC': return t('Linux PC', 'Máy tính Linux')
+    case 'Unknown Device': return t('Unknown Device', 'Thiết bị không xác định')
+    default: return device
+  }
+}
+
+const translateBrowser = (browser) => {
+  if (browser === 'Unknown Browser') return t('Unknown Browser', 'Trình duyệt không xác định')
+  return browser
+}
+
 const addPasskey = () => {
-  ElMessage.success(t('Passkey enrollment triggered .', 'Yêu cầu đăng ký Passkey đã được kích hoạt .'))
+  ElMessage.warning(t('Passkey enrollment is not supported by the server yet. [FLOW REQUIRED]', 'Đăng ký Passkey chưa được hỗ trợ bởi máy chủ. [CẦN FLOW]'))
 }
 
 const onPasswordInput = (val) => {
