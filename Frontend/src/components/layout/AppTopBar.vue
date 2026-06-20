@@ -454,6 +454,7 @@ onUnmounted(() => {
   font-size: 14px; 
   width: 100%; 
   outline: none; 
+}
 .search-icon {
   color: #DEEBFF;
   font-size: 13px;
