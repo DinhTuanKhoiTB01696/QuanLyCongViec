@@ -19,6 +19,11 @@ namespace TaskManagement.Domain.Entities
         public Guid UserId { get; set; }
         public User User { get; set; } = null!;
 
+        public int ViewCount { get; set; } = 0;
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation
+        public ICollection<GoalUpdateReaction> Reactions { get; set; } = new List<GoalUpdateReaction>();
     }
 }

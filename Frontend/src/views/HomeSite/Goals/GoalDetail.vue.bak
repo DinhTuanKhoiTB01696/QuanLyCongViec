@@ -60,8 +60,7 @@
         <button class="tab-btn" :class="{ active: currentTab === 'overview' }" @click="currentTab = 'overview'">Tổng quan</button>
         <button class="tab-btn" :class="{ active: currentTab === 'updates' }" @click="currentTab = 'updates'">Cập nhật <span v-if="updates.length" class="badge-count">{{ updates.length }}</span></button>
         <button class="tab-btn" :class="{ active: currentTab === 'jira' }" @click="currentTab = 'jira'">Jira</button>
-        <button class="tab-btn" :class="{ active: currentTab === 'space-projects' }" @click="currentTab = 'space-projects'">SprintA</button>
-        <button class="tab-btn" :class="{ active: currentTab === 'site-projects' }" @click="currentTab = 'site-projects'">Project của Site</button>
+        <button class="tab-btn" :class="{ active: currentTab === 'projects' }" @click="currentTab = 'projects'">Dự án</button>
         <button class="tab-btn" :class="{ active: currentTab === 'learnings' }" @click="currentTab = 'learnings'">Bài học rút ra</button>
         <button class="tab-btn" :class="{ active: currentTab === 'risks' }" @click="currentTab = 'risks'">Rủi ro</button>
         <button class="tab-btn" :class="{ active: currentTab === 'decisions' }" @click="currentTab = 'decisions'">Quyết định</button>
@@ -275,8 +274,8 @@
           </div>
         </template>
 
-        <!-- SPRINTA TAB -->
-        <template v-if="currentTab === 'space-projects'">
+        <!-- DỰ ÁN TAB -->
+        <template v-if="currentTab === 'projects'">
           <div style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 32px; background: white; margin-top: 16px;">
             <div style="display: flex; gap: 24px; max-width: 600px; margin: 0 auto; position: relative;">
                <div style="width: 64px; height: 64px; background: #EBECF0; color: #172B4D; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 32px; position: relative; flex-shrink: 0;">
@@ -286,28 +285,24 @@
                   </div>
                </div>
                <div>
-                 <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #172B4D;">Thêm dự án SprintA để sắp xếp công việc</h3>
-                 <p style="margin: 0 0 16px 0; font-size: 14px; color: #5E6C84; line-height: 1.5;">Kết nối với các project nằm trong workspace hiện tại của bạn.</p>
-                 
-                 <div v-if="goalStore.spaceProjects.length > 0" style="margin-bottom: 16px;">
-                   <div v-for="proj in goalStore.spaceProjects" :key="proj.id" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border: 1px solid #DFE1E6; border-radius: 3px; margin-bottom: 8px;">
-                     <div style="display: flex; align-items: center; gap: 8px;">
-                       <div style="width: 24px; height: 24px; background: #FFAB00; border-radius: 3px; display: flex; align-items: center; justify-content: center;"><Rocket class="w-4 h-4" style="color: white;"></Rocket></div>
-                       <span style="font-size: 14px; font-weight: 500; color: #172B4D;">{{ proj.name }}</span>
-                     </div>
-                     <button class="remove-btn icon-only" @click="unlinkGoalProject(proj.id, 'spaceProject')"><X class="w-4 h-4"></X></button>
-                   </div>
-                 </div>
-
+                 <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #172B4D;">Thêm dự án để sắp xếp công việc của bạn với mục tiêu này</h3>
+                 <p style="margin: 0 0 16px 0; font-size: 14px; color: #5E6C84; line-height: 1.5;">Sử dụng không gian này để theo dõi bất kỳ dự án nào đóng góp vào mục tiêu này, vì vậy đội ngũ và các bên liên quan của bạn có thể có được bức tranh toàn cảnh.</p>
                  <div style="position: relative; display: inline-block;">
-                   <button class="secondary-btn" @click="isSpaceProjectSearchOpen = !isSpaceProjectSearchOpen" style="background: white; border: 1px solid #DFE1E6; font-weight: 600;">Thêm dự án SprintA</button>
+                   <button class="secondary-btn" @click="isProjectSearchOpen = !isProjectSearchOpen" style="background: white; border: 1px solid #DFE1E6; font-weight: 600;">Thêm dự án</button>
                    
-                   <div v-if="isSpaceProjectSearchOpen" class="dropdown-menu" style="position: absolute; top: 100%; left: 0; margin-top: 8px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 320px; z-index: 100; padding: 12px 0;">
+                   <!-- Project Search Dropdown -->
+                   <div v-if="isProjectSearchOpen" class="dropdown-menu" style="position: absolute; top: 100%; left: 0; margin-top: 8px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 320px; z-index: 100; padding: 12px 0;">
                       <div style="padding: 0 12px 12px;">
-                        <input type="text" placeholder="ID project tạm (để test)" v-model="tempSpaceProjectId" style="width: 100%; padding: 8px 12px; border: 2px solid #DFE1E6; border-radius: 3px; font-size: 14px; outline: none; box-sizing: border-box;" />
+                        <input type="text" placeholder="Tìm kiếm dự án" style="width: 100%; padding: 8px 12px; border: 2px solid #DFE1E6; border-radius: 3px; font-size: 14px; outline: none; box-sizing: border-box;" onfocus="this.style.borderColor='#4C9AFF'" onblur="this.style.borderColor='#DFE1E6'" />
                       </div>
-                      <div style="padding: 0 12px;">
-                        <button class="primary-btn" @click="addGoalProject(tempSpaceProjectId, 'spaceProject')" style="width: 100%;">Thêm</button>
+                      <div style="max-height: 200px; overflow-y: auto;">
+                        <div v-for="proj in ['uqe', 'e', 'ueq', 'rWÉ']" :key="proj" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; color: #172B4D;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
+                           <div style="width: 16px; height: 16px; background: #FFAB00; border-radius: 3px; font-size: 10px; display: flex; align-items: center; justify-content: center;"><Rocket class="w-4 h-4" style="color: white;"></Rocket></div>
+                           {{ proj }}
+                        </div>
+                      </div>
+                      <div style="padding: 12px 12px 0; border-top: 1px solid #DFE1E6; margin-top: 4px;">
+                        <span style="font-size: 14px; color: #5E6C84; cursor: pointer;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Tạo dự án mới</span>
                       </div>
                    </div>
                  </div>
@@ -316,47 +311,6 @@
           </div>
         </template>
 
-        <!-- SITE PROJECTS TAB -->
-        <template v-if="currentTab === 'site-projects'">
-          <div style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 32px; background: white; margin-top: 16px;">
-            <div style="display: flex; gap: 24px; max-width: 600px; margin: 0 auto; position: relative;">
-               <div style="width: 64px; height: 64px; background: #E3FCEF; color: #006644; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 32px; position: relative; flex-shrink: 0;">
-                  <Target class="w-4 h-4"></Target>
-                  <div style="position: absolute; bottom: -8px; right: -8px; width: 24px; height: 24px; background: #36B37E; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 2px solid white;">
-                     <Plus class="w-4 h-4"></Plus>
-                  </div>
-               </div>
-               <div>
-                 <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #172B4D;">Thêm dự án của Site vào mục tiêu này</h3>
-                 <p style="margin: 0 0 16px 0; font-size: 14px; color: #5E6C84; line-height: 1.5;">Kết nối với các project chung của toàn bộ Site.</p>
-                 
-                 <div v-if="goalStore.siteProjects.length > 0" style="margin-bottom: 16px;">
-                   <div v-for="proj in goalStore.siteProjects" :key="proj.id" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border: 1px solid #DFE1E6; border-radius: 3px; margin-bottom: 8px;">
-                     <div style="display: flex; align-items: center; gap: 8px;">
-                       <div style="width: 24px; height: 24px; background: #36B37E; border-radius: 3px; display: flex; align-items: center; justify-content: center;"><Target class="w-4 h-4" style="color: white;"></Target></div>
-                       <span style="font-size: 14px; font-weight: 500; color: #172B4D;">{{ proj.name }}</span>
-                     </div>
-                     <button class="remove-btn icon-only" @click="unlinkGoalProject(proj.id, 'siteProject')"><X class="w-4 h-4"></X></button>
-                   </div>
-                 </div>
-
-                 <div style="position: relative; display: inline-block;">
-                   <button class="secondary-btn" @click="isSiteProjectSearchOpen = !isSiteProjectSearchOpen" style="background: white; border: 1px solid #DFE1E6; font-weight: 600;">Thêm dự án Site</button>
-                   
-                   <div v-if="isSiteProjectSearchOpen" class="dropdown-menu" style="position: absolute; top: 100%; left: 0; margin-top: 8px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 320px; z-index: 100; padding: 12px 0;">
-                      <div style="padding: 0 12px 12px;">
-                        <input type="text" placeholder="ID project tạm (để test)" v-model="tempSiteProjectId" style="width: 100%; padding: 8px 12px; border: 2px solid #DFE1E6; border-radius: 3px; font-size: 14px; outline: none; box-sizing: border-box;" />
-                      </div>
-                      <div style="padding: 0 12px;">
-                        <button class="primary-btn" @click="addGoalProject(tempSiteProjectId, 'siteProject')" style="width: 100%;">Thêm</button>
-                      </div>
-                   </div>
-                 </div>
-               </div>
-            </div>
-          </div>
-        </template>
-        
         <!-- BÀI HỌC RÚT RA TAB -->
         <template v-if="currentTab === 'learnings'">
           <div v-if="!isEditingLearning" style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 40px; background: white; margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 32px;">
@@ -799,11 +753,21 @@
       @created="handleGoalCreated"
     />
   </div>
+
+  <div v-else class="goal-detail-state">
+    <div v-if="isDetailLoading" class="loader-spinner"></div>
+    <template v-else>
+      <Target class="state-icon" />
+      <h2>{{ detailLoadError ? 'KhĂ´ng thá»ƒ táº£i má»¥c tiĂªu' : 'KhĂ´ng tĂ¬m tháº¥y má»¥c tiĂªu' }}</h2>
+      <p>{{ detailLoadError || 'Má»¥c tiĂªu nĂ y cĂ³ thá»ƒ Ä‘Ă£ bá»‹ xĂ³a hoáº·c báº¡n khĂ´ng cĂ³ quyá»n xem.' }}</p>
+      <button class="primary-btn" @click="router.push('/home/goals')">Quay láº¡i danh sĂ¡ch</button>
+    </template>
+  </div>
 </template>
 
 <script setup>
 import { Target, Eye, Star, MoreHorizontal, Plus, LineChart, ChevronDown, Calendar, Smile, ArrowRight, Layers, Rocket, List, CheckSquare, Grid, GitBranch, X, User, CheckCircle2 } from 'lucide-vue-next'
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getStoredUser } from '@/utils/permissions'
 import { useGoalStore } from '@/store/useGoalStore'
@@ -841,6 +805,8 @@ const isEditingBio = ref(false)
 const tempBio = ref('')
 const isShareModalOpen = ref(false)
 const isCreateModalOpen = ref(false)
+const isDetailLoading = ref(false)
+const detailLoadError = ref('')
 
 const goal = computed(() => goalStore.currentGoal)
 const updates = computed(() => goalStore.updates || [])
@@ -1091,14 +1057,64 @@ const handleGoalCreated = async () => {
   if (goal.value?.id) await goalStore.fetchGoalDetail(goal.value.id)
 }
 
+const clearGoalDetailState = () => {
+  goalStore.currentGoal = null
+  goalStore.updates = []
+  goalStore.lessons = []
+  goalStore.risks = []
+  goalStore.decisions = []
+  goalStore.linkedProjects = []
+}
+
+const loadGoalDetail = async (id) => {
+  if (!id) {
+    clearGoalDetailState()
+    detailLoadError.value = 'Thiáº¿u mĂ£ má»¥c tiĂªu.'
+    return
+  }
+
+  isDetailLoading.value = true
+  detailLoadError.value = ''
+  clearGoalDetailState()
+
+  try {
+    await goalStore.fetchGoalDetail(id)
+    const requestedId = id.toString().toLowerCase()
+    const loadedId = goalStore.currentGoal?.id?.toString().toLowerCase()
+
+    if (loadedId !== requestedId) {
+      const detailError = goalStore.error
+      await goalStore.fetchGoals()
+      const fallbackGoal = (goalStore.goals || []).find(g => g.id?.toString().toLowerCase() === requestedId)
+
+      if (fallbackGoal) {
+        goalStore.currentGoal = fallbackGoal
+      } else {
+        detailLoadError.value = detailError || 'KhĂ´ng tĂ¬m tháº¥y má»¥c tiĂªu nĂ y.'
+      }
+    }
+  } catch (error) {
+    detailLoadError.value = error?.message || 'KhĂ´ng thá»ƒ táº£i chi tiáº¿t má»¥c tiĂªu.'
+  } finally {
+    isDetailLoading.value = false
+  }
+}
+
 onMounted(async () => {
   window.addEventListener('click', closePopovers)
   await goalStore.fetchStatuses()
-  if (route.params.id) await goalStore.fetchGoalDetail(route.params.id)
+  await loadGoalDetail(route.params.id)
   await goalStore.fetchGoals()
   await teamStore.fetchAllTeams()
   await peopleStore.fetchPeople()
   resetUpdateDraft()
+})
+
+watch(() => route.params.id, async (id, oldId) => {
+  if (id && id !== oldId) {
+    await loadGoalDetail(id)
+    resetUpdateDraft()
+  }
 })
 
 onUnmounted(() => {
@@ -1112,6 +1128,51 @@ onUnmounted(() => {
   flex-direction: column;
   min-height: 100vh;
   background-color: #FAFBFC;
+}
+
+.goal-detail-state {
+  min-height: 60vh;
+  padding: 64px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  color: #172B4D;
+  background-color: #FAFBFC;
+}
+
+.goal-detail-state h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.goal-detail-state p {
+  max-width: 440px;
+  margin: 0;
+  color: #5E6C84;
+  line-height: 1.5;
+}
+
+.goal-detail-state .state-icon {
+  width: 40px;
+  height: 40px;
+  color: #0052CC;
+}
+
+.goal-detail-state .loader-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #DFE1E6;
+  border-top-color: #0052CC;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Module Header Styles */

@@ -298,6 +298,380 @@ namespace TaskManagement.Infrastructure.Services
             return decision;
         }
 
+        public async Task<object> UpdateUpdateAsync(Guid goalId, Guid updateId, Guid userId, object dto)
+        {
+            var update = await _context.GoalUpdates.FindAsync(updateId);
+            if (update == null || update.GoalId != goalId) throw new InvalidOperationException("Update not found");
+
+            var data = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(System.Text.Json.JsonSerializer.Serialize(dto));
+            if (TryGetProperty(data, "content", out var content)) update.Content = content.GetString() ?? update.Content;
+            
+            // Should not modify previousStatus or previousProgress, just the new state if allowed, but we'll stick to updating content mostly for now.
+            await _context.SaveChangesAsync();
+            await _context.Entry(update).Reference(u => u.User).LoadAsync();
+            return ToGoalUpdateDto(update);
+        }
+
+        public async Task DeleteUpdateAsync(Guid goalId, Guid updateId, Guid userId)
+        {
+            var update = await _context.GoalUpdates.FindAsync(updateId);
+            if (update != null && update.GoalId == goalId)
+            {
+                _context.GoalUpdates.Remove(update);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task<object> UpdateLessonAsync(Guid goalId, Guid lessonId, Guid userId, object dto)
+        {
+            var lesson = await _context.GoalLessons.FindAsync(lessonId);
+            if (lesson == null || lesson.GoalId != goalId) throw new InvalidOperationException("Lesson not found");
+
+            var data = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(System.Text.Json.JsonSerializer.Serialize(dto));
+            if (TryGetProperty(data, "text", out var text)) lesson.Text = text.GetString() ?? lesson.Text;
+            
+            await _context.SaveChangesAsync();
+            return lesson;
+        }
+
+        public async Task DeleteLessonAsync(Guid goalId, Guid lessonId, Guid userId)
+        {
+            var lesson = await _context.GoalLessons.FindAsync(lessonId);
+            if (lesson != null && lesson.GoalId == goalId)
+            {
+                _context.GoalLessons.Remove(lesson);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task<object> UpdateRiskAsync(Guid goalId, Guid riskId, Guid userId, object dto)
+        {
+            var risk = await _context.GoalRisks.FindAsync(riskId);
+            if (risk == null || risk.GoalId != goalId) throw new InvalidOperationException("Risk not found");
+
+            var data = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(System.Text.Json.JsonSerializer.Serialize(dto));
+            if (TryGetProperty(data, "text", out var text)) risk.Text = text.GetString() ?? risk.Text;
+            if (TryGetProperty(data, "severity", out var severity)) risk.Severity = severity.GetString() ?? risk.Severity;
+            
+            await _context.SaveChangesAsync();
+            return risk;
+        }
+
+        public async Task DeleteRiskAsync(Guid goalId, Guid riskId, Guid userId)
+        {
+            var risk = await _context.GoalRisks.FindAsync(riskId);
+            if (risk != null && risk.GoalId == goalId)
+            {
+                _context.GoalRisks.Remove(risk);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task<object> UpdateDecisionAsync(Guid goalId, Guid decisionId, Guid userId, object dto)
+        {
+            var decision = await _context.GoalDecisions.FindAsync(decisionId);
+            if (decision == null || decision.GoalId != goalId) throw new InvalidOperationException("Decision not found");
+
+            var data = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(System.Text.Json.JsonSerializer.Serialize(dto));
+            if (TryGetProperty(data, "text", out var text)) decision.Text = text.GetString() ?? decision.Text;
+            
+            await _context.SaveChangesAsync();
+            return decision;
+        }
+
+        public async Task DeleteDecisionAsync(Guid goalId, Guid decisionId, Guid userId)
+        {
+            var decision = await _context.GoalDecisions.FindAsync(decisionId);
+            if (decision != null && decision.GoalId == goalId)
+            {
+                _context.GoalDecisions.Remove(decision);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task<object> GetCommentsAsync(Guid goalId)
+        {
+            var comments = await _context.Comments
+                .Include(c => c.User)
+                .Where(c => c.GoalId == goalId && !c.IsDeleted)
+                .OrderBy(c => c.CreatedAt)
+                .ToListAsync();
+
+            return comments.Select(ToCommentDto);
+        }
+
+        public async Task<object> GetUpdateCommentsAsync(Guid updateId)
+        {
+            var comments = await _context.Comments
+                .Include(c => c.User)
+                .Where(c => c.GoalUpdateId == updateId && !c.IsDeleted)
+                .OrderBy(c => c.CreatedAt)
+                .ToListAsync();
+
+            return comments.Select(ToCommentDto);
+        }
+
+        public async Task<object> AddCommentAsync(Guid goalId, Guid userId, object dto)
+        {
+            var data = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(System.Text.Json.JsonSerializer.Serialize(dto));
+            var text = TryGetProperty(data, "content", out var content) ? content.GetString() ?? "" : "";
+            
+            Guid? parentId = null;
+            if (TryGetProperty(data, "parentCommentId", out var pIdStr) && Guid.TryParse(pIdStr.GetString(), out var parsedPId))
+            {
+                parentId = parsedPId;
+            }
+
+            var comment = new Comment
+            {
+                Id = Guid.NewGuid(),
+                GoalId = goalId,
+                UserId = userId,
+                Content = text,
+                ParentCommentId = parentId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.Comments.Add(comment);
+            await _context.SaveChangesAsync();
+            await _context.Entry(comment).Reference(c => c.User).LoadAsync();
+
+            return ToCommentDto(comment);
+        }
+
+        public async Task<object> AddUpdateCommentAsync(Guid goalId, Guid updateId, Guid userId, object dto)
+        {
+            var data = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(System.Text.Json.JsonSerializer.Serialize(dto));
+            var text = TryGetProperty(data, "content", out var content) ? content.GetString() ?? "" : "";
+
+            var comment = new Comment
+            {
+                Id = Guid.NewGuid(),
+                GoalUpdateId = updateId,
+                UserId = userId,
+                Content = text,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.Comments.Add(comment);
+            await _context.SaveChangesAsync();
+            await _context.Entry(comment).Reference(c => c.User).LoadAsync();
+
+            return ToCommentDto(comment);
+        }
+
+        public async Task<object> UpdateCommentAsync(Guid commentId, Guid userId, object dto)
+        {
+            var comment = await _context.Comments.FindAsync(commentId);
+            if (comment == null) throw new InvalidOperationException("Comment not found");
+
+            var data = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(System.Text.Json.JsonSerializer.Serialize(dto));
+            if (TryGetProperty(data, "content", out var content)) comment.Content = content.GetString() ?? comment.Content;
+            
+            comment.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            await _context.Entry(comment).Reference(c => c.User).LoadAsync();
+            return ToCommentDto(comment);
+        }
+
+        public async Task DeleteCommentAsync(Guid commentId, Guid userId)
+        {
+            var comment = await _context.Comments.FindAsync(commentId);
+            if (comment != null)
+            {
+                comment.IsDeleted = true;
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task<object> GetReactionsAsync(Guid updateId)
+        {
+            var reactions = await _context.GoalUpdateReactions
+                .Where(r => r.GoalUpdateId == updateId)
+                .ToListAsync();
+
+            return reactions.GroupBy(r => r.ReactionType).Select(g => new
+            {
+                reactionType = g.Key,
+                count = g.Count(),
+                users = g.Select(x => x.UserId)
+            });
+        }
+
+        public async Task<object> ToggleReactionAsync(Guid updateId, Guid userId, object dto)
+        {
+            var data = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(System.Text.Json.JsonSerializer.Serialize(dto));
+            var type = TryGetProperty(data, "reactionType", out var rt) ? rt.GetString() ?? "like" : "like";
+
+            var existing = await _context.GoalUpdateReactions.FirstOrDefaultAsync(r => r.GoalUpdateId == updateId && r.UserId == userId && r.ReactionType == type);
+            if (existing != null)
+            {
+                _context.GoalUpdateReactions.Remove(existing);
+            }
+            else
+            {
+                _context.GoalUpdateReactions.Add(new GoalUpdateReaction
+                {
+                    Id = Guid.NewGuid(),
+                    GoalUpdateId = updateId,
+                    UserId = userId,
+                    ReactionType = type,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            await _context.SaveChangesAsync();
+            return await GetReactionsAsync(updateId);
+        }
+
+        public async Task<object> GetUpdateAttachmentsAsync(Guid updateId)
+        {
+            var attachments = await _context.GoalUpdateAttachments
+                .Where(a => a.GoalUpdateId == updateId)
+                .ToListAsync();
+
+            return attachments.Select(a => new
+            {
+                id = a.Id,
+                fileName = a.FileName,
+                fileUrl = a.FileUrl,
+                fileSize = a.FileSize,
+                createdAt = a.CreatedAt
+            });
+        }
+
+        public async Task<object> AddUpdateAttachmentAsync(Guid updateId, Guid userId, string fileName, string fileUrl, long fileSize)
+        {
+            var attachment = new GoalUpdateAttachment
+            {
+                Id = Guid.NewGuid(),
+                GoalUpdateId = updateId,
+                UserId = userId,
+                FileName = fileName,
+                FileUrl = fileUrl,
+                FileSize = fileSize,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.GoalUpdateAttachments.Add(attachment);
+            await _context.SaveChangesAsync();
+
+            return new
+            {
+                id = attachment.Id,
+                fileName = attachment.FileName,
+                fileUrl = attachment.FileUrl,
+                fileSize = attachment.FileSize,
+                createdAt = attachment.CreatedAt
+            };
+        }
+
+        public async Task DeleteUpdateAttachmentAsync(Guid attachmentId, Guid userId)
+        {
+            var attachment = await _context.GoalUpdateAttachments.FindAsync(attachmentId);
+            if (attachment != null)
+            {
+                _context.GoalUpdateAttachments.Remove(attachment);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task<object> GetProjectLinksAsync(Guid goalId, string linkCategory = null)
+        {
+            var query = _context.ProjectLinks
+                .Include(pl => pl.Project)
+                .Where(pl => pl.LinkedType == "Goal" && pl.LinkedId == goalId);
+                
+            if (!string.IsNullOrEmpty(linkCategory))
+            {
+                query = query.Where(pl => pl.LinkCategory == linkCategory);
+            }
+
+            var links = await query.ToListAsync();
+
+            return links.Select(l => new
+            {
+                id = l.Id,
+                projectId = l.ProjectId,
+                projectName = l.Project.Name,
+                projectKey = l.Project.Identifier,
+                projectCover = l.Project.NavigationConfig,
+                linkType = l.LinkCategory,
+                linkedType = l.LinkedType,
+                linkedId = l.LinkedId,
+                createdAt = l.CreatedAt
+            });
+        }
+
+        public async Task<object> AddProjectLinkAsync(Guid goalId, Guid userId, object dto)
+        {
+            var data = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(System.Text.Json.JsonSerializer.Serialize(dto));
+            if (!TryGetProperty(data, "projectId", out var pidStr) || !Guid.TryParse(pidStr.GetString(), out var projectId))
+            {
+                throw new ArgumentException("Invalid projectId");
+            }
+            
+            string linkCategory = "spaceProject";
+            if (TryGetProperty(data, "linkType", out var linkTypeProp))
+            {
+                linkCategory = linkTypeProp.GetString() ?? "spaceProject";
+            }
+
+            var existing = await _context.ProjectLinks.FirstOrDefaultAsync(pl => pl.ProjectId == projectId && pl.LinkedType == "Goal" && pl.LinkedId == goalId && pl.LinkCategory == linkCategory);
+            if (existing != null) throw new InvalidOperationException("Project link already exists.");
+
+            var link = new ProjectLink
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = projectId,
+                LinkedType = "Goal",
+                LinkedId = goalId,
+                LinkCategory = linkCategory,
+                CreatorId = userId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.ProjectLinks.Add(link);
+            await _context.SaveChangesAsync();
+            
+            await _context.Entry(link).Reference(l => l.Project).LoadAsync();
+            return new
+            {
+                id = link.Id,
+                projectId = link.ProjectId,
+                projectName = link.Project.Name,
+                projectKey = link.Project.Identifier,
+                linkType = link.LinkCategory,
+                createdAt = link.CreatedAt
+            };
+        }
+
+        public async Task DeleteProjectLinkAsync(Guid goalId, Guid linkId, Guid userId)
+        {
+            var link = await _context.ProjectLinks.FirstOrDefaultAsync(l => l.Id == linkId && l.LinkedType == "Goal" && l.LinkedId == goalId);
+            if (link != null)
+            {
+                _context.ProjectLinks.Remove(link);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        private static object ToCommentDto(Comment c)
+        {
+            return new
+            {
+                id = c.Id,
+                content = c.Content,
+                authorId = c.UserId,
+                authorName = c.User?.FullName ?? c.User?.Email,
+                authorEmail = c.User?.Email,
+                authorAvatar = c.User?.AvatarUrl,
+                createdAt = c.CreatedAt,
+                updatedAt = c.UpdatedAt,
+                parentCommentId = c.ParentCommentId
+            };
+        }
         private static bool TryGetProperty(System.Text.Json.JsonElement data, string propertyName, out System.Text.Json.JsonElement value)
         {
             if (data.TryGetProperty(propertyName, out value))

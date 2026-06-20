@@ -9,8 +9,19 @@ namespace TaskManagement.Infrastructure.Data
     {
         public ApplicationDbContext CreateDbContext(string[] args)
         {
+            var apiProjectPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "TaskManagement.API");
+            IConfigurationRoot configuration = new ConfigurationBuilder()
+                .SetBasePath(apiProjectPath)
+                .AddJsonFile("appsettings.json")
+                .AddJsonFile("appsettings.Development.json", optional: true)
+                .AddEnvironmentVariables()
+                .Build();
+
             var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-            optionsBuilder.UseSqlServer("Server=.\\SQLEXPRESS01;Database=TaskManagementDB;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True");
+            var connectionString = configuration.GetConnectionString("DefaultConnection") 
+                ?? "Server=.\\SQLEXPRESS01;Database=TaskManagementDB_Phase2_Dev;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+            
+            optionsBuilder.UseSqlServer(connectionString);
 
             return new ApplicationDbContext(optionsBuilder.Options, null, null);
         }

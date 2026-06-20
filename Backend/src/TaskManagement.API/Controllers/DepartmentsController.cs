@@ -227,5 +227,77 @@ namespace TaskManagement.API.Controllers
                 return BadRequest(ApiResponse<object>.Error(ex.Message));
             }
         }
+
+        [HttpPost("{id}/goals")]
+        public async Task<IActionResult> LinkGoal(Guid id, [FromBody] Guid goalId)
+        {
+            var goal = await _context.Goals.FindAsync(goalId);
+            if (goal == null) return NotFound(ApiResponse<object>.Error("Mục tiêu không tồn tại."));
+
+            var department = await _context.Departments.FindAsync(id);
+            if (department == null) return NotFound(ApiResponse<object>.Error("Đội ngũ không tồn tại."));
+
+            goal.DepartmentId = id;
+            await _context.SaveChangesAsync();
+
+            return Ok(ApiResponse<object>.Success(null!, "Đã liên kết mục tiêu vào đội ngũ."));
+        }
+
+        [HttpDelete("{id}/goals/{goalId}")]
+        public async Task<IActionResult> UnlinkGoal(Guid id, Guid goalId)
+        {
+            var goal = await _context.Goals.FindAsync(goalId);
+            if (goal == null) return NotFound(ApiResponse<object>.Error("Mục tiêu không tồn tại."));
+
+            if (goal.DepartmentId == id)
+            {
+                goal.DepartmentId = null;
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(ApiResponse<object>.Success(null!, "Đã gỡ liên kết mục tiêu khỏi đội ngũ."));
+        }
+
+        [HttpPost("{id}/projects")]
+        public async Task<IActionResult> LinkProject(Guid id, [FromBody] Guid projectId)
+        {
+            var project = await _context.Projects.FindAsync(projectId);
+            if (project == null) return NotFound(ApiResponse<object>.Error("Dự án không tồn tại."));
+
+            var department = await _context.Departments.FindAsync(id);
+            if (department == null) return NotFound(ApiResponse<object>.Error("Đội ngũ không tồn tại."));
+
+            var existingLink = await _context.ProjectDepartmentRoles
+                .FirstOrDefaultAsync(pdr => pdr.ProjectId == projectId && pdr.DepartmentId == id);
+
+            if (existingLink == null)
+            {
+                _context.ProjectDepartmentRoles.Add(new TaskManagement.Domain.Entities.ProjectDepartmentRole
+                {
+                    ProjectId = projectId,
+                    DepartmentId = id,
+                    RoleName = "Member",
+                    AssignedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(ApiResponse<object>.Success(null!, "Đã liên kết dự án vào đội ngũ."));
+        }
+
+        [HttpDelete("{id}/projects/{projectId}")]
+        public async Task<IActionResult> UnlinkProject(Guid id, Guid projectId)
+        {
+            var existingLink = await _context.ProjectDepartmentRoles
+                .FirstOrDefaultAsync(pdr => pdr.ProjectId == projectId && pdr.DepartmentId == id);
+
+            if (existingLink != null)
+            {
+                _context.ProjectDepartmentRoles.Remove(existingLink);
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(ApiResponse<object>.Success(null!, "Đã gỡ liên kết dự án khỏi đội ngũ."));
+        }
     }
 }

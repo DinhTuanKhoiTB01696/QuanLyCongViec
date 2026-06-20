@@ -1,80 +1,76 @@
 <template>
-  <div class="team-detail-container" v-if="team">
-    <!-- Cover Image -->
-    <div class="team-cover" :style="{ backgroundImage: `url(${team.coverImage})` }">
-      <div class="cover-overlay" v-if="!isArchived">
-        <button class="upload-cover-btn"><i class="fa-solid fa-camera"></i> Change Cover</button>
-      </div>
-    </div>
-
-    <!-- Header Actions -->
-    <div class="team-header-wrapper">
-      <div class="team-identity">
-        <div class="team-avatar">
-          <span>{{ team.avatarText }}</span>
-        </div>
-        <div class="team-title-block" style="padding-bottom: 0;">
-          <div class="title-row">
-            <h1 style="margin: 0; font-size: 28px;">{{ team.name }}</h1>
+  <EntityDetailLayout v-if="team">
+    <template #header>
+      <EntityDetailHeader
+        :withCover="true"
+        :coverImageUrl="team.coverImage"
+        :title="team.name"
+        :icon="team.avatarText"
+        avatarColor="#0052CC"
+      >
+        <template #cover-actions>
+          <button v-if="!isArchived" class="sprinta-btn-secondary" style="background: rgba(255,255,255,0.8);"><i class="fa-solid fa-camera"></i> Change Cover</button>
+        </template>
+        
+        <template #breadcrumbs>
+          <div style="font-size: 13px; color: #42526E; display: flex; align-items: center; gap: 8px;">
+            <span v-if="!isArchived"><CheckCircle2 class="w-4 h-4" style="color: #0052cc; display: inline-block; vertical-align: middle;"></CheckCircle2> Đội ngũ chính thức</span>
+            <span v-else><Archive class="w-4 h-4" style="display: inline-block; vertical-align: middle;"></Archive> Đã lưu trữ</span>
+            <span class="status-badge" :class="!isArchived ? 'active' : 'archived'" style="font-size: 10px; padding: 2px 6px;">{{ !isArchived ? 'ACTIVE' : 'ARCHIVED' }}</span>
           </div>
-          <div class="team-status-row" style="margin-top: 4px; font-size: 13px; color: #42526E; display: flex; align-items: center;">
-            <span v-if="!isArchived"><CheckCircle2 class="w-4 h-4" style="color: #0052cc;"></CheckCircle2> Đội ngũ chính thức</span>
-            <span v-else><Archive class="w-4 h-4"></Archive> Đã lưu trữ</span>
-            <span class="ms-2 status-badge" :class="!isArchived ? 'active' : 'archived'" style="font-size: 10px; padding: 2px 6px;">{{ !isArchived ? 'ACTIVE' : 'ARCHIVED' }}</span>
-          </div>
-        </div>
-      </div>
+        </template>
 
-      <div class="header-actions">
-        <!-- Add Member -->
-        <button class="primary-btn" :disabled="isArchived" @click="isAddMemberOpen = true">Add Member</button>
-        <!-- Search -->
-        <button class="icon-btn" title="Search member"><Search class="w-4 h-4"></Search></button>
-        <!-- Star -->
-        <button class="icon-btn" @click="teamStore.toggleStar()" :class="{ starred: team.isStarred }" title="Star team">
-          <Star :class="['w-4 h-4', team.isStarred ? 'text-yellow-400' : 'text-gray-400']"></Star>
-        </button>
-        <button class="secondary-btn icon-only" @click="toggleShare">
-          <i class="fa-solid fa-share-nodes"></i>
-        </button>
-        <SprintaDropdown trigger="click" @command="handleMoreAction">
-          <button class="secondary-btn icon-only">
-            <MoreHorizontal class="w-4 h-4"></MoreHorizontal>
+        <template #actions>
+          <!-- Add Member -->
+          <button class="sprinta-btn-primary" :disabled="isArchived" @click="isAddMemberOpen = true">Add Member</button>
+          <!-- Search -->
+          <button class="sprinta-icon-btn" title="Search member"><Search class="w-4 h-4"></Search></button>
+          <!-- Star -->
+          <button class="sprinta-icon-btn" @click="teamStore.toggleStar()" :class="{ starred: team.isStarred }" title="Star team">
+            <Star :class="['w-4 h-4', team.isStarred ? 'text-yellow-400' : 'text-gray-400']"></Star>
           </button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="archive">
-                <component :is="isArchived ? RotateCcw : Archive" class="w-4 h-4 mr-2"></component> {{ isArchived ? 'Restore Team' : 'Archive Team' }}
-              </el-dropdown-item>
-              <el-dropdown-item command="delete" class="text-red-600">
-                <i class="fa-solid fa-trash mr-2"></i> Delete Team
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </SprintaDropdown>
-      </div>
-    </div>
+          <button class="sprinta-btn-secondary" style="width: 32px; padding: 0;" @click="toggleShare">
+            <i class="fa-solid fa-share-nodes"></i>
+          </button>
+          <SprintaDropdown trigger="click" @command="handleMoreAction">
+            <button class="sprinta-btn-secondary" style="width: 32px; padding: 0;">
+              <MoreHorizontal class="w-4 h-4"></MoreHorizontal>
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="archive">
+                  <component :is="isArchived ? RotateCcw : Archive" class="w-4 h-4 mr-2"></component> {{ isArchived ? 'Restore Team' : 'Archive Team' }}
+                </el-dropdown-item>
+                <el-dropdown-item command="delete" class="text-red-600">
+                  <i class="fa-solid fa-trash mr-2"></i> Delete Team
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </SprintaDropdown>
+        </template>
 
-    <!-- Tabs Nav -->
-    <div class="tabs-nav">
-      <button class="tab-btn" :class="{ active: currentTab === 'overview' }" @click="currentTab = 'overview'">Giới thiệu</button>
-      <button class="tab-btn" :class="{ active: currentTab === 'activity' }" @click="currentTab = 'activity'">Hoạt động</button>
-      <button class="tab-btn" :class="{ active: currentTab === 'hierarchy' }" @click="currentTab = 'hierarchy'">Phân cấp</button>
-      <button class="tab-btn" :class="{ active: currentTab === 'goals' }" @click="currentTab = 'goals'">Mục Tiêu</button>
-      <button class="tab-btn" :class="{ active: currentTab === 'projects' }" @click="currentTab = 'projects'">Dự Án</button>
-      <button class="tab-btn" :class="{ active: currentTab === 'kudos' }" @click="currentTab = 'kudos'">Khen ngợi</button>
-    </div>
+        <template #tabs>
+          <EntityTabs 
+            v-model="currentTab" 
+            :tabs="[
+              { label: 'Giới thiệu', value: 'overview' },
+              { label: 'Hoạt động', value: 'activity' },
+              { label: 'Phân cấp', value: 'hierarchy' },
+              { label: 'Mục Tiêu', value: 'goals' },
+              { label: 'Dự Án', value: 'projects' },
+              { label: 'Khen ngợi', value: 'kudos' }
+            ]" 
+          />
+        </template>
+      </EntityDetailHeader>
+    </template>
 
-    <!-- Tab Content -->
-    <div class="tab-content" :class="{ 'read-only-state': isArchived }">
-      <!-- Read Only Banner -->
-      <div v-if="isArchived" class="archived-banner">
-        This team is archived. It is read-only.
-      </div>
-
-      <div class="team-layout">
-        <!-- Main Content (Left) -->
-        <div class="main-content">
+    <template #main>
+      <div :class="{ 'read-only-state': isArchived }">
+        <!-- Read Only Banner -->
+        <div v-if="isArchived" class="archived-banner">
+          This team is archived. It is read-only.
+        </div>
 
       <!-- Overview -->
       <div v-if="currentTab === 'overview'" class="tab-pane">
@@ -116,18 +112,9 @@
           <h3 style="margin-bottom: 24px;">Công việc của {{ team.name }}</h3>
           
           <div class="activity-list" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px;">
-            <div class="activity-item" v-for="(task, index) in mockTasks" :key="index" style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #DFE1E6;">
-              <div style="display: flex; align-items: center; gap: 16px;">
-                 <div style="color: #0052CC; font-size: 16px;"><i class="fa-solid fa-square-check"></i></div>
-                 <div>
-                   <div style="font-size: 14px; color: #172B4D; font-weight: 500;">{{ task.title }}</div>
-                   <div style="font-size: 12px; color: #6B778C;">{{ task.subtitle }}</div>
-                 </div>
-              </div>
-              <div style="display: flex; align-items: center; gap: 24px;">
-                 <span style="font-size: 12px; color: #6B778C;">{{ task.time }}</span>
-                 <div class="member-avatar-micro" style="background-color: #00875A; color: white;">T</div>
-              </div>
+            <!-- Empty state since mockTasks are removed -->
+            <div style="background-color: #FAFBFC; border: 1px solid #DFE1E6; border-radius: 3px; padding: 24px; text-align: center; color: #6B778C; font-size: 13px;">
+              Chưa có hoạt động
             </div>
           </div>
 
@@ -273,7 +260,7 @@
                  <input type="text" v-model="goalSearch" placeholder="Tìm kiếm mục tiêu hoặc dán liên kết" class="search-input" style="width: 100%; margin-bottom: 12px; padding-left: 12px !important;" />
                  <h5 style="font-size: 11px; color: #6B778C; text-transform: uppercase; padding: 0 8px 8px;">Mục tiêu gần đây</h5>
                  <div class="goal-list-options" style="max-height: 200px; overflow-y: auto;">
-                   <div class="team-option" v-for="g in mockRecentGoals" :key="g.id" @click="linkGoal(g)" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 3px;">
+                   <div class="team-option" v-for="g in availableGoals" :key="g.id" @click="linkGoal(g)" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 3px;">
                      <Target class="w-4 h-4" style="color: #6B778C; font-size: 14px;"></Target>
                      <div style="display: flex; flex-direction: column;">
                        <span style="font-size: 13px; color: #172B4D;">{{ g.title }}</span>
@@ -303,7 +290,7 @@
                     <input type="text" v-model="goalSearch" placeholder="Tìm kiếm mục tiêu hoặc dán liên kết" class="search-input" style="width: 100%; margin-bottom: 12px; padding-left: 12px !important;" />
                     <h5 style="font-size: 11px; color: #6B778C; text-transform: uppercase; padding: 0 8px 8px;">Mục tiêu gần đây</h5>
                     <div class="goal-list-options" style="max-height: 200px; overflow-y: auto;">
-                      <div class="team-option" v-for="g in mockRecentGoals" :key="g.id" @click="linkGoal(g)" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 3px;">
+                      <div class="team-option" v-for="g in availableGoals" :key="g.id" @click="linkGoal(g)" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 3px;">
                         <Target class="w-4 h-4" style="color: #6B778C; font-size: 14px;"></Target>
                         <div style="display: flex; flex-direction: column;">
                           <span style="font-size: 13px; color: #172B4D;">{{ g.title }}</span>
@@ -410,10 +397,12 @@
           </div>
         </div>
       </div>
-        </div>
+      </div>
+    </template>
         
-        <!-- Right Sidebar -->
-        <div class="right-sidebar">
+    <!-- Right Sidebar -->
+    <template #sidebar>
+      <EntityRightSidebar>
       <div class="sidebar-section">
         <h3>Liên kết đội ngũ <span class="badge" style="background-color: #DFE1E6; color: #172B4D; padding: 2px 6px; border-radius: 12px; font-size: 11px;">0</span></h3>
         <div style="display: flex; justify-content: flex-end; margin-top: -28px; margin-bottom: 16px;">
@@ -472,12 +461,10 @@
            <span style="width: 120px; color: #6B778C; font-size: 13px;">Người quản lý</span>
            <span style="flex: 1; font-size: 13px; color: #172B4D;">Đang cập nhật</span>
         </div>
-
       </div>
-    </div>
-  </div>
-  <!-- End of Layout Wrapper -->
-  </div>
+      </EntityRightSidebar>
+    </template>
+  </EntityDetailLayout>
     <!-- Modals -->
     <!-- Add Member Modal -->
     <div class="modal-overlay" v-if="isAddMemberOpen" @click.self="isAddMemberOpen = false">
@@ -609,16 +596,16 @@
                  <!-- Target Dropdown -->
                  <div v-if="isKudosTargetDropdownOpen" @click.stop class="dropdown-menu" style="position: absolute; top: 40px; left: 0; z-index: 10; width: 340px; background: white; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #DFE1E6; padding: 8px 0; display: flex; flex-direction: column; max-height: 300px; overflow-y: auto;">
                     <div style="padding: 4px 12px; font-size: 11px; font-weight: 700; color: #5E6C84; text-transform: uppercase;">Mọi người</div>
-                    <div v-for="user in mockPeopleList" :key="user.id" @click="selectKudosTarget('user', user)" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; transition: background 0.1s;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                       <div class="member-avatar-micro" style="background-color: #0052CC; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px;">{{ user.initials }}</div>
-                       <span style="font-size: 14px; color: #172B4D;">{{ user.name }}</span>
+                    <div v-for="user in peopleListForKudos" :key="user.id" @click="selectKudosTarget('user', user)" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; transition: background 0.1s;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
+                       <div class="member-avatar-micro" style="background-color: #0052CC; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px;">{{ user.avatar }}</div>
+                       <span style="font-size: 14px; color: #172B4D;">{{ user.fullName }}</span>
                     </div>
                     <div style="padding: 4px 12px; font-size: 11px; font-weight: 700; color: #5E6C84; text-transform: uppercase; margin-top: 8px; border-top: 1px solid #DFE1E6; padding-top: 8px;">Đội ngũ</div>
-                    <div v-for="t in mockTeamList" :key="t.id" @click="selectKudosTarget('team', t)" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; transition: background 0.1s; background: #E6FCFF;" onmouseover="this.style.background='#B3F5FF'" onmouseout="this.style.background='#E6FCFF'">
-                       <div class="member-avatar-micro" style="background-color: #36B37E; color: white; width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px;">{{ t.initials }}</div>
+                    <div v-for="t in teamListForKudos" :key="t.id" @click="selectKudosTarget('team', t)" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; transition: background 0.1s; background: #E6FCFF;" onmouseover="this.style.background='#B3F5FF'" onmouseout="this.style.background='#E6FCFF'">
+                       <div class="member-avatar-micro" style="background-color: #36B37E; color: white; width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px;">{{ t.avatarText || t.name.substring(0,2) }}</div>
                        <div style="display: flex; flex-direction: column;">
                          <span style="font-size: 14px; color: #0052CC;">{{ t.name }} <CheckCircle2 class="w-4 h-4" style="font-size: 10px;"></CheckCircle2></span>
-                         <span style="font-size: 11px; color: #6B778C;">Đội ngũ chính thức • {{ t.memberCount }} thành viên, kể cả bạn</span>
+                         <span style="font-size: 11px; color: #6B778C;">Đội ngũ chính thức • {{ t.memberCount || 1 }} thành viên, kể cả bạn</span>
                        </div>
                     </div>
                  </div>
@@ -676,11 +663,10 @@
                     <div>
                       <h5 style="font-size: 11px; color: #6B778C; text-transform: uppercase; margin-bottom: 8px;">Đã xem gần đây</h5>
                       <div style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
-                        <div v-for="item in mockRecentLinks" :key="item.id" @click="selectKudosLink(item)" style="display: flex; align-items: flex-start; gap: 8px; padding: 4px; cursor: pointer; border-radius: 3px; transition: background 0.1s;" onmouseover="this.style.background='#F4F5F7'" onmouseout="this.style.background='transparent'">
-                          <i :class="item.icon" :style="{ color: item.iconColor, marginTop: '4px' }"></i>
+                        <div v-for="item in recentLinksForKudos" :key="item.id" @click="selectKudosLink(item)" style="display: flex; align-items: flex-start; gap: 8px; padding: 4px; cursor: pointer; border-radius: 3px; transition: background 0.1s;" onmouseover="this.style.background='#F4F5F7'" onmouseout="this.style.background='transparent'">
+                          <i class="fa-solid fa-code-branch" style="color: #4C9AFF; margin-top: 4px;"></i>
                           <div style="display: flex; flex-direction: column;">
-                            <span style="font-size: 13px; color: #172B4D;">{{ item.title }}</span>
-                            <span style="font-size: 11px; color: #6B778C;">{{ item.subtitle }}</span>
+                            <span style="font-size: 13px; color: #172B4D;">{{ item.name || item.title }}</span>
                           </div>
                         </div>
                       </div>
@@ -712,7 +698,6 @@
 
     </div>
 
-  </div>
   <div v-else class="loading-state">
     <div class="loader-spinner"></div>
     <p>Loading team details...</p>
@@ -725,6 +710,11 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTeamStore } from '@/store/useTeamStore'
 import { usePeopleStore } from '@/store/usePeopleStore'
+import EntityDetailLayout from '@/components/common/Entity/EntityDetailLayout.vue'
+import EntityDetailHeader from '@/components/common/Entity/EntityDetailHeader.vue'
+import EntityTabs from '@/components/common/Entity/EntityTabs.vue'
+import EntityRightSidebar from '@/components/common/Entity/EntityRightSidebar.vue'
+import EntityPropertyRow from '@/components/common/Entity/EntityPropertyRow.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -772,15 +762,7 @@ const cancelBio = () => {
   isEditingBio.value = false
 }
 
-const mockTasks = ref([
-  { title: 'Dự Án Tốt Nghiệp Home', subtitle: 'Confluence Page • Dự Án Tốt Nghiệp', time: '3 days ago' },
-  { title: 'fw', subtitle: 'Jira Issue • Dự Án Tốt Nghiệp', time: '4 days ago' },
-  { title: 'qdw', subtitle: 'Jira Issue • Dự Án Tốt Nghiệp', time: '4 days ago' },
-  { title: 'Làm trang quản lý system', subtitle: 'Jira Issue • Dự Án Tốt Nghiệp', time: '6 days ago' },
-  { title: 'Đặc tả dự án', subtitle: 'Jira Issue • Dự Án Tốt Nghiệp', time: '21 days ago' },
-  { title: 'Báo cáo test case', subtitle: 'Jira Issue • Dự Án Tốt Nghiệp', time: '21 days ago' },
-  { title: 'Thiết kế đồng bộ frontend', subtitle: 'Jira Issue • Dự Án Tốt Nghiệp', time: '21 days ago' }
-])
+const mockTasks = ref([])
 
 const isParentDropdownOpen = ref(false)
 const isChildDropdownOpen = ref(false)
@@ -834,20 +816,30 @@ const addChildTeam = async (t) => {
 
 const isGoalDropdownOpen = ref(false)
 const goalSearch = ref('')
-const mockRecentGoals = ref([
-  { id: 1, title: 'r2', owner: 'Tua20000' },
-  { id: 2, title: '342', owner: 'Tua20000' },
-  { id: 3, title: 'uew', owner: 'Tua20000' },
-  { id: 4, title: 'd', owner: 'Tua20000' },
-  { id: 5, title: 'iPhone 15 Pro Max', owner: 'Tua20000' }
-])
 
-const linkGoal = (goal) => {
-  if (!teamStore.goals) teamStore.goals = []
-  if (!teamStore.goals.find(g => g.id === goal.id)) {
-    teamStore.goals.push({ ...goal, status: 'Đã hoàn tất 🚀' })
+import { useGoalStore } from '@/store/useGoalStore'
+const goalStore = useGoalStore()
+
+const availableGoals = computed(() => {
+  let list = goalStore.goals || []
+  // exclude already linked
+  const linkedIds = (teamStore.goals || []).map(g => g.id)
+  list = list.filter(g => !linkedIds.includes(g.id))
+  
+  if (goalSearch.value) {
+    const q = goalSearch.value.toLowerCase()
+    list = list.filter(g => g.title.toLowerCase().includes(q))
   }
-  isGoalDropdownOpen.value = false
+  return list
+})
+
+const linkGoal = async (goal) => {
+  try {
+    await teamStore.linkGoal(goal.id)
+    isGoalDropdownOpen.value = false
+  } catch (err) {
+    console.error(err)
+  }
 }
 
 const goToProjects = () => {
@@ -877,23 +869,13 @@ const kudosTargetType = ref('team')
 const kudosTargetName = ref('')
 const kudosTargetAvatar = ref('')
 
-const mockPeopleList = [
-  { id: 'u1', name: 'Tuấn Khôi Đinh', initials: 'TK' },
-  { id: 'u2', name: 'ngkiet2805', initials: 'N' },
-  { id: 'u3', name: 'Thịnh Phát Bùi', initials: 'TP' },
-  { id: 'u4', name: 'Anh Quan Ng Hoang', initials: 'AQ' },
-  { id: 'u5', name: 'Quân Đạt Võ', initials: 'QĐ' }
-]
-
-const mockTeamList = [
-  { id: 't1', name: 'Nhóm phát triển', initials: 'NP', memberCount: 5 },
-  { id: 't2', name: 'Dự án tốt nghiệp', initials: 'DA', memberCount: 6 }
-]
+const peopleListForKudos = computed(() => peopleStore.users || [])
+const teamListForKudos = computed(() => teamStore.allTeams || [])
 
 const selectKudosTarget = (type, item) => {
   kudosTargetType.value = type
-  kudosTargetName.value = item.name
-  kudosTargetAvatar.value = item.initials
+  kudosTargetName.value = item.fullName || item.name || item.email
+  kudosTargetAvatar.value = item.avatar || item.avatarText || (kudosTargetName.value).substring(0,2)
   isKudosTargetDropdownOpen.value = false
 }
 
@@ -902,17 +884,13 @@ const insertEmoji = (emoji) => {
   isKudosEmojiDropdownOpen.value = false
 }
 
-const mockRecentLinks = ref([
-  { id: 1, title: 'Đặc tả lại dự án', subtitle: 'Dự Án Tốt Nghiệp • Đã xem 4 ngày trước', icon: 'fa-regular fa-square-check', iconColor: '#4C9AFF' },
-  { id: 2, title: 'Làm lại tài liệu dự án', subtitle: 'Dự Án Tốt Nghiệp • Đã xem 4 ngày trước', icon: 'fa-regular fa-square-check', iconColor: '#4C9AFF' },
-  { id: 3, title: 'Làm trang quản lý riêng cho space', subtitle: 'Dự Án Tốt Nghiệp • Đã xem 6 ngày trước', icon: 'fa-solid fa-code-branch', iconColor: '#4C9AFF' },
-  { id: 4, title: 'Thiết Kế giao diện Trang Admin', subtitle: 'Dự Án Tốt Nghiệp • Đã xem 6 ngày trước', icon: 'fa-regular fa-square-check', iconColor: '#4C9AFF' },
-  { id: 5, title: 'uiq', subtitle: 'Dự Án Tốt Nghiệp • Đã xem 6 tháng 6, 2026', icon: 'fa-regular fa-square-check', iconColor: '#4C9AFF' }
-])
+import { useProjectStore } from '@/store/useProjectStore'
+const projectStore = useProjectStore()
+const recentLinksForKudos = computed(() => projectStore.projects || [])
 
 const selectKudosLink = (item) => {
-  kudosLinkSearch.value = item.title
-  kudosLinkDisplay.value = item.title
+  kudosLinkSearch.value = item.name || item.title
+  kudosLinkDisplay.value = item.name || item.title
 }
 
 const insertKudosLink = () => {
@@ -925,22 +903,23 @@ const insertKudosLink = () => {
     isKudosLinkDropdownOpen.value = false
   }
 }
-
-const submitKudos = () => {
+const submitKudos = async () => {
   isGiveKudosOpen.value = false
-  if (!teamStore.kudos) teamStore.kudos = []
   
   let finalMessage = kudosText.value
   if (isKudosRichText.value) {
     finalMessage = kudosTextBefore.value + `<a href="/home/projects" style="color: #0052CC; text-decoration: none;">${kudosLinkText.value}</a>` + kudosTextAfter.value
   }
 
-  teamStore.kudos.push({
-    id: Date.now(),
-    message: finalMessage,
-    sender: 'Bạn',
-    icon: '🎖️'
-  })
+  try {
+    await teamStore.sendKudos({
+      departmentId: teamStore.currentTeam.id,
+      message: finalMessage,
+      icon: '🎖️'
+    })
+  } catch (err) {
+    console.error(err)
+  }
   
   // reset
   kudosText.value = ''
@@ -955,6 +934,14 @@ onMounted(async () => {
     kudosTargetName.value = teamStore.currentTeam.name
     kudosTargetAvatar.value = teamStore.currentTeam.avatarText || teamStore.currentTeam.name.substring(0,2)
   }
+
+  // Fetch related options
+  await Promise.all([
+    peopleStore.fetchPeople(),
+    teamStore.fetchAllTeams(),
+    projectStore.fetchAllProjects(),
+    goalStore.fetchGoals()
+  ])
 
   
   // Close menu on click outside
