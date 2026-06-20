@@ -50,6 +50,7 @@
     "autoprefixer": "^10.4.27",
     "element-plus": "^2.13.5",
     "postcss": "^8.5.9",
+    "sass-embedded": "^1.100.0",
     "tailwindcss": "^4.2.2",
     "unplugin-auto-import": "^21.0.0",
     "unplugin-vue-components": "^31.0.0",

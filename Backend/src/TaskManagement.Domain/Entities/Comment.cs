@@ -6,8 +6,15 @@ namespace TaskManagement.Domain.Entities
     public class Comment
     {
         public Guid Id { get; set; }
-        public Guid WorkTaskId { get; set; }
-        public WorkTask WorkTask { get; set; } = null!;
+        public Guid? WorkTaskId { get; set; }
+        public WorkTask? WorkTask { get; set; }
+
+        public Guid? GoalId { get; set; }
+        public Goal? Goal { get; set; }
+
+        public Guid? GoalUpdateId { get; set; }
+        public GoalUpdate? GoalUpdate { get; set; }
+
         public Guid UserId { get; set; }
         public User User { get; set; } = null!;
         public string Content { get; set; } = string.Empty;

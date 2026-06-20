@@ -12,7 +12,7 @@ using TaskManagement.Infrastructure.Data;
 namespace TaskManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260618142352_PlaneRenovation")]
+    [Migration("20260620164447_PlaneRenovation")]
     partial class PlaneRenovation20260618
     {
         /// <inheritdoc />
@@ -222,6 +222,12 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("GoalId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("GoalUpdateId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -234,10 +240,14 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("WorkTaskId")
+                    b.Property<Guid?>("WorkTaskId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("GoalId");
+
+                    b.HasIndex("GoalUpdateId");
 
                     b.HasIndex("ParentCommentId");
 
@@ -540,6 +550,9 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("ViewCount")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GoalId");
@@ -547,6 +560,70 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("GoalUpdates");
+                });
+
+            modelBuilder.Entity("TaskManagement.Domain.Entities.GoalUpdateAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("GoalUpdateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GoalUpdateId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("GoalUpdateAttachments");
+                });
+
+            modelBuilder.Entity("TaskManagement.Domain.Entities.GoalUpdateReaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("GoalUpdateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ReactionType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("GoalUpdateId", "UserId", "ReactionType")
+                        .IsUnique();
+
+                    b.ToTable("GoalUpdateReactions");
                 });
 
             modelBuilder.Entity("TaskManagement.Domain.Entities.Intake", b =>
@@ -1090,12 +1167,16 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Property<Guid>("CreatorId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("LinkCategory")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<Guid?>("LinkedId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("LinkedType")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uniqueidentifier");
@@ -1107,7 +1188,9 @@ namespace TaskManagement.Infrastructure.Migrations
 
                     b.HasIndex("CreatorId");
 
-                    b.HasIndex("ProjectId");
+                    b.HasIndex("ProjectId", "LinkedType", "LinkedId", "LinkCategory")
+                        .IsUnique()
+                        .HasFilter("[LinkedId] IS NOT NULL");
 
                     b.ToTable("ProjectLinks");
                 });
@@ -2074,6 +2157,16 @@ namespace TaskManagement.Infrastructure.Migrations
 
             modelBuilder.Entity("TaskManagement.Domain.Entities.Comment", b =>
                 {
+                    b.HasOne("TaskManagement.Domain.Entities.Goal", "Goal")
+                        .WithMany()
+                        .HasForeignKey("GoalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TaskManagement.Domain.Entities.GoalUpdate", "GoalUpdate")
+                        .WithMany()
+                        .HasForeignKey("GoalUpdateId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TaskManagement.Domain.Entities.Comment", "ParentComment")
                         .WithMany("ChildComments")
                         .HasForeignKey("ParentCommentId")
@@ -2088,8 +2181,11 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.HasOne("TaskManagement.Domain.Entities.WorkTask", "WorkTask")
                         .WithMany("Comments")
                         .HasForeignKey("WorkTaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Goal");
+
+                    b.Navigation("GoalUpdate");
 
                     b.Navigation("ParentComment");
 
@@ -2258,6 +2354,44 @@ namespace TaskManagement.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Goal");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TaskManagement.Domain.Entities.GoalUpdateAttachment", b =>
+                {
+                    b.HasOne("TaskManagement.Domain.Entities.GoalUpdate", "GoalUpdate")
+                        .WithMany()
+                        .HasForeignKey("GoalUpdateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TaskManagement.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("GoalUpdate");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TaskManagement.Domain.Entities.GoalUpdateReaction", b =>
+                {
+                    b.HasOne("TaskManagement.Domain.Entities.GoalUpdate", "GoalUpdate")
+                        .WithMany("Reactions")
+                        .HasForeignKey("GoalUpdateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TaskManagement.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("GoalUpdate");
 
                     b.Navigation("User");
                 });
@@ -2939,6 +3073,11 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("SubGoals");
 
                     b.Navigation("Updates");
+                });
+
+            modelBuilder.Entity("TaskManagement.Domain.Entities.GoalUpdate", b =>
+                {
+                    b.Navigation("Reactions");
                 });
 
             modelBuilder.Entity("TaskManagement.Domain.Entities.Label", b =>

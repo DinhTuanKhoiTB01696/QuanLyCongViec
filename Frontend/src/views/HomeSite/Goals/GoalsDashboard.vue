@@ -157,7 +157,14 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="goal in filteredGoals" :key="goal.id" @click="goToGoal(goal.id)">
+              <tr
+                v-for="goal in filteredGoals"
+                :key="goal.id || goal.goalId"
+                tabindex="0"
+                @click="goToGoal(goal)"
+                @keydown.enter.prevent="goToGoal(goal)"
+                @keydown.space.prevent="goToGoal(goal)"
+              >
                 <td>
                   <div class="goal-title-cell">
                     <span class="goal-icon"><Target class="w-4 h-4"></Target></span>
@@ -393,8 +400,10 @@ const openCreateModal = () => {
 
 
 
-const goToGoal = (id) => {
-  router.push(`/home/goals/${id}`)
+const goToGoal = (goal) => {
+  const id = goal?.id || goal?.goalId
+  if (!id) return
+  router.push({ name: 'HomeGoalDetail', params: { id } })
 }
 </script>
 
@@ -653,12 +662,21 @@ const goToGoal = (id) => {
   font-size: 14px;
   color: #172B4D;
   border-bottom: 1px solid #DFE1E6;
-  cursor: pointer;
   vertical-align: middle;
+}
+
+.jira-table tbody tr {
+  cursor: pointer;
 }
 
 .jira-table tbody tr:hover td {
   background-color: #FAFBFC;
+}
+
+.jira-table tbody tr:focus-visible td {
+  background-color: #E6FCFF;
+  outline: 2px solid #4C9AFF;
+  outline-offset: -2px;
 }
 
 .goal-title-cell {

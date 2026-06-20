@@ -7,7 +7,9 @@ export const useGoalStore = defineStore('goal', {
     goals: [],
     currentGoal: null,
     updates: [],
-    linkedProjects: [],
+    comments: [],
+    spaceProjects: [],
+    siteProjects: [],
     lessons: [],
     risks: [],
     decisions: [],
@@ -110,12 +112,14 @@ export const useGoalStore = defineStore('goal', {
         const goal = response.data?.data || response.data
         this.currentGoal = goal
 
-        // Map sub-entities from goal object (assuming EF Core Include)
         this.updates = goal.updates || []
+        this.comments = goal.comments || []
         this.lessons = goal.lessons || []
         this.risks = goal.risks || []
         this.decisions = goal.decisions || []
-        this.linkedProjects = goal.linkedProjects || []
+        const allProjects = goal.linkedProjects || []
+        this.spaceProjects = allProjects.filter(p => p.linkType === 'spaceProject')
+        this.siteProjects = allProjects.filter(p => p.linkType === 'siteProject')
 
         this.isSuccess = true
       } catch (err) {
@@ -124,29 +128,144 @@ export const useGoalStore = defineStore('goal', {
         this.isLoading = false
       }
     },
+
+    // --- Updates ---
     async addUpdate(goalId, data) {
       const workspaceId = await this.ensureWorkspaceId()
       const response = await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/updates`, data)
-      const update = response.data?.data || response.data
       await this.fetchGoalDetail(goalId)
       await this.fetchGoals()
-      return update
+      return response.data?.data || response.data
     },
+    async updateUpdate(goalId, updateId, data) {
+      const workspaceId = await this.ensureWorkspaceId()
+      const response = await axiosClient.put(`/workspaces/${workspaceId}/goals/${goalId}/updates/${updateId}`, data)
+      await this.fetchGoalDetail(goalId)
+      return response.data?.data || response.data
+    },
+    async deleteUpdate(goalId, updateId) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.delete(`/workspaces/${workspaceId}/goals/${goalId}/updates/${updateId}`)
+      await this.fetchGoalDetail(goalId)
+    },
+
+    // --- Goal Comments ---
+    async addGoalComment(goalId, data) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/comments`, data)
+      await this.fetchGoalDetail(goalId)
+    },
+    async updateGoalComment(goalId, commentId, data) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.put(`/workspaces/${workspaceId}/goals/${goalId}/comments/${commentId}`, data)
+      await this.fetchGoalDetail(goalId)
+    },
+    async deleteGoalComment(goalId, commentId) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.delete(`/workspaces/${workspaceId}/goals/${goalId}/comments/${commentId}`)
+      await this.fetchGoalDetail(goalId)
+    },
+
+    // --- Update Comments ---
+    async addUpdateComment(goalId, updateId, data) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/updates/${updateId}/comments`, data)
+      await this.fetchGoalDetail(goalId)
+    },
+    async updateUpdateComment(goalId, updateId, commentId, data) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.put(`/workspaces/${workspaceId}/goals/${goalId}/updates/${updateId}/comments/${commentId}`, data)
+      await this.fetchGoalDetail(goalId)
+    },
+    async deleteUpdateComment(goalId, updateId, commentId) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.delete(`/workspaces/${workspaceId}/goals/${goalId}/updates/${updateId}/comments/${commentId}`)
+      await this.fetchGoalDetail(goalId)
+    },
+
+    // --- Reactions ---
+    async toggleReaction(goalId, updateId, reactionType) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/updates/${updateId}/reactions`, { reactionType })
+      await this.fetchGoalDetail(goalId)
+    },
+
+    // --- Attachments ---
+    async addUpdateAttachment(goalId, updateId, formData) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/updates/${updateId}/attachments`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      await this.fetchGoalDetail(goalId)
+    },
+    async deleteUpdateAttachment(goalId, updateId, attachmentId) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.delete(`/workspaces/${workspaceId}/goals/${goalId}/updates/${updateId}/attachments/${attachmentId}`)
+      await this.fetchGoalDetail(goalId)
+    },
+
+    // --- Project Links ---
+    async addProjectLink(goalId, projectId, linkType) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/projects`, { projectId, linkType })
+      await this.fetchGoalDetail(goalId)
+    },
+    async deleteProjectLink(goalId, linkId) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.delete(`/workspaces/${workspaceId}/goals/${goalId}/projects/${linkId}`)
+      await this.fetchGoalDetail(goalId)
+    },
+
+    // --- Lessons / Risks / Decisions ---
     async addLesson(goalId, data) {
       const workspaceId = await this.ensureWorkspaceId()
-      const response = await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/lessons`, data)
-      this.lessons.push(response.data?.data || response.data)
+      await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/lessons`, data)
+      await this.fetchGoalDetail(goalId)
     },
+    async updateLesson(goalId, lessonId, data) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.put(`/workspaces/${workspaceId}/goals/${goalId}/lessons/${lessonId}`, data)
+      await this.fetchGoalDetail(goalId)
+    },
+    async deleteLesson(goalId, lessonId) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.delete(`/workspaces/${workspaceId}/goals/${goalId}/lessons/${lessonId}`)
+      await this.fetchGoalDetail(goalId)
+    },
+
     async addRisk(goalId, data) {
       const workspaceId = await this.ensureWorkspaceId()
-      const response = await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/risks`, data)
-      this.risks.push(response.data?.data || response.data)
+      await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/risks`, data)
+      await this.fetchGoalDetail(goalId)
     },
+    async updateRisk(goalId, riskId, data) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.put(`/workspaces/${workspaceId}/goals/${goalId}/risks/${riskId}`, data)
+      await this.fetchGoalDetail(goalId)
+    },
+    async deleteRisk(goalId, riskId) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.delete(`/workspaces/${workspaceId}/goals/${goalId}/risks/${riskId}`)
+      await this.fetchGoalDetail(goalId)
+    },
+
     async addDecision(goalId, data) {
       const workspaceId = await this.ensureWorkspaceId()
-      const response = await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/decisions`, data)
-      this.decisions.push(response.data?.data || response.data)
+      await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/decisions`, data)
+      await this.fetchGoalDetail(goalId)
     },
+    async updateDecision(goalId, decisionId, data) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.put(`/workspaces/${workspaceId}/goals/${goalId}/decisions/${decisionId}`, data)
+      await this.fetchGoalDetail(goalId)
+    },
+    async deleteDecision(goalId, decisionId) {
+      const workspaceId = await this.ensureWorkspaceId()
+      await axiosClient.delete(`/workspaces/${workspaceId}/goals/${goalId}/decisions/${decisionId}`)
+      await this.fetchGoalDetail(goalId)
+    },
+
+    // --- Standard Toggles ---
     async toggleArchive() {
       if (!this.currentGoal) return
       try {
@@ -158,7 +277,6 @@ export const useGoalStore = defineStore('goal', {
       }
     },
     async toggleFollow(goalId) {
-      // Placeholder for future API if following API is implemented
       const target = this.goals.find(g => g.id === goalId)
       if (target) target.isFollowing = !target.isFollowing
       if (this.currentGoal && this.currentGoal.id === goalId) {
@@ -169,7 +287,6 @@ export const useGoalStore = defineStore('goal', {
       if (!this.currentGoal) return
       try {
         const workspaceId = await this.ensureWorkspaceId()
-        // Assuming StarredItem API integration
         await axiosClient.post(`/workspaces/${workspaceId}/starreditems/toggle`, {
           itemId: this.currentGoal.id,
           itemType: 'Goal'

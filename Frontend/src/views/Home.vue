@@ -135,7 +135,6 @@ const roles = [
     <section class="hero-section">
       <div class="container hero-grid">
         <div class="hero-copy">
-
           <div class="new-badge">GIẢI PHÁP KHÔNG GIAN LÀM VIỆC NHANH NHẸN</div>
           <h1 class="hero-title">Giải pháp quản lý dự án tối giản và chuyên nghiệp</h1>
           <p class="hero-sub">
@@ -144,6 +143,7 @@ const roles = [
           <div class="hero-btns">
             <router-link class="hero-primary" to="/login">Đăng nhập</router-link>
             <router-link class="hero-secondary" to="/register">Đăng ký mới</router-link>
+          </div>
 
           <div class="new-badge">{{ t('landing.badge') }}</div>
           <h1 class="hero-title">{{ t('landing.heroTitle') }}</h1>
@@ -153,7 +153,6 @@ const roles = [
           <div class="hero-btns">
             <router-link class="hero-primary" to="/login">{{ t('landing.login') }}</router-link>
             <router-link class="hero-secondary" to="/register">{{ t('landing.register') }}</router-link>
-
           </div>
         </div>
 
@@ -185,11 +184,11 @@ const roles = [
         <div class="section-copy-center">
           <h2 class="section-title">Mọi chức năng cốt lõi đều hỗ trợ quy trình Agile</h2>
           <p class="section-sub">Chúng tôi mang lại các công cụ cần thiết nhất nhằm tăng tốc độ bàn giao của nhóm mà không gây phiền toái hay phức tạp hóa công việc.</p>
+        </div>
 
         <div class="section-copy">
           <h2 class="section-title">{{ t('landing.featuresTitle') }}</h2>
           <p class="section-sub">{{ t('landing.featuresSubtitle') }}</p>
-
         </div>
 
         <div class="feature-grid">
@@ -222,6 +221,7 @@ const roles = [
           <div class="hero-btns mt-4">
             <router-link class="hero-primary" to="/login">Đăng nhập ngay</router-link>
             <router-link class="hero-secondary" to="/register">Tìm hiểu thêm</router-link>
+          </div>
 
           <h2 class="section-title">{{ t('landing.focusTitle') }}</h2>
           <p class="section-sub">

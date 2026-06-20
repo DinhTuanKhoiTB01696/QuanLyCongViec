@@ -748,7 +748,7 @@ namespace TaskManagement.Infrastructure.Services
                 var dependencies = await _context.TaskDependencies.Where(td => taskIds.Contains(td.PredecessorTaskId) || taskIds.Contains(td.PredecessorTaskId)).ToListAsync();
                 _context.TaskDependencies.RemoveRange(dependencies);
 
-                var comments = await _context.Comments.Where(c => taskIds.Contains(c.WorkTaskId)).ToListAsync();
+                var comments = await _context.Comments.Where(c => c.WorkTaskId.HasValue && taskIds.Contains(c.WorkTaskId.Value)).ToListAsync();
                 _context.Comments.RemoveRange(comments);
 
                 var attachments = await _context.Attachments.Where(a => taskIds.Contains(a.WorkTaskId)).ToListAsync();

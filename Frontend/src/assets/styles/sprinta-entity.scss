@@ -1,0 +1,378 @@
+/* 
+  SprintA Entity Global Styles (Phase 1)
+  All classes here must use the .sprinta- prefix to avoid overriding old code un-intentionally.
+*/
+
+/* Z-Index System for SprintA Components */
+:root {
+  --sprinta-z-overlay: 1000;
+  --sprinta-z-modal: 1010;
+  --sprinta-z-popover: 1050;
+  --sprinta-z-dropdown: 1060;
+  --sprinta-z-datepicker: 1070;
+  --sprinta-z-toast: 2000;
+}
+
+/* =========================================================
+   LAYOUT CLASSES
+   ========================================================= */
+.sprinta-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #FFFFFF;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #172B4D;
+}
+
+.sprinta-detail {
+  display: flex;
+  flex: 1;
+  padding: 32px 40px;
+  gap: 32px;
+}
+
+.sprinta-detail-main {
+  flex: 1;
+  min-width: 0; /* Prevent flex overflow */
+}
+
+.sprinta-right-panel {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* =========================================================
+   HEADER & TABS
+   ========================================================= */
+.sprinta-detail-header {
+  background-color: #FFFFFF;
+}
+
+/* Compact Header (Goal/Project) */
+.sprinta-detail-header.is-compact {
+  padding: 32px 40px 0;
+}
+
+.sprinta-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.sprinta-header-title-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sprinta-header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.sprinta-header-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  color: #172B4D;
+  line-height: 1.2;
+}
+
+.sprinta-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Cover Header (Team/Profile) */
+.sprinta-detail-header.with-cover {
+  /* Cover spacing logic is built into component */
+}
+
+.sprinta-header-cover {
+  width: 100%;
+  height: 200px;
+  background-color: #0052CC;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.sprinta-header-cover-actions {
+  position: absolute;
+  bottom: 16px;
+  right: 40px;
+}
+
+.sprinta-header-info-row {
+  padding: 0 40px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: -32px;
+  margin-bottom: 24px;
+}
+
+.sprinta-header-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  background-color: #0052CC;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  font-weight: bold;
+  border: 4px solid #FFFFFF;
+  box-shadow: 0 2px 4px rgba(9, 30, 66, 0.1);
+}
+
+/* Tabs */
+.sprinta-tabs {
+  display: flex;
+  border-bottom: 2px solid #DFE1E6;
+  gap: 24px;
+  padding: 0 40px;
+}
+
+.sprinta-tabs-compact {
+  padding: 0; /* padding applied by parent wrapper */
+}
+
+.sprinta-tab-btn {
+  background: none;
+  border: none;
+  padding: 8px 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #5E6C84;
+  cursor: pointer;
+  position: relative;
+  margin-bottom: -2px;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s;
+}
+
+.sprinta-tab-btn:hover {
+  color: #172B4D;
+}
+
+.sprinta-tab-btn.is-active {
+  color: #0052CC;
+  border-bottom-color: #0052CC;
+}
+
+/* =========================================================
+   PROPERTY ROWS & SIDEBAR
+   ========================================================= */
+.sprinta-sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sprinta-sidebar-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #5E6C84;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+
+.sprinta-property-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.sprinta-property-row:hover {
+  background-color: #FAFBFC;
+}
+
+.sprinta-property-label {
+  font-size: 14px;
+  color: #5E6C84;
+  font-weight: 500;
+  flex: 1;
+}
+
+.sprinta-property-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #172B4D;
+  font-weight: 500;
+}
+
+.sprinta-property-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  color: #FFFFFF;
+}
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+.sprinta-btn-primary {
+  background-color: #0052CC;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 3px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+}
+
+.sprinta-btn-primary:hover:not(:disabled) {
+  background-color: #0047B3;
+}
+
+.sprinta-btn-primary:disabled {
+  background-color: rgba(9, 30, 66, 0.04);
+  color: #A5ADBA;
+  cursor: not-allowed;
+}
+
+.sprinta-btn-secondary {
+  background-color: rgba(9, 30, 66, 0.04);
+  color: #42526E;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 3px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+}
+
+.sprinta-btn-secondary:hover:not(:disabled) {
+  background-color: rgba(9, 30, 66, 0.08);
+}
+
+.sprinta-icon-btn {
+  background: transparent;
+  border: none;
+  color: #42526E;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.sprinta-icon-btn:hover {
+  background-color: rgba(9, 30, 66, 0.08);
+}
+
+/* =========================================================
+   COMPONENTS
+   ========================================================= */
+.sprinta-popover {
+  position: absolute;
+  background: white;
+  border: 1px solid #DFE1E6;
+  border-radius: 3px;
+  box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+  z-index: var(--sprinta-z-popover);
+  width: 250px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.sprinta-filter-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.sprinta-filter-chip {
+  background: white;
+  border: 1px solid #DFE1E6;
+  border-radius: 3px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #42526E;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.sprinta-filter-chip:hover {
+  background: #FAFBFC;
+}
+
+.sprinta-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.sprinta-empty-icon {
+  width: 80px;
+  height: 80px;
+  background-color: #E6FCFF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  color: #0052CC;
+  font-size: 32px;
+}
+
+/* Element Plus Specific Overrides (Wrapped) */
+.sprinta-page .el-dropdown-menu,
+.sprinta-popover .el-dropdown-menu {
+  z-index: var(--sprinta-z-dropdown) !important;
+}
+
+.sprinta-page .el-picker-panel {
+  z-index: var(--sprinta-z-datepicker) !important;
+}
+
+.sprinta-page .el-dialog {
+  z-index: var(--sprinta-z-modal) !important;
+}

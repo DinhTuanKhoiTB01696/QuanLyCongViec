@@ -140,6 +140,50 @@ export const useTeamStore = defineStore('team', {
         console.error('Failed to send kudos', err)
         throw err
       }
+    },
+    async linkGoal(goalId) {
+      if (!this.currentTeam) return
+      try {
+        await axiosClient.post(`/departments/${this.currentTeam.id}/goals`, `"${goalId}"`, {
+          headers: { 'Content-Type': 'application/json' }
+        })
+        await this.fetchTeamDetail(this.currentTeam.id)
+      } catch (err) {
+        console.error('Failed to link goal', err)
+        throw err
+      }
+    },
+    async unlinkGoal(goalId) {
+      if (!this.currentTeam) return
+      try {
+        await axiosClient.delete(`/departments/${this.currentTeam.id}/goals/${goalId}`)
+        await this.fetchTeamDetail(this.currentTeam.id)
+      } catch (err) {
+        console.error('Failed to unlink goal', err)
+        throw err
+      }
+    },
+    async linkProject(projectId) {
+      if (!this.currentTeam) return
+      try {
+        await axiosClient.post(`/departments/${this.currentTeam.id}/projects`, `"${projectId}"`, {
+          headers: { 'Content-Type': 'application/json' }
+        })
+        await this.fetchTeamDetail(this.currentTeam.id)
+      } catch (err) {
+        console.error('Failed to link project', err)
+        throw err
+      }
+    },
+    async unlinkProject(projectId) {
+      if (!this.currentTeam) return
+      try {
+        await axiosClient.delete(`/departments/${this.currentTeam.id}/projects/${projectId}`)
+        await this.fetchTeamDetail(this.currentTeam.id)
+      } catch (err) {
+        console.error('Failed to unlink project', err)
+        throw err
+      }
     }
   }
 })

@@ -90,6 +90,8 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<GoalLesson> GoalLessons { get; set; }
         public DbSet<GoalRisk> GoalRisks { get; set; }
         public DbSet<GoalDecision> GoalDecisions { get; set; }
+        public DbSet<GoalUpdateReaction> GoalUpdateReactions { get; set; }
+        public DbSet<GoalUpdateAttachment> GoalUpdateAttachments { get; set; }
 
         // Group 9: Links & Favorites
         public DbSet<StarredItem> StarredItems { get; set; }
@@ -326,6 +328,18 @@ namespace TaskManagement.Infrastructure.Data
                 .WithMany(wt => wt.Comments)
                 .HasForeignKey(c => c.WorkTaskId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Comment>()
+                .HasOne(c => c.Goal)
+                .WithMany()
+                .HasForeignKey(c => c.GoalId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Comment>()
+                .HasOne(c => c.GoalUpdate)
+                .WithMany()
+                .HasForeignKey(c => c.GoalUpdateId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.User)
@@ -669,6 +683,34 @@ namespace TaskManagement.Infrastructure.Data
                 .HasForeignKey(gd => gd.GoalId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<GoalUpdateReaction>()
+                .HasIndex(r => new { r.GoalUpdateId, r.UserId, r.ReactionType })
+                .IsUnique();
+
+            modelBuilder.Entity<GoalUpdateReaction>()
+                .HasOne(r => r.GoalUpdate)
+                .WithMany(gu => gu.Reactions)
+                .HasForeignKey(r => r.GoalUpdateId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<GoalUpdateReaction>()
+                .HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<GoalUpdateAttachment>()
+                .HasOne(a => a.GoalUpdate)
+                .WithMany()
+                .HasForeignKey(a => a.GoalUpdateId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<GoalUpdateAttachment>()
+                .HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // =============================================
             // 12. Links & Favorites Relationships
             // =============================================
@@ -695,6 +737,10 @@ namespace TaskManagement.Infrastructure.Data
                 .WithMany()
                 .HasForeignKey(pl => pl.CreatorId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ProjectLink>()
+                .HasIndex(pl => new { pl.ProjectId, pl.LinkedType, pl.LinkedId, pl.LinkCategory })
+                .IsUnique();
 
             // =============================================
             // 11. Applying custom configurations
@@ -814,16 +860,19 @@ namespace TaskManagement.Infrastructure.Data
 
                         foreach (var entry in commentEntries)
                         {
-                            pendingLogsActions.Add(list => list.Add(new AuditLog
+                            if (entry.Entity.WorkTaskId.HasValue)
                             {
-                                Id = Guid.NewGuid(),
-                                WorkTaskId = entry.Entity.WorkTaskId,
-                                UserId = parsedUserId,
-                                FieldChanged = "ADD_COMMENT",
-                                OldValue = "{}",
-                                NewValue = "{\"Comment\": \"added\"}",
-                                CreatedAt = DateTime.UtcNow
-                            }));
+                                pendingLogsActions.Add(list => list.Add(new AuditLog
+                                {
+                                    Id = Guid.NewGuid(),
+                                    WorkTaskId = entry.Entity.WorkTaskId.Value,
+                                    UserId = parsedUserId,
+                                    FieldChanged = "ADD_COMMENT",
+                                    OldValue = "{}",
+                                    NewValue = "{\"Comment\": \"added\"}",
+                                    CreatedAt = DateTime.UtcNow
+                                }));
+                            }
                         }
                     }
                 }

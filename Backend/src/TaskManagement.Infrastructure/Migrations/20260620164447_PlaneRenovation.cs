@@ -809,6 +809,7 @@ namespace TaskManagement.Infrastructure.Migrations
                     NewProgress = table.Column<int>(type: "int", nullable: true),
                     TargetDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ViewCount = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -961,9 +962,10 @@ namespace TaskManagement.Infrastructure.Migrations
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     ProjectId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LinkedType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LinkedType = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     LinkedId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     TrackedUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    LinkCategory = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     CreatorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -1110,6 +1112,62 @@ namespace TaskManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "GoalUpdateAttachments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    GoalUpdateId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FileUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FileSize = table.Column<long>(type: "bigint", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GoalUpdateAttachments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_GoalUpdateAttachments_GoalUpdates_GoalUpdateId",
+                        column: x => x.GoalUpdateId,
+                        principalTable: "GoalUpdates",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GoalUpdateAttachments_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GoalUpdateReactions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    GoalUpdateId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ReactionType = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GoalUpdateReactions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_GoalUpdateReactions_GoalUpdates_GoalUpdateId",
+                        column: x => x.GoalUpdateId,
+                        principalTable: "GoalUpdates",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GoalUpdateReactions_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "WorkTasks",
                 columns: table => new
                 {
@@ -1247,7 +1305,9 @@ namespace TaskManagement.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    WorkTaskId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    WorkTaskId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    GoalId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    GoalUpdateId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ParentCommentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
@@ -1262,6 +1322,18 @@ namespace TaskManagement.Infrastructure.Migrations
                         name: "FK_Comments_Comments_ParentCommentId",
                         column: x => x.ParentCommentId,
                         principalTable: "Comments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Comments_GoalUpdates_GoalUpdateId",
+                        column: x => x.GoalUpdateId,
+                        principalTable: "GoalUpdates",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Comments_Goals_GoalId",
+                        column: x => x.GoalId,
+                        principalTable: "Goals",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
@@ -1628,6 +1700,16 @@ namespace TaskManagement.Infrastructure.Migrations
                 column: "UploadedByUserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Comments_GoalId",
+                table: "Comments",
+                column: "GoalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Comments_GoalUpdateId",
+                table: "Comments",
+                column: "GoalUpdateId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Comments_ParentCommentId",
                 table: "Comments",
                 column: "ParentCommentId");
@@ -1706,6 +1788,27 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "IX_Goals_WorkspaceId",
                 table: "Goals",
                 column: "WorkspaceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GoalUpdateAttachments_GoalUpdateId",
+                table: "GoalUpdateAttachments",
+                column: "GoalUpdateId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GoalUpdateAttachments_UserId",
+                table: "GoalUpdateAttachments",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GoalUpdateReactions_GoalUpdateId_UserId_ReactionType",
+                table: "GoalUpdateReactions",
+                columns: new[] { "GoalUpdateId", "UserId", "ReactionType" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GoalUpdateReactions_UserId",
+                table: "GoalUpdateReactions",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_GoalUpdates_GoalId",
@@ -1844,9 +1947,11 @@ namespace TaskManagement.Infrastructure.Migrations
                 column: "CreatorId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProjectLinks_ProjectId",
+                name: "IX_ProjectLinks_ProjectId_LinkedType_LinkedId_LinkCategory",
                 table: "ProjectLinks",
-                column: "ProjectId");
+                columns: new[] { "ProjectId", "LinkedType", "LinkedId", "LinkCategory" },
+                unique: true,
+                filter: "[LinkedId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProjectMembers_UserId",
@@ -2084,7 +2189,10 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "GoalRisks");
 
             migrationBuilder.DropTable(
-                name: "GoalUpdates");
+                name: "GoalUpdateAttachments");
+
+            migrationBuilder.DropTable(
+                name: "GoalUpdateReactions");
 
             migrationBuilder.DropTable(
                 name: "Intakes");
@@ -2171,9 +2279,6 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "Comments");
 
             migrationBuilder.DropTable(
-                name: "Goals");
-
-            migrationBuilder.DropTable(
                 name: "Labels");
 
             migrationBuilder.DropTable(
@@ -2189,7 +2294,13 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "Roles");
 
             migrationBuilder.DropTable(
+                name: "GoalUpdates");
+
+            migrationBuilder.DropTable(
                 name: "WorkTasks");
+
+            migrationBuilder.DropTable(
+                name: "Goals");
 
             migrationBuilder.DropTable(
                 name: "Sprints");
