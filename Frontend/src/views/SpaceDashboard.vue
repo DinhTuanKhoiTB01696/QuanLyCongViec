@@ -13,7 +13,7 @@
         <SprintaSkeleton height="88px" rounded="md" v-for="i in 4" :key="i" />
         <SprintaSkeleton class="col-span-2" height="200px" rounded="md" />
         <SprintaSkeleton class="col-span-2" height="200px" rounded="md" />
-
+      </div>
 
       <div v-if="loading" class="text-center py-12 text-[var(--color-text-muted)]">
         <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
