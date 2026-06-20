@@ -107,17 +107,7 @@
     <div class="modal-overlay" v-if="isCreateModalOpen" @click.self="closeCreateModal">
       <div class="jira-modal">
         <div class="jira-modal-body">
-          <h1 class="jira-modal-title text-center">
-
-            {{ t('Welcome back,') }} <span class="highlight-wrapper">{{ userEmailPrefix }}
-
-            {{ t('siteSelection.welcomeBack') }} <span class="highlight-wrapper">{{ userName }}
-
-              <svg class="squiggly-line" width="100%" height="12" viewBox="0 0 100 12" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0 6 Q 12 0, 25 6 T 50 6 T 75 6 T 100 6" stroke="#FFAB00" stroke-width="3" stroke-linecap="round" fill="none"/>
-              </svg>
-            </span>
-          </h1>
+          <h1 class="jira-modal-title text-center">Tạo không gian mới</h1>
           <p class="jira-subtitle">{{ t('siteSelection.pickUpShort') }}</p>
 
           <div class="form-group">
@@ -158,17 +148,7 @@
     <div class="modal-overlay" v-if="isJoinModalOpen" @click.self="closeJoinModal">
       <div class="jira-modal join-modal">
         <div class="jira-modal-body">
-          <h1 class="jira-modal-title text-center">
-
-            {{ t('Welcome back,') }} <span class="highlight-wrapper">{{ userEmailPrefix }}
-
-            {{ t('siteSelection.welcomeBack') }} <span class="highlight-wrapper">{{ userName }}
-
-              <svg class="squiggly-line" width="100%" height="12" viewBox="0 0 100 12" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0 6 Q 12 0, 25 6 T 50 6 T 75 6 T 100 6" stroke="#FFAB00" stroke-width="3" stroke-linecap="round" fill="none"/>
-              </svg>
-            </span>
-          </h1>
+          <h1 class="jira-modal-title text-center">Tham gia không gian hiện có</h1>
           <p class="jira-subtitle">{{ t('siteSelection.pickUpShort') }}</p>
 
           <p class="logged-in-text">
