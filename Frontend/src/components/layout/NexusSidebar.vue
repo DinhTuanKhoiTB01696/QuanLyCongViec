@@ -3,12 +3,26 @@
     <div class="sidebar-scrollable">
       <div class="sidebar-top-action">
         <button class="new-work-btn" @click="triggerCreateTask">
+
           <SquarePen class="w-4 h-4 mr-2" />
           <span>New work item</span>
+
+          <i class="fa-solid fa-pen-to-square"></i>
+          <span>{{ t('shell.newWorkItem') }}</span>
+
         </button>
       </div>
 
       <ul class="nav-menu">
+
+
+
+        <li class="nav-item">
+          <router-link to="/dashboard" class="nav-link" :class="{ active: $route.path === '/dashboard' && !$route.query.tab }" exact>
+            <i class="fa-solid fa-house"></i>
+            <span>{{ t('shell.forYou') }}</span>
+          </router-link>
+        </li>
 
         <li class="nav-item">
           <el-popover
@@ -22,9 +36,15 @@
           >
             <template #reference>
               <div class="nav-link" :class="{ active: $route.path === '/dashboard' && $route.query.tab === 'viewed' }" style="cursor: pointer;">
+
                 <Clock class="w-4 h-4 mr-3" />
                 <span>Recent</span>
                 <ChevronRight class="w-3 h-3 ml-auto opacity-70" />
+
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>{{ t('shell.recent') }}</span>
+                <i class="fa-solid fa-chevron-right" style="font-size:10px; margin-left:auto;"></i>
+
               </div>
             </template>
             <RecentDropdown ref="recentDropdownRef" @close="closeRecentPopover" />
@@ -42,9 +62,15 @@
           >
             <template #reference>
               <div class="nav-link" :class="{ active: $route.path === '/dashboard' && $route.query.tab === 'starred' }" style="cursor: pointer;">
+
                 <Star class="w-4 h-4 mr-3" />
                 <span>Starred</span>
                 <ChevronRight class="w-3 h-3 ml-auto opacity-70" />
+
+                <i class="fa-regular fa-star"></i>
+                <span>{{ t('shell.starred') }}</span>
+                <i class="fa-solid fa-chevron-right" style="font-size:10px; margin-left:auto;"></i>
+
               </div>
             </template>
             <StarredDropdown ref="starredDropdownRef" @close="closeStarredPopover" />
@@ -52,37 +78,62 @@
         </li>
         <li class="nav-item">
           <router-link to="/your-work" class="nav-link">
+
             <User class="w-4 h-4 mr-3" />
             <span>Your work</span>
+
+            <i class="fa-regular fa-user"></i>
+            <span>{{ t('shell.yourWork') }}</span>
+
           </router-link>
         </li>
         <li class="nav-item">
           <router-link to="/stickies" class="nav-link">
+
             <StickyNote class="w-4 h-4 mr-3" />
             <span>Stickies</span>
+
+            <i class="fa-solid fa-note-sticky"></i>
+            <span>{{ t('shell.stickies') }}</span>
+
           </router-link>
         </li>
         <li class="nav-item">
           <router-link to="/rewards" class="nav-link">
+
             <Trophy class="w-4 h-4 mr-3" />
             <span>Rewards</span>
+
+            <i class="fa-solid fa-trophy"></i>
+            <span>{{ t('shell.rewards') }}</span>
+
           </router-link>
         </li>
       </ul>
 
       <!-- Workspace Division -->
-      <div class="nav-section-title">Workspace</div>
+      <div class="nav-section-title">{{ t('shell.workspace') }}</div>
       <ul class="nav-menu">
         <li class="nav-item">
           <router-link to="/spaces" class="nav-link">
+
             <Briefcase class="w-4 h-4 mr-3" />
             <span>Projects</span>
+
+            <i class="fa-solid fa-briefcase"></i>
+            <span>{{ t('shell.projects') }}</span>
+
           </router-link>
         </li>
         <li class="nav-item">
           <div class="nav-link" :class="{ 'dropdown-active': showMorePanel }" @click="showMorePanel = !showMorePanel">
+
             <MoreHorizontal class="w-4 h-4 mr-3" />
             <span>{{ showMorePanel ? 'Hide' : 'More' }}</span>
+
+            <i class="fa-solid fa-ellipsis"></i>
+            <span>{{ showMorePanel ? t('shell.hide') : t('shell.more') }}</span>
+
           </div>
         </li>
       </ul>
@@ -93,23 +144,41 @@
           <ul class="nav-menu">
             <li class="nav-item sub-item">
               <router-link to="/views" class="nav-link">
+
                 <Layers class="w-4 h-4 mr-3" />
                 <span>Views</span>
                 <Pin class="w-3 h-3 pin-icon ml-auto" />
+
+                <i class="fa-solid fa-layer-group"></i>
+                <span>{{ t('shell.views') }}</span>
+                <i class="fa-solid fa-thumbtack pin-icon"></i>
+
               </router-link>
             </li>
             <li class="nav-item sub-item">
               <router-link to="/analytics" class="nav-link">
+
                 <BarChart2 class="w-4 h-4 mr-3" />
                 <span>Analytics</span>
                 <Pin class="w-3 h-3 pin-icon ml-auto" />
+
+                <i class="fa-solid fa-chart-simple"></i>
+                <span>{{ t('shell.analytics') }}</span>
+                <i class="fa-solid fa-thumbtack pin-icon"></i>
+
               </router-link>
             </li>
             <li class="nav-item sub-item">
               <router-link to="/archives" class="nav-link">
+
                 <Archive class="w-4 h-4 mr-3" />
                 <span>Archives</span>
                 <Pin class="w-3 h-3 pin-icon ml-auto" />
+
+                <i class="fa-solid fa-box-archive"></i>
+                <span>{{ t('shell.archives') }}</span>
+                <i class="fa-solid fa-thumbtack pin-icon"></i>
+
               </router-link>
             </li>
           </ul>
@@ -118,8 +187,13 @@
 
       <!-- Projects Division -->
       <div class="nav-section-title flex-between">
+
         Projects
         <ChevronDown class="w-3 h-3 opacity-70" />
+
+        {{ t('shell.projects') }}
+        <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
+
       </div>
       <ul class="nav-menu">
         <template v-for="project in projectTree" :key="project.id">
@@ -138,8 +212,13 @@
 
           <li v-for="child in project.children" v-show="project.expanded" :key="child.id" class="nav-item sub-item">
             <router-link :to="child.route" class="nav-link" active-class="active">
+
               <component :is="childIcon(child.key)" class="w-4 h-4 mr-3" />
               <span>{{ child.label }}</span>
+
+              <i :class="childIcon(child.key)"></i>
+              <span>{{ sidebarChildLabel(child) }}</span>
+
             </router-link>
           </li>
         </template>
@@ -149,7 +228,11 @@
     <!-- Bottom Actions -->
     <div class="sidebar-bottom">
       <a href="#" class="community-link">
+
         <MessageSquare class="w-4 h-4 mr-2" /> Community
+
+        <i class="fa-regular fa-comment"></i> {{ t('shell.community') }}
+
       </a>
     </div>
   </aside>
@@ -171,8 +254,12 @@ import {
   TrendingUp, RefreshCw, LayoutGrid, PieChart, List, FileText, MessageSquare 
 } from 'lucide-vue-next'
 
+import { useI18n } from '@/composables/useI18n'
+
+
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const showMorePanel = ref(false)
 const projectStore = useProjectStore()
 
@@ -289,6 +376,14 @@ const childIcon = (key) => ({
   'pages': FileText
 }[key] || ChevronRight)
 
+const sidebarChildLabel = (child) => ({
+  'work-items': t('shell.workItems'),
+  'cycles': t('shell.cycles'),
+  'modules': t('shell.modules'),
+  'views': t('shell.views'),
+  'pages': t('shell.pages')
+}[child.key] || child.label)
+
 const projectIcon = (project) => project.icon || project.name?.charAt(0)?.toUpperCase() || 'P'
 const projectColor = (project) => {
   const colors = ['#579dff', '#c97cf4', '#00b8d9', '#22a06b', '#f5cd47']
@@ -301,7 +396,7 @@ const triggerCreateTask = async () => {
     : await projectStore.fetchAllProjects()
 
   if (!projects.length) {
-    ElMessage.warning('Create a project before creating a work item.')
+    ElMessage.warning(t('messages.createProjectFirst'))
     await router.push('/spaces')
     return
   }
