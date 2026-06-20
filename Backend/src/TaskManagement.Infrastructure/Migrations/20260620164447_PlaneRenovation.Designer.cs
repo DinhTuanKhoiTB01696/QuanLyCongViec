@@ -13,7 +13,7 @@ namespace TaskManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20260620164447_PlaneRenovation")]
-    partial class PlaneRenovation
+    partial class PlaneRenovation20260618
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
