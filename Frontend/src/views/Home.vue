@@ -21,32 +21,55 @@ import {
 import dashboardPreview from '../assets/task_management_dashboard_preview_1773375713763.png'
 import focusImage from '../assets/modern_desk_setup_product_design_1773375736492.png'
 import logoImg from '../assets/logo_QLCV.png'
+import { useI18n } from '@/composables/useI18n'
 
-const features = [
+const { t } = useI18n()
+
+const featureConfig = [
   {
+
     title: 'Quản lý công việc',
     desc: 'Theo dõi tiến độ, ưu tiên và trạng thái theo một quy trình rõ ràng.',
+
+    titleKey: 'landing.features.work.title',
+    descKey: 'landing.features.work.desc',
+
     icon: CheckCircle,
     color: '#0052CC',
     bg: '#DEEBFF'
   },
   {
+
     title: 'Kanban và quy trình làm việc',
     desc: 'Vận hành công việc qua backlog, to do, in progress, in review, done và cancelled.',
+
+    titleKey: 'landing.features.kanban.title',
+    descKey: 'landing.features.kanban.desc',
+
     icon: Layout,
     color: '#6554C0',
     bg: '#EAE6FF'
   },
   {
+
     title: 'Cộng tác nhóm',
     desc: 'Bình luận, giao việc, theo dõi thành viên và lưu vết thay đổi trong cùng một nơi.',
+
+    titleKey: 'landing.features.team.title',
+    descKey: 'landing.features.team.desc',
+
     icon: Users,
     color: '#00B8D9',
     bg: '#E6FCFF'
   },
   {
+
     title: 'Báo cáo và tổng hợp',
     desc: 'Tổng hợp thông tin để đội ngũ nhìn nhanh tình trạng dự án và vấn đề cần xử lý.',
+
+    titleKey: 'landing.features.reports.title',
+    descKey: 'landing.features.reports.desc',
+
     icon: TrendingUp,
     color: '#36B37E',
     bg: '#E3FCEF'
@@ -98,8 +121,13 @@ const roles = [
         </div>
 
         <div class="nav-actions">
+
           <router-link class="nav-link" to="/login">Đăng nhập</router-link>
           <router-link class="nav-primary" to="/register">Đăng ký mới</router-link>
+
+          <router-link class="nav-link" to="/login">{{ t('landing.login') }}</router-link>
+          <router-link class="nav-primary" to="/register">{{ t('landing.register') }}</router-link>
+
         </div>
       </div>
     </header>
@@ -115,6 +143,16 @@ const roles = [
           <div class="hero-btns">
             <router-link class="hero-primary" to="/login">Đăng nhập</router-link>
             <router-link class="hero-secondary" to="/register">Đăng ký mới</router-link>
+          </div>
+
+          <div class="new-badge">{{ t('landing.badge') }}</div>
+          <h1 class="hero-title">{{ t('landing.heroTitle') }}</h1>
+          <p class="hero-sub">
+            {{ t('landing.heroSubtitle') }}
+          </p>
+          <div class="hero-btns">
+            <router-link class="hero-primary" to="/login">{{ t('landing.login') }}</router-link>
+            <router-link class="hero-secondary" to="/register">{{ t('landing.register') }}</router-link>
           </div>
         </div>
 
@@ -142,18 +180,24 @@ const roles = [
 
     <section class="features-section">
       <div class="container">
+
         <div class="section-copy-center">
           <h2 class="section-title">Mọi chức năng cốt lõi đều hỗ trợ quy trình Agile</h2>
           <p class="section-sub">Chúng tôi mang lại các công cụ cần thiết nhất nhằm tăng tốc độ bàn giao của nhóm mà không gây phiền toái hay phức tạp hóa công việc.</p>
         </div>
 
+        <div class="section-copy">
+          <h2 class="section-title">{{ t('landing.featuresTitle') }}</h2>
+          <p class="section-sub">{{ t('landing.featuresSubtitle') }}</p>
+        </div>
+
         <div class="feature-grid">
-          <article v-for="feature in features" :key="feature.title" class="feature-card">
+          <article v-for="feature in featureConfig" :key="feature.titleKey" class="feature-card">
             <div class="icon-wrap" :style="{ backgroundColor: feature.bg }">
               <component :is="feature.icon" :size="20" :color="feature.color" />
             </div>
-            <h3>{{ feature.title }}</h3>
-            <p>{{ feature.desc }}</p>
+            <h3>{{ t(feature.titleKey) }}</h3>
+            <p>{{ t(feature.descKey) }}</p>
           </article>
         </div>
       </div>
@@ -162,6 +206,7 @@ const roles = [
     <section class="focus-section">
       <div class="container focus-grid">
         <div class="focus-copy">
+
           <h2 class="section-title">Tập trung vào tính năng thực tế và bảo mật</h2>
           <p class="section-sub">
             Hệ thống xác thực nghiêm ngặt bảo vệ dữ liệu dự án của bạn. Sau khi đăng nhập, bạn sẽ được truy cập vào không gian làm việc nơi chứa các dashboard, bảng Kanban và danh sách công việc của dự án.
@@ -176,6 +221,16 @@ const roles = [
           <div class="hero-btns mt-4">
             <router-link class="hero-primary" to="/login">Đăng nhập ngay</router-link>
             <router-link class="hero-secondary" to="/register">Tìm hiểu thêm</router-link>
+          </div>
+
+          <h2 class="section-title">{{ t('landing.focusTitle') }}</h2>
+          <p class="section-sub">
+            {{ t('landing.focusSubtitle') }}
+          </p>
+          <div class="hero-btns">
+            <router-link class="hero-primary" to="/login">{{ t('landing.login') }}</router-link>
+            <router-link class="hero-secondary" to="/register">{{ t('landing.register') }}</router-link>
+
           </div>
         </div>
 
@@ -222,6 +277,7 @@ const roles = [
             <img :src="logoImg" alt="SprintA Logo" class="custom-logo" />
             <span class="logo-text">SprintA</span>
           </a>
+
           <p class="footer-about">Hệ thống quản lý công việc tối ưu dành cho đội ngũ phát triển tinh gọn, kết hợp phong cách thiết kế Jira chuyên nghiệp.</p>
           <div class="socials">
             <Twitter :size="18" />
@@ -237,6 +293,9 @@ const roles = [
           <a href="#">Bảng giá</a>
           <a href="#">Bảo mật</a>
           <a href="#">Tích hợp</a>
+
+          <p class="footer-about">{{ t('landing.footerAbout') }}</p>
+
         </div>
 
         <div class="footer-links-col">

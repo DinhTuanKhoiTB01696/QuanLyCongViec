@@ -1,29 +1,20 @@
-import { ref, computed } from 'vue';
-
-// Module-level shared ref — all components share the same locale state
-const currentLocale = ref(localStorage.getItem('admin_locale') || 'vi');
+import { language, setLanguage } from '@/i18n'
 
 export const useLocale = () => {
-    const toggleLocale = () => {
-        currentLocale.value = currentLocale.value === 'vi' ? 'en' : 'vi';
-        localStorage.setItem('admin_locale', currentLocale.value);
-    };
+  const toggleLocale = () => {
+    setLanguage(language.value === 'vi' ? 'en' : 'vi')
+  }
 
-    /**
-     * Translate helper: returns English or Vietnamese string based on current locale.
-     * Since this reads currentLocale.value, Vue will track the dependency
-     * and re-render when locale changes.
-     */
-    const t = (en, vi) => {
-        return currentLocale.value === 'vi' ? vi : en;
-    };
+  const t = (en, vi) => {
+    return language.value === 'vi' ? vi : en
+  }
 
-    const formatDateLocal = (isoString) => {
-        if (!isoString) return '';
-        const d = new Date(isoString);
-        if (isNaN(d.getTime())) return '';
-        return d.toLocaleString(currentLocale.value === 'vi' ? 'vi-VN' : 'en-US');
-    };
+  const formatDateLocal = (isoString) => {
+    if (!isoString) return ''
+    const date = new Date(isoString)
+    if (Number.isNaN(date.getTime())) return ''
+    return date.toLocaleString(language.value === 'vi' ? 'vi-VN' : 'en-US')
+  }
 
-    return { locale: currentLocale, toggleLocale, t, formatDateLocal };
-};
+  return { locale: language, toggleLocale, t, formatDateLocal }
+}

@@ -339,7 +339,10 @@ namespace TaskManagement.Infrastructure.Services
                 .ToListAsync();
 
             var activeSprint = sprints
-                .FirstOrDefault(s => s.StartDate.Date <= today && s.EndDate.Date >= today);
+                .FirstOrDefault(s =>
+                    s.Status &&
+                    s.StartDate.Date <= today &&
+                    s.EndDate.Date >= today);
 
             var hasChanges = false;
             foreach (var sprint in sprints)

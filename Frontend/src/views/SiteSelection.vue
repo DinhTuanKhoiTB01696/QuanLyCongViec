@@ -13,7 +13,11 @@
         </div>
       </div>
       <div class="header-right">
+
         <button class="pill-btn blue" @click="router.push('/')">{{ t('Go to SprintA') }}</button>
+
+        <button class="pill-btn blue" @click="goToSpaceProject(recentSite?.id)" :disabled="!recentSite">{{ t('siteSelection.goToSprintA') }}</button>
+
         <div class="user-profile">
           <div class="user-avatar-circle" :style="{ backgroundColor: avatarColor }">{{ userInitials }}</div>
           <span class="user-name-text">{{ userEmailPrefix }}</span>
@@ -24,22 +28,21 @@
     <main class="start-content">
       <div class="welcome-container">
         <h1 class="welcome-title">
-          {{ t('Welcome back,') }} <span class="highlight-wrapper">{{ userEmailPrefix }}.
-            <svg class="squiggly-line" width="100%" height="12" viewBox="0 0 100 12" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M0 6 Q 12 0, 25 6 T 50 6 T 75 6 T 100 6" stroke="#FFAB00" stroke-width="3" stroke-linecap="round" fill="none"/>
-            </svg>
-          </span>
+          {{ t('siteSelection.welcomeBack') }} <span class="highlight-wrapper">{{ userName }}</span>.
+          <svg class="squiggly-line" width="100%" height="12" viewBox="0 0 100 12" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 6 Q 12 0, 25 6 T 50 6 T 75 6 T 100 6" stroke="#FFAB00" stroke-width="3" stroke-linecap="round" fill="none"/>
+          </svg>
         </h1>
       </div>
 
       <div class="card-section">
         <div class="card-header-row">
           <span class="pickup-text">
-            {{ t('Pick up where you left off in') }} 
+            {{ t('siteSelection.pickUpIn') }}
             <img src="@/assets/logo_QLCV.png" alt="SprintA Logo" class="sprinta-logo-img small" />
             <strong>SprintA</strong>
           </span>
-          <a href="#" class="create-site-link" @click.prevent="openCreateModal">{{ t('Create a new site') }}</a>
+          <a href="#" class="create-site-link" @click.prevent="openCreateModal">{{ t('siteSelection.createNewSite') }}</a>
         </div>
 
         <div class="recent-site-card" v-if="recentSite">
@@ -50,6 +53,7 @@
             <div class="site-info-stack">
               <span class="site-name-bold">{{ recentSite.name || userName }}</span>
               <div class="member-avatars">
+
                 <div 
                   class="member-circle" 
                   v-for="(member, idx) in visibleMembers" 
@@ -59,16 +63,28 @@
                   {{ member.avatar || getInitials(member.fullName || member.name) }}
                 </div>
                 <div class="member-count" v-if="hiddenMembersCount > 0">+{{ hiddenMembersCount }}</div>
+
+                <!-- Chỉ hiển thị người dùng hiện tại (dữ liệu thật). Chưa có API danh sách member nên không thêm avatar/"+N" giả. -->
+                <div class="member-circle" style="background-color: #00875A">{{ userInitials }}</div>
+
               </div>
             </div>
           </div>
           <div class="site-card-right">
+
             <button class="pill-btn orange" @click="goToSpaceProject(recentSite.id)">{{ t('Go to Space') }}</button>
+
+            <button class="pill-btn orange" @click="goToSpaceProject(recentSite.id)">{{ t('siteSelection.goToSprintA') }}</button>
+
           </div>
         </div>
 
         <div class="card-footer-row">
+
           <router-link to="/home" class="different-site-link">{{ t('Looking for a different site?') }} &rarr;</router-link>
+
+          <router-link to="/sites" class="different-site-link">{{ t('siteSelection.lookingForDifferent') }} &rarr;</router-link>
+
           
           <div class="decorative-stars">
             <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -80,8 +96,9 @@
       </div>
 
       <div class="explore-section">
-        <p>Want to find out more about SprintA?</p>
-        <button class="explore-btn">Explore features</button>
+        <p>{{ t('siteSelection.exploreQuestion') }}</p>
+        <!-- Chưa có route/tài liệu thật cho tính năng này -> disable rõ ràng, không để nút bấm im lặng. -->
+        <button class="explore-btn" disabled :title="t('siteSelection.notSupportedTitle')">{{ t('siteSelection.exploreFeatures') }}</button>
       </div>
     </main>
 
@@ -89,17 +106,11 @@
     <div class="modal-overlay" v-if="isCreateModalOpen" @click.self="closeCreateModal">
       <div class="jira-modal">
         <div class="jira-modal-body">
-          <h1 class="jira-modal-title text-center">
-            {{ t('Welcome back,') }} <span class="highlight-wrapper">{{ userEmailPrefix }}
-              <svg class="squiggly-line" width="100%" height="12" viewBox="0 0 100 12" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0 6 Q 12 0, 25 6 T 50 6 T 75 6 T 100 6" stroke="#FFAB00" stroke-width="3" stroke-linecap="round" fill="none"/>
-              </svg>
-            </span>
-          </h1>
-          <p class="jira-subtitle">{{ t('Pick up where you left off.') }}</p>
+          <h1 class="jira-modal-title text-center">Tạo không gian mới</h1>
+          <p class="jira-subtitle">{{ t('siteSelection.pickUpShort') }}</p>
 
           <div class="form-group">
-            <label class="jira-label">{{ t('Your site') }}</label>
+            <label class="jira-label">{{ t('siteSelection.yourSite') }}</label>
             <div class="jira-input-wrapper" :class="validationState">
               <input 
                 type="text" 
@@ -123,11 +134,11 @@
             :disabled="isCreating || validationState !== 'success'" 
             @click="submitCreateSite"
           >
-            {{ isCreating ? t('Creating...') : t('Continue') }}
+            {{ isCreating ? t('siteSelection.creating') : t('siteSelection.continueBtn') }}
           </button>
 
           <div class="jira-modal-footer">
-            <span class="or-text">or </span><a href="#" class="join-link" @click.prevent="switchToJoinModal">{{ t('join an existing site') }}</a>
+            <span class="or-text">or </span><a href="#" class="join-link" @click.prevent="switchToJoinModal">{{ t('siteSelection.joinExisting') }}</a>
           </div>
         </div>
       </div>
@@ -136,17 +147,11 @@
     <div class="modal-overlay" v-if="isJoinModalOpen" @click.self="closeJoinModal">
       <div class="jira-modal join-modal">
         <div class="jira-modal-body">
-          <h1 class="jira-modal-title text-center">
-            {{ t('Welcome back,') }} <span class="highlight-wrapper">{{ userEmailPrefix }}
-              <svg class="squiggly-line" width="100%" height="12" viewBox="0 0 100 12" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0 6 Q 12 0, 25 6 T 50 6 T 75 6 T 100 6" stroke="#FFAB00" stroke-width="3" stroke-linecap="round" fill="none"/>
-              </svg>
-            </span>
-          </h1>
-          <p class="jira-subtitle">{{ t('Pick up where you left off.') }}</p>
+          <h1 class="jira-modal-title text-center">Tham gia không gian hiện có</h1>
+          <p class="jira-subtitle">{{ t('siteSelection.pickUpShort') }}</p>
 
           <p class="logged-in-text">
-            {{ t("You're logged in as") }} <strong>{{ userEmail }}</strong>. <a href="#" class="switch-account-link">{{ t('Switch account') }}</a>
+            {{ t('siteSelection.loggedInAs') }} <strong>{{ userEmail }}</strong>. <a href="#" class="switch-account-link">{{ t('siteSelection.switchAccount') }}</a>
           </p>
 
           <div class="site-list-container">
@@ -156,13 +161,13 @@
                 <div class="site-list-item-url">{{ site.name }}</div>
               </div>
               <div class="site-list-item-right">
-                <button class="pill-btn blue small" @click="goToSpaceProject(site.id)">{{ t('Go to SprintA') }}</button>
+                <button class="pill-btn blue small" @click="goToSpaceProject(site.id)">{{ t('siteSelection.goToSprintA') }}</button>
               </div>
             </div>
           </div>
 
           <div class="jira-modal-footer">
-            <span class="or-text">or </span><a href="#" class="join-link" @click.prevent="switchToCreateModal">{{ t('start a new site') }}</a>
+            <span class="or-text">or </span><a href="#" class="join-link" @click.prevent="switchToCreateModal">{{ t('siteSelection.startNewSite') }}</a>
           </div>
         </div>
       </div>
@@ -176,13 +181,13 @@ import { useRouter } from 'vue-router'
 import { useSiteStore } from '@/store/useSiteStore'
 import { usePeopleStore } from '@/store/usePeopleStore'
 import { getStoredUser } from '@/utils/permissions'
-import { useI18nStore } from '@/store/useI18nStore'
+import { useI18n } from '@/composables/useI18n'
 
 const router = useRouter()
 const siteStore = useSiteStore()
 const peopleStore = usePeopleStore()
-const i18nStore = useI18nStore()
-const t = i18nStore.t
+const { t } = useI18n()
+
 
 const currentUser = getStoredUser()
 const userEmail = currentUser?.email || ''
@@ -255,7 +260,7 @@ watch(newSiteName, (newVal) => {
   debounceTimer = setTimeout(() => {
     if (formattedName.length < 3) {
       validationState.value = 'error'
-      errorMessage.value = 'Site name must be at least 3 characters'
+      errorMessage.value = t('siteSelection.siteNameMinLength')
     } else {
       validationState.value = 'success'
       errorMessage.value = ''
@@ -302,7 +307,7 @@ const submitCreateSite = async () => {
     goToSpaceProject(site.id)
   } catch (error) {
     validationState.value = 'error'
-    errorMessage.value = error.message || 'Failed to create site'
+    errorMessage.value = error.message || t('siteSelection.createSiteFailed')
   } finally {
     isCreating.value = false
   }
@@ -310,8 +315,10 @@ const submitCreateSite = async () => {
 
 const goToSpaceProject = (siteId) => {
   if (!siteId) return
+  // Ghi nhận site vừa chọn rồi đưa người dùng tới trang "Dành cho bạn" (/dashboard -> ForYou.vue),
+  // không vào thẳng project dashboard mặc định.
   siteStore.setRecentSite(siteStore.sites.find(s => s.id === siteId) || { id: siteId })
-  router.push(`/space/${siteId}`)
+  router.push('/dashboard')
 }
 </script>
 
@@ -601,7 +608,12 @@ const goToSpaceProject = (siteId) => {
   cursor: pointer;
   transition: background-color 0.2s;
 }
+
 .explore-btn:hover { background-color: var(--color-text-primary)0a; }
+
+.explore-btn:hover:not(:disabled) { background-color: #091e420a; }
+.explore-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 
 /* Modal Styles */
 .modal-overlay {

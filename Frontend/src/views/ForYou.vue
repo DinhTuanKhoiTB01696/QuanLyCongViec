@@ -7,11 +7,13 @@ import NexusLayout from '@/components/layout/NexusLayout.vue'
 import TaskDetailModal from '@/components/TaskDetailModal.vue'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
+import { useI18n } from '@/composables/useI18n'
 
 const route = useRoute()
 const router = useRouter()
 const projectStore = useProjectStore()
 const workTaskStore = useWorkTaskStore()
+const { t } = useI18n()
 
 const currentProjectId = computed(() => route.params.id || null)
 
@@ -54,7 +56,7 @@ const fetchSpaces = async () => {
       id: p.id,
       name: p.name,
       key: p.key || p.name.substring(0, 4).toUpperCase(),
-      description: p.description || 'Software space',
+      description: p.description || t('forYou.softwareSpace'),
       cover: p.cover || '#3b82f6',
       icon: p.icon || '📦',
       taskCount: p.activeMemberCount || p.ActiveMemberCount || 0,
@@ -63,7 +65,7 @@ const fetchSpaces = async () => {
       originalRow: p
     }))
   } catch (error) {
-    errorSpaces.value = 'Failed to load projects.'
+    errorSpaces.value = t('forYou.loadProjectsFailed')
     console.error('Fetch spaces error:', error)
   } finally {
     loadingSpaces.value = false
@@ -78,7 +80,7 @@ const fetchMyTasks = async () => {
     const res = await axiosClient.get('/tasks/search')
     myTasks.value = res.data?.data || []
   } catch (error) {
-    errorTasks.value = 'Failed to load personal tasks.'
+    errorTasks.value = t('forYou.loadTasksFailed')
     console.error('Failed to load personal tasks:', error)
   } finally {
     loadingTasks.value = false
@@ -88,7 +90,7 @@ const fetchMyTasks = async () => {
 // 3. Task Starring (Client-side localized)
 const toggleTaskStar = (task) => {
   workTaskStore.toggleTaskStar(task)
-  ElMessage.success(workTaskStore.isTaskStarred(task.id) ? 'Task starred' : 'Task unstarred')
+  ElMessage.success(workTaskStore.isTaskStarred(task.id) ? t('forYou.taskStarred') : t('forYou.taskUnstarred'))
 }
 
 // 4. Space Starring
@@ -96,11 +98,19 @@ const toggleSpaceStar = async (space) => {
   try {
     const isCurrentlyFav = projectStore.favoriteProjects.some(p => p.id === space.id)
     await projectStore.updateFavorite(space.id, !isCurrentlyFav)
-    ElMessage.success(isCurrentlyFav ? 'Space removed from starred' : 'Space starred!')
+    ElMessage.success(isCurrentlyFav ? t('forYou.spaceUnstarred') : t('forYou.spaceStarred'))
   } catch {
-    ElMessage.error('Could not update space star')
+    ElMessage.error(t('forYou.updateSpaceStarFailed'))
   }
 }
+
+const forYouTabs = computed(() => [
+  { id: 'recommended', label: t('forYou.recommended') },
+  { id: 'assigned', label: t('forYou.assignedToMe') },
+  { id: 'starred', label: t('forYou.starred') },
+  { id: 'worked', label: t('forYou.workedOn') },
+  { id: 'viewed', label: t('forYou.viewed') }
+])
 
 // Sorted Spaces
 const sortedSpaces = computed(() => {
@@ -185,7 +195,7 @@ const groupedTasks = computed(() => {
   if (activeTab.value === 'assigned' || activeTab.value === 'starred') {
     const projectGroups = {}
     paginatedTasks.value.forEach(task => {
-      const pName = task.projectName || 'Other Projects'
+      const pName = task.projectName || t('forYou.otherProjects')
       if (!projectGroups[pName]) projectGroups[pName] = []
       projectGroups[pName].push(task)
     })
@@ -194,11 +204,11 @@ const groupedTasks = computed(() => {
 
   // Group by Date for Worked, Viewed, Recommended
   const groups = {
-    'Today': [],
-    'Yesterday': [],
-    'This Week': [],
-    'In the last month': [],
-    'Older': []
+    [t('forYou.today')]: [],
+    [t('forYou.yesterday')]: [],
+    [t('forYou.thisWeek')]: [],
+    [t('forYou.lastMonth')]: [],
+    [t('forYou.older')]: []
   }
 
   const today = new Date()
@@ -212,11 +222,11 @@ const groupedTasks = computed(() => {
 
   paginatedTasks.value.forEach(task => {
     const d = new Date(task.updatedAt || task.createdAt || Date.now())
-    if (d >= today) groups['Today'].push(task)
-    else if (d >= yesterday) groups['Yesterday'].push(task)
-    else if (d >= lastWeek) groups['This Week'].push(task)
-    else if (d >= lastMonth) groups['In the last month'].push(task)
-    else groups['Older'].push(task)
+    if (d >= today) groups[t('forYou.today')].push(task)
+    else if (d >= yesterday) groups[t('forYou.yesterday')].push(task)
+    else if (d >= lastWeek) groups[t('forYou.thisWeek')].push(task)
+    else if (d >= lastMonth) groups[t('forYou.lastMonth')].push(task)
+    else groups[t('forYou.older')].push(task)
   })
 
   // Remove empty groups
@@ -315,23 +325,23 @@ const getTaskIcon = (task) => {
 const isTaskStarred = (taskId) => workTaskStore.isTaskStarred(taskId)
 
 const timeAgo = (dateStr) => {
-  if (!dateStr || dateStr.startsWith('0001-01-01')) return 'Vừa xong'
+  if (!dateStr || dateStr.startsWith('0001-01-01')) return t('forYou.justNow')
   const date = new Date(dateStr)
-  if (isNaN(date.getTime()) || date.getFullYear() <= 1970) return 'Vừa xong'
+  if (isNaN(date.getTime()) || date.getFullYear() <= 1970) return t('forYou.justNow')
   const seconds = Math.floor((new Date() - date) / 1000)
-  if (seconds < 0) return 'Vừa xong'
-  
+  if (seconds < 0) return t('forYou.justNow')
+
   let interval = seconds / 31536000
-  if (interval >= 1) return Math.floor(interval) + ' năm trước'
+  if (interval >= 1) return t('forYou.yearsAgo', { count: Math.floor(interval) })
   interval = seconds / 2592000
-  if (interval >= 1) return Math.floor(interval) + ' tháng trước'
+  if (interval >= 1) return t('forYou.monthsAgo', { count: Math.floor(interval) })
   interval = seconds / 86400
-  if (interval >= 1) return Math.floor(interval) + ' ngày trước'
+  if (interval >= 1) return t('forYou.daysAgo', { count: Math.floor(interval) })
   interval = seconds / 3600
-  if (interval >= 1) return Math.floor(interval) + ' giờ trước'
+  if (interval >= 1) return t('forYou.hoursAgo', { count: Math.floor(interval) })
   interval = seconds / 60
-  if (interval >= 1) return Math.floor(interval) + ' phút trước'
-  return 'Vừa xong'
+  if (interval >= 1) return t('forYou.minutesAgo', { count: Math.floor(interval) })
+  return t('forYou.justNow')
 }
 
 onMounted(() => {
@@ -359,12 +369,12 @@ watch(activeTab, () => {
         <!-- Recommended Spaces Section -->
         <section class="mb-10 mt-2">
           <div class="section-header flex-between mb-4">
-            <h2 class="section-title">Recommended spaces</h2>
-            <a href="/spaces" class="view-all-link">View all spaces</a>
+            <h2 class="section-title">{{ t('forYou.recommendedSpaces') }}</h2>
+            <a href="/spaces" class="view-all-link">{{ t('forYou.viewAllSpaces') }}</a>
           </div>
 
           <div v-if="loadingSpaces" class="loading-state">
-            <i class="fa-solid fa-spinner fa-spin"></i> Loading spaces...
+            <i class="fa-solid fa-spinner fa-spin"></i> {{ t('forYou.loadingSpaces') }}
           </div>
           
           <!-- Premium Empty State for Spaces -->
@@ -375,8 +385,8 @@ watch(activeTab, () => {
               </svg>
             </div>
             <div class="esc-text">
-              <h3 class="text-sm font-semibold text-gray-700 dark:text-neutral-300">No active spaces found</h3>
-              <p class="text-xs text-gray-500 dark:text-neutral-500 mt-0.5">Projects and collaboration spaces you join will appear here.</p>
+              <h3 class="text-sm font-semibold text-gray-700 dark:text-neutral-300">{{ t('forYou.noActiveSpaces') }}</h3>
+              <p class="text-xs text-gray-500 dark:text-neutral-500 mt-0.5">{{ t('forYou.noActiveSpacesDesc') }}</p>
             </div>
           </div>
           
@@ -392,7 +402,7 @@ watch(activeTab, () => {
               </div>
               <div class="sc-info">
                 <h3 class="sc-name" :title="space.name">{{ space.name }}</h3>
-                <p class="sc-desc">{{ space.description }} • {{ space.taskCount }} tasks</p>
+                <p class="sc-desc">{{ space.description }} - {{ space.taskCount }} {{ t('common.tasks') }}</p>
               </div>
               <!-- Star button for Space -->
               <button 
@@ -410,17 +420,11 @@ watch(activeTab, () => {
         <!-- For You Section -->
         <section>
           <div class="foryou-header-row mb-6">
-            <h2 class="section-title text-2xl font-bold">For you</h2>
+            <h2 class="section-title text-2xl font-bold">{{ t('forYou.forYou') }}</h2>
             
             <div class="jira-tabs">
               <button 
-                v-for="tab in [
-                  { id: 'recommended', label: 'Recommended' },
-                  { id: 'assigned', label: 'Assigned to me' },
-                  { id: 'starred', label: 'Starred' },
-                  { id: 'worked', label: 'Worked on' },
-                  { id: 'viewed', label: 'Viewed' }
-                ]"
+                v-for="tab in forYouTabs"
                 :key="tab.id"
                 class="j-tab"
                 :class="{ 'active': activeTab === tab.id }"
@@ -441,23 +445,23 @@ watch(activeTab, () => {
           <div class="task-toolbar mb-6">
             <div class="search-input">
               <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" v-model="taskSearch" placeholder="Search tasks..." />
+              <input type="text" v-model="taskSearch" :placeholder="t('forYou.searchTasksPlaceholder')" />
             </div>
             <select v-model="statusFilter" class="jira-select">
-              <option value="all">All Statuses</option>
-              <option value="todo">To Do</option>
-              <option value="inprogress">In Progress</option>
-              <option value="done">Done</option>
+              <option value="all">{{ t('forYou.allStatuses') }}</option>
+              <option value="todo">{{ t('forYou.toDo') }}</option>
+              <option value="inprogress">{{ t('forYou.inProgress') }}</option>
+              <option value="done">{{ t('forYou.done') }}</option>
             </select>
             <select v-model="sortOption" class="jira-select">
-              <option value="updated">Recently Updated</option>
-              <option value="created">Recently Created</option>
-              <option value="priority">Priority</option>
+              <option value="updated">{{ t('forYou.recentlyUpdated') }}</option>
+              <option value="created">{{ t('forYou.recentlyCreated') }}</option>
+              <option value="priority">{{ t('forYou.priority') }}</option>
             </select>
           </div>
 
           <div v-if="loadingTasks" class="loading-state">
-            <i class="fa-solid fa-spinner fa-spin"></i> Loading your work...
+            <i class="fa-solid fa-spinner fa-spin"></i> {{ t('forYou.loadingYourWork') }}
           </div>
           
           <!-- Premium Empty State for Tasks -->
@@ -467,9 +471,9 @@ watch(activeTab, () => {
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
               </svg>
             </div>
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-neutral-300">All caught up!</h3>
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-neutral-300">{{ t('forYou.allCaughtUp') }}</h3>
             <p class="text-xs text-gray-500 dark:text-neutral-500 mt-1 max-w-xs mx-auto">
-              You don't have any matching work items in this category.
+              {{ t('forYou.noMatchingWorkItems') }}
             </p>
           </div>
 
@@ -495,7 +499,7 @@ watch(activeTab, () => {
                       {{ task.title }}
                     </div>
                     <div class="jtr-subtitle">
-                      Task • {{ task.sequenceId || 'DTN-5' }} • {{ task.projectName || 'Project' }}
+                      {{ t('common.task') }} - {{ task.sequenceId || 'DTN-5' }} - {{ task.projectName || t('common.project') }}
                     </div>
                   </div>
                   <div class="jtr-actions" @click.stop>
@@ -513,7 +517,7 @@ watch(activeTab, () => {
             <!-- Pagination -->
             <div class="pagination flex justify-center items-center gap-4 mt-6" v-if="totalPages > 1">
               <button class="jira-btn-subtle" :disabled="currentPage === 1" @click="currentPage--"><i class="fa-solid fa-chevron-left"></i></button>
-              <span class="text-sm text-gray-500">Page {{ currentPage }} of {{ totalPages }}</span>
+              <span class="text-sm text-gray-500">{{ t('common.pageOf', { current: currentPage, total: totalPages }) }}</span>
               <button class="jira-btn-subtle" :disabled="currentPage === totalPages" @click="currentPage++"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
           </div>
