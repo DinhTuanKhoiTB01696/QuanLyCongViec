@@ -32,10 +32,11 @@ namespace TaskManagement.Infrastructure.Services
 
         public async Task<(AuthResponseDto? response, string? refreshToken, bool requires2FA)> LoginAsync(LoginRequestDto request)
         {
+            var email = request.Email.Trim().ToLowerInvariant();
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
-                .FirstOrDefaultAsync(u => u.Email == request.Email && !u.IsDeleted);
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == email && !u.IsDeleted);
 
             if (user == null || string.IsNullOrEmpty(user.PasswordHash) || !VerifyPassword(request.Password, user.PasswordHash))
             {
@@ -69,10 +70,11 @@ namespace TaskManagement.Infrastructure.Services
 
         public async Task<(AuthResponseDto response, string refreshToken)> Login2FAAsync(string email, string password, string otp)
         {
+            var normalizedEmail = email.Trim().ToLowerInvariant();
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
-                .FirstOrDefaultAsync(u => u.Email == email && !u.IsDeleted);
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail && !u.IsDeleted);
 
             if (user == null || string.IsNullOrEmpty(user.PasswordHash) || !VerifyPassword(password, user.PasswordHash))
                 throw new UnauthorizedAccessException("Email hoặc mật khẩu không chính xác.");
@@ -253,6 +255,16 @@ namespace TaskManagement.Infrastructure.Services
             var clientSecret = gitHubConfig["ClientSecret"] ?? throw new InvalidOperationException("GitHub ClientSecret chưa được cấu hình.");
 
             // Bước 1: Đổi authorization code lấy access_token từ GitHub
+            if (string.IsNullOrWhiteSpace(clientId))
+            {
+                throw new InvalidOperationException("GitHub ClientId is not configured.");
+            }
+
+            if (string.IsNullOrWhiteSpace(clientSecret))
+            {
+                throw new InvalidOperationException("GitHub ClientSecret is not configured. Set GitHub__ClientSecret in environment variables or user-secrets.");
+            }
+
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SprintA", "1.0"));
@@ -461,7 +473,8 @@ namespace TaskManagement.Infrastructure.Services
 
         public async Task RegisterAsync(RegisterRequestDto request)
         {
-            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email && !u.IsDeleted);
+            var email = request.Email.Trim().ToLowerInvariant();
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email && !u.IsDeleted);
             if (existingUser != null && !string.IsNullOrEmpty(existingUser.PasswordHash))
             {
                 throw new InvalidOperationException("Email da duoc su dung.");
@@ -470,12 +483,13 @@ namespace TaskManagement.Infrastructure.Services
             var newUser = existingUser ?? new User
             {
                 Id = Guid.NewGuid(),
-                Email = request.Email,
+                Email = email,
                 CreatedAt = DateTime.UtcNow,
                 IsDeleted = false
             };
 
-            newUser.FullName = request.FullName;
+            newUser.FullName = request.FullName.Trim();
+            newUser.Email = email;
             newUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
             newUser.IsActive = true;
             newUser.UpdatedAt = DateTime.UtcNow;

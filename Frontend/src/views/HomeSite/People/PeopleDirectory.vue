@@ -233,13 +233,16 @@ import { usePeopleStore } from '@/store/usePeopleStore'
 import { useTeamStore } from '@/store/useTeamStore'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useGoalStore } from '@/store/useGoalStore'
+import { useSiteStore } from '@/store/useSiteStore'
 import { getInitials, getAvatarColor } from '@/utils/avatarUtils'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const peopleStore = usePeopleStore()
 const teamStore = useTeamStore()
 const projectStore = useProjectStore()
 const goalStore = useGoalStore()
+const siteStore = useSiteStore()
 
 const searchQuery = ref('')
 const viewMode = ref('grid')
@@ -366,12 +369,17 @@ const sendInvites = async () => {
   addEmail() // add whatever is currently in the input
   if (inviteEmails.value.length === 0) return
   
+  const siteId = siteStore.recentSite?.id
+  if (!siteId) {
+    ElMessage.error('Không tìm thấy thông tin site hiện tại.')
+    return
+  }
+
   isSending.value = true
   inviteSuccess.value = false
   
   try {
-    // Simulate API call to send invites
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await peopleStore.inviteUsers(siteId, inviteEmails.value)
     inviteSuccess.value = true
     
     // Auto close after 2 seconds
@@ -382,6 +390,7 @@ const sendInvites = async () => {
     }, 2000)
   } catch (error) {
     console.error('Failed to send invites:', error)
+    ElMessage.error(error.message || 'Có lỗi xảy ra khi gửi lời mời.')
   } finally {
     isSending.value = false
   }
@@ -392,7 +401,8 @@ onMounted(async () => {
     peopleStore.fetchPeople(),
     teamStore.fetchAllTeams(),
     projectStore.fetchAllProjects(),
-    goalStore.fetchGoals()
+    goalStore.fetchGoals(),
+    siteStore.fetchSites()
   ])
 })
 

@@ -43,6 +43,8 @@
               format="DD/MM/YYYY"
               value-format="YYYY-MM-DD"
               class="goal-date-picker"
+              popper-class="goal-create-date-popper"
+              :teleported="true"
               :class="{ 'error-input': isDateTouched && !newGoal.startDate }"
               @change="isDateTouched = true"
             />
@@ -168,6 +170,10 @@ const submitCreateGoal = async () => {
   align-items: center;
   justify-content: center;
   z-index: 3000;
+}
+
+:global(.goal-create-date-popper) {
+  z-index: 4001 !important;
 }
 
 .goal-modal-content {

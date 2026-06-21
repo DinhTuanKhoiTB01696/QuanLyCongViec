@@ -12,6 +12,7 @@ namespace TaskManagement.Domain.Entities
         public string LinkedType { get; set; } = string.Empty; // "Goal", "Project", "Task", "TrackedLink"
         public Guid? LinkedId { get; set; } // Nullable if it's just a web link
         public string? TrackedUrl { get; set; } // For external tracked links
+        public string LinkCategory { get; set; } = "spaceProject"; // "spaceProject" or "siteProject"
         
         public Guid CreatorId { get; set; }
         public User Creator { get; set; } = null!;

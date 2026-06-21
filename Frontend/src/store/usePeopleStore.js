@@ -108,6 +108,22 @@ export const usePeopleStore = defineStore('people', {
       } finally {
         this.isLoading = false
       }
+    },
+    async inviteUsers(workspaceId, emails) {
+      if (!workspaceId) throw new Error('Workspace ID is required to invite users')
+      if (!emails || emails.length === 0) return
+
+      try {
+        const promises = emails.map(email => 
+          axiosClient.post(`/workspaces/${workspaceId}/members/invite`, { email })
+        )
+        await Promise.all(promises)
+      } catch (err) {
+        if (err.response && err.response.status === 403) {
+          throw new Error('Bạn không có quyền mời thành viên vào site này.')
+        }
+        throw err
+      }
     }
   }
 })

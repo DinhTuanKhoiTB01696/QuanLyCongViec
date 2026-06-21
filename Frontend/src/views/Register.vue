@@ -143,6 +143,13 @@ const handleSendOtp = async () => {
       purpose: 'register'
     });
     ElMessage.success(response.data.message || 'Đã gửi mã OTP đến email của bạn');
+    if (response.data.devOtp) {
+      form.otp = response.data.devOtp;
+      verifiedOtpToken.value = response.data.devOtp;
+      step.value = 3;
+      return;
+    }
+
     form.otp = ''; 
     step.value = 2;
   } catch (error) {
@@ -181,6 +188,12 @@ const handleVerifyOtp = async () => {
 
 const handleRegister = async () => {
   if (!form.fullName || !form.password) return;
+  const strongPassword = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+  if (!strongPassword.test(form.password)) {
+    ElMessage.warning('Mat khau can it nhat 6 ky tu, co chu hoa, so va ky tu dac biet.');
+    return;
+  }
+
   isLoading.value = true;
   try {
     const response = await axiosClient.post('/auth/register', { 

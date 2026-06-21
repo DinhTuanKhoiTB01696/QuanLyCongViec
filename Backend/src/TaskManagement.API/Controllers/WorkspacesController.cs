@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using TaskManagement.Infrastructure.Data;
 using TaskManagement.Domain.Entities;
+using TaskManagement.Application.Interfaces;
 
 namespace TaskManagement.API.Controllers
 {
@@ -13,10 +15,12 @@ namespace TaskManagement.API.Controllers
     public class WorkspacesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly IEmailService _emailService;
 
-        public WorkspacesController(ApplicationDbContext context)
+        public WorkspacesController(ApplicationDbContext context, IEmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         /// <summary>
@@ -304,6 +308,148 @@ namespace TaskManagement.API.Controllers
             return Ok(new { statusCode = 200, message = "Cập nhật vai trò thành công." });
         }
 
+        private string GenerateInviteToken()
+        {
+            var tokenData = new byte[32];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(tokenData);
+            }
+            return Convert.ToBase64String(tokenData);
+        }
+
+        private string HashToken(string token)
+        {
+            using (var sha256 = SHA256.Create())
+            {
+                var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(token));
+                return Convert.ToBase64String(hashBytes);
+            }
+        }
+
+        /// <summary>
+        /// Mời thành viên vào workspace
+        /// </summary>
+        [HttpPost("{workspaceId}/members/invite")]
+        public async Task<IActionResult> InviteMember(Guid workspaceId, [FromBody] InviteWorkspaceMemberRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userId, out Guid parsedUserId))
+                return Unauthorized(new { statusCode = 401, message = "Vui lòng đăng nhập." });
+
+            var requester = await _context.WorkspaceMembers
+                .FirstOrDefaultAsync(wm => wm.WorkspaceId == workspaceId && wm.UserId == parsedUserId && wm.IsActive);
+
+            if (requester == null || (requester.WorkspaceRole != "OWNER" && requester.WorkspaceRole != "ADMIN"))
+                return StatusCode(403, new { statusCode = 403, message = "Bạn không có quyền mời thành viên vào site này." });
+
+            var workspace = await _context.Workspaces.FindAsync(workspaceId);
+            if (workspace == null)
+                return NotFound(new { statusCode = 404, message = "Workspace không tồn tại." });
+
+            var email = request.Email.Trim().ToLowerInvariant();
+            var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            var createdPendingUser = false;
+
+            if (targetUser == null)
+            {
+                createdPendingUser = true;
+                targetUser = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Email = email,
+                    FullName = email.Split('@')[0],
+                    PasswordHash = string.Empty,
+                    IsActive = false,
+                    IsDeleted = false,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _context.Users.Add(targetUser);
+            }
+            else
+            {
+                if (targetUser.IsDeleted)
+                {
+                    return BadRequest(new { statusCode = 400, message = "Email này thuộc về một tài khoản đã bị xóa." });
+                }
+            }
+
+            var existing = await _context.WorkspaceMembers
+                .FirstOrDefaultAsync(wm => wm.WorkspaceId == workspaceId && wm.UserId == targetUser.Id);
+
+            if (existing != null)
+            {
+                if (existing.IsActive)
+                    return BadRequest(new { statusCode = 400, message = "Thành viên này đã nằm trong workspace." });
+                else
+                {
+                    existing.IsActive = true;
+                    existing.WorkspaceRole = "MEMBER";
+                }
+            }
+            else
+            {
+                _context.WorkspaceMembers.Add(new WorkspaceMember
+                {
+                    WorkspaceId = workspaceId,
+                    UserId = targetUser.Id,
+                    WorkspaceRole = "MEMBER",
+                    JoinedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
+            }
+
+            var activeInviteTokens = await _context.RefreshTokens
+                .Where(token => token.UserId == targetUser.Id && token.DeviceId == "Invite" && !token.IsRevoked)
+                .ToListAsync();
+
+            foreach (var token in activeInviteTokens)
+            {
+                token.IsRevoked = true;
+            }
+
+            var rawInviteToken = GenerateInviteToken();
+            var inviteTokenHash = HashToken(rawInviteToken);
+            _context.RefreshTokens.Add(new RefreshToken
+            {
+                Id = Guid.NewGuid(),
+                UserId = targetUser.Id,
+                Token = inviteTokenHash,
+                DeviceId = "Invite",
+                ExpiryTime = DateTime.UtcNow.AddDays(7),
+                IsRevoked = false
+            });
+
+            await _context.SaveChangesAsync();
+
+            // Currently we use a mocked URL. Frontend can build the real URL if needed.
+            var acceptUrl = $"http://localhost:5173/accept-invite?token={Uri.EscapeDataString(rawInviteToken)}";
+            
+            try 
+            {
+                await _emailService.SendInviteEmailAsync(
+                    email, 
+                    targetUser.FullName, 
+                    User.FindFirst(ClaimTypes.Name)?.Value ?? "System", 
+                    workspace.Name, 
+                    null, 
+                    acceptUrl, 
+                    "Bạn đã được mời vào workspace");
+            }
+            catch (Exception)
+            {
+                // Fallback if email sending fails, we just notify delivery failure but record is created
+                return Ok(new { statusCode = 200, message = "Đã tạo bản ghi mời, nhưng cấu hình email service chưa khả dụng để gửi thư thực tế." });
+            }
+
+            var message = createdPendingUser
+                ? "Đã gửi email mời. Người dùng sẽ ở trạng thái Invited cho đến khi đăng nhập."
+                : "Đã gửi email mời và cập nhật quyền truy cập.";
+
+            return Ok(new { statusCode = 200, message = message });
+        }
+
         /// <summary>
         /// Xóa thành viên
         /// </summary>
@@ -369,5 +515,10 @@ namespace TaskManagement.API.Controllers
     public class UpdateMemberRoleRequest
     {
         public string Role { get; set; } = string.Empty;
+    }
+
+    public class InviteWorkspaceMemberRequest
+    {
+        public string Email { get; set; } = string.Empty;
     }
 }
