@@ -401,7 +401,15 @@ const createNewCycle = async () => {
     newCycle.value = { name: '', description: '', startDate: null, endDate: null }
     await loadCycles()
   } catch (error) {
-    alert(error.response?.data?.message || 'Khong the tao cycle')
+    alert(error.response?.data?.message || 'Không thể tạo cycle')
+  }
+}
+
+const startCycle = async (cycle) => {
+  try {
+    await sprintStore.startSprint(props.projectId, cycle.id)
+  } catch (error) {
+    alert(error.response?.data?.message || 'Không thể bắt đầu cycle')
   }
 }
 
@@ -713,6 +721,9 @@ onUnmounted(() => {
                 <i class="fa-regular fa-calendar"></i>
                 {{ formatDateCompact(cycle.startDate) }} - {{ formatDateCompact(cycle.endDate) }}
               </span>
+              <button class="plane-primary-btn" style="margin-right: 8px;" @click.stop="startCycle(cycle)">
+                <i class="fa-solid fa-play"></i> Start cycle
+              </button>
               <span class="detail-link cursor-pointer hover:text-white" @click.stop="openCycleBoard(cycle)">
                 <i class="fa-solid fa-info-circle"></i> Open board
               </span>
@@ -757,7 +768,7 @@ onUnmounted(() => {
                   <i class="fa-solid fa-star text-orange-400" v-if="cycle.isFavorite"></i>
                   <i class="fa-regular fa-star" v-else></i>
                 </button>
-                <button class="filter-action" type="button" @click.stop="toggleCarryOverPlanner(cycle)" :class="{ active: expandedCarryOverCycleId === cycle.id }">
+                <button v-if="false" class="filter-action" type="button" @click.stop="toggleCarryOverPlanner(cycle)" :class="{ active: expandedCarryOverCycleId === cycle.id }">
                   <i class="fa-solid fa-list-check"></i> Carry-over
                 </button>
               </div>
