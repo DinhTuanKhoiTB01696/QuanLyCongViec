@@ -52,16 +52,14 @@
         <el-tabs v-model="activeTab" class="custom-tabs admin-tabs" style="margin-top: 24px;">
           <el-tab-pane :label="t('Departments', 'Phòng ban')" name="departments">
               <section class="admin-subcard">
-              <div class="subcard-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div class="subcard-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                   <h3 class="text-section">{{ t('Departments', 'Phòng ban') }}</h3>
-                  <p class="text-desc">{{ t('Create and maintain departments used across user and project access.', 'Tạo và quản lý phòng ban dùng cho người dùng và phân quyền dự án.') }}</p>
+                  <p class="text-desc" style="margin: 0;">{{ t('Create and maintain departments used across user and project access.', 'Tạo và quản lý phòng ban dùng cho người dùng và phân quyền dự án.') }}</p>
                 </div>
                 <div class="table-search" v-if="!selectedDepartmentView" style="margin-top: 0;">
-                  <div class="search-input-wrapper">
-                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                    <input v-model="departmentSearchQuery" type="text" :placeholder="t('Search departments', 'Tìm kiếm phòng ban...')" class="search-input" />
-                  </div>
+                  <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                  <input v-model="departmentSearchQuery" type="text" :placeholder="t('Search departments', 'Tìm kiếm phòng ban...')" class="search-input" />
                 </div>
               </div>
 
@@ -107,10 +105,8 @@
                 <strong>{{ t('Department', 'Phòng ban') }}: {{ activeDepartmentName }}</strong>
                 <div style="display: flex; gap: 16px; align-items: center;">
                   <div class="table-search" style="margin-top: 0; min-width: 250px;">
-                    <div class="search-input-wrapper">
-                      <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                      <input v-model="departmentMemberSearchQuery" type="text" :placeholder="t('Search by name or email', 'Tìm theo tên hoặc email...')" class="search-input" />
-                    </div>
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input v-model="departmentMemberSearchQuery" type="text" :placeholder="t('Search by name or email', 'Tìm theo tên hoặc email...')" class="search-input" />
                   </div>
                   <el-select v-model="memberToAdd" filterable :placeholder="t('Add member', 'Thêm nhân sự')" @change="handleAddMemberToDepartment" style="width: 200px;" popper-class="admin-project-dropdown">
                     <el-option v-for="user in usersNotInActiveDepartment" :key="user.id" :label="getDisplayName(user)" :value="user.id">
@@ -155,16 +151,14 @@
 
           <el-tab-pane :label="t('Project role mapping', 'Phân vai trò theo dự án')" name="project-roles">
               <section class="admin-subcard">
-              <div class="subcard-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div class="subcard-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                  <h3>{{ t('Project role mapping', 'Phân vai trò theo dự án') }}</h3>
-                  <p>{{ t('Assign a role for each department inside a project.', 'Gán vai trò của từng phòng ban trong từng dự án.') }}</p>
+                  <h3 class="text-section" style="margin-bottom: 4px;">{{ t('Project role mapping', 'Phân vai trò theo dự án') }}</h3>
+                  <p class="text-desc" style="margin: 0;">{{ t('Assign a role for each department inside a project.', 'Gán vai trò của từng phòng ban trong từng dự án.') }}</p>
                 </div>
                 <div class="table-search" v-if="!selectedProjectView" style="margin-top: 0;">
-                  <div class="search-input-wrapper">
-                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                    <input v-model="projectRoleSearchQuery" type="text" :placeholder="t('Search projects', 'Tìm kiếm dự án...')" class="search-input" />
-                  </div>
+                  <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                  <input v-model="projectRoleSearchQuery" type="text" :placeholder="t('Search projects', 'Tìm kiếm dự án...')" class="search-input" />
                 </div>
               </div>
 
@@ -196,10 +190,8 @@
                 <strong>{{ t('Project', 'Dự án') }}: {{ activeProjectName }}</strong>
                 <div style="display: flex; gap: 16px; align-items: center;">
                   <div class="table-search" style="margin-top: 0;">
-                    <div class="search-input-wrapper">
-                      <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                      <input v-model="projectDepartmentSearchQuery" type="text" :placeholder="t('Search departments', 'Tìm phòng ban...')" class="search-input" />
-                    </div>
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input v-model="projectDepartmentSearchQuery" type="text" :placeholder="t('Search departments', 'Tìm phòng ban...')" class="search-input" />
                   </div>
                   <button type="button" class="accent-back-btn" @click="selectedProjectView = null; projectRolePage = 1">
                     <i class="fa-solid fa-arrow-left"></i> {{ t('Back', 'Quay lại') }}
@@ -1999,10 +1991,10 @@ onUnmounted(() => {
 }
 
 .admin-subcard {
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-hover);
+  padding: 24px;
 }
 
 .subcard-header {
@@ -2041,10 +2033,15 @@ onUnmounted(() => {
 .assignment-grid input {
   min-height: 36px;
   border: 1px solid var(--color-border);
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px !important;
+  background: var(--input-bg);
   color: var(--color-text-primary);
   padding: 0 12px;
+  outline: none;
+}
+.department-form input:focus,
+.assignment-grid input:focus {
+  border-color: var(--color-accent);
 }
 
 .department-list,
@@ -2059,10 +2056,18 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 14px;
   align-items: center;
-  padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.02);
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+}
+.department-item:hover,
+.assignment-item:hover {
+  border-color: var(--color-accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .department-copy,
@@ -2194,9 +2199,9 @@ onUnmounted(() => {
   z-index: 30;
   overflow: hidden;
   border: 1px solid var(--color-border);
-  border-radius: 2px;
-  background: #1a1d24;
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
 }
 
 .action-menu {
@@ -2224,7 +2229,7 @@ onUnmounted(() => {
 }
 
 .action-menu button:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-surface-hover);
 }
 
 .danger-action {
@@ -2240,10 +2245,11 @@ onUnmounted(() => {
 
 .metric-card {
   min-height: 86px;
-  padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px !important;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .metric-card span {
@@ -2277,8 +2283,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   border: 1px solid var(--color-border);
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  background: var(--input-bg);
   color: var(--color-text-muted);
 }
 
@@ -2475,9 +2481,10 @@ onUnmounted(() => {
 
 .users-table-shell {
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .table-state {
@@ -2509,14 +2516,14 @@ onUnmounted(() => {
 
 .users-table td {
   padding: 12px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  border-top: 1px solid var(--color-border);
   color: var(--color-text-primary);
   font-size: 14px;
   vertical-align: middle;
 }
 
 .users-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-surface-hover);
 }
 
 .user-cell {
@@ -2580,7 +2587,7 @@ onUnmounted(() => {
 
 .row-more-btn:hover {
   border-color: var(--color-border);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-surface-hover);
 }
 
 .invite-panel {
@@ -2588,7 +2595,7 @@ onUnmounted(() => {
   inset: 0;
   z-index: 90;
   overflow-y: auto;
-  background: #ffffff;
+  background: var(--color-bg);
 }
 
 .close-invite {
@@ -2599,16 +2606,17 @@ onUnmounted(() => {
   place-items: center;
   width: 38px;
   height: 38px;
-  border: 1px solid transparent;
+  border: 1px solid var(--color-border);
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--color-surface);
   color: var(--color-text-secondary);
   cursor: pointer;
   font-size: 18px;
 }
 
 .close-invite:hover {
-  border-color: #0c66e4;
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
 }
 
 .invite-shell {
@@ -2622,7 +2630,7 @@ onUnmounted(() => {
 
 .invite-copy h2 {
   margin: 0;
-  color: #172b4d;
+  color: var(--color-text-primary);
   font-size: 25px;
   font-weight: 800;
 }
@@ -2630,7 +2638,7 @@ onUnmounted(() => {
 .invite-copy p {
   max-width: 860px;
   margin: 8px 0 0;
-  color: #172b4d;
+  color: var(--color-text-secondary);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -2643,7 +2651,7 @@ onUnmounted(() => {
 .field-label {
   display: block;
   margin-bottom: 7px;
-  color: #42526e;
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 800;
 }
@@ -2656,15 +2664,15 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   padding: 5px 8px;
-  border: 1px solid #8590a2;
-  border-radius: 2px;
-  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--input-bg);
 }
 
 .email-composer.is-focused,
 .group-composer.is-focused {
-  border-color: #0c66e4;
-  box-shadow: 0 0 0 1px #0c66e4;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
 }
 
 .email-composer input,
@@ -2673,7 +2681,7 @@ onUnmounted(() => {
   flex: 1 1 220px;
   border: 0;
   outline: 0;
-  color: #172b4d;
+  color: var(--color-text-primary);
   background: transparent;
   font-size: 14px;
 }
@@ -2685,10 +2693,10 @@ onUnmounted(() => {
   gap: 6px;
   min-height: 26px;
   padding: 0 7px;
-  border: 1px solid #dfe1e6;
-  border-radius: 2px;
-  background: #f1f2f4;
-  color: #172b4d;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
   font-size: 13px;
 }
 
@@ -2701,21 +2709,22 @@ onUnmounted(() => {
   border: 0;
   border-radius: 2px;
   background: transparent;
-  color: #626f86;
+  color: var(--color-text-muted);
   cursor: pointer;
 }
 
 .hint {
   margin: 7px 0 0;
-  color: #626f86;
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
 .access-table {
   margin-bottom: 42px;
-  border: 1px solid #dfe1e6;
-  border-radius: 2px;
-  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  overflow: hidden;
 }
 
 .access-header,
@@ -2725,12 +2734,12 @@ onUnmounted(() => {
   align-items: center;
   gap: 18px;
   min-height: 66px;
-  padding: 0 10px;
+  padding: 0 16px;
 }
 
 .access-header {
   min-height: 40px;
-  border-bottom: 1px solid #dfe1e6;
+  border-bottom: 1px solid var(--color-border);
   color: var(--color-text-primary);
   font-size: 13px;
   font-weight: 800;
@@ -2740,13 +2749,13 @@ onUnmounted(() => {
   justify-self: end;
   border: 0;
   background: transparent;
-  color: #0c66e4;
+  color: var(--color-accent);
   cursor: pointer;
   font-weight: 700;
 }
 
 .access-row + .access-row {
-  border-top: 1px solid #dfe1e6;
+  border-top: 1px solid var(--color-border);
 }
 
 .app-cell {
@@ -2794,17 +2803,17 @@ onUnmounted(() => {
   width: 100%;
   min-height: 34px;
   padding: 0 10px;
-  border: 1px solid #dfe1e6;
-  border-radius: 2px;
-  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--input-bg);
   color: var(--color-text-primary);
   cursor: pointer;
   font-size: 14px;
 }
 
 .role-trigger.is-open {
-  border-color: #0c66e4;
-  box-shadow: 0 0 0 1px #0c66e4;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
 }
 
 .role-menu {
@@ -2814,10 +2823,10 @@ onUnmounted(() => {
   z-index: 40;
   width: 334px;
   overflow: hidden;
-  border: 1px solid #dfe1e6;
-  border-radius: 2px;
-  background: #ffffff;
-  box-shadow: 0 8px 20px rgba(9, 30, 66, 0.2);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
 }
 
 .role-option {
@@ -2827,7 +2836,7 @@ onUnmounted(() => {
   width: 100%;
   padding: 12px 16px;
   border: 0;
-  background: #ffffff;
+  background: transparent;
   color: var(--color-text-primary);
   cursor: pointer;
   text-align: left;
@@ -2835,7 +2844,7 @@ onUnmounted(() => {
 
 .role-option:hover,
 .role-option.is-selected {
-  background: #e9f2ff;
+  background: var(--color-surface-hover);
 }
 
 .check-box {
@@ -2844,15 +2853,15 @@ onUnmounted(() => {
   width: 14px;
   height: 14px;
   margin-top: 3px;
-  border: 1px solid #a6adba;
+  border: 1px solid var(--color-border);
   border-radius: 2px;
   color: #ffffff;
   font-size: 9px;
 }
 
 .role-option.is-selected .check-box {
-  border-color: #0c66e4;
-  background: #0c66e4;
+  border-color: var(--color-accent);
+  background: var(--color-accent);
 }
 
 .role-option-copy strong,
@@ -2875,19 +2884,19 @@ onUnmounted(() => {
 }
 
 .role-option.is-selected .role-option-copy small {
-  color: #0c66e4;
+  color: var(--color-accent);
 }
 
 .role-menu-footer {
   padding: 12px 16px;
-  border-top: 1px solid #dfe1e6;
-  background: #ffffff;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .role-menu-footer button {
   border: 0;
   background: transparent;
-  color: #0c66e4;
+  color: var(--color-accent);
   cursor: pointer;
   font-weight: 600;
 }
@@ -2895,10 +2904,10 @@ onUnmounted(() => {
 .group-suggestions {
   max-height: 248px;
   overflow-y: auto;
-  border: 1px solid #dfe1e6;
+  border: 1px solid var(--color-border);
   border-top: 0;
-  background: #ffffff;
-  box-shadow: 0 8px 20px rgba(9, 30, 66, 0.18);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
 }
 
 .group-option {
@@ -2906,14 +2915,14 @@ onUnmounted(() => {
   width: 100%;
   padding: 9px 10px;
   border: 0;
-  background: #ffffff;
+  background: transparent;
   color: var(--color-text-primary);
   cursor: pointer;
   text-align: left;
 }
 
 .group-option:hover {
-  background: #f1f2f4;
+  background: var(--color-surface-hover);
 }
 
 .group-option strong,
@@ -2991,10 +3000,11 @@ onUnmounted(() => {
 .export-modal {
   width: 334px;
   padding: 18px 20px 20px;
-  border-radius: 10px;
-  background: #ffffff;
+  border-radius: 12px;
+  background: var(--color-surface);
   color: var(--color-text-primary);
-  box-shadow: 0 8px 24px rgba(9, 30, 66, 0.28);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
 }
 
 .export-modal h2 {
@@ -3044,8 +3054,8 @@ onUnmounted(() => {
 ::v-deep(.invite-panel .el-input__wrapper),
 ::v-deep(.invite-panel .el-textarea__inner),
 ::v-deep(.invite-panel .el-select__wrapper) {
-  background-color: #ffffff !important;
-  box-shadow: 0 0 0 1px #8590a2 inset !important;
+  background-color: var(--input-bg) !important;
+  box-shadow: 0 0 0 1px var(--color-border) inset !important;
 }
 
 :deep(.invite-panel .el-input__inner),

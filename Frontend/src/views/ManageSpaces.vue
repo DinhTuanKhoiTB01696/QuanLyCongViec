@@ -512,7 +512,7 @@ const filterLabel = computed(() => ({
   transition: width 0.2s;
 }
 .search-box input:focus { width: 240px; }
-.search-box input::placeholder { color: #52525B; }
+.search-box input::placeholder { color: var(--color-text-disabled); }
 
 .plane-btn-secondary.outline-btn {
   background: transparent;
@@ -528,8 +528,8 @@ const filterLabel = computed(() => ({
   cursor: pointer;
   transition: all 0.2s;
 }
-.plane-btn-secondary.outline-btn:hover { background: #18181B; color: var(--color-text-primary); }
-.plane-btn-secondary.outline-btn.active { background: #18181B; color: var(--color-text-primary); border-color: var(--color-border); }
+.plane-btn-secondary.outline-btn:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+.plane-btn-secondary.outline-btn.active { background: var(--color-surface-hover); color: var(--color-text-primary); border-color: var(--color-border); }
 
 .project-filter-wrapper { position: relative; }
 .project-filter-menu {
@@ -538,31 +538,36 @@ const filterLabel = computed(() => ({
   right: 0;
   z-index: 20;
   width: 220px;
-  background: #1B1C20;
-  border: 1px solid #2D2F36;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 12px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-lg);
 }
 .filter-title { color: var(--color-text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; }
 .filter-option {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #D4D4D8;
+  color: var(--color-text-secondary);
   font-size: 13px;
   padding: 6px 0;
   cursor: pointer;
+}
+.filter-option:hover {
+  color: var(--color-text-primary);
 }
 .clear-filter-btn {
   width: 100%;
   margin-top: 8px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: var(--color-surface);
-  color: #D4D4D8;
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
   padding: 7px;
   cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
 }
 .clear-filter-btn:hover { background: var(--color-border); }
 
@@ -616,8 +621,9 @@ const filterLabel = computed(() => ({
   min-height: 300px;
 }
 .project-card:hover {
-  border-color: #3F3F46;
+  border-color: var(--color-accent);
   transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .card-cover {
@@ -721,14 +727,17 @@ const filterLabel = computed(() => ({
   min-height: 24px;
   padding: 0 8px;
   border-radius: 6px;
-  background: var(--color-border);
-  color: #d4d4d8;
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
   font-size: 11px;
   font-weight: 600;
 }
 
 .visibility-pill.private {
-  color: #fca5a5;
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+  border-color: rgba(239, 68, 68, 0.2);
 }
 
 .avatar-group {
@@ -782,7 +791,7 @@ const filterLabel = computed(() => ({
 }
 
 .table-row-hover:hover {
-  background: var(--color-surface);
+  background: var(--color-surface-hover) !important;
 }
 
 .spaces-table-container {

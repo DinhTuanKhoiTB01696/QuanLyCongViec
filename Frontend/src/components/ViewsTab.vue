@@ -350,6 +350,36 @@ watch(projectId, async () => {
     tasks.value = []
     await Promise.all([fetchViews(), fetchProjectMembers()])
 })
+
+const getCreatorName = (view) => {
+  if (view.creatorName) return view.creatorName
+  if (view.createdByName) return view.createdByName
+  if (view.createdBy) {
+    const member = projectMembers.value.find(m => m.id === view.createdBy || m.userId === view.createdBy || m.userId === view.createdById)
+    if (member) return member.fullName || member.name
+  }
+  return 'Owner'
+}
+
+const getAvatarBg = (name) => {
+  if (!name || name === 'Owner') return '#64748b'
+  const colors = ['#3b82f6', '#10b981', '#fbbf24', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316']
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const index = Math.abs(hash) % colors.length
+  return colors[index]
+}
+
+const getInitials = (name) => {
+  if (!name) return 'O'
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts.at(-1)[0]).toUpperCase()
+  }
+  return name[0]?.toUpperCase() || 'O'
+}
 </script>
 
 <template>
@@ -413,21 +443,28 @@ watch(projectId, async () => {
         
         <div class="view-item-row" v-for="view in filteredViews" :key="view.id" @click="selectView(view)">
             <div class="vi-left">
-                <i class="fa-solid fa-layer-group vi-icon"></i>
-                <span class="vi-name">{{ view.name }}</span>
+                <div class="vi-icon-wrapper">
+                    <i class="fa-solid fa-layer-group vi-icon"></i>
+                </div>
+                <div class="vi-meta">
+                    <span class="vi-name">{{ view.name }}</span>
+                    <span class="vi-desc" v-if="view.description">{{ view.description }}</span>
+                </div>
             </div>
             <div class="vi-right">
-                <i class="fa-solid fa-earth-americas vi-globe" v-if="view.isGlobal"></i>
-                <div class="vi-avatar">P</div>
+                <i class="fa-solid fa-earth-americas vi-globe" v-if="view.isGlobal" title="Global View"></i>
+                <div class="vi-avatar" :style="{ backgroundColor: getAvatarBg(getCreatorName(view)) }" :title="getCreatorName(view)">
+                    {{ getInitials(getCreatorName(view)) }}
+                </div>
                 <button class="vi-star" type="button" :class="{ active: view.isFavorite }" @click.stop="toggleFavorite(view)">
-                    <i class="fa-regular fa-star"></i>
+                    <i class="fa-star" :class="view.isFavorite ? 'fa-solid' : 'fa-regular'"></i>
                 </button>
                 <el-dropdown trigger="click" @command="command => handleViewCommand(view, command)">
                     <button class="vi-more" type="button" @click.stop><i class="fa-solid fa-ellipsis"></i></button>
                     <template #dropdown>
-                        <el-dropdown-menu class="dark-popover">
+                        <el-dropdown-menu class="plane-dropdown">
                             <el-dropdown-item command="favorite">{{ view.isFavorite ? 'Remove favorite' : 'Add to favorite' }}</el-dropdown-item>
-                            <el-dropdown-item command="delete">Delete view</el-dropdown-item>
+                            <el-dropdown-item command="delete" class="text-red-500">Delete view</el-dropdown-item>
                         </el-dropdown-menu>
                     </template>
                 </el-dropdown>
@@ -558,16 +595,86 @@ watch(projectId, async () => {
 .view-search-input { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text-primary); font-size: 13px; padding: 6px 10px; outline: none; width: 180px; }
 .add-view-primary { background: #0EA5E9; border: none; color: var(--color-text-primary); padding: 6px 16px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; }
 
-/* Content List (Restored to Turn 9) */
-.views-content { flex: 1; padding: 12px 24px; }
-.view-item-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
-.view-item-row:hover { background: var(--color-surface-hover); }
-.vi-left { display: flex; align-items: center; gap: 14px; }
-.vi-icon { color: var(--color-text-muted); font-size: 14px; }
-.vi-name { font-size: 14px; color: var(--color-text-primary); }
-.vi-right { display: flex; align-items: center; gap: 16px; opacity: 0; }
-.view-item-row:hover .vi-right { opacity: 1; }
-.vi-avatar { width: 22px; height: 22px; border-radius: 50%; background: #0F766E; color: var(--color-text-primary); font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+/* Content List */
+.views-content { flex: 1; padding: 16px 24px; }
+.view-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.view-item-row:hover {
+    background: var(--color-surface-hover);
+    border-color: var(--color-accent);
+    transform: translateX(4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+.vi-left { display: flex; align-items: center; gap: 16px; }
+.vi-icon-wrapper {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-accent);
+    font-size: 14px;
+}
+.vi-meta { display: flex; flex-direction: column; gap: 2px; }
+.vi-name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+.vi-desc { font-size: 12px; color: var(--color-text-muted); }
+.vi-right { display: flex; align-items: center; gap: 12px; }
+.vi-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--color-bg);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.vi-star, .vi-more {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+}
+.view-item-row:hover .vi-star,
+.view-item-row:hover .vi-more,
+.vi-star.active {
+    opacity: 1;
+}
+.vi-star:hover, .vi-more:hover {
+    color: var(--color-text-primary);
+    background: var(--color-surface-hover);
+}
+.vi-star.active {
+    color: #fbbf24 !important;
+}
+.vi-globe {
+    color: var(--color-accent);
+    font-size: 13px;
+}
 
 /* Modal (Restored to Premium layout) */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 2000; }
