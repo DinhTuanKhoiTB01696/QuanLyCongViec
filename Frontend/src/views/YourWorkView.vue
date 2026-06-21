@@ -16,9 +16,37 @@ const selectedProjectId = ref(null)
 const projectList = ref([])
 
 const currentUserId = computed(() => {
-  const user = localStorage.getItem('user')
-  return user ? JSON.parse(user).id : null
+  const userStr = localStorage.getItem('user')
+  return userStr ? JSON.parse(userStr).id : null
 })
+
+const userProfile = ref({
+  fullName: '—',
+  email: '—',
+  avatarUrl: null,
+  initials: '—',
+  joinedOn: '—',
+  timezone: '—'
+})
+
+const fetchProfile = async () => {
+  try {
+    const res = await axiosClient.get('/users/me')
+    const data = res.data?.data
+    if (data) {
+      userProfile.value = {
+        fullName: data.fullName || '—',
+        email: data.email || '—',
+        avatarUrl: data.avatarUrl,
+        initials: data.fullName ? data.fullName.substring(0, 1).toUpperCase() : (data.email ? data.email.substring(0, 1).toUpperCase() : '—'),
+        joinedOn: '—',
+        timezone: '—'
+      }
+    }
+  } catch (e) {
+    console.error('Failed to fetch profile', e)
+  }
+}
 
 const fetchProjects = async () => {
     try {
@@ -32,6 +60,12 @@ const fetchProjects = async () => {
     } catch(e) {
         console.error('Error fetching projects', e)
     }
+}
+
+const getAvatarUrl = (path) => {
+  if (!path) return ''
+  const base = (axiosClient.defaults.baseURL || 'http://localhost:5136/api').replace(/\/api\/?$/, '')
+  return `${base}${path}`
 }
 
 const fetchMyTasks = async () => {
@@ -79,6 +113,7 @@ const fetchMyTasks = async () => {
 
 onMounted(async () => {
   await fetchProjects()
+  fetchProfile()
   fetchMyTasks()
 })
 
@@ -450,24 +485,25 @@ const downloadWordActivity = () => {
           <button class="edit-cover"><i class="fa-solid fa-pencil"></i></button>
         </div>
         <div class="profile-info">
-          <div class="avatar-lg bg-blue">A</div>
+          <img v-if="userProfile.avatarUrl" :src="getAvatarUrl(userProfile.avatarUrl)" class="avatar-lg" style="object-fit: cover;" />
+          <div v-else class="avatar-lg bg-blue">{{ userProfile.initials }}</div>
           <div class="user-details">
-            <h2 class="user-name">Alo</h2>
-            <p class="user-handle">(cuongdqtb01697)</p>
+            <h2 class="user-name">{{ userProfile.fullName }}</h2>
+            <p class="user-handle">({{ userProfile.email }})</p>
           </div>
 
           <div class="info-row mt-4">
             <span class="info-lbl">Joined on</span>
-            <span class="info-val">Apr 12, 2026</span>
+            <span class="info-val">{{ userProfile.joinedOn }}</span>
           </div>
           <div class="info-row">
             <span class="info-lbl">Timezone</span>
-            <span class="info-val">03:07 UTC</span>
+            <span class="info-val">{{ userProfile.timezone }}</span>
           </div>
 
           <div class="workspace-row mt-4">
             <i class="fa-solid fa-briefcase ws-icon"></i>
-            <span>Cun</span>
+            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">{{ projectList[0]?.name || '—' }}</span>
             <i class="fa-solid fa-chevron-down ms-auto" style="font-size: 10px; color: #71717A;"></i>
           </div>
         </div>
