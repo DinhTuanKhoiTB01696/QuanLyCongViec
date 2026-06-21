@@ -44,14 +44,19 @@ namespace TaskManagement.Infrastructure.Data
                 await context.SaveChangesAsync();
             }
 
-            var owner = await context.Users.FirstOrDefaultAsync(u => u.Id == preferredOwnerId)
-                ?? await context.Users.FirstOrDefaultAsync(u => u.Email == "admin@example.com");
+            var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
+
+            var owner = await context.Users.FirstOrDefaultAsync(u => u.Email == "admin@example.com");
 
             if (owner == null)
             {
+                var ownerId = await context.Users.AnyAsync(u => u.Id == preferredOwnerId)
+                    ? Guid.NewGuid()
+                    : preferredOwnerId;
+
                 owner = new User
                 {
-                    Id = preferredOwnerId,
+                    Id = ownerId,
                     FullName = "Admin (Seeded)",
                     Email = "admin@example.com",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
@@ -61,6 +66,20 @@ namespace TaskManagement.Infrastructure.Data
                 };
                 context.Users.Add(owner);
                 await context.SaveChangesAsync();
+            }
+            else
+            {
+                owner.FullName = string.IsNullOrWhiteSpace(owner.FullName) ? "Admin (Seeded)" : owner.FullName;
+                owner.PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123");
+                owner.IsActive = true;
+                owner.IsDeleted = false;
+                owner.UpdatedAt = now;
+                await context.SaveChangesAsync();
+            }
+
+            if (adminRole != null)
+            {
+                await EnsureUserRoleAsync(context, owner.Id, adminRole.Id);
             }
 
             var testUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "test@example.com");
@@ -96,16 +115,16 @@ namespace TaskManagement.Infrastructure.Data
                 context.Users.Add(devAdmin);
                 await context.SaveChangesAsync();
 
-                var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
                 if (adminRole != null)
                 {
-                    context.UserRoles.Add(new UserRole
-                    {
-                        UserId = devAdmin.Id,
-                        RoleId = adminRole.Id
-                    });
-                    await context.SaveChangesAsync();
+                    await EnsureUserRoleAsync(context, devAdmin.Id, adminRole.Id);
                 }
+            }
+            else if (adminRole != null)
+            {
+                devAdmin.IsActive = true;
+                devAdmin.IsDeleted = false;
+                await EnsureUserRoleAsync(context, devAdmin.Id, adminRole.Id);
             }
 
             var workspaceWasCreated = false;
@@ -369,6 +388,26 @@ namespace TaskManagement.Infrastructure.Data
 
             context.TaskStatuses.Add(status);
             return status;
+        }
+
+        private static async Task EnsureUserRoleAsync(
+            ApplicationDbContext context,
+            Guid userId,
+            Guid roleId)
+        {
+            var hasRole = await context.UserRoles.AnyAsync(ur => ur.UserId == userId && ur.RoleId == roleId);
+            if (hasRole)
+            {
+                return;
+            }
+
+            context.UserRoles.Add(new UserRole
+            {
+                UserId = userId,
+                RoleId = roleId
+            });
+
+            await context.SaveChangesAsync();
         }
 
         private static async Task<TaskType> EnsureTaskTypeAsync(

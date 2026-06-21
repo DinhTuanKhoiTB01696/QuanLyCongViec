@@ -17,17 +17,20 @@ namespace TaskManagement.API.Controllers
         private readonly IOtpService _otpService;
         private readonly IEmailService _emailService;
         private readonly ApplicationDbContext _context;
+        private readonly IWebHostEnvironment _environment;
 
         public AuthController(
             IAuthService authService,
             IOtpService otpService,
             IEmailService emailService,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IWebHostEnvironment environment)
         {
             _authService = authService;
             _otpService = otpService;
             _emailService = emailService;
             _context = context;
+            _environment = environment;
         }
 
         [HttpPost("send-otp")]
@@ -35,14 +38,14 @@ namespace TaskManagement.API.Controllers
         {
             try
             {
-                var email = request.Email?.Trim();
+                var email = request.Email?.Trim().ToLowerInvariant();
                 if (string.IsNullOrWhiteSpace(email))
                 {
                     return BadRequest(new { statusCode = 400, message = "Email là bắt buộc." });
                 }
 
                 var purpose = (request.Purpose ?? "register").Trim().ToLowerInvariant();
-                var userExists = await _context.Users.AnyAsync(u => u.Email == email && !u.IsDeleted);
+                var userExists = await _context.Users.AnyAsync(u => u.Email.ToLower() == email && !u.IsDeleted);
 
                 if (purpose == "register")
                 {
@@ -65,7 +68,30 @@ namespace TaskManagement.API.Controllers
 
                 var otpCode = _otpService.GenerateOtp();
                 _otpService.StoreOtp(email, otpCode);
-                await _emailService.SendOtpEmailAsync(email, otpCode);
+                try
+                {
+                    await _emailService.SendOtpEmailAsync(email, otpCode);
+                }
+                catch (Exception emailEx) when (_environment.IsDevelopment())
+                {
+                    Console.WriteLine($"Development OTP email fallback for {email}: {otpCode}. Email error: {emailEx.Message}");
+                    return Ok(new
+                    {
+                        statusCode = 200,
+                        message = "Development mode: generated OTP without sending email.",
+                        devOtp = otpCode
+                    });
+                }
+
+                if (_environment.IsDevelopment())
+                {
+                    return Ok(new
+                    {
+                        statusCode = 200,
+                        message = "OTP sent.",
+                        devOtp = otpCode
+                    });
+                }
 
                 return Ok(new { statusCode = 200, message = "Đã gửi mã OTP đến email của bạn." });
             }
@@ -323,7 +349,7 @@ namespace TaskManagement.API.Controllers
                 {
                     HttpOnly = true,
                     Secure = Request.IsHttps,
-                    SameSite = SameSiteMode.Strict,
+                    SameSite = SameSiteMode.Lax,
                     Expires = DateTime.UtcNow.AddDays(7)
                 };
                 Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
