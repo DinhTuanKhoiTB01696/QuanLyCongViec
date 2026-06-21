@@ -18,9 +18,9 @@ namespace TaskManagement.Infrastructure.Data
                 .Build();
 
             var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-            var connectionString = configuration.GetConnectionString("DefaultConnection") 
-                ?? "Server=.\\SQLEXPRESS01;Database=TaskManagementDB_Phase2_Dev;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
-            
+            var connectionString = configuration.GetConnectionString("DefaultConnection")
+                ?? "Server=KHOI\\SQLEXPRESS;Database=TaskManagementDB;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+
             optionsBuilder.UseSqlServer(connectionString);
 
             return new ApplicationDbContext(optionsBuilder.Options, null, null);
