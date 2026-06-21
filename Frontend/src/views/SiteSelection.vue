@@ -176,7 +176,7 @@ import { useI18nStore } from '@/store/useI18nStore'
 const router = useRouter()
 const siteStore = useSiteStore()
 const i18nStore = useI18nStore()
-const t = i18nStore.t
+const t = (key) => i18nStore.t(key)
 
 const currentUser = getStoredUser()
 const userName = currentUser?.username || 'Tua20000'

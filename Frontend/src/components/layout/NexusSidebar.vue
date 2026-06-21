@@ -4,7 +4,7 @@
       <div class="sidebar-top-action">
         <button class="new-work-btn" @click="triggerCreateTask">
           <i class="fa-solid fa-pen-to-square"></i>
-          <span>New work item</span>
+          <span>{{ t('New work item') }}</span>
         </button>
       </div>
 
@@ -12,7 +12,7 @@
         <li class="nav-item">
           <router-link to="/dashboard" class="nav-link" :class="{ active: $route.path === '/dashboard' && !$route.query.tab }" exact>
             <i class="fa-solid fa-house"></i>
-            <span>For you</span>
+            <span>{{ t('For you') }}</span>
           </router-link>
         </li>
         <li class="nav-item">
@@ -28,7 +28,7 @@
             <template #reference>
               <div class="nav-link" :class="{ active: $route.path === '/dashboard' && $route.query.tab === 'viewed' }" style="cursor: pointer;">
                 <i class="fa-solid fa-clock-rotate-left"></i>
-                <span>Recent</span>
+                <span>{{ t('Recent') }}</span>
                 <i class="fa-solid fa-chevron-right" style="font-size:10px; margin-left:auto;"></i>
               </div>
             </template>
@@ -48,7 +48,7 @@
             <template #reference>
               <div class="nav-link" :class="{ active: $route.path === '/dashboard' && $route.query.tab === 'starred' }" style="cursor: pointer;">
                 <i class="fa-regular fa-star"></i>
-                <span>Starred</span>
+                <span>{{ t('Starred') }}</span>
                 <i class="fa-solid fa-chevron-right" style="font-size:10px; margin-left:auto;"></i>
               </div>
             </template>
@@ -58,36 +58,36 @@
         <li class="nav-item">
           <router-link to="/your-work" class="nav-link">
             <i class="fa-regular fa-user"></i>
-            <span>Your work</span>
+            <span>{{ t('Your work') }}</span>
           </router-link>
         </li>
         <li class="nav-item">
           <router-link to="/stickies" class="nav-link">
             <i class="fa-solid fa-note-sticky"></i>
-            <span>Stickies</span>
+            <span>{{ t('Stickies') }}</span>
           </router-link>
         </li>
         <li class="nav-item">
           <router-link to="/rewards" class="nav-link">
             <i class="fa-solid fa-trophy"></i>
-            <span>Rewards</span>
+            <span>{{ t('Rewards') }}</span>
           </router-link>
         </li>
       </ul>
 
       <!-- Workspace Division -->
-      <div class="nav-section-title">Workspace</div>
+      <div class="nav-section-title">{{ t('Workspace') }}</div>
       <ul class="nav-menu">
         <li class="nav-item">
           <router-link to="/spaces" class="nav-link">
             <i class="fa-solid fa-briefcase"></i>
-            <span>Projects</span>
+            <span>{{ t('Projects') }}</span>
           </router-link>
         </li>
         <li class="nav-item">
           <div class="nav-link" :class="{ 'dropdown-active': showMorePanel }" @click="showMorePanel = !showMorePanel">
             <i class="fa-solid fa-ellipsis"></i>
-            <span>{{ showMorePanel ? 'Hide' : 'More' }}</span>
+            <span>{{ showMorePanel ? t('Hide') : t('More') }}</span>
           </div>
         </li>
       </ul>
@@ -99,21 +99,21 @@
             <li class="nav-item sub-item">
               <router-link to="/views" class="nav-link">
                 <i class="fa-solid fa-layer-group"></i>
-                <span>Views</span>
+                <span>{{ t('Views') }}</span>
                 <i class="fa-solid fa-thumbtack pin-icon"></i>
               </router-link>
             </li>
             <li class="nav-item sub-item">
               <router-link to="/analytics" class="nav-link">
                 <i class="fa-solid fa-chart-simple"></i>
-                <span>Analytics</span>
+                <span>{{ t('Analytics') }}</span>
                 <i class="fa-solid fa-thumbtack pin-icon"></i>
               </router-link>
             </li>
             <li class="nav-item sub-item">
               <router-link to="/archives" class="nav-link">
                 <i class="fa-solid fa-box-archive"></i>
-                <span>Archives</span>
+                <span>{{ t('Archives') }}</span>
                 <i class="fa-solid fa-thumbtack pin-icon"></i>
               </router-link>
             </li>
@@ -123,7 +123,7 @@
 
       <!-- Projects Division -->
       <div class="nav-section-title flex-between">
-        Projects
+        {{ t('Projects') }}
         <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
       </div>
       <ul class="nav-menu">
@@ -143,7 +143,7 @@
           <li v-for="child in project.children" v-show="project.expanded" :key="child.id" class="nav-item sub-item">
             <router-link :to="child.route" class="nav-link" active-class="active">
               <i :class="childIcon(child.key)"></i>
-              <span>{{ child.label }}</span>
+              <span>{{ t(child.label) }}</span>
             </router-link>
           </li>
         </template>
@@ -153,7 +153,7 @@
     <!-- Bottom Actions -->
     <div class="sidebar-bottom">
       <a href="#" class="community-link">
-        <i class="fa-regular fa-comment"></i> Community
+        <i class="fa-regular fa-comment"></i> {{ t('Community') }}
       </a>
     </div>
   </aside>
@@ -167,11 +167,14 @@ import { useSprintStore } from '@/store/useSprintStore'
 import { useProjectStore } from '@/store/useProjectStore'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/projectContext'
+import { useI18nStore } from '@/store/useI18nStore'
 import RecentDropdown from '@/components/RecentDropdown.vue'
 import StarredDropdown from '@/components/StarredDropdown.vue'
 
 const route = useRoute()
 const router = useRouter()
+const i18nStore = useI18nStore()
+const t = (key) => i18nStore.t(key)
 const showMorePanel = ref(false)
 const projectStore = useProjectStore()
 

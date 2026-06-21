@@ -5,7 +5,7 @@
       <div class="welcome-banner">
         <div class="banner-content">
           <div class="date-text">{{ currentDate }}</div>
-          <h1 class="welcome-text">Xin chào {{ userName }}</h1>
+          <h1 class="welcome-text">{{ t('Welcome') }} {{ userName }}</h1>
         </div>
       </div>
 
@@ -13,8 +13,8 @@
         <!-- Ứng dụng của bạn -->
         <section class="dashboard-section">
           <div class="section-header">
-            <h2>Ứng dụng của bạn</h2>
-            <a href="#" class="view-all-link">Xem tất cả ứng dụng &rarr;</a>
+            <h2>{{ t('Your apps') }}</h2>
+            <a href="#" class="view-all-link">{{ t('View all apps') }} &rarr;</a>
           </div>
           <div class="apps-container">
             <div class="app-card" v-for="site in filteredSites.slice(0, 4)" :key="site.id" @click="goToSite(site.id)">
@@ -31,7 +31,7 @@
             <div class="app-card create-new" @click="openCreateModal">
               <div class="create-icon"><i class="fa-solid fa-plus"></i></div>
               <div class="app-info">
-                <div class="app-name">Tạo mới</div>
+                <div class="app-name">{{ t('Create new') }}</div>
               </div>
             </div>
           </div>
@@ -40,7 +40,7 @@
         <!-- Thường xuyên truy cập -->
         <section class="dashboard-section">
           <div class="section-header">
-            <h2>Thường xuyên truy cập</h2>
+            <h2>{{ t('Frequently accessed') }}</h2>
           </div>
           <div class="recent-access-container">
             <!-- Mock recent access -->
@@ -59,16 +59,16 @@
         <!-- Tiếp theo là gì -->
         <section class="dashboard-section">
           <div class="section-header space-between">
-            <h2>Tiếp theo là gì</h2>
+            <h2>{{ t('What\'s next') }}</h2>
             <div class="tabs">
-              <button class="tab-btn active">Làm việc trên</button>
-              <button class="tab-btn">Đã xem</button>
+              <button class="tab-btn active">{{ t('Worked on') }}</button>
+              <button class="tab-btn">{{ t('Viewed') }}</button>
             </div>
           </div>
 
           <div class="audit-list">
             <div class="time-group">
-              <h3 class="time-label">Hôm nay</h3>
+              <h3 class="time-label">{{ t('Today') }}</h3>
               <div class="audit-item">
                 <div class="item-icon yellow-bg">😎</div>
                 <div class="item-details">
@@ -83,7 +83,7 @@
             </div>
 
             <div class="time-group">
-              <h3 class="time-label">Tuần này</h3>
+              <h3 class="time-label">{{ t('This week') }}</h3>
               <div class="audit-item">
                 <div class="item-icon light-blue"><i class="fa-solid fa-file-lines"></i></div>
                 <div class="item-details">
@@ -118,7 +118,7 @@
               </div>
             </div>
 
-            <button class="view-all-btn" @click="router.push('/home/recent')">Xem tất cả</button>
+            <button class="view-all-btn" @click="router.push('/home/recent')">{{ t('View all') }}</button>
           </div>
         </section>
       </div>
@@ -163,7 +163,7 @@ import { getStoredUser } from '@/utils/permissions'
 const router = useRouter()
 const siteStore = useSiteStore()
 const i18nStore = useI18nStore()
-const t = i18nStore.t
+const t = (key) => i18nStore.t(key)
 
 const currentUser = getStoredUser()
 const userName = currentUser?.username || 'Tua20000'
