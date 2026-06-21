@@ -466,15 +466,9 @@ const getInitials = (name) => {
                 <el-dropdown trigger="click" @command="command => handleViewCommand(view, command)">
                     <button class="vi-more" type="button" @click.stop><i class="fa-solid fa-ellipsis"></i></button>
                     <template #dropdown>
-<<<<<<< HEAD
                         <el-dropdown-menu class="dark-popover">
                             <el-dropdown-item command="favorite">{{ view.isFavorite ? t('Remove favorite') : t('Add to favorite') }}</el-dropdown-item>
                             <el-dropdown-item command="delete">{{ t('Delete view') }}</el-dropdown-item>
-=======
-                        <el-dropdown-menu class="plane-dropdown">
-                            <el-dropdown-item command="favorite">{{ view.isFavorite ? 'Remove favorite' : 'Add to favorite' }}</el-dropdown-item>
-                            <el-dropdown-item command="delete" class="text-red-500">Delete view</el-dropdown-item>
->>>>>>> c7edb0eb49022f4e31007fc73ac7645bf17c6fe1
                         </el-dropdown-menu>
                     </template>
                 </el-dropdown>
