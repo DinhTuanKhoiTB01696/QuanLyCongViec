@@ -16,9 +16,37 @@ const selectedProjectId = ref(null)
 const projectList = ref([])
 
 const currentUserId = computed(() => {
-  const user = localStorage.getItem('user')
-  return user ? JSON.parse(user).id : null
+  const userStr = localStorage.getItem('user')
+  return userStr ? JSON.parse(userStr).id : null
 })
+
+const userProfile = ref({
+  fullName: '—',
+  email: '—',
+  avatarUrl: null,
+  initials: '—',
+  joinedOn: '—',
+  timezone: '—'
+})
+
+const fetchProfile = async () => {
+  try {
+    const res = await axiosClient.get('/users/me')
+    const data = res.data?.data
+    if (data) {
+      userProfile.value = {
+        fullName: data.fullName || '—',
+        email: data.email || '—',
+        avatarUrl: data.avatarUrl,
+        initials: data.fullName ? data.fullName.substring(0, 1).toUpperCase() : (data.email ? data.email.substring(0, 1).toUpperCase() : '—'),
+        joinedOn: '—',
+        timezone: '—'
+      }
+    }
+  } catch (e) {
+    console.error('Failed to fetch profile', e)
+  }
+}
 
 const fetchProjects = async () => {
     try {
@@ -32,6 +60,12 @@ const fetchProjects = async () => {
     } catch(e) {
         console.error('Error fetching projects', e)
     }
+}
+
+const getAvatarUrl = (path) => {
+  if (!path) return ''
+  const base = (axiosClient.defaults.baseURL || 'http://localhost:5136/api').replace(/\/api\/?$/, '')
+  return `${base}${path}`
 }
 
 const fetchMyTasks = async () => {
@@ -79,6 +113,7 @@ const fetchMyTasks = async () => {
 
 onMounted(async () => {
   await fetchProjects()
+  fetchProfile()
   fetchMyTasks()
 })
 
@@ -241,6 +276,26 @@ const downloadWordActivity = () => {
   URL.revokeObjectURL(url)
 
   ElNotification({ title: 'Success', message: 'Activity history exported.', type: 'success' })
+}
+
+const getAvatarBg = (name) => {
+  if (!name || name === 'Unassigned') return '#64748b'
+  const colors = ['#3b82f6', '#10b981', '#fbbf24', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316']
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const index = Math.abs(hash) % colors.length
+  return colors[index]
+}
+
+const getInitials = (name) => {
+  if (!name) return 'U'
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts.at(-1)[0]).toUpperCase()
+  }
+  return name[0]?.toUpperCase() || 'U'
 }
 </script>
 
@@ -411,9 +466,11 @@ const downloadWordActivity = () => {
                   </template>
                 </el-dropdown>
 
-                <div class="lr-badge cursor-not-allowed">
-                  <i class="fa-regular fa-user" v-if="!item.assigneeName"></i>
-                  <span v-else>{{ item.assigneeName.substring(0, 1).toUpperCase() }}</span>
+                <div class="avatar-badge cursor-not-allowed" v-if="item.assigneeName" :style="{ backgroundColor: getAvatarBg(item.assigneeName) }">
+                  {{ getInitials(item.assigneeName) }}
+                </div>
+                <div class="lr-badge cursor-not-allowed" v-else>
+                  <i class="fa-regular fa-user"></i>
                 </div>
                 <div class="lr-badge cursor-not-allowed"><i class="fa-regular fa-calendar"></i></div>
                 <div class="lr-badge cursor-not-allowed"><i class="fa-solid fa-table-cells-large"></i> {{ item.modules }}</div>
@@ -450,24 +507,25 @@ const downloadWordActivity = () => {
           <button class="edit-cover"><i class="fa-solid fa-pencil"></i></button>
         </div>
         <div class="profile-info">
-          <div class="avatar-lg bg-blue">A</div>
+          <img v-if="userProfile.avatarUrl" :src="getAvatarUrl(userProfile.avatarUrl)" class="avatar-lg" style="object-fit: cover;" />
+          <div v-else class="avatar-lg bg-blue">{{ userProfile.initials }}</div>
           <div class="user-details">
-            <h2 class="user-name">Alo</h2>
-            <p class="user-handle">(cuongdqtb01697)</p>
+            <h2 class="user-name">{{ userProfile.fullName }}</h2>
+            <p class="user-handle">({{ userProfile.email }})</p>
           </div>
 
           <div class="info-row mt-4">
             <span class="info-lbl">Joined on</span>
-            <span class="info-val">Apr 12, 2026</span>
+            <span class="info-val">{{ userProfile.joinedOn }}</span>
           </div>
           <div class="info-row">
             <span class="info-lbl">Timezone</span>
-            <span class="info-val">03:07 UTC</span>
+            <span class="info-val">{{ userProfile.timezone }}</span>
           </div>
 
           <div class="workspace-row mt-4">
             <i class="fa-solid fa-briefcase ws-icon"></i>
-            <span>Cun</span>
+            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">{{ projectList[0]?.name || '—' }}</span>
             <i class="fa-solid fa-chevron-down ms-auto" style="font-size: 10px; color: #71717A;"></i>
           </div>
         </div>
@@ -545,15 +603,32 @@ const downloadWordActivity = () => {
 .yw-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 2px;
-  padding: 16px;
+  border-radius: 16px;
+  padding: 20px 24px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
-.card-icon { font-size: 18px; color: var(--color-text-muted); width: 24px; text-align: center; }
-.card-lbl { font-size: 11px; color: var(--color-text-muted); margin-bottom: 4px; }
-.card-val { font-size: 18px; font-weight: 600; color: var(--color-text-primary); }
+.yw-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+.card-icon {
+  font-size: 20px;
+  color: var(--color-accent);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-lbl { font-size: 12px; font-weight: 500; color: var(--color-text-muted); margin-bottom: 4px; }
+.card-val { font-size: 24px; font-weight: 700; color: var(--color-text-primary); }
 
 .yw-workload-row {
   display: grid;
@@ -564,12 +639,19 @@ const downloadWordActivity = () => {
 .wl-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 2px;
-  padding: 12px 16px;
+  border-radius: 12px;
+  padding: 14px 18px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 60px;
+  height: 70px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.01);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.wl-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-accent);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
 }
 .wl-lbl { font-size: 12px; font-weight: 500; color: var(--color-text-muted); display: flex; align-items: center; gap: 6px; }
 .dbox { width: 8px; height: 8px; border-radius: 2px; }
@@ -578,7 +660,7 @@ const downloadWordActivity = () => {
 .bg-orange { background: var(--color-warning); }
 .bg-green { background: var(--color-success); }
 .bg-red { background: var(--color-danger); }
-.wl-val { font-size: 18px; font-weight: 600; color: var(--color-text-primary); margin-top: auto;}
+.wl-val { font-size: 22px; font-weight: 700; color: var(--color-text-primary); margin-top: auto;}
 
 .yw-two-cols {
   display: grid;
@@ -589,15 +671,15 @@ const downloadWordActivity = () => {
 .chart-col {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 16px;
+  padding: 24px;
   transition: all 0.3s ease;
 }
 
 .empty-chart {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 2px;
+  border-radius: 12px;
   height: 150px;
   display: flex;
   flex-direction: column;
@@ -610,29 +692,41 @@ const downloadWordActivity = () => {
 
 .chart-icon { font-size: 32px; opacity: 0.3; }
 
-.list-header { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #E4E4E7; }
-.f-icon { color: #A1A1AA; font-size: 12px; }
-.lh-count { font-size: 12px; font-weight: 400; color: #71717A; }
 .list-header { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
 .f-icon { color: var(--color-text-muted); font-size: 12px; }
 .lh-count { font-size: 12px; font-weight: 400; color: var(--color-text-muted); }
 
-.list-body { border-top: 1px solid var(--color-border); }
-.list-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--color-border); transition: background 0.2s; cursor: pointer; }
-.list-row:hover { background: var(--color-surface); }
+.list-body { border-top: none; }
+.list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  cursor: pointer;
+}
+.list-row:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-accent);
+  transform: translateX(4px);
+}
 .lr-left { display: flex; align-items: center; gap: 16px; }
-.lr-id { font-size: 12px; color: var(--color-text-muted); min-width: 45px; }
+.lr-id { font-size: 12px; color: var(--color-text-muted); min-width: 45px; font-weight: 600; }
 .lr-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
-.lr-right { display: flex; align-items: center; gap: 6px; }
+.lr-right { display: flex; align-items: center; gap: 8px; }
 
-.lr-badge { border: 1px solid var(--color-border); border-radius: 2px; padding: 4px 8px; font-size: 12px; color: var(--color-text-muted); display: flex; align-items: center; gap: 6px; }
+.lr-badge { border: 1px solid var(--color-border); border-radius: 8px; padding: 6px 12px; font-size: 12px; color: var(--color-text-muted); display: flex; align-items: center; gap: 6px; transition: all 0.2s; background: var(--color-bg); }
 .lr-badge.green { border-color: #064E3B; background: rgba(16, 185, 129, 0.1); color: #10B981; }
 .lr-badge i { font-size: 11px; }
 .text-orange { color: #F59E0B; }
-.avatar-badge { width: 24px; height: 24px; border-radius: 50%; background: var(--color-accent); color: var(--color-text-primary); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; padding: 0; border: none; }
+.avatar-badge { width: 24px; height: 24px; border-radius: 50%; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; padding: 0; border: 1.5px solid var(--color-surface); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
 
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
-.plane-primary-btn { background: var(--color-accent); color: var(--color-text-primary); border: none; border-radius: 2px; padding: 6px 12px; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+.plane-primary-btn { background: var(--color-accent); color: var(--color-text-inverse); border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
 .plane-primary-btn:hover { filter: brightness(1.1); }
 
 .p-act-row { display: flex; align-items: flex-start; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--color-border); }
@@ -644,7 +738,7 @@ const downloadWordActivity = () => {
 
 .yw-sidebar {
   width: 320px;
-  background: var(--color-bg);
+  background: var(--color-surface);
   border-left: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
@@ -653,7 +747,7 @@ const downloadWordActivity = () => {
 .cover-image {
   height: 120px;
   background: var(--color-border);
-  background-image: linear-gradient(45deg, var(--color-surface), var(--color-border));
+  background-image: linear-gradient(135deg, var(--color-surface), var(--color-border));
   position: relative;
 }
 
@@ -663,16 +757,17 @@ const downloadWordActivity = () => {
   right: 16px;
   background: rgba(0, 0, 0, 0.5);
   border: none;
-  color: #E4E4E7;
-  border-radius: 2px;
   color: var(--color-text-primary);
+  border-radius: 6px;
   width: 24px;
   height: 24px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 0.2s;
 }
+.edit-cover:hover { background: rgba(0, 0, 0, 0.7); }
 
 .profile-info {
   padding: 0 24px 24px;
@@ -681,18 +776,19 @@ const downloadWordActivity = () => {
 
 .avatar-lg {
   position: absolute;
-  top: -24px;
-  width: 48px;
-  height: 48px;
+  top: -28px;
+  width: 56px;
+  height: 56px;
   background: var(--color-accent);
-  color: var(--color-text-primary);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  font-weight: 600;
-  border-radius: 2px;
-  border: 4px solid var(--color-bg);
+  font-size: 24px;
+  font-weight: 700;
+  border-radius: 50%;
+  border: 4px solid var(--color-surface);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .user-details { margin-top: 40px; }

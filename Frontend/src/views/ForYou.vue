@@ -550,8 +550,8 @@ watch(activeTab, () => {
   max-width: 1400px;
   margin: 0 auto;
   padding: 24px 32px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", Ubuntu, "Droid Sans", "Helvetica Neue", sans-serif;
-  color: var(--color-text-primary, #172b4d);
+  font-family: 'Inter', sans-serif;
+  color: var(--color-text-primary);
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -573,18 +573,18 @@ watch(activeTab, () => {
   font-size: 20px;
   font-weight: 600;
   margin: 0;
-  color: var(--color-text-primary, #172b4d);
+  color: var(--color-text-primary);
 }
 
 .view-all-link {
   font-size: 14px;
-  color: var(--color-accent, #0c66e4);
+  color: var(--color-accent);
   text-decoration: none;
   font-weight: 500;
   transition: color 0.15s ease;
 }
 .view-all-link:hover {
-  color: var(--color-accent-hover, #0052cc);
+  color: var(--color-accent);
   text-decoration: underline;
 }
 
@@ -598,33 +598,35 @@ watch(activeTab, () => {
 .space-card {
   display: flex;
   align-items: center;
-  background: var(--color-surface, #ffffff);
-  border: 1px solid rgba(9, 30, 66, 0.06);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 16px;
   padding: 16px 20px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(10px);
 }
 
 .space-card:hover {
-  background-color: var(--color-surface-hover, #f4f5f7);
-  border-color: rgba(9, 30, 66, 0.12);
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-accent);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-  transform: translateY(-2px);
+  transform: translateY(-4px);
 }
 
 .sc-icon-wrapper {
   width: 38px;
   height: 38px;
-  border-radius: 8px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 12px;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .sc-emoji {
@@ -644,12 +646,12 @@ watch(activeTab, () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--color-text-primary, #172b4d);
+  color: var(--color-text-primary);
 }
 
 .sc-desc {
   font-size: 12px;
-  color: var(--color-text-muted, #6b778c);
+  color: var(--color-text-muted);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -660,7 +662,7 @@ watch(activeTab, () => {
   background: transparent;
   border: none;
   cursor: pointer;
-  color: var(--color-text-muted, #6b778c);
+  color: var(--color-text-muted);
   font-size: 14px;
   padding: 6px;
   border-radius: 6px;
@@ -671,6 +673,9 @@ watch(activeTab, () => {
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .space-card:hover .sc-star-btn {
   opacity: 1;
@@ -680,8 +685,8 @@ watch(activeTab, () => {
   color: #f5cd47;
 }
 .sc-star-btn:hover {
-  color: var(--color-text-primary, #172b4d);
-  background: rgba(9, 30, 66, 0.08);
+  color: var(--color-text-primary);
+  background: var(--color-surface-hover);
 }
 
 /* Premium Space Empty Card */
@@ -812,39 +817,39 @@ watch(activeTab, () => {
 .search-input input {
   width: 100%;
   box-sizing: border-box !important;
-  border: 1px solid rgba(9, 30, 66, 0.08) !important;
+  border: 1px solid var(--color-border) !important;
   border-radius: 20px !important;
   padding: 8px 16px 8px 36px !important;
   font-size: 14px !important;
   height: 40px !important;
-  background-color: var(--color-surface, #ffffff) !important;
-  color: var(--color-text-primary, #172b4d) !important;
+  background-color: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
   transition: all 0.3s ease;
   outline: none;
 }
 .search-input input:focus {
-  border-color: var(--color-accent, #4c9aff) !important;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent, #0c66e4) 15%, transparent) !important;
-  background-color: var(--color-surface, #ffffff) !important;
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 15%, transparent) !important;
+  background-color: var(--color-surface) !important;
 }
 
 .jira-select {
   box-sizing: border-box !important;
-  border: 1px solid rgba(9, 30, 66, 0.08) !important;
+  border: 1px solid var(--color-border) !important;
   border-radius: 20px !important;
   padding: 0 16px !important;
   font-size: 14px !important;
   height: 40px !important;
-  background-color: var(--color-surface, #ffffff) !important;
-  color: var(--color-text-primary, #172b4d) !important;
+  background-color: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
   outline: none;
   cursor: pointer;
   transition: all 0.3s ease;
   min-width: 140px;
 }
 .jira-select:focus {
-  border-color: var(--color-accent, #4c9aff) !important;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent, #0c66e4) 15%, transparent) !important;
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 15%, transparent) !important;
 }
 
 /* Loading & Empty States */
@@ -895,18 +900,19 @@ watch(activeTab, () => {
   display: flex;
   align-items: center;
   padding: 16px 20px;
-  background: var(--color-surface, #ffffff);
-  border: 1px solid rgba(9, 30, 66, 0.06);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   overflow: hidden;
+  backdrop-filter: blur(10px);
 }
 
 .jira-task-row:hover {
-  background-color: var(--color-surface-hover, #f4f5f7);
-  border-color: rgba(9, 30, 66, 0.12);
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-accent);
   transform: translateX(4px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
 }

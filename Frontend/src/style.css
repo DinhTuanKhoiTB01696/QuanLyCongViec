@@ -16,9 +16,9 @@
   --color-surface-hover: #f1f5f9;/* Slate-100 */
   
   --color-text-primary: #0f172a;   /* Headings (Slate-900) */
-  --color-text-secondary: #475569; /* Labels (Slate-600) */
-  --color-text-muted: #64748b;    /* Placeholders (Slate-500) */
-  --color-text-disabled: #94a3b8;
+  --color-text-secondary: color-mix(in srgb, var(--color-text-primary) 70%, transparent); /* Labels */
+  --color-text-muted: color-mix(in srgb, var(--color-text-primary) 50%, transparent);    /* Placeholders */
+  --color-text-disabled: color-mix(in srgb, var(--color-text-primary) 30%, transparent);
   --color-text-inverse: #ffffff;  
   
   --color-border: #e2e8f0;       /* Slate-200 */
@@ -87,9 +87,6 @@
   --color-surface-hover: #334155;/* Standardized Hover */
   
   --color-text-primary: #e2e8f0;   /* Light Slate */
-  --color-text-secondary: #94a3b8; /* Muted Slate */
-  --color-text-muted: #64748b;    
-  --color-text-disabled: #475569;
   --color-text-inverse: #ffffff;
   
   --color-border: #1e293b;       
@@ -108,25 +105,6 @@
   --color-success-bg: rgba(52, 211, 153, 0.15);
   --color-warning-bg: rgba(251, 191, 36, 0.15);
   --color-danger-bg: rgba(248, 113, 113, 0.15);
-
-  --color-success: #34d399;      /* Emerald-400 */
-  --color-warning: #fbbf24;      /* Amber-400 */
-  --color-danger: #f87171;       /* Red-400 */
-
-  --color-success-bg: rgba(52, 211, 153, 0.15);
-  --color-warning-bg: rgba(251, 191, 36, 0.15);
-  --color-danger-bg: rgba(248, 113, 113, 0.15);
-
-  /* New Semantic Tokens (Dark Optimized) */
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --border-color: #1e293b;
-  --input-bg: #0f172a;
-  --table-bg: #1e293b;
-  --hover-bg: #334155;
 
   /* Aliases */
   --bg-color: var(--bg-primary);
@@ -191,10 +169,10 @@ p {
 }
 
 /* Form Elements Standardized - Sharp & Compact */
-input, select, textarea, 
+input:not(.el-range-input), select, textarea, 
 .el-input__inner, 
 .el-textarea__inner,
-.el-input__wrapper {
+.el-input__wrapper:not(.el-range-editor) {
   background-color: var(--input-bg) !important;
   color: var(--text-primary) !important;
   border: 2px solid var(--border-color) !important;
@@ -433,8 +411,8 @@ label, .el-form-item__label, .field-label {
 }
 
 /* Inputs & Form Fields */
-input, select, textarea, 
-.el-input__inner, .el-textarea__inner, .el-input__wrapper,
+input:not(.el-range-input), select, textarea, 
+.el-input__inner, .el-textarea__inner, .el-input__wrapper:not(.el-range-editor),
 .search-shell, .ai-input-wrapper, .task-form input, 
 .task-form select, .task-form textarea {
   border-radius: var(--radius-input) !important;
@@ -499,11 +477,11 @@ input, select, textarea,
 }
 
 /* 3. Popup Form Elements */
-.el-dialog input, 
+.el-dialog input:not(.el-range-input), 
 .el-dialog select, 
 .el-dialog textarea,
-.el-dialog .el-input__wrapper,
-.el-popover input {
+.el-dialog .el-input__wrapper:not(.el-range-editor),
+.el-popover input:not(.el-range-input) {
   border-radius: 12px !important;
   height: 44px !important;
   background-color: var(--bg-tertiary) !important;
@@ -764,4 +742,33 @@ i.fa-regular.fa-calendar {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+/* Element Plus Tabs Theme Adjustments */
+.el-tabs {
+  --el-tabs-header-border-color: var(--color-border) !important;
+}
+
+.el-tabs__item {
+  color: var(--color-text-muted) !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  transition: color var(--transition-speed) ease !important;
+}
+
+.el-tabs__item:hover {
+  color: var(--color-text-primary) !important;
+}
+
+.el-tabs__item.is-active {
+  color: var(--color-accent) !important;
+  font-weight: 600 !important;
+}
+
+.el-tabs__active-bar {
+  background-color: var(--color-accent) !important;
+}
+
+.el-tabs__nav-wrap::after {
+  background-color: var(--color-border) !important;
 }
