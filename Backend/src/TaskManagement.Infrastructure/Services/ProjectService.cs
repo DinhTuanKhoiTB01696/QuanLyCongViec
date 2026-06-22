@@ -125,13 +125,14 @@ namespace TaskManagement.Infrastructure.Services
                 .Select(p => new ProjectResponseDto
                 {
                     Id = p.Id,
+                    WorkspaceId = p.WorkspaceId,
                     Name = p.Name,
                     Key = p.Identifier,
                     Description = p.Description,
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
                     Status = p.Status,
-                    CreatorName = p.Creator.FullName,
+                    CreatorName = p.Creator != null ? p.Creator.FullName : string.Empty,
                     DepartmentId = p.DepartmentId,
                     DepartmentName = p.Department != null ? p.Department.Name : null,
                     ActiveMemberCount = p.ProjectMembers.Count(m => m.Status == true),
@@ -144,7 +145,7 @@ namespace TaskManagement.Infrastructure.Services
                     LeadName = p.ProjectMembers
                         .Where(pm => pm.Status && (pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PM" || pm.ProjectRole == "PROJECT_MANAGER"))
                         .OrderBy(pm => pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
-                        .Select(pm => pm.User.FullName)
+                        .Select(pm => pm.User != null ? pm.User.FullName : string.Empty)
                         .FirstOrDefault(),
                     Cover = p.NavigationConfig,
                     CreatedAt = p.CreatedAt,
@@ -197,13 +198,14 @@ namespace TaskManagement.Infrastructure.Services
                 .Select(p => new ProjectDiscoveryDto
                 {
                     Id = p.Id,
+                    WorkspaceId = p.WorkspaceId,
                     Name = p.Name,
                     Key = p.Identifier,
                     Description = p.Description,
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
                     Status = p.Status,
-                    CreatorName = p.Creator.FullName,
+                    CreatorName = p.Creator != null ? p.Creator.FullName : string.Empty,
                     DepartmentId = p.DepartmentId,
                     DepartmentName = p.Department != null ? p.Department.Name : null,
                     ActiveMemberCount = p.ProjectMembers.Count(m => m.Status == true),
@@ -216,7 +218,7 @@ namespace TaskManagement.Infrastructure.Services
                     LeadName = p.ProjectMembers
                         .Where(pm => pm.Status && (pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PM" || pm.ProjectRole == "PROJECT_MANAGER"))
                         .OrderBy(pm => pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
-                        .Select(pm => pm.User.FullName)
+                        .Select(pm => pm.User != null ? pm.User.FullName : string.Empty)
                         .FirstOrDefault(),
                     Cover = p.NavigationConfig,
                     CreatedAt = p.CreatedAt,
@@ -270,13 +272,14 @@ namespace TaskManagement.Infrastructure.Services
                 .Select(p => new ProjectDiscoveryDto
                 {
                     Id = p.Id,
+                    WorkspaceId = p.WorkspaceId,
                     Name = p.Name,
                     Key = p.Identifier,
                     Description = p.Description,
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
                     Status = p.Status,
-                    CreatorName = p.Creator.FullName,
+                    CreatorName = p.Creator != null ? p.Creator.FullName : string.Empty,
                     DepartmentId = p.DepartmentId,
                     DepartmentName = p.Department != null ? p.Department.Name : null,
                     ActiveMemberCount = p.ProjectMembers.Count(m => m.Status),
@@ -289,7 +292,7 @@ namespace TaskManagement.Infrastructure.Services
                     LeadName = p.ProjectMembers
                         .Where(pm => pm.Status && (pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PROJECT_MANAGER"))
                         .OrderBy(pm => pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
-                        .Select(pm => pm.User.FullName)
+                        .Select(pm => pm.User != null ? pm.User.FullName : string.Empty)
                         .FirstOrDefault(),
                     Cover = p.NavigationConfig,
                     CreatedAt = p.CreatedAt,
@@ -316,13 +319,14 @@ namespace TaskManagement.Infrastructure.Services
                 .Select(p => new ProjectResponseDto
                 {
                     Id = p.Id,
+                    WorkspaceId = p.WorkspaceId,
                     Name = p.Name,
                     Key = p.Identifier,
                     Description = p.Description,
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
                     Status = p.Status,
-                    CreatorName = p.Creator.FullName,
+                    CreatorName = p.Creator != null ? p.Creator.FullName : string.Empty,
                     DepartmentId = p.DepartmentId,
                     DepartmentName = p.Department != null ? p.Department.Name : null,
                     ActiveMemberCount = p.ProjectMembers.Count(m => m.Status == true),
@@ -335,7 +339,7 @@ namespace TaskManagement.Infrastructure.Services
                     LeadName = p.ProjectMembers
                         .Where(pm => pm.Status && (pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PM" || pm.ProjectRole == "PROJECT_MANAGER"))
                         .OrderBy(pm => pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
-                        .Select(pm => pm.User.FullName)
+                        .Select(pm => pm.User != null ? pm.User.FullName : string.Empty)
                         .FirstOrDefault(),
                     Cover = p.NavigationConfig,
                     CreatedAt = p.CreatedAt,
@@ -683,13 +687,14 @@ namespace TaskManagement.Infrastructure.Services
                 .Select(p => new ProjectDiscoveryDto
                 {
                     Id = p.Id,
+                    WorkspaceId = p.WorkspaceId,
                     Name = p.Name,
                     Key = p.Identifier,
                     Description = p.Description,
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
                     Status = p.Status,
-                    CreatorName = p.Creator.FullName,
+                    CreatorName = p.Creator != null ? p.Creator.FullName : string.Empty,
                     DepartmentId = p.DepartmentId,
                     DepartmentName = p.Department != null ? p.Department.Name : null,
                     ActiveMemberCount = p.ProjectMembers.Count(m => m.Status),
@@ -702,7 +707,7 @@ namespace TaskManagement.Infrastructure.Services
                     LeadName = p.ProjectMembers
                         .Where(pm => pm.Status && (pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PROJECT_MANAGER"))
                         .OrderBy(pm => pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
-                        .Select(pm => pm.User.FullName)
+                        .Select(pm => pm.User != null ? pm.User.FullName : string.Empty)
                         .FirstOrDefault(),
                     Cover = p.NavigationConfig,
                     CreatedAt = p.CreatedAt,

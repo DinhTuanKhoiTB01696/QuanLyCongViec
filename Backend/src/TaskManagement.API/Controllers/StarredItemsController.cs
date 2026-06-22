@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
+using TaskManagement.Application.DTOs.Common;
 using TaskManagement.Application.Interfaces;
 
 namespace TaskManagement.API.Controllers
@@ -23,7 +24,7 @@ namespace TaskManagement.API.Controllers
         {
             var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
             var result = await _starredItemService.GetAllAsync(userId, workspaceId);
-            return Ok(result);
+            return Ok(ApiResponse<object>.Success(result));
         }
 
         [HttpPost("toggle")]
@@ -31,7 +32,7 @@ namespace TaskManagement.API.Controllers
         {
             var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
             var result = await _starredItemService.ToggleStarAsync(userId, workspaceId, itemType, itemId);
-            return Ok(result);
+            return Ok(ApiResponse<object>.Success(result));
         }
     }
 }

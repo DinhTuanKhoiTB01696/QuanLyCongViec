@@ -113,8 +113,7 @@ namespace TaskManagement.Tests.Logic
             {
                 Email = email,
                 OtpToken = otp,
-                NewPassword = "NewPass123!",
-                ConfirmPassword = "NewPass123!"
+                NewPassword = "NewPass123!"
             };
 
             // Act
@@ -146,8 +145,7 @@ namespace TaskManagement.Tests.Logic
             {
                 Email = email,
                 OtpToken = "INVALID",
-                NewPassword = "NewPass123!",
-                ConfirmPassword = "NewPass123!"
+                NewPassword = "NewPass123!"
             };
 
             // Act & Assert
@@ -166,8 +164,7 @@ namespace TaskManagement.Tests.Logic
             {
                 Email = email,
                 OtpToken = otp,
-                NewPassword = "NewPass123!",
-                ConfirmPassword = "NewPass123!"
+                NewPassword = "NewPass123!"
             };
 
             // Act & Assert

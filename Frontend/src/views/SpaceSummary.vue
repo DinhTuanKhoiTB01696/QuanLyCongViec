@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <NexusLayout>
     <div v-if="isForbidden" class="forbidden-overlay">
       <div class="forbidden-content">
@@ -801,7 +801,7 @@ const currentUserId = () => {
 }
 
 const toggleTaskStar = (task) => {
-  store.toggleTaskStar(task.id)
+  store.toggleTaskStar(task)
 }
 
 const isTaskStarred = (taskId) => {
@@ -1293,6 +1293,16 @@ const loadInitialData = async (options = {}) => {
       axiosClient.get(`/projects/${pid}/execution-rules`).catch(() => ({ data: { data: {} } }))
     ])
     project.value = pRes.data.data
+    if (project.value?.id) {
+      projectStore.projectDetailsById[project.value.id] = project.value
+      if (project.value.id === pid) {
+        projectStore.currentProject = project.value
+      }
+    }
+    const wId = project.value?.workspaceId || project.value?.WorkspaceId
+    if (wId) {
+      localStorage.setItem('recent_site_id', wId)
+    }
     projectMembers.value = (mRes.data.data || []).map(member => ({
       ...member,
       userId: member.userId || member.id,

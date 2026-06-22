@@ -33,13 +33,7 @@
         <p class="font-semibold">{{ error }}</p>
       </div>
 
-      <div v-else class="reports-grid">
-        <div class="empty-state-container col-span-full">
-          <div class="empty-state">
-            <i class="fa-solid fa-chart-line text-5xl mb-4 text-[var(--color-text-muted)]"></i>
-            <h3 class="text-xl font-semibold text-[var(--color-text-primary)] mb-2">{{ t('Reports are being generated') }}</h3>
-            <p class="text-[var(--color-text-secondary)] mb-6 max-w-md mx-auto">{{ t('We are collecting data for your project. Comprehensive analytics including burndown charts and status distributions will appear here once enough data is available.') }}</p>
-            <button class="plane-btn-secondary" disabled>{{ t('Check back later') }}</button>
+
       <!-- Empty State -->
       <div v-else-if="allTasks.length === 0" class="reports-empty-container">
         <div class="reports-empty-state">

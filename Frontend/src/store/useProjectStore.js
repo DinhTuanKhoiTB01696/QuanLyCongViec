@@ -95,6 +95,8 @@ const mapProjectRow = (project) => ({
   myRole: project.myRole || project.MyRole || null,
   createdAt: project.createdAt || project.CreatedAt || null,
   updatedAt: project.updatedAt || project.UpdatedAt || null,
+  workspaceId: project.workspaceId || project.WorkspaceId || null,
+  WorkspaceId: project.WorkspaceId || project.workspaceId || null,
   children: defaultProjectNodes(resolveProjectId(project)),
   originalRow: project
 })
@@ -219,6 +221,10 @@ export const useProjectStore = defineStore('project', {
         ])
 
         const project = projRes.data?.data || null
+        const wId = project?.workspaceId || project?.WorkspaceId
+        if (wId) {
+          localStorage.setItem('recent_site_id', wId)
+        }
         const members = membersRes.data?.data || []
         const labels = labelsRes.data?.data || []
         const taskStatuses = statusesRes.data?.data || []
@@ -288,6 +294,10 @@ export const useProjectStore = defineStore('project', {
         }
 
         this.currentProject = projRes.data?.data || null;
+        const wId = this.currentProject?.workspaceId || this.currentProject?.WorkspaceId
+        if (wId) {
+          localStorage.setItem('recent_site_id', wId)
+        }
         this.members = membersRes.data?.data || [];
         this.tags = tagsRes.data?.data || [];
         this.projectDetailsById = { ...this.projectDetailsById, [projectId]: this.currentProject }

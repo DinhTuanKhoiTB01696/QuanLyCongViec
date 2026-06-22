@@ -137,8 +137,7 @@ const filteredTasksList = computed(() => {
       return isMine && !isDone
     })
   } else if (activeTab.value === 'starred') {
-    const starredLocal = JSON.parse(localStorage.getItem('starred_tasks') || '[]')
-    list = starredLocal.map(v => myTasks.value.find(t => t.id === v.id)).filter(Boolean)
+    list = workTaskStore.starredTasks.map(v => myTasks.value.find(t => t.id === (v.itemId || v.id))).filter(Boolean)
   } else if (activeTab.value === 'viewed') {
     const viewed = JSON.parse(localStorage.getItem('recently_viewed_tasks') || '[]')
     list = viewed.map(v => myTasks.value.find(t => t.id === v.id)).filter(Boolean)
@@ -347,6 +346,7 @@ const timeAgo = (dateStr) => {
 onMounted(() => {
   fetchSpaces()
   fetchMyTasks()
+  workTaskStore.fetchStarredTasks().catch(() => {})
 })
 
 watch(() => route.query.tab, (tab) => {

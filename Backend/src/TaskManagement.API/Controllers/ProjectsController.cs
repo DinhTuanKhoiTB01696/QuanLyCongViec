@@ -195,6 +195,7 @@ namespace TaskManagement.API.Controllers
             return Ok(ApiResponse<object>.Success(projects.Select(project => new
             {
                 project.Id,
+                project.WorkspaceId,
                 project.Name,
                 project.Key,
                 project.Description,
@@ -232,6 +233,7 @@ namespace TaskManagement.API.Controllers
             return Ok(ApiResponse<object>.Success(projects.Select(project => new
             {
                 project.Id,
+                project.WorkspaceId,
                 project.Name,
                 project.Key,
                 project.Description,
@@ -269,6 +271,7 @@ namespace TaskManagement.API.Controllers
                 return Ok(ApiResponse<object>.Success(projects.Select(project => new
                 {
                     project.Id,
+                    project.WorkspaceId,
                     project.Name,
                     project.Key,
                     project.Description,
@@ -312,6 +315,7 @@ namespace TaskManagement.API.Controllers
             return Ok(ApiResponse<object>.Success(new
             {
                 project.Id,
+                project.WorkspaceId,
                 project.Name,
                 project.Key,
                 project.Description,
@@ -352,6 +356,7 @@ namespace TaskManagement.API.Controllers
                 project = new
                 {
                     project.Id,
+                    project.WorkspaceId,
                     project.Name,
                     project.Key,
                     project.Description,
@@ -731,6 +736,7 @@ namespace TaskManagement.API.Controllers
                 return Ok(ApiResponse<object>.Success(projects.Select(project => new
                 {
                     project.Id,
+                    project.WorkspaceId,
                     project.Name,
                     project.Key,
                     project.Description,
