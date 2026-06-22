@@ -39,13 +39,13 @@ const modulePagination = ref({
 })
 
 const statusOptions = [
-  { key: 'backlog', label: 'Backlog', icon: 'fa-solid fa-expand', color: 'var(--color-text-muted)', bg: 'rgba(113,113,122,0.15)' },
-  { key: 'planned', label: 'Planned', icon: 'fa-regular fa-circle', color: '#60A5FA', bg: 'rgba(96,165,250,0.15)' },
-  { key: 'in progress', label: 'In Progress', icon: 'fa-solid fa-circle-notch', color: '#FBBF24', bg: 'rgba(251,191,36,0.15)' },
-  { key: 'paused', label: 'Paused', icon: 'fa-solid fa-pause', color: 'var(--color-text-muted)', bg: 'rgba(161,161,170,0.15)' },
-  { key: 'completed', label: 'Completed', icon: 'fa-regular fa-circle-check', color: '#4ADE80', bg: 'rgba(74,222,128,0.15)' },
-  { key: 'cancelled', label: 'Cancelled', icon: 'fa-regular fa-circle-xmark', color: '#F87171', bg: 'rgba(248,113,113,0.15)' },
-  { key: 'disabled', label: 'Disabled', icon: 'fa-solid fa-box-archive', color: '#94A3B8', bg: 'rgba(148,163,184,0.16)' }
+  { key: 'backlog', label: 'Backlog', icon: 'fa-solid fa-expand', color: 'var(--color-text-muted)', bg: 'rgba(113,113,122,0.12)' },
+  { key: 'planned', label: 'Planned', icon: 'fa-regular fa-circle', color: '#60A5FA', bg: 'rgba(96,165,250,0.12)' },
+  { key: 'in progress', label: 'In Progress', icon: 'fa-solid fa-circle-notch', color: '#FBBF24', bg: 'rgba(251,191,36,0.12)' },
+  { key: 'paused', label: 'Paused', icon: 'fa-solid fa-pause', color: 'var(--color-text-muted)', bg: 'rgba(161,161,170,0.12)' },
+  { key: 'completed', label: 'Completed', icon: 'fa-regular fa-circle-check', color: '#4ADE80', bg: 'rgba(74,222,128,0.12)' },
+  { key: 'cancelled', label: 'Cancelled', icon: 'fa-regular fa-circle-xmark', color: '#F87171', bg: 'rgba(248,113,113,0.12)' },
+  { key: 'disabled', label: 'Disabled', icon: 'fa-solid fa-box-archive', color: '#94A3B8', bg: 'rgba(148,163,184,0.12)' }
 ]
 
 const statusConfig = Object.fromEntries(statusOptions.map(option => [option.key, option]))
@@ -75,20 +75,34 @@ const formatDate = (value) => {
   if (!value) return null
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return null
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date)
+  const day = `${date.getDate()}`.padStart(2, '0')
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const year = date.getFullYear()
+  return `${day}/${month}/${year}`
 }
 
 const formatDateRange = (startDate, targetDate) => {
   const start = formatDate(startDate)
   const end = formatDate(targetDate)
-  if (start && end) return `${start} -> ${end}`
-  if (start) return `${start} -> ...`
-  if (end) return `... -> ${end}`
-  return 'Start date -> End date'
+  if (start && end) return `${start} - ${end}`
+  if (start) return `${start} - ...`
+  if (end) return `... - ${end}`
+  return 'Start date - End date'
 }
 
 const getLeadName = (leadId) => projectMembers.value.find(member => member.id === leadId)?.name || 'No lead'
 const getLeadAvatar = (leadId) => projectMembers.value.find(member => member.id === leadId)?.avatar || null
+
+const getAvatarBg = (name) => {
+  if (!name || name === 'No lead' || name === 'Unassigned') return '#64748b'
+  const colors = ['#3b82f6', '#10b981', '#fbbf24', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316']
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const index = Math.abs(hash) % colors.length
+  return colors[index]
+}
 
 const normalizeModule = (module) => ({
   id: module.id,
@@ -424,7 +438,7 @@ onUnmounted(() => {
     <header class="nexus-project-header">
       <div class="nexus-breadcrumb">
         <div class="project-icon" style="background: #3B82F6">
-          <i class="fa-solid fa-certificate"></i>
+          <i class="fa-solid fa-cube"></i>
         </div>
         <span class="view-name">Modules</span>
       </div>
@@ -493,19 +507,20 @@ onUnmounted(() => {
         <p class="es-desc">Create a module, adjust the status, then assign work items into it.</p>
       </div>
 
+      <!-- List View Mode -->
       <div v-else-if="viewMode === 'list'" class="modules-list">
-        <div class="module-row" v-for="module in filteredModules" :key="module.id">
-          <div class="mr-left" @dblclick="openModuleTaskView(module)">
+        <div class="module-row" v-for="module in filteredModules" :key="module.id" @click="openModuleTaskView(module)">
+          <div class="mr-left">
             <div class="m-progress-ring">{{ Math.round(module.progress) }}%</div>
             <div class="module-copy">
               <div class="m-title">{{ module.name }}</div>
               <div class="m-subtitle">
-                {{ module.doneIssueCount }} / {{ module.issueCount }} tasks done
+                {{ module.doneIssueCount }} / {{ module.issueCount }} tasks completed
               </div>
             </div>
           </div>
 
-          <div class="mr-right">
+          <div class="mr-right" @click.stop>
             <el-popover placement="bottom-end" :width="280" trigger="click" @show="rowCalendarModId = module.id">
               <template #reference>
                 <button class="m-date" type="button">
@@ -531,6 +546,7 @@ onUnmounted(() => {
                 type="button"
                 :style="{ background: statusConfig[module.statusKey]?.bg, color: statusConfig[module.statusKey]?.color }"
               >
+                <span class="status-dot" :style="{ backgroundColor: statusConfig[module.statusKey]?.color }"></span>
                 {{ statusConfig[module.statusKey]?.label }}
               </button>
               <template #dropdown>
@@ -542,14 +558,15 @@ onUnmounted(() => {
               </template>
             </el-dropdown>
 
-            <div class="m-avatar" :class="{ 'has-lead': getLeadAvatar(module.leadId) }" :title="getLeadName(module.leadId)">
+            <div 
+              class="m-avatar" 
+              :class="{ 'has-lead': getLeadAvatar(module.leadId) }" 
+              :title="getLeadName(module.leadId)"
+              :style="{ backgroundColor: getLeadAvatar(module.leadId) ? getAvatarBg(getLeadName(module.leadId)) : 'transparent' }"
+            >
               <span v-if="getLeadAvatar(module.leadId)">{{ getLeadAvatar(module.leadId) }}</span>
               <i v-else class="fa-solid fa-user"></i>
             </div>
-
-            <button class="icon-action m-icon" :class="{ 'is-fav': module.isFavorite }" @click="toggleFavorite(module)">
-              <i :class="module.isFavorite ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i>
-            </button>
 
             <el-dropdown trigger="click">
               <button class="icon-action m-icon"><i class="fa-solid fa-ellipsis"></i></button>
@@ -565,37 +582,56 @@ onUnmounted(() => {
         </div>
       </div>
 
+      <!-- Grid View Mode -->
       <div v-else-if="viewMode === 'grid'" class="module-grid">
-        <article class="grid-card" v-for="module in filteredModules" :key="module.id">
-          <div class="grid-card-top">
-            <div>
-              <h3 class="grid-title">{{ module.name }}</h3>
+        <article class="grid-card" v-for="module in filteredModules" :key="module.id" @click="openModuleTaskView(module)">
+          <div class="grid-card-glow"></div>
+          
+          <div class="grid-card-header">
+            <div class="grid-card-title-wrap">
+              <h3 class="grid-title" :title="module.name">{{ module.name }}</h3>
               <p class="grid-desc">{{ module.description || 'No description yet.' }}</p>
             </div>
-            <button class="icon-action" @click="editModule(module)"><i class="fa-solid fa-pen"></i></button>
+            <button class="card-edit-btn" @click.stop="editModule(module)">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
           </div>
 
-          <div class="grid-progress">
-            <div class="grid-progress-bar">
-              <span :style="{ width: `${Math.min(Math.max(module.progress, 0), 100)}%` }"></span>
+          <div class="grid-progress-section">
+            <div class="progress-bar-wrapper">
+              <div class="grid-progress-bar">
+                <span class="progress-fill" :style="{ width: `${Math.min(Math.max(module.progress, 0), 100)}%` }"></span>
+              </div>
+              <span class="progress-percentage">{{ Math.round(module.progress) }}%</span>
             </div>
-            <strong>{{ Math.round(module.progress) }}%</strong>
           </div>
 
-          <div class="grid-meta">
-            <span>{{ module.doneIssueCount }}/{{ module.issueCount }} done</span>
-            <span>{{ formatDateRange(module.startDate, module.targetDate) }}</span>
+          <div class="grid-meta-info">
+            <div class="meta-row">
+              <span class="meta-pill text-xs">
+                <i class="fa-regular fa-square-check text-green-400 mr-1.5"></i>
+                <strong>{{ module.doneIssueCount }}</strong>/{{ module.issueCount }} tasks done
+              </span>
+              <span class="meta-pill text-xs">
+                <i class="fa-regular fa-calendar text-sky-400 mr-1.5"></i>
+                {{ formatDateRange(module.startDate, module.targetDate) }}
+              </span>
+            </div>
           </div>
 
-          <div class="grid-footer">
-            <span class="grid-chip" :style="{ background: statusConfig[module.statusKey]?.bg, color: statusConfig[module.statusKey]?.color }">
+          <div class="grid-card-footer">
+            <span class="status-badge" :style="{ color: statusConfig[module.statusKey]?.color, backgroundColor: statusConfig[module.statusKey]?.bg }">
+              <span class="status-dot" :style="{ backgroundColor: statusConfig[module.statusKey]?.color }"></span>
               {{ statusConfig[module.statusKey]?.label }}
             </span>
-            <button class="mini-link" @click="openModuleTaskView(module)">Open</button>
+            <button class="btn-open-module" @click.stop="openModuleTaskView(module)">
+              Open <i class="fa-solid fa-arrow-right-long text-xs ml-1"></i>
+            </button>
           </div>
         </article>
       </div>
 
+      <!-- Status Grouped View Mode -->
       <div v-else class="status-groups">
         <section class="status-group" v-for="group in groupedModules" :key="group.key">
           <header class="status-group-header">
@@ -603,16 +639,20 @@ onUnmounted(() => {
               <i :class="group.icon" :style="{ color: group.color }"></i>
               <span>{{ group.label }}</span>
             </div>
-            <span>{{ group.items.length }}</span>
+            <span class="status-group-count">{{ group.items.length }}</span>
           </header>
 
           <div class="status-group-list">
-            <div class="status-row" v-for="module in group.items" :key="module.id">
-              <div>
+            <div class="status-row" v-for="module in group.items" :key="module.id" @click="openModuleTaskView(module)">
+              <div class="status-row-info">
                 <div class="m-title">{{ module.name }}</div>
-                <div class="m-subtitle">{{ module.doneIssueCount }} / {{ module.issueCount }} done</div>
+                <div class="m-subtitle">{{ module.doneIssueCount }} / {{ module.issueCount }} tasks done</div>
               </div>
-              <button class="mini-link" @click="editModule(module)">Edit</button>
+              <div class="status-row-actions" @click.stop>
+                <button class="card-edit-btn" @click="editModule(module)">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+              </div>
             </div>
           </div>
         </section>
@@ -625,6 +665,7 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- Create/Edit Modal -->
     <div class="modal-overlay" v-if="showCreateModal" @click.self="showCreateModal = false">
       <div class="create-module-modal">
         <div class="cm-header">
@@ -668,8 +709,8 @@ onUnmounted(() => {
             <div class="task-picker" v-loading="loadingTasks">
               <label v-for="task in projectTasks" :key="task.id" class="task-option">
                 <input v-model="form.taskIds" type="checkbox" :value="task.id" />
-                <span>{{ task.title }}</span>
-                <small>{{ task.statusName }}</small>
+                <span class="task-title-text">{{ task.title }}</span>
+                <small class="task-status-text">{{ task.statusName }}</small>
               </label>
             </div>
           </label>
@@ -682,6 +723,7 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- Restore Modal -->
     <div class="modal-overlay" v-if="showRestoreModal" @click.self="showRestoreModal = false">
       <div class="create-module-modal restore-modal">
         <div class="cm-header">
@@ -721,89 +763,31 @@ onUnmounted(() => {
   min-height: calc(100vh - 120px);
   background: var(--color-bg);
   color: var(--color-text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
-.modules-view-header,
 .modules-toolbar-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 24px;
+  padding: 10px 24px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
   border-bottom: 1px solid var(--color-border);
 }
 
-.modules-toolbar-meta {
-  padding-top: 10px;
-  padding-bottom: 10px;
-  color: var(--color-text-secondary);
-  font-size: 12px;
-}
-
-.vh-right,
-.breadcrumb,
-.search-box,
-.view-toggles,
-.mr-right,
-.grid-footer,
-.grid-meta,
-.grid-progress,
-.status-group-header,
-.status-row,
-.cm-grid {
+.mr-right {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.search-box {
-  min-width: 220px;
-  padding: 0 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-surface);
-}
-
-.search-box input {
-  height: 32px;
-  width: 100%;
-  background: transparent;
-  border: none;
-  color: var(--color-text-primary);
-  outline: none;
+  gap: 16px;
+  flex-shrink: 0;
 }
 
 .filter-action,
 .primary-action,
 .view-btn,
 .icon-action,
-.m-date,
-.load-more-btn,
-.cm-btn-cancel,
-.cm-btn-create,
-.mini-link {
-  border-radius: 6px;
-}
-
-.filter-action,
-.view-btn,
-.m-date,
-.load-more-btn,
-.cm-btn-cancel,
-.field-select,
-.cm-input,
-.cm-textarea,
-.task-picker {
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-}
-
-.filter-action,
-.primary-action,
-.view-btn,
-.icon-action,
-.m-date,
 .load-more-btn,
 .cm-btn-cancel,
 .cm-btn-create,
@@ -836,11 +820,10 @@ onUnmounted(() => {
   color: var(--color-text-primary);
 }
 
-.primary-action,
-.cm-btn-create {
+.primary-action {
   background: #0ea5e9;
   border: none;
-  color: var(--color-text-primary);
+  color: #ffffff;
 }
 
 .modules-body {
@@ -856,125 +839,423 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-.module-row,
-.status-row {
+/* List Row Redesign */
+.module-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 14px 16px;
+  gap: 20px;
+  padding: 16px 20px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 12px !important;
   background: var(--color-surface);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
 }
 
-.mr-left,
-.module-copy {
+.module-row:hover {
+  border-color: var(--color-accent);
+  background: var(--color-surface-hover);
+  transform: translateX(4px);
+}
+
+.mr-left {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
+  min-width: 0;
 }
 
 .module-copy {
+  display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: 2px;
 }
 
 .m-progress-ring {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  border: 3px solid var(--color-border);
+  border: 2.5px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
-  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 750;
+  color: var(--color-text-primary);
+  background: var(--color-bg);
   flex-shrink: 0;
 }
 
-.m-title,
-.grid-title {
-  font-size: 14px;
-  font-weight: 600;
+.m-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
-.m-subtitle,
-.grid-desc,
-.grid-meta,
-.status-group-header,
-.task-option small {
+.m-subtitle {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.m-date {
+  background: rgba(0, 0, 0, 0.01);
+  border: 1px solid var(--color-border);
   color: var(--color-text-secondary);
+  padding: 6px 12px;
+  border-radius: 8px !important;
   font-size: 12px;
+  font-weight: 550;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.m-status-chip,
-.grid-chip {
-  padding: 6px 10px;
+[data-theme='dark'] .m-date {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.m-date:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
+  color: var(--color-text-primary);
+}
+
+.m-status-chip {
+  padding: 5px 12px;
+  border-radius: 999px !important;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.2s;
   border: none;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.m-status-chip:hover {
+  filter: brightness(1.1);
 }
 
 .m-avatar {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 1px dashed #52525b;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1.5px solid var(--color-surface);
+  cursor: pointer;
+}
+
+.m-avatar:not(.has-lead) {
+  border: 1.5px dashed var(--color-text-disabled);
+  background: transparent;
   color: var(--color-text-muted);
 }
 
-.m-avatar.has-lead {
+.icon-action {
+  background: transparent;
   border: none;
-  background: #3b82f6;
-  color: var(--color-text-primary);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 8px !important;
+  padding: 6px 8px;
 }
 
+.icon-action:hover {
+  color: var(--color-text-primary);
+  background: var(--color-surface-hover);
+}
+
+/* Grid Card View */
 .module-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+  width: 100%;
 }
 
-.grid-card,
-.status-group {
+.grid-card {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 16px !important;
   background: var(--color-surface);
-  padding: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
 }
 
-.grid-card-top {
+.grid-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-lg);
+}
+
+.grid-card-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.03) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.grid-card:hover .grid-card-glow {
+  opacity: 1;
+}
+
+.grid-card-header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.grid-card-title-wrap {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.grid-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0 0 6px 0;
+  line-height: 1.3;
+}
+
+.grid-desc {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 38px;
+}
+
+.card-edit-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.card-edit-btn:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-hover);
+}
+
+.grid-progress-section {
+  position: relative;
+  z-index: 1;
+}
+
+.progress-bar-wrapper {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
 }
 
 .grid-progress-bar {
-  flex: 1;
+  flex-grow: 1;
   height: 8px;
+  background: var(--color-border);
   border-radius: 999px;
   overflow: hidden;
-  background: var(--color-border);
 }
 
-.grid-progress-bar span {
+.progress-fill {
   display: block;
   height: 100%;
-  background: #0ea5e9;
+  background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-percentage {
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--color-text-primary);
+  min-width: 32px;
+  text-align: right;
+}
+
+.grid-meta-info {
+  position: relative;
+  z-index: 1;
+}
+
+.meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.grid-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+  margin-top: 4px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px !important;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.btn-open-module {
+  background: transparent;
+  border: none;
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s, transform 0.2s;
+  padding: 0;
+}
+
+.btn-open-module:hover {
+  color: var(--color-accent-hover);
+  transform: translateX(2px);
+}
+
+/* Status Group View */
+.status-group {
+  border: 1px solid var(--color-border);
+  border-radius: 14px !important;
+  background: var(--color-surface);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 20px;
+}
+
+.status-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 14px;
+}
+
+.status-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-group-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-border);
+  padding: 2px 8px;
+  border-radius: 10px;
 }
 
 .status-group-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 14px;
+  gap: 8px;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px !important;
+  background: rgba(0, 0, 0, 0.01);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+[data-theme='dark'] .status-row {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.status-row:hover {
+  border-color: var(--color-accent);
+  background: var(--color-surface-hover);
+  transform: translateX(4px);
+}
+
+.status-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.status-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .load-more-wrap {
@@ -994,48 +1275,224 @@ onUnmounted(() => {
 
 .es-icon {
   font-size: 40px;
-  color: #3f3f46;
+  color: var(--color-text-muted);
   margin-bottom: 16px;
 }
 
+.es-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 6px;
+}
+
+.es-desc {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+/* Modal Redesigns */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  backdrop-filter: blur(4px);
 }
 
 .create-module-modal {
-  width: min(720px, calc(100vw - 32px));
-  max-height: calc(100vh - 32px);
+  width: min(680px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
   overflow: auto;
-  background: #141518;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 16px !important;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
 }
 
-.cm-header,
-.cm-body,
-.cm-footer {
-  padding: 20px;
+.cm-header {
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cm-title {
+  font-size: 18px;
+  font-weight: 750;
+  color: var(--color-text-primary);
+  margin: 0;
 }
 
 .cm-body {
+  padding: 24px;
   display: flex;
   flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.cm-input,
+.cm-textarea,
+.field-select {
+  width: 100%;
+  background-color: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  border: 2px solid var(--border-color) !important;
+  border-radius: 8px !important;
+  padding: 10px 12px !important;
+  font-size: 14px !important;
+  outline: none;
+  transition: border-color 0.2s;
+  box-shadow: none !important;
+}
+
+.cm-input:focus,
+.cm-textarea:focus,
+.field-select:focus {
+  border-color: var(--color-accent) !important;
+}
+
+.cm-textarea {
+  resize: none;
+}
+
+.cm-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
+@media (max-width: 576px) {
+  .cm-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.field-block span {
+  margin-bottom: 2px;
+}
+
+.task-picker {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 8px;
+  border-radius: 10px;
+  border: 2px solid var(--border-color);
+  background: var(--color-bg);
+}
+
+.task-option {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  transition: background 0.15s;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.task-option:hover {
+  background: var(--color-surface-hover);
+}
+
+.task-option input[type="checkbox"] {
+  accent-color: var(--color-accent);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.task-title-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-status-text {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  background: var(--color-border);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.cm-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: var(--color-surface-hover);
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+.cm-btn-cancel {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 8px !important;
+  padding: 8px 16px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cm-btn-cancel:hover {
+  background: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.cm-btn-create {
+  background: var(--color-accent);
+  border: none;
+  border-radius: 8px !important;
+  padding: 8px 16px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.cm-btn-create:hover {
+  opacity: 0.9;
+}
+
+/* Restore Modal styles */
 .restore-modal {
-  width: min(760px, calc(100vw - 32px));
+  width: min(640px, calc(100vw - 32px));
 }
 
 .restore-modal-list {
-  display: grid;
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .restore-modal-row {
@@ -1044,78 +1501,44 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 16px;
   padding: 14px 16px;
-  border: 1px solid #27272A;
-  border-radius: 10px;
-  background: #0D0F11;
+  border: 1px solid var(--color-border);
+  border-radius: 12px !important;
+  background: rgba(0, 0, 0, 0.01);
+  transition: all 0.2s;
+}
+
+[data-theme='dark'] .restore-modal-row {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.restore-modal-row:hover {
+  background: var(--color-surface-hover);
 }
 
 .restore-modal-copy {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.restore-modal-copy strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
 .restore-modal-copy span {
-  color: #A1A1AA;
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .compact-empty-state {
   margin: 0;
-}
-
-.cm-grid {
-  align-items: stretch;
-}
-
-.field-block {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1;
-  font-size: 13px;
-  color: #d4d4d8;
-}
-
-.cm-input,
-.cm-textarea,
-.field-select {
-  width: 100%;
-  padding: 10px 12px;
-  font: inherit;
-}
-
-.task-picker {
-  max-height: 220px;
-  overflow: auto;
-  padding: 8px;
-  border-radius: 8px;
-}
-
-.task-option {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 10px;
-  align-items: center;
-  padding: 8px;
-  border-radius: 6px;
-}
-
-.task-option:hover {
-  background: var(--color-surface);
-}
-
-.cm-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  border-top: 1px solid var(--color-border);
-}
-
-.mini-link {
-  border: none;
-  background: transparent;
-  color: #38bdf8;
-  padding: 0;
+  padding: 32px 0;
 }
 
 @media (max-width: 900px) {
@@ -1125,20 +1548,9 @@ onUnmounted(() => {
     align-items: stretch;
   }
 
-  .vh-right,
-  .cm-grid,
+  .mr-right,
   .module-row {
-    flex-wrap: wrap;
-  }
-
-  .mr-right {
-    width: 100%;
-    justify-content: flex-start;
     flex-wrap: wrap;
   }
 }
 </style>
-
-
-
-

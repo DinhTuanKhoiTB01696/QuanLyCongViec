@@ -4,6 +4,10 @@ import { useRoute } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
 import { ElNotification, ElMessageBox } from 'element-plus'
 import ListView from '@/components/ListView.vue'
+import { useI18nStore } from '@/store/useI18nStore'
+
+const i18nStore = useI18nStore()
+const t = (key) => i18nStore.t(key)
 
 import FilterBar from '@/components/FilterBar.vue'
 
@@ -350,6 +354,36 @@ watch(projectId, async () => {
     tasks.value = []
     await Promise.all([fetchViews(), fetchProjectMembers()])
 })
+
+const getCreatorName = (view) => {
+  if (view.creatorName) return view.creatorName
+  if (view.createdByName) return view.createdByName
+  if (view.createdBy) {
+    const member = projectMembers.value.find(m => m.id === view.createdBy || m.userId === view.createdBy || m.userId === view.createdById)
+    if (member) return member.fullName || member.name
+  }
+  return 'Owner'
+}
+
+const getAvatarBg = (name) => {
+  if (!name || name === 'Owner') return '#64748b'
+  const colors = ['#3b82f6', '#10b981', '#fbbf24', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316']
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const index = Math.abs(hash) % colors.length
+  return colors[index]
+}
+
+const getInitials = (name) => {
+  if (!name) return 'O'
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts.at(-1)[0]).toUpperCase()
+  }
+  return name[0]?.toUpperCase() || 'O'
+}
 </script>
 
 <template>
@@ -359,7 +393,7 @@ watch(projectId, async () => {
         <div class="project-icon" style="background: #FACC15">
           <i class="fa-solid fa-certificate"></i>
         </div>
-        <span class="view-name cursor-pointer" @click="goBackToList">Views</span>
+        <span class="view-name cursor-pointer" @click="goBackToList">{{ t('Views') }}</span>
         <template v-if="activeView">
             <i class="fa-solid fa-chevron-right sep"></i>
             <span class="view-name">{{ activeView.name }}</span>
@@ -370,7 +404,7 @@ watch(projectId, async () => {
         <template v-if="!activeView">
             <!-- Consolidated Clusters -->
             <div class="flex items-center gap-2" v-if="showViewSearch">
-               <input v-model="filterSearch" class="nexus-search-input" type="text" placeholder="Search views..." style="width: 200px" />
+               <input v-model="filterSearch" class="nexus-search-input" type="text" :placeholder="t('Search views...')" style="width: 200px" />
             </div>
             
             <button class="nexus-btn-icon" type="button" @click="showViewSearch = !showViewSearch" :class="{ 'bg-surface-hover border-accent': showViewSearch }">
@@ -379,27 +413,27 @@ watch(projectId, async () => {
             
             <el-dropdown trigger="click">
                 <button class="nexus-btn-outlined" type="button">
-                    <i class="fa-solid fa-arrow-down-short-wide"></i> {{ sortBy }}
+                    <i class="fa-solid fa-arrow-down-short-wide"></i> {{ t(sortBy) }}
                 </button>
                 <template #dropdown>
                     <el-dropdown-menu class="dark-popover">
-                        <el-dropdown-item @click="sortBy = 'Name'">Name</el-dropdown-item>
-                        <el-dropdown-item @click="sortBy = 'Created at'">Created at</el-dropdown-item>
-                        <el-dropdown-item @click="sortBy = 'Updated at'">Updated at</el-dropdown-item>
+                        <el-dropdown-item @click="sortBy = 'Name'">{{ t('Name') }}</el-dropdown-item>
+                        <el-dropdown-item @click="sortBy = 'Created at'">{{ t('Created at') }}</el-dropdown-item>
+                        <el-dropdown-item @click="sortBy = 'Updated at'">{{ t('Updated at') }}</el-dropdown-item>
                     </el-dropdown-menu>
                 </template>
             </el-dropdown>
             
             <button class="nexus-btn-outlined" type="button">
-                <i class="fa-solid fa-bars-staggered"></i> Filters
+                <i class="fa-solid fa-bars-staggered"></i> {{ t('Filters') }}
             </button>
 
             <button class="nexus-btn-primary" type="button" @click="showCreateModal = true">
-              <i class="fa-solid fa-plus"></i> Add view
+              <i class="fa-solid fa-plus"></i> {{ t('Add view') }}
             </button>
         </template>
         <template v-else>
-            <button class="nexus-btn-outlined" type="button" disabled title="Display settings are configured when creating the view"><i class="fa-solid fa-sliders"></i> Display</button>
+            <button class="nexus-btn-outlined" type="button" disabled title="Display settings are configured when creating the view"><i class="fa-solid fa-sliders"></i> {{ t('Display') }}</button>
         </template>
       </div>
     </header>
@@ -408,26 +442,33 @@ watch(projectId, async () => {
     <main class="views-content">
       <div v-if="!activeView" class="views-list">
         <div v-if="views.length === 0" class="empty-placeholder">
-          <p>No custom views here.</p>
+          <p>{{ t('No custom views here.') }}</p>
         </div>
         
         <div class="view-item-row" v-for="view in filteredViews" :key="view.id" @click="selectView(view)">
             <div class="vi-left">
-                <i class="fa-solid fa-layer-group vi-icon"></i>
-                <span class="vi-name">{{ view.name }}</span>
+                <div class="vi-icon-wrapper">
+                    <i class="fa-solid fa-layer-group vi-icon"></i>
+                </div>
+                <div class="vi-meta">
+                    <span class="vi-name">{{ view.name }}</span>
+                    <span class="vi-desc" v-if="view.description">{{ view.description }}</span>
+                </div>
             </div>
             <div class="vi-right">
-                <i class="fa-solid fa-earth-americas vi-globe" v-if="view.isGlobal"></i>
-                <div class="vi-avatar">P</div>
+                <i class="fa-solid fa-earth-americas vi-globe" v-if="view.isGlobal" title="Global View"></i>
+                <div class="vi-avatar" :style="{ backgroundColor: getAvatarBg(getCreatorName(view)) }" :title="getCreatorName(view)">
+                    {{ getInitials(getCreatorName(view)) }}
+                </div>
                 <button class="vi-star" type="button" :class="{ active: view.isFavorite }" @click.stop="toggleFavorite(view)">
-                    <i class="fa-regular fa-star"></i>
+                    <i class="fa-star" :class="view.isFavorite ? 'fa-solid' : 'fa-regular'"></i>
                 </button>
                 <el-dropdown trigger="click" @command="command => handleViewCommand(view, command)">
                     <button class="vi-more" type="button" @click.stop><i class="fa-solid fa-ellipsis"></i></button>
                     <template #dropdown>
                         <el-dropdown-menu class="dark-popover">
-                            <el-dropdown-item command="favorite">{{ view.isFavorite ? 'Remove favorite' : 'Add to favorite' }}</el-dropdown-item>
-                            <el-dropdown-item command="delete">Delete view</el-dropdown-item>
+                            <el-dropdown-item command="favorite">{{ view.isFavorite ? t('Remove favorite') : t('Add to favorite') }}</el-dropdown-item>
+                            <el-dropdown-item command="delete">{{ t('Delete view') }}</el-dropdown-item>
                         </el-dropdown-menu>
                     </template>
                 </el-dropdown>
@@ -443,13 +484,13 @@ watch(projectId, async () => {
     <!-- Modal (ONLY REFORMING THE DISPLAY DROPDOWN) -->
     <div class="modal-overlay" v-if="showCreateModal" @click.self="resetModal">
       <div class="view-modal premium">
-        <div class="modal-header"><h3>Create View</h3></div>
+        <div class="modal-header"><h3>{{ t('Create View') }}</h3></div>
         <div class="modal-body">
             <div class="input-row">
                 <div class="icon-box"><i class="fa-solid fa-layer-group"></i></div>
-                <input type="text" v-model="newView.name" placeholder="Title" class="title-input" />
+                <input type="text" v-model="newView.name" :placeholder="t('Title')" class="title-input" />
             </div>
-            <textarea v-model="newView.description" placeholder="Description" rows="4" class="desc-input"></textarea>
+            <textarea v-model="newView.description" :placeholder="t('Description')" rows="4" class="desc-input"></textarea>
             
             <div class="m-filter-section">
                 <FilterBar 
@@ -463,36 +504,36 @@ watch(projectId, async () => {
             <div class="modal-controls-bar">
                 <div class="toggle-group">
                     <button class="m-toggle" :class="{ active: modalTab === 'list' }" @click="modalTab = 'list'" type="button">
-                        <i :class="viewTypeIcon" class="mr-2"></i> List
+                        <i :class="viewTypeIcon" class="mr-2"></i> {{ t('List') }}
                     </button>
                     <!-- UPDATED PLACEMENT TO 'right-start' FOR SCROLLABILITY -->
                     <el-dropdown trigger="click" popper-class="display-popper-final" placement="right-start" :hide-on-click="false" :z-index="5000">
-                        <button class="m-toggle" :class="{ active: modalTab === 'display' }" @click="modalTab = 'display'" type="button">Display</button>
+                        <button class="m-toggle" :class="{ active: modalTab === 'display' }" @click="modalTab = 'display'" type="button">{{ t('Display') }}</button>
                         <template #dropdown>
                             <div class="display-scroll-vfinal">
                                 <div class="st-content">
                                     <div class="st-sect">
-                                        <div class="st-sect-header"><span>Display Properties</span><i class="fa-solid fa-chevron-up"></i></div>
+                                        <div class="st-sect-header"><span>{{ t('Display Properties') }}</span><i class="fa-solid fa-chevron-up"></i></div>
                                         <div class="st-chips">
                                             <span v-for="p in ['ID', 'Assignee', 'Start date', 'Due date', 'Labels', 'Priority', 'State', 'Sub-work item count', 'Attachment count', 'Link', 'Estimate', 'Module', 'Cycle']" 
-                                                  :key="p" class="p-chip-st" :class="{ selected: displayProps.includes(p) }" @click.stop="toggleDisplayProp(p)">{{ p }}</span>
+                                                  :key="p" class="p-chip-st" :class="{ selected: displayProps.includes(p) }" @click.stop="toggleDisplayProp(p)">{{ t(p) }}</span>
                                         </div>
                                     </div>
                                     <div class="st-sect">
-                                        <div class="st-sect-header"><span>Group by</span><i class="fa-solid fa-chevron-up"></i></div>
+                                        <div class="st-sect-header"><span>{{ t('Group by') }}</span><i class="fa-solid fa-chevron-up"></i></div>
                                         <div class="st-radios">
                                             <label class="st-opt" v-for="g in ['States', 'Priority', 'Cycle', 'Module', 'Labels', 'Assignees', 'Created by', 'None']" :key="g">
                                                 <input type="radio" name="pop-groupby" :value="g" v-model="groupBy" />
-                                                <span class="st-dot"></span><span class="st-label">{{ g }}</span>
+                                                <span class="st-dot"></span><span class="st-label">{{ t(g) }}</span>
                                             </label>
                                         </div>
                                     </div>
                                     <div class="st-sect">
-                                        <div class="st-sect-header"><span>Order by</span><i class="fa-solid fa-chevron-up"></i></div>
+                                        <div class="st-sect-header"><span>{{ t('Order by') }}</span><i class="fa-solid fa-chevron-up"></i></div>
                                         <div class="st-radios">
                                             <label class="st-opt" v-for="o in ['Manual', 'Last created', 'Last updated', 'Start date', 'Due date', 'Priority']" :key="o">
                                                 <input type="radio" name="pop-orderby" :value="o" v-model="orderBy" />
-                                                <span class="st-dot"></span><span class="st-label">{{ o }}</span>
+                                                <span class="st-dot"></span><span class="st-label">{{ t(o) }}</span>
                                             </label>
                                         </div>
                                     </div>
@@ -501,7 +542,7 @@ watch(projectId, async () => {
                                         <label class="st-check">
                                             <input type="checkbox" v-model="showSubItems" />
                                             <span class="checkmark"></span>
-                                            <span class="st-label">Show sub-work items</span>
+                                            <span class="st-label">{{ t('Show sub-work items') }}</span>
                                         </label>
                                     </div>
                                 </div>
@@ -510,24 +551,24 @@ watch(projectId, async () => {
                     </el-dropdown>
                 </div>
                 <el-dropdown trigger="click" popper-class="filter-modal-popper" placement="bottom-start" :z-index="5000">
-                    <button class="filter-btn" type="button"><i class="fa-solid fa-filter-circle-plus mr-2"></i> Filters</button>
+                    <button class="filter-btn" type="button"><i class="fa-solid fa-filter-circle-plus mr-2"></i> {{ t('Filters') }}</button>
                     <template #dropdown>
                         <div class="filter-modal-dropdown">
                             <div class="f-search">
                                 <i class="fa-solid fa-magnifying-glass"></i>
-                                <input type="text" placeholder="Search" />
+                                <input type="text" :placeholder="t('Search')" />
                             </div>
                             <div class="f-options">
-                                <div class="f-opt" @click="addFilterOption('status')"><i class="fa-regular fa-circle-dot"></i> State</div>
-                                <div class="f-opt" @click="addFilterOption('assignee')"><i class="fa-regular fa-user"></i> Assignees</div>
-                                <div class="f-opt" @click="addFilterOption('priority')"><i class="fa-solid fa-signal"></i> Priority</div>
-                                <div class="f-opt" @click="addFilterOption('label')"><i class="fa-solid fa-tag"></i> Label</div>
-                                <div class="f-opt" @click="addFilterOption('cycle')"><i class="fa-regular fa-circle-pause"></i> Cycle</div>
-                                <div class="f-opt" @click="addFilterOption('module')"><i class="fa-solid fa-table-cells-large"></i> Module</div>
-                                <div class="f-opt" @click="addFilterOption('startDate')"><i class="fa-regular fa-calendar-plus"></i> Start date</div>
-                                <div class="f-opt" @click="addFilterOption('dueDate')"><i class="fa-regular fa-calendar"></i> Target date</div>
-                                <div class="f-opt" @click="addFilterOption('createdAt')"><i class="fa-regular fa-calendar"></i> Created at</div>
-                                <div class="f-opt" @click="addFilterOption('updatedAt')"><i class="fa-regular fa-calendar"></i> Updated at</div>
+                                <div class="f-opt" @click="addFilterOption('status')"><i class="fa-regular fa-circle-dot"></i> {{ t('State') }}</div>
+                                <div class="f-opt" @click="addFilterOption('assignee')"><i class="fa-regular fa-user"></i> {{ t('Assignees') }}</div>
+                                <div class="f-opt" @click="addFilterOption('priority')"><i class="fa-solid fa-signal"></i> {{ t('Priority') }}</div>
+                                <div class="f-opt" @click="addFilterOption('label')"><i class="fa-solid fa-tag"></i> {{ t('Label') }}</div>
+                                <div class="f-opt" @click="addFilterOption('cycle')"><i class="fa-regular fa-circle-pause"></i> {{ t('Cycles') }}</div>
+                                <div class="f-opt" @click="addFilterOption('module')"><i class="fa-solid fa-table-cells-large"></i> {{ t('Modules') }}</div>
+                                <div class="f-opt" @click="addFilterOption('startDate')"><i class="fa-regular fa-calendar-plus"></i> {{ t('Start date') }}</div>
+                                <div class="f-opt" @click="addFilterOption('dueDate')"><i class="fa-regular fa-calendar"></i> {{ t('Target date') }}</div>
+                                <div class="f-opt" @click="addFilterOption('createdAt')"><i class="fa-regular fa-calendar"></i> {{ t('Created at') }}</div>
+                                <div class="f-opt" @click="addFilterOption('updatedAt')"><i class="fa-regular fa-calendar"></i> {{ t('Updated at') }}</div>
                             </div>
                         </div>
                     </template>
@@ -535,8 +576,8 @@ watch(projectId, async () => {
             </div>
         </div>
         <div class="modal-footer">
-            <button class="cancel-btn" type="button" @click="resetModal">Cancel</button>
-            <button class="create-btn" type="button" @click="createView" :disabled="!newView.name">Create View</button>
+            <button class="cancel-btn" type="button" @click="resetModal">{{ t('Cancel') }}</button>
+            <button class="create-btn" type="button" @click="createView" :disabled="!newView.name">{{ t('Create View') }}</button>
         </div>
       </div>
     </div>
@@ -558,16 +599,86 @@ watch(projectId, async () => {
 .view-search-input { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text-primary); font-size: 13px; padding: 6px 10px; outline: none; width: 180px; }
 .add-view-primary { background: #0EA5E9; border: none; color: var(--color-text-primary); padding: 6px 16px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; }
 
-/* Content List (Restored to Turn 9) */
-.views-content { flex: 1; padding: 12px 24px; }
-.view-item-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
-.view-item-row:hover { background: var(--color-surface-hover); }
-.vi-left { display: flex; align-items: center; gap: 14px; }
-.vi-icon { color: var(--color-text-muted); font-size: 14px; }
-.vi-name { font-size: 14px; color: var(--color-text-primary); }
-.vi-right { display: flex; align-items: center; gap: 16px; opacity: 0; }
-.view-item-row:hover .vi-right { opacity: 1; }
-.vi-avatar { width: 22px; height: 22px; border-radius: 50%; background: #0F766E; color: var(--color-text-primary); font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+/* Content List */
+.views-content { flex: 1; padding: 16px 24px; }
+.view-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.view-item-row:hover {
+    background: var(--color-surface-hover);
+    border-color: var(--color-accent);
+    transform: translateX(4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+.vi-left { display: flex; align-items: center; gap: 16px; }
+.vi-icon-wrapper {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-accent);
+    font-size: 14px;
+}
+.vi-meta { display: flex; flex-direction: column; gap: 2px; }
+.vi-name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+.vi-desc { font-size: 12px; color: var(--color-text-muted); }
+.vi-right { display: flex; align-items: center; gap: 12px; }
+.vi-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--color-bg);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.vi-star, .vi-more {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+}
+.view-item-row:hover .vi-star,
+.view-item-row:hover .vi-more,
+.vi-star.active {
+    opacity: 1;
+}
+.vi-star:hover, .vi-more:hover {
+    color: var(--color-text-primary);
+    background: var(--color-surface-hover);
+}
+.vi-star.active {
+    color: #fbbf24 !important;
+}
+.vi-globe {
+    color: var(--color-accent);
+    font-size: 13px;
+}
 
 /* Modal (Restored to Premium layout) */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 2000; }
