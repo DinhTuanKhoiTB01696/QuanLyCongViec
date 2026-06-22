@@ -17,7 +17,7 @@
             <span class="proj-name">{{ project?.name || 'Project' }}</span>
             <i class="fa-solid fa-chevron-right separator"></i>
             <span class="active-page">
-              <i class="fa-solid fa-layer-group"></i> Work Items
+              <i class="fa-solid fa-layer-group"></i> {{ t('Work items') }}
             </span>
             <span class="item-count">{{ visibleTopLevelTasks.length }}</span>
           </div>
@@ -40,11 +40,11 @@
           
           <!-- Display Dropdown -->
           <div class="display-dropdown-wrapper">
-             <button class="plane-toolbar-btn" @click.stop="showDisplayDropdown = !showDisplayDropdown" :class="{ 'active': showDisplayDropdown }">Display</button>
+             <button class="plane-toolbar-btn" @click.stop="showDisplayDropdown = !showDisplayDropdown" :class="{ 'active': showDisplayDropdown }">{{ t('Display') }}</button>
              <div class="plane-dropdown-menu" v-show="showDisplayDropdown" @click.stop>
                 <div class="dd-section">
                    <div class="dd-title">
-                      <span>Display Properties</span>
+                      <span>{{ t('Display Properties') }}</span>
                       <i class="fa-solid fa-chevron-up"></i>
                    </div>
                    <div class="dd-btns">
@@ -53,28 +53,28 @@
                 </div>
                 <div class="dd-section border-top">
                    <div class="dd-title">
-                      <span>Order by</span>
+                      <span>{{ t('Order by') }}</span>
                       <i class="fa-solid fa-chevron-up"></i>
                    </div>
                    <div class="dd-list">
-                      <label class="dd-item"><input type="radio" name="order" value="manual" v-model="displayOrder" /> Manual</label>
-                      <label class="dd-item"><input type="radio" name="order" value="created" v-model="displayOrder" /> Last created</label>
-                      <label class="dd-item"><input type="radio" name="order" value="updated" v-model="displayOrder" /> Last updated</label>
-                      <label class="dd-item"><input type="radio" name="order" value="priority" v-model="displayOrder" /> Priority</label>
+                      <label class="dd-item"><input type="radio" name="order" value="manual" v-model="displayOrder" /> {{ t('Manual') }}</label>
+                      <label class="dd-item"><input type="radio" name="order" value="created" v-model="displayOrder" /> {{ t('Last created') }}</label>
+                      <label class="dd-item"><input type="radio" name="order" value="updated" v-model="displayOrder" /> {{ t('Last updated') }}</label>
+                      <label class="dd-item"><input type="radio" name="order" value="priority" v-model="displayOrder" /> {{ t('Priority') }}</label>
                    </div>
                 </div>
                 <div class="dd-section border-top">
                    <label class="dd-item checkbox">
-                     <input type="checkbox" v-model="showSubtasks" /> Show sub-work items
+                     <input type="checkbox" v-model="showSubtasks" /> {{ t('Show sub-work items') }}
                    </label>
                 </div>
              </div>
           </div>
           
-          <button class="plane-toolbar-btn" @click="showAnalyticsSidebar = true">Analytics</button>
+          <button class="plane-toolbar-btn" @click="showAnalyticsSidebar = true">{{ t('Analytics') }}</button>
           
           <button class="plane-primary-btn" @click="openCreateTask('TO DO')">
-            Add work item
+            {{ t('Add work item') }}
           </button>
         </div>
       </header>
@@ -96,7 +96,7 @@
                <div class="gh-left">
                  <i class="gh-chevron fa-solid" :class="collapsedListGroups[group.id] ? 'fa-chevron-right' : 'fa-chevron-down'"></i>
                  <i class="status-icon" :class="group.icon" :style="{ color: group.color }"></i>
-                 <span class="group-name">{{ group.name }}</span>
+                 <span class="group-name">{{ normalizeStatusLabel(group.statusName) }}</span>
                  <span class="group-count">{{ group.items.length }}</span>
                </div>
                <div class="gh-right">
@@ -139,11 +139,11 @@
                        </div>
                        <template #dropdown>
                          <el-dropdown-menu class="plane-dropdown">
-                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> Urgent</el-dropdown-item>
-                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> High</el-dropdown-item>
-                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> Normal</el-dropdown-item>
-                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> Low</el-dropdown-item>
-                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> None</el-dropdown-item>
+                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> {{ t('Urgent') }}</el-dropdown-item>
+                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> {{ t('High') }}</el-dropdown-item>
+                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> {{ t('Normal') }}</el-dropdown-item>
+                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> {{ t('Low') }}</el-dropdown-item>
+                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> {{ t('None') }}</el-dropdown-item>
                          </el-dropdown-menu>
                        </template>
                      </el-dropdown>
@@ -159,7 +159,7 @@
                          </div>
                        </template>
                        <div class="popover-content">
-                         <input type="text" class="plane-search-input" v-model="assigneeSearch" placeholder="Search members" />
+                         <input type="text" class="plane-search-input" v-model="assigneeSearch" :placeholder="t('Search members')" />
                          <div class="plane-list mt-2">
                            <label
                              class="plane-list-item"
@@ -179,7 +179,7 @@
                </template>
 
                <div class="add-row-placeholder" @click="openCreateTask(group.statusName)">
-                 <i class="fa-solid fa-plus"></i> New work item
+                 <i class="fa-solid fa-plus"></i> {{ t('New work item') }}
                </div>
              </div>
            </div>
@@ -209,7 +209,7 @@
           <div class="col-head">
             <div class="col-title">
               <i :class="col.icon" :style="{ color: col.color }"></i>
-              <span>{{ col.name }}</span>
+              <span>{{ normalizeStatusLabel(col.name) }}</span>
               <span class="col-count">{{ col.items.length }}</span>
             </div>
             <i class="fa-solid fa-plus add-btn" @click="openCreateTask(col.name)"></i>
@@ -254,11 +254,11 @@
                        </div>
                        <template #dropdown>
                          <el-dropdown-menu class="plane-dropdown">
-                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> Urgent</el-dropdown-item>
-                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> High</el-dropdown-item>
-                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> Medium</el-dropdown-item>
-                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> Low</el-dropdown-item>
-                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> None</el-dropdown-item>
+                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> {{ t('Urgent') }}</el-dropdown-item>
+                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> {{ t('High') }}</el-dropdown-item>
+                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> {{ t('Normal') }}</el-dropdown-item>
+                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> {{ t('Low') }}</el-dropdown-item>
+                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> {{ t('None') }}</el-dropdown-item>
                          </el-dropdown-menu>
                        </template>
                      </el-dropdown>
@@ -271,7 +271,7 @@
                          <div class="avatar-xs ms-auto cursor-pointer hover:bg-[var(--color-border)]" style="border: 1px dashed var(--color-text-muted); background: transparent; color: var(--color-text-muted);" v-else><i class="fa-solid fa-user"></i></div>
                        </template>
                        <div class="popover-content">
-                         <input type="text" class="plane-search-input" v-model="assigneeSearch" placeholder="Search members" />
+                         <input type="text" class="plane-search-input" v-model="assigneeSearch" :placeholder="t('Search members')" />
                          <div class="plane-list mt-2">
                            <label
                              class="plane-list-item"
@@ -293,16 +293,16 @@
             <div class="inline-create-box" v-if="inlineCreateColId === col.id">
                <div class="ic-top">
                  <i class="fa-solid fa-plus ic-plus"></i>
-                 <input type="text" class="ic-input" v-model="inlineTaskTitle" placeholder="New work item" @keyup.enter="submitInlineTask(col)" @keyup.esc="inlineCreateColId = null" ref="inlineInput" />
+                 <input type="text" class="ic-input" v-model="inlineTaskTitle" :placeholder="t('New work item')" @keyup.enter="submitInlineTask(col)" @keyup.esc="inlineCreateColId = null" ref="inlineInput" />
                </div>
                <div class="ic-bottom">
-                 <div class="ic-chip"><i class="fa-regular fa-circle"></i> {{ col.name }}</div>
+                 <div class="ic-chip"><i class="fa-regular fa-circle"></i> {{ normalizeStatusLabel(col.name) }}</div>
                  <div class="ic-chip"><i class="fa-solid fa-minus text-blue"></i></div>
                  <div class="avatar-xs ms-auto ic-avatar"><i class="fa-solid fa-user"></i></div>
                </div>
             </div>
             <div class="add-btn-bottom" v-else @click="openInlineCreate(col.id)">
-               <i class="fa-solid fa-plus"></i> New work item
+               <i class="fa-solid fa-plus"></i> {{ t('New work item') }}
             </div>
           </div>
         </div>
@@ -465,6 +465,8 @@ import SpreadsheetTab from '@/components/SpreadsheetTab.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore';
 import { useProjectStore } from '@/store/useProjectStore';
+import { useI18nStore } from '@/store/useI18nStore';
+
 
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
@@ -495,9 +497,12 @@ const assigneeSearch = ref('')
 
 const route = useRoute()
 const router = useRouter()
+const i18nStore = useI18nStore()
+const t = (key) => i18nStore.t(key)
 const currentProjectId = computed(() => route.params.id || getScopedCurrentProjectId() || null)
 const store = useWorkTaskStore();
 const projectStore = useProjectStore()
+
 
 const project = ref({})
 const rawTasks = ref([])
@@ -675,16 +680,19 @@ const resolveStatusIcon = (value) => {
   return 'fa-regular fa-circle-dashed'
 }
 const taskStatusOptions = computed(() => {
-  if (projectStatuses.value.length) {
-    return projectStatuses.value.map((status, index) => ({
-      name: normalizeStatus(status.name),
-      label: status.displayName || status.name,
-      color: status.colorCode || defaultTaskStatusOptions[index % defaultTaskStatusOptions.length]?.color || 'var(--color-text-muted)',
-      icon: resolveStatusIcon(status.name)
-    }))
-  }
+  const options = projectStatuses.value.length
+    ? projectStatuses.value.map((status, index) => ({
+        name: normalizeStatus(status.name),
+        label: status.displayName || status.name,
+        color: status.colorCode || defaultTaskStatusOptions[index % defaultTaskStatusOptions.length]?.color || 'var(--color-text-muted)',
+        icon: resolveStatusIcon(status.name)
+      }))
+    : defaultTaskStatusOptions
 
-  return defaultTaskStatusOptions
+  return options.map(opt => ({
+    ...opt,
+    label: t(opt.name) !== opt.name ? t(opt.name) : opt.label
+  }))
 })
 const normalizeDateOnly = (value) => {
   if (!value) return null

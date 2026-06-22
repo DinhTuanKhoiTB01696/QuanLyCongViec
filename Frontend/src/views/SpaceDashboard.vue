@@ -1,5 +1,11 @@
 <template>
   <NexusLayout>
+    <div class="space-dashboard-page p-6">
+      <header class="mb-6 flex justify-between items-center">
+        <div>
+          <h1 class="text-2xl font-bold text-[var(--color-text-primary)]">{{ t('Dashboard') }}</h1>
+          <p class="text-[var(--color-text-muted)] text-sm mt-1">{{ t('Project overview and quick insights') }}</p>
+        </div>
     <div class="space-dashboard-page">
       <header class="dashboard-header">
         <span class="project-key-badge">
@@ -15,6 +21,51 @@
         <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-[var(--color-accent)]"></i>
         <p class="text-sm font-medium">Fetching dashboard insights...</p>
       </div>
+      <div v-else class="dashboard-grid">
+        <div class="stat-card">
+          <div class="stat-icon bg-blue-500/10 text-blue-500"><i class="fa-solid fa-list-check"></i></div>
+          <div class="stat-info">
+            <span class="stat-value">12</span>
+            <span class="stat-label">{{ t('Open Tasks') }}</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon bg-green-500/10 text-green-500"><i class="fa-solid fa-check-double"></i></div>
+          <div class="stat-info">
+            <span class="stat-value">45</span>
+            <span class="stat-label">{{ t('Completed') }}</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon bg-yellow-500/10 text-yellow-500"><i class="fa-solid fa-clock-rotate-left"></i></div>
+          <div class="stat-info">
+            <span class="stat-value">3</span>
+            <span class="stat-label">{{ t('In Progress') }}</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon bg-red-500/10 text-red-500"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div class="stat-info">
+            <span class="stat-value">2</span>
+            <span class="stat-label">{{ t('Blocked') }}</span>
+          </div>
+        </div>
+        
+        <div class="dashboard-panel col-span-2">
+          <h3 class="font-semibold text-lg mb-4">{{ t('Recent Tasks') }}</h3>
+          <div class="empty-state">
+            <i class="fa-solid fa-inbox text-3xl mb-3 text-[var(--color-text-muted)]"></i>
+            <h4 class="text-[var(--color-text-primary)] font-medium">{{ t('No recent tasks') }}</h4>
+            <p class="text-[var(--color-text-secondary)] text-sm mt-1">{{ t('Get started by creating a new task in your board or backlog.') }}</p>
+          </div>
+        </div>
+
+        <div class="dashboard-panel col-span-2">
+          <h3 class="font-semibold text-lg mb-4">{{ t('Team Workload') }}</h3>
+          <div class="empty-state">
+            <i class="fa-solid fa-users text-3xl mb-3 text-[var(--color-text-muted)]"></i>
+            <h4 class="text-[var(--color-text-primary)] font-medium">{{ t('Workload distribution') }}</h4>
+            <p class="text-[var(--color-text-secondary)] text-sm mt-1">{{ t('Assign tasks to your team members to see their workload here.') }}</p>
 
       <div v-else class="dashboard-content">
         <!-- Stats Cards Grid -->
@@ -157,6 +208,7 @@
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       </div>
@@ -168,6 +220,12 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
+
+import { useI18nStore } from '@/store/useI18nStore'
+
+const i18nStore = useI18nStore()
+const t = (key) => i18nStore.t(key)
+
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 import { useProjectStore } from '@/store/useProjectStore'
 

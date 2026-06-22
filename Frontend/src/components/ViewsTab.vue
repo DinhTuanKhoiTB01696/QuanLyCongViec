@@ -4,6 +4,10 @@ import { useRoute } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
 import { ElNotification, ElMessageBox } from 'element-plus'
 import ListView from '@/components/ListView.vue'
+import { useI18nStore } from '@/store/useI18nStore'
+
+const i18nStore = useI18nStore()
+const t = (key) => i18nStore.t(key)
 
 import FilterBar from '@/components/FilterBar.vue'
 
@@ -389,7 +393,7 @@ const getInitials = (name) => {
         <div class="project-icon" style="background: #FACC15">
           <i class="fa-solid fa-certificate"></i>
         </div>
-        <span class="view-name cursor-pointer" @click="goBackToList">Views</span>
+        <span class="view-name cursor-pointer" @click="goBackToList">{{ t('Views') }}</span>
         <template v-if="activeView">
             <i class="fa-solid fa-chevron-right sep"></i>
             <span class="view-name">{{ activeView.name }}</span>
@@ -400,7 +404,7 @@ const getInitials = (name) => {
         <template v-if="!activeView">
             <!-- Consolidated Clusters -->
             <div class="flex items-center gap-2" v-if="showViewSearch">
-               <input v-model="filterSearch" class="nexus-search-input" type="text" placeholder="Search views..." style="width: 200px" />
+               <input v-model="filterSearch" class="nexus-search-input" type="text" :placeholder="t('Search views...')" style="width: 200px" />
             </div>
             
             <button class="nexus-btn-icon" type="button" @click="showViewSearch = !showViewSearch" :class="{ 'bg-surface-hover border-accent': showViewSearch }">
@@ -409,27 +413,27 @@ const getInitials = (name) => {
             
             <el-dropdown trigger="click">
                 <button class="nexus-btn-outlined" type="button">
-                    <i class="fa-solid fa-arrow-down-short-wide"></i> {{ sortBy }}
+                    <i class="fa-solid fa-arrow-down-short-wide"></i> {{ t(sortBy) }}
                 </button>
                 <template #dropdown>
                     <el-dropdown-menu class="dark-popover">
-                        <el-dropdown-item @click="sortBy = 'Name'">Name</el-dropdown-item>
-                        <el-dropdown-item @click="sortBy = 'Created at'">Created at</el-dropdown-item>
-                        <el-dropdown-item @click="sortBy = 'Updated at'">Updated at</el-dropdown-item>
+                        <el-dropdown-item @click="sortBy = 'Name'">{{ t('Name') }}</el-dropdown-item>
+                        <el-dropdown-item @click="sortBy = 'Created at'">{{ t('Created at') }}</el-dropdown-item>
+                        <el-dropdown-item @click="sortBy = 'Updated at'">{{ t('Updated at') }}</el-dropdown-item>
                     </el-dropdown-menu>
                 </template>
             </el-dropdown>
             
             <button class="nexus-btn-outlined" type="button">
-                <i class="fa-solid fa-bars-staggered"></i> Filters
+                <i class="fa-solid fa-bars-staggered"></i> {{ t('Filters') }}
             </button>
 
             <button class="nexus-btn-primary" type="button" @click="showCreateModal = true">
-              <i class="fa-solid fa-plus"></i> Add view
+              <i class="fa-solid fa-plus"></i> {{ t('Add view') }}
             </button>
         </template>
         <template v-else>
-            <button class="nexus-btn-outlined" type="button" disabled title="Display settings are configured when creating the view"><i class="fa-solid fa-sliders"></i> Display</button>
+            <button class="nexus-btn-outlined" type="button" disabled title="Display settings are configured when creating the view"><i class="fa-solid fa-sliders"></i> {{ t('Display') }}</button>
         </template>
       </div>
     </header>
@@ -438,7 +442,7 @@ const getInitials = (name) => {
     <main class="views-content">
       <div v-if="!activeView" class="views-list">
         <div v-if="views.length === 0" class="empty-placeholder">
-          <p>No custom views here.</p>
+          <p>{{ t('No custom views here.') }}</p>
         </div>
         
         <div class="view-item-row" v-for="view in filteredViews" :key="view.id" @click="selectView(view)">
@@ -462,9 +466,9 @@ const getInitials = (name) => {
                 <el-dropdown trigger="click" @command="command => handleViewCommand(view, command)">
                     <button class="vi-more" type="button" @click.stop><i class="fa-solid fa-ellipsis"></i></button>
                     <template #dropdown>
-                        <el-dropdown-menu class="plane-dropdown">
-                            <el-dropdown-item command="favorite">{{ view.isFavorite ? 'Remove favorite' : 'Add to favorite' }}</el-dropdown-item>
-                            <el-dropdown-item command="delete" class="text-red-500">Delete view</el-dropdown-item>
+                        <el-dropdown-menu class="dark-popover">
+                            <el-dropdown-item command="favorite">{{ view.isFavorite ? t('Remove favorite') : t('Add to favorite') }}</el-dropdown-item>
+                            <el-dropdown-item command="delete">{{ t('Delete view') }}</el-dropdown-item>
                         </el-dropdown-menu>
                     </template>
                 </el-dropdown>
@@ -480,13 +484,13 @@ const getInitials = (name) => {
     <!-- Modal (ONLY REFORMING THE DISPLAY DROPDOWN) -->
     <div class="modal-overlay" v-if="showCreateModal" @click.self="resetModal">
       <div class="view-modal premium">
-        <div class="modal-header"><h3>Create View</h3></div>
+        <div class="modal-header"><h3>{{ t('Create View') }}</h3></div>
         <div class="modal-body">
             <div class="input-row">
                 <div class="icon-box"><i class="fa-solid fa-layer-group"></i></div>
-                <input type="text" v-model="newView.name" placeholder="Title" class="title-input" />
+                <input type="text" v-model="newView.name" :placeholder="t('Title')" class="title-input" />
             </div>
-            <textarea v-model="newView.description" placeholder="Description" rows="4" class="desc-input"></textarea>
+            <textarea v-model="newView.description" :placeholder="t('Description')" rows="4" class="desc-input"></textarea>
             
             <div class="m-filter-section">
                 <FilterBar 
@@ -500,36 +504,36 @@ const getInitials = (name) => {
             <div class="modal-controls-bar">
                 <div class="toggle-group">
                     <button class="m-toggle" :class="{ active: modalTab === 'list' }" @click="modalTab = 'list'" type="button">
-                        <i :class="viewTypeIcon" class="mr-2"></i> List
+                        <i :class="viewTypeIcon" class="mr-2"></i> {{ t('List') }}
                     </button>
                     <!-- UPDATED PLACEMENT TO 'right-start' FOR SCROLLABILITY -->
                     <el-dropdown trigger="click" popper-class="display-popper-final" placement="right-start" :hide-on-click="false" :z-index="5000">
-                        <button class="m-toggle" :class="{ active: modalTab === 'display' }" @click="modalTab = 'display'" type="button">Display</button>
+                        <button class="m-toggle" :class="{ active: modalTab === 'display' }" @click="modalTab = 'display'" type="button">{{ t('Display') }}</button>
                         <template #dropdown>
                             <div class="display-scroll-vfinal">
                                 <div class="st-content">
                                     <div class="st-sect">
-                                        <div class="st-sect-header"><span>Display Properties</span><i class="fa-solid fa-chevron-up"></i></div>
+                                        <div class="st-sect-header"><span>{{ t('Display Properties') }}</span><i class="fa-solid fa-chevron-up"></i></div>
                                         <div class="st-chips">
                                             <span v-for="p in ['ID', 'Assignee', 'Start date', 'Due date', 'Labels', 'Priority', 'State', 'Sub-work item count', 'Attachment count', 'Link', 'Estimate', 'Module', 'Cycle']" 
-                                                  :key="p" class="p-chip-st" :class="{ selected: displayProps.includes(p) }" @click.stop="toggleDisplayProp(p)">{{ p }}</span>
+                                                  :key="p" class="p-chip-st" :class="{ selected: displayProps.includes(p) }" @click.stop="toggleDisplayProp(p)">{{ t(p) }}</span>
                                         </div>
                                     </div>
                                     <div class="st-sect">
-                                        <div class="st-sect-header"><span>Group by</span><i class="fa-solid fa-chevron-up"></i></div>
+                                        <div class="st-sect-header"><span>{{ t('Group by') }}</span><i class="fa-solid fa-chevron-up"></i></div>
                                         <div class="st-radios">
                                             <label class="st-opt" v-for="g in ['States', 'Priority', 'Cycle', 'Module', 'Labels', 'Assignees', 'Created by', 'None']" :key="g">
                                                 <input type="radio" name="pop-groupby" :value="g" v-model="groupBy" />
-                                                <span class="st-dot"></span><span class="st-label">{{ g }}</span>
+                                                <span class="st-dot"></span><span class="st-label">{{ t(g) }}</span>
                                             </label>
                                         </div>
                                     </div>
                                     <div class="st-sect">
-                                        <div class="st-sect-header"><span>Order by</span><i class="fa-solid fa-chevron-up"></i></div>
+                                        <div class="st-sect-header"><span>{{ t('Order by') }}</span><i class="fa-solid fa-chevron-up"></i></div>
                                         <div class="st-radios">
                                             <label class="st-opt" v-for="o in ['Manual', 'Last created', 'Last updated', 'Start date', 'Due date', 'Priority']" :key="o">
                                                 <input type="radio" name="pop-orderby" :value="o" v-model="orderBy" />
-                                                <span class="st-dot"></span><span class="st-label">{{ o }}</span>
+                                                <span class="st-dot"></span><span class="st-label">{{ t(o) }}</span>
                                             </label>
                                         </div>
                                     </div>
@@ -538,7 +542,7 @@ const getInitials = (name) => {
                                         <label class="st-check">
                                             <input type="checkbox" v-model="showSubItems" />
                                             <span class="checkmark"></span>
-                                            <span class="st-label">Show sub-work items</span>
+                                            <span class="st-label">{{ t('Show sub-work items') }}</span>
                                         </label>
                                     </div>
                                 </div>
@@ -547,24 +551,24 @@ const getInitials = (name) => {
                     </el-dropdown>
                 </div>
                 <el-dropdown trigger="click" popper-class="filter-modal-popper" placement="bottom-start" :z-index="5000">
-                    <button class="filter-btn" type="button"><i class="fa-solid fa-filter-circle-plus mr-2"></i> Filters</button>
+                    <button class="filter-btn" type="button"><i class="fa-solid fa-filter-circle-plus mr-2"></i> {{ t('Filters') }}</button>
                     <template #dropdown>
                         <div class="filter-modal-dropdown">
                             <div class="f-search">
                                 <i class="fa-solid fa-magnifying-glass"></i>
-                                <input type="text" placeholder="Search" />
+                                <input type="text" :placeholder="t('Search')" />
                             </div>
                             <div class="f-options">
-                                <div class="f-opt" @click="addFilterOption('status')"><i class="fa-regular fa-circle-dot"></i> State</div>
-                                <div class="f-opt" @click="addFilterOption('assignee')"><i class="fa-regular fa-user"></i> Assignees</div>
-                                <div class="f-opt" @click="addFilterOption('priority')"><i class="fa-solid fa-signal"></i> Priority</div>
-                                <div class="f-opt" @click="addFilterOption('label')"><i class="fa-solid fa-tag"></i> Label</div>
-                                <div class="f-opt" @click="addFilterOption('cycle')"><i class="fa-regular fa-circle-pause"></i> Cycle</div>
-                                <div class="f-opt" @click="addFilterOption('module')"><i class="fa-solid fa-table-cells-large"></i> Module</div>
-                                <div class="f-opt" @click="addFilterOption('startDate')"><i class="fa-regular fa-calendar-plus"></i> Start date</div>
-                                <div class="f-opt" @click="addFilterOption('dueDate')"><i class="fa-regular fa-calendar"></i> Target date</div>
-                                <div class="f-opt" @click="addFilterOption('createdAt')"><i class="fa-regular fa-calendar"></i> Created at</div>
-                                <div class="f-opt" @click="addFilterOption('updatedAt')"><i class="fa-regular fa-calendar"></i> Updated at</div>
+                                <div class="f-opt" @click="addFilterOption('status')"><i class="fa-regular fa-circle-dot"></i> {{ t('State') }}</div>
+                                <div class="f-opt" @click="addFilterOption('assignee')"><i class="fa-regular fa-user"></i> {{ t('Assignees') }}</div>
+                                <div class="f-opt" @click="addFilterOption('priority')"><i class="fa-solid fa-signal"></i> {{ t('Priority') }}</div>
+                                <div class="f-opt" @click="addFilterOption('label')"><i class="fa-solid fa-tag"></i> {{ t('Label') }}</div>
+                                <div class="f-opt" @click="addFilterOption('cycle')"><i class="fa-regular fa-circle-pause"></i> {{ t('Cycles') }}</div>
+                                <div class="f-opt" @click="addFilterOption('module')"><i class="fa-solid fa-table-cells-large"></i> {{ t('Modules') }}</div>
+                                <div class="f-opt" @click="addFilterOption('startDate')"><i class="fa-regular fa-calendar-plus"></i> {{ t('Start date') }}</div>
+                                <div class="f-opt" @click="addFilterOption('dueDate')"><i class="fa-regular fa-calendar"></i> {{ t('Target date') }}</div>
+                                <div class="f-opt" @click="addFilterOption('createdAt')"><i class="fa-regular fa-calendar"></i> {{ t('Created at') }}</div>
+                                <div class="f-opt" @click="addFilterOption('updatedAt')"><i class="fa-regular fa-calendar"></i> {{ t('Updated at') }}</div>
                             </div>
                         </div>
                     </template>
@@ -572,8 +576,8 @@ const getInitials = (name) => {
             </div>
         </div>
         <div class="modal-footer">
-            <button class="cancel-btn" type="button" @click="resetModal">Cancel</button>
-            <button class="create-btn" type="button" @click="createView" :disabled="!newView.name">Create View</button>
+            <button class="cancel-btn" type="button" @click="resetModal">{{ t('Cancel') }}</button>
+            <button class="create-btn" type="button" @click="createView" :disabled="!newView.name">{{ t('Create View') }}</button>
         </div>
       </div>
     </div>

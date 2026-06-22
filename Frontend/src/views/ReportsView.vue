@@ -4,6 +4,12 @@
       <!-- Premium Header Section -->
       <header class="reports-header">
         <div>
+          <h1 class="text-2xl font-bold text-[var(--color-text-primary)]">{{ t('Reports') }}</h1>
+          <p class="text-[var(--color-text-muted)] text-sm mt-1">{{ t('Analytics and insights for this project') }}</p>
+        </div>
+        <div class="flex gap-2">
+          <button class="plane-btn-secondary" @click="fetchData"><i class="fa-solid fa-rotate-right mr-2"></i> {{ t('Refresh') }}</button>
+          <button class="plane-btn-primary"><i class="fa-solid fa-download mr-2"></i> {{ t('Export') }}</button>
           <span class="reports-tag">Analytics Report</span>
           <h1 class="reports-title">Project Reports</h1>
           <p class="reports-subtitle">Real-time statistics and visual insights</p>
@@ -27,6 +33,13 @@
         <p class="font-semibold">{{ error }}</p>
       </div>
 
+      <div v-else class="reports-grid">
+        <div class="empty-state-container col-span-full">
+          <div class="empty-state">
+            <i class="fa-solid fa-chart-line text-5xl mb-4 text-[var(--color-text-muted)]"></i>
+            <h3 class="text-xl font-semibold text-[var(--color-text-primary)] mb-2">{{ t('Reports are being generated') }}</h3>
+            <p class="text-[var(--color-text-secondary)] mb-6 max-w-md mx-auto">{{ t('We are collecting data for your project. Comprehensive analytics including burndown charts and status distributions will appear here once enough data is available.') }}</p>
+            <button class="plane-btn-secondary" disabled>{{ t('Check back later') }}</button>
       <!-- Empty State -->
       <div v-else-if="allTasks.length === 0" class="reports-empty-container">
         <div class="reports-empty-state">
@@ -35,7 +48,6 @@
           <p class="text-[var(--color-text-secondary)] mb-6 max-w-md mx-auto">This project doesn't have any tasks yet. Create a few tasks to see statistics, charts, and workload distributions here.</p>
         </div>
       </div>
-
       <!-- Main Dashboard Grid -->
       <div v-else class="reports-content">
         
@@ -275,6 +287,10 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
+import { useI18nStore } from '@/store/useI18nStore'
+
+const i18nStore = useI18nStore()
+const t = (key) => i18nStore.t(key)
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 
 const route = useRoute()

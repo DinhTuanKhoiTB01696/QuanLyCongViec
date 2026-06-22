@@ -5,8 +5,11 @@ import axiosClient from '@/api/axiosClient'
 import { ElMessageBox, ElNotification, ElMessage } from 'element-plus'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import { useActivityStore } from '@/store/useActivityStore'
+import { useI18nStore } from '@/store/useI18nStore'
 
 const actStore = useActivityStore()
+const i18nStore = useI18nStore()
+const t = (key) => i18nStore.t(key)
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Underline from '@tiptap/extension-underline'
@@ -109,7 +112,7 @@ const editor = useEditor({
     TableCell,
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
     Placeholder.configure({
-      placeholder: "Press '/' for commands..."
+      placeholder: t("Press '/' for commands...")
     })
   ],
   editorProps: {
@@ -443,7 +446,7 @@ function pageMenuItems(page) {
           <span style="margin-left: 8px">{{ spaceName }}</span>
           <i class="fa-solid fa-chevron-right" style="font-size: 9px; margin: 0 8px; color: var(--color-text-muted)"></i>
           <i class="fa-regular fa-file-lines" style="color: var(--color-text-muted)"></i>
-          <span style="color: var(--color-text-primary); margin-left: 8px">Pages</span>
+          <span style="color: var(--color-text-primary); margin-left: 8px">{{ t('Pages') }}</span>
         </div>
         <div class="nexus-controls-row">
             <!-- Consolidated Controls (Top Right) -->
@@ -453,29 +456,29 @@ function pageMenuItems(page) {
               <template #reference>
                 <button class="nexus-btn-outlined">
                   <i class="fa-solid fa-arrow-down-short-wide"></i> 
-                  {{ sortBy === 'name' ? 'Name' : (sortBy === 'date_created' ? 'Date created' : 'Date modified') }}
+                  {{ sortBy === 'name' ? t('Name') : (sortBy === 'date_created' ? t('Date created') : t('Date modified')) }}
                 </button>
               </template>
               <div class="popover-menu-list">
                 <div class="pm-item" @click="sortBy = 'name'">
-                  <span class="pm-label">Name</span>
+                  <span class="pm-label">{{ t('Name') }}</span>
                   <i v-if="sortBy === 'name'" class="fa-solid fa-check pm-check"></i>
                 </div>
                 <div class="pm-item" @click="sortBy = 'date_created'">
-                  <span class="pm-label">Date created</span>
+                  <span class="pm-label">{{ t('Date created') }}</span>
                   <i v-if="sortBy === 'date_created'" class="fa-solid fa-check pm-check"></i>
                 </div>
                 <div class="pm-item" @click="sortBy = 'date_modified'">
-                  <span class="pm-label">Date modified</span>
+                  <span class="pm-label">{{ t('Date modified') }}</span>
                   <i v-if="sortBy === 'date_modified'" class="fa-solid fa-check pm-check"></i>
                 </div>
                 <div class="pm-divider"></div>
                 <div class="pm-item" @click="sortOrder = 'asc'">
-                  <span class="pm-label">Ascending</span>
+                  <span class="pm-label">{{ t('Ascending') }}</span>
                   <i v-if="sortOrder === 'asc'" class="fa-solid fa-check pm-check"></i>
                 </div>
                 <div class="pm-item" @click="sortOrder = 'desc'">
-                  <span class="pm-label">Descending</span>
+                  <span class="pm-label">{{ t('Descending') }}</span>
                   <i v-if="sortOrder === 'desc'" class="fa-solid fa-check pm-check"></i>
                 </div>
               </div>
@@ -483,18 +486,18 @@ function pageMenuItems(page) {
 
             <el-popover placement="bottom-end" trigger="click" :width="280" popper-class="custom-dark-popover filter-popover" :offset="8" :show-arrow="false">
               <template #reference>
-                <button class="nexus-btn-outlined"><i class="fa-solid fa-bars-staggered"></i> Filters</button>
+                <button class="nexus-btn-outlined"><i class="fa-solid fa-bars-staggered"></i> {{ t('Filters') }}</button>
               </template>
               <div class="filter-menu-container">
                 <div class="fm-search">
                   <i class="fa-solid fa-magnifying-glass fms-icon"></i>
-                  <input v-model="filterSearch" type="text" placeholder="Search" class="fms-input" />
+                  <input v-model="filterSearch" type="text" :placeholder="t('Search')" class="fms-input" />
                 </div>
                 
                 <div class="fm-section" style="margin-top: 12px">
                   <label class="fm-checkbox-row">
                     <input type="checkbox" v-model="filterFavorites" class="fm-checkbox" />
-                    <span class="fm-checkbox-label">Favorites</span>
+                    <span class="fm-checkbox-label">{{ t('Favorites') }}</span>
                   </label>
                 </div>
                 
@@ -502,25 +505,25 @@ function pageMenuItems(page) {
                 
                 <div class="fm-collapsible">
                   <div class="fm-col-header" @click="filterDateExpanded = !filterDateExpanded">
-                    <span class="fm-col-title">Created date</span>
+                    <span class="fm-col-title">{{ t('Created date') }}</span>
                     <i class="fa-solid fa-chevron-up fm-col-icon" :class="{'rotate-180': !filterDateExpanded}"></i>
                   </div>
                   <div class="fm-col-content" v-show="filterDateExpanded">
                     <label class="fm-checkbox-row">
                       <input type="checkbox" class="fm-checkbox" />
-                      <span class="fm-checkbox-label">1 week ago</span>
+                      <span class="fm-checkbox-label">{{ t('1 week ago') }}</span>
                     </label>
                     <label class="fm-checkbox-row">
                       <input type="checkbox" class="fm-checkbox" />
-                      <span class="fm-checkbox-label">2 weeks ago</span>
+                      <span class="fm-checkbox-label">{{ t('2 weeks ago') }}</span>
                     </label>
                     <label class="fm-checkbox-row">
                       <input type="checkbox" class="fm-checkbox" />
-                      <span class="fm-checkbox-label">1 month ago</span>
+                      <span class="fm-checkbox-label">{{ t('1 month ago') }}</span>
                     </label>
                     <label class="fm-checkbox-row">
                       <input type="checkbox" class="fm-checkbox" />
-                      <span class="fm-checkbox-label">Custom</span>
+                      <span class="fm-checkbox-label">{{ t('Custom') }}</span>
                     </label>
                   </div>
                 </div>
@@ -529,7 +532,7 @@ function pageMenuItems(page) {
                 
                 <div class="fm-collapsible">
                   <div class="fm-col-header" @click="filterByExpanded = !filterByExpanded">
-                    <span class="fm-col-title">Created by</span>
+                    <span class="fm-col-title">{{ t('Created by') }}</span>
                     <i class="fa-solid fa-chevron-up fm-col-icon" :class="{'rotate-180': !filterByExpanded}"></i>
                   </div>
                   <div class="fm-col-content" v-show="filterByExpanded">
@@ -537,7 +540,7 @@ function pageMenuItems(page) {
                       <input type="checkbox" class="fm-checkbox" />
                       <div class="fm-user">
                         <div class="fm-avatar">D</div>
-                        <span>You</span>
+                        <span>{{ t('You') }}</span>
                       </div>
                     </label>
                   </div>
@@ -545,14 +548,14 @@ function pageMenuItems(page) {
               </div>
             </el-popover>
 
-            <button class="nexus-btn-primary" @click="createPage"><i class="fa-solid fa-plus"></i> Add page</button>
+            <button class="nexus-btn-primary" @click="createPage"><i class="fa-solid fa-plus"></i> {{ t('Add page') }}</button>
         </div>
       </div>
 
       <div class="pages-nav">
-        <div class="nav-tab" :class="{ 'active': activeTab === 'Public' }" @click="activeTab = 'Public'">Public</div>
-        <div class="nav-tab" :class="{ 'active': activeTab === 'Private' }" @click="activeTab = 'Private'">Private</div>
-        <div class="nav-tab" :class="{ 'active': activeTab === 'Archived' }" @click="activeTab = 'Archived'">Archived</div>
+        <div class="nav-tab" :class="{ 'active': activeTab === 'Public' }" @click="activeTab = 'Public'">{{ t('Public') }}</div>
+        <div class="nav-tab" :class="{ 'active': activeTab === 'Private' }" @click="activeTab = 'Private'">{{ t('Private') }}</div>
+        <div class="nav-tab" :class="{ 'active': activeTab === 'Archived' }" @click="activeTab = 'Archived'">{{ t('Archived') }}</div>
       </div>
 
       <div class="pages-list" v-loading="loading">
@@ -564,29 +567,29 @@ function pageMenuItems(page) {
                 <div class="w-6 h-1 bg-[var(--color-border)] rounded-full self-start ml-3"></div>
               </div>
            </div>
-           <h3 class="text-[16px] font-medium text-[var(--color-text-primary)] mb-2">{{ activeTab === 'Archived' ? 'No archived pages yet' : 'No pages yet' }}</h3>
+           <h3 class="text-[16px] font-medium text-[var(--color-text-primary)] mb-2">{{ activeTab === 'Archived' ? t('No archived pages yet') : t('No pages yet') }}</h3>
            <p class="text-[13px] text-[var(--color-text-muted)] text-center max-w-[300px]">
-             {{ activeTab === 'Archived' ? 'Archive pages not on your radar. Access them here when needed.' : 'Create your first page to get started and keep your work organized.' }}
+             {{ activeTab === 'Archived' ? t('Archive pages not on your radar. Access them here when needed.') : t('Create your first page to get started and keep your work organized.') }}
            </p>
         </div>
         
         <div v-for="page in filteredPages" :key="page.id" class="page-row" @click="openPage(page.id)">
            <div class="pr-left">
               <i class="fa-regular fa-file-lines doc-icon"></i>
-              <span class="page-title">{{ page.title || 'Untitled' }}</span>
+              <span class="page-title">{{ page.title || t('Untitled') }}</span>
            </div>
             <div class="pr-right hover-actions-container" @click.stop>
               <div class="avatar-xxs">{{ getPageAvatar(page) }}</div>
-              <el-tooltip placement="top" :content="page.isPrivate ? 'Private Page' : 'Public Page'">
+              <el-tooltip placement="top" :content="page.isPrivate ? t('Private Page') : t('Public Page')">
                 <button class="icon-btn action-hide" @click="togglePrivacy(page)">
                   <i v-if="page.isPrivate" class="fa-solid fa-user-secret text-amber-500"></i>
                   <i v-else class="fa-solid fa-globe text-blue-400"></i>
                 </button>
               </el-tooltip>
-              <el-tooltip placement="top" :content="'Created on ' + formatTimestamp(page.createdAt)">
+              <el-tooltip placement="top" :content="t('Created on') + ' ' + formatTimestamp(page.createdAt)">
                 <button class="icon-btn action-hide"><i class="fa-solid fa-circle-info"></i></button>
               </el-tooltip>
-              <el-tooltip placement="top" content="Star Page">
+              <el-tooltip placement="top" :content="t('Star Page')">
                 <button class="icon-btn action-hide" @click="toggleStar(page)">
                   <i :class="page.isStarred ? 'fa-solid fa-star text-yellow-500' : 'fa-regular fa-star'"></i>
                 </button>
@@ -596,7 +599,7 @@ function pageMenuItems(page) {
                 <template #dropdown>
                   <el-dropdown-menu class="pages-menu">
                     <el-dropdown-item v-for="item in pageMenuItems(page)" :key="item.action" :command="{ action: item.action, page }">
-                      <i :class="item.icon"></i> <span>{{ item.label }}</span>
+                      <i :class="item.icon"></i> <span>{{ t(item.label) }}</span>
                     </el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
@@ -614,23 +617,23 @@ function pageMenuItems(page) {
           <div class="nexus-breadcrumb">
              <span class="text-muted">{{ spaceName }}</span>
              <i class="fa-solid fa-chevron-right text-[10px] text-muted mx-1"></i>
-             <span class="text-muted">Pages</span>
+             <span class="text-muted">{{ t('Pages') }}</span>
              <i class="fa-solid fa-chevron-right text-[10px] text-muted mx-1"></i>
-             <span class="font-semibold text-primary">{{ activePage.title || 'Untitled' }}</span>
+             <span class="font-semibold text-primary">{{ activePage.title || t('Untitled') }}</span>
           </div>
           <div class="flex items-center ml-4 px-2 py-0.5 rounded-full bg-surface-hover">
-            <span v-if="saving" class="status-saving text-[11px]">Saving...</span>
-            <span v-else class="status-saved text-[11px]"><i class="fa-solid fa-check text-green-500 mr-1"></i> Saved</span>
+            <span v-if="saving" class="status-saving text-[11px]">{{ t('Saving...') }}</span>
+            <span v-else class="status-saved text-[11px]"><i class="fa-solid fa-check text-green-500 mr-1"></i> {{ t('Saved') }}</span>
           </div>
         </div>
         <div class="eh-right">
            <button class="nexus-btn-outlined !h-8 !px-3" @click="toggleLock(activePage)">
              <i :class="activePage.isLocked ? 'fa-solid fa-lock text-amber-500' : 'fa-solid fa-unlock-keyhole'"></i>
-             <span class="ml-2">{{ activePage.isLocked ? 'Locked' : 'Lock' }}</span>
+             <span class="ml-2">{{ activePage.isLocked ? t('Locked') : t('Lock') }}</span>
            </button>
            <button class="nexus-btn-outlined !h-8 !px-3" @click="handlePageCommand({ action: 'copy-link', page: activePage })">
              <i class="fa-solid fa-link"></i>
-             <span class="ml-2">Share</span>
+             <span class="ml-2">{{ t('Share') }}</span>
            </button>
            <el-dropdown trigger="click">
              <button class="nexus-btn-icon !h-8 !w-8"><i class="fa-solid fa-ellipsis"></i></button>
@@ -638,11 +641,11 @@ function pageMenuItems(page) {
                <el-dropdown-menu class="pages-menu">
                  <el-dropdown-item @click="toggleStar(activePage)">
                    <i :class="activePage.isStarred ? 'fa-solid fa-star text-yellow-500' : 'fa-regular fa-star'"></i>
-                   <span>{{ activePage.isStarred ? 'Unstar' : 'Star' }}</span>
+                   <span>{{ activePage.isStarred ? t('Unstar') : t('Star') }}</span>
                  </el-dropdown-item>
                  <el-dropdown-item @click="handlePageCommand({ action: 'delete', page: activePage })">
                    <i class="fa-solid fa-trash text-red-500"></i>
-                   <span class="text-red-500">Delete</span>
+                   <span class="text-red-500">{{ t('Delete') }}</span>
                  </el-dropdown-item>
                </el-dropdown-menu>
              </template>
@@ -654,13 +657,13 @@ function pageMenuItems(page) {
         <div class="wysiwyg-toolbar-container">
           <div class="wysiwyg-toolbar" v-if="editor">
             <el-dropdown trigger="click" @command="setHeading">
-               <div class="tb-group hover-bg">Text <i class="fa-solid fa-chevron-down" style="font-size: 10px"></i></div>
+               <div class="tb-group hover-bg">{{ t('Text') }} <i class="fa-solid fa-chevron-down" style="font-size: 10px"></i></div>
                <template #dropdown>
                  <el-dropdown-menu class="plane-dropdown">
-                    <el-dropdown-item command="p">Paragraph</el-dropdown-item>
-                    <el-dropdown-item command="1">Heading 1</el-dropdown-item>
-                    <el-dropdown-item command="2">Heading 2</el-dropdown-item>
-                    <el-dropdown-item command="3">Heading 3</el-dropdown-item>
+                    <el-dropdown-item command="p">{{ t('Paragraph') }}</el-dropdown-item>
+                    <el-dropdown-item command="1">{{ t('Heading 1') }}</el-dropdown-item>
+                    <el-dropdown-item command="2">{{ t('Heading 2') }}</el-dropdown-item>
+                    <el-dropdown-item command="3">{{ t('Heading 3') }}</el-dropdown-item>
                  </el-dropdown-menu>
                </template>
             </el-dropdown>
@@ -706,7 +709,7 @@ function pageMenuItems(page) {
                   <button class="tb-btn"><i class="fa-solid fa-table"></i></button>
                 </template>
                 <div class="p-2 bg-[#1B1C20] border border-[#27272A] rounded-lg">
-                  <div class="text-[11px] text-gray-400 mb-2 text-center font-medium">{{ hoverTableRows || 0 }} x {{ hoverTableCols || 0 }} Table</div>
+                  <div class="text-[11px] text-gray-400 mb-2 text-center font-medium">{{ hoverTableRows || 0 }} x {{ hoverTableCols || 0 }} {{ t('Table') }}</div>
                   <div class="grid-picker" @mouseleave="hoverTableRows=0; hoverTableCols=0">
                     <div v-for="r in 10" :key="'r'+r" class="grid-row">
                       <div v-for="c in 10" :key="'r'+r+'c'+c" 
@@ -727,7 +730,7 @@ function pageMenuItems(page) {
         <div class="editor-content-container">
           <div class="canvas-inner">
             <button class="add-icon-btn"><i class="fa-regular fa-face-smile"></i> Add icon</button>
-            <input class="editor-title-input" v-model="activePage.title" @input="handleContentInput" placeholder="Untitled" />
+            <input class="editor-title-input" v-model="activePage.title" @input="handleContentInput" :placeholder="t('Untitled')" />
             <editor-content :editor="editor" class="editor-tiptap-content" />
           </div>
         </div>
@@ -739,11 +742,11 @@ function pageMenuItems(page) {
             <div class="is-header">
               <div class="flex items-center gap-3">
                 <i class="fa-regular fa-images text-blue-400"></i>
-                <h3 class="text-white">Selected Images ({{ stagedImages.length }})</h3>
+                <h3 class="text-white">{{ t('Selected Images') }} ({{ stagedImages.length }})</h3>
               </div>
               <div class="flex items-center gap-2">
                 <button class="add-more-staging-btn" @click="() => imageFileInput?.click()">
-                  <i class="fa-solid fa-plus"></i> Add more
+                  <i class="fa-solid fa-plus"></i> {{ t('Add more') }}
                 </button>
                 <button @click="showImageStaging = false; stagedImages = []" class="close-staging"><i class="fa-solid fa-xmark"></i></button>
               </div>
@@ -758,8 +761,8 @@ function pageMenuItems(page) {
               </div>
             </div>
             <div class="is-footer">
-              <button class="btn-cancel-staging" @click="showImageStaging = false; stagedImages = []">Clear all</button>
-              <button class="btn-confirm-staging" @click="insertStagedImages">Insert into page</button>
+              <button class="btn-cancel-staging" @click="showImageStaging = false; stagedImages = []">{{ t('Clear all') }}</button>
+              <button class="btn-confirm-staging" @click="insertStagedImages">{{ t('Insert into page') }}</button>
             </div>
           </div>
         </div>

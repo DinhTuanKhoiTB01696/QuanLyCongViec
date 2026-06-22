@@ -7,11 +7,14 @@ import NexusLayout from '@/components/layout/NexusLayout.vue'
 import TaskDetailModal from '@/components/TaskDetailModal.vue'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
+import { useI18nStore } from '@/store/useI18nStore'
 
 const route = useRoute()
 const router = useRouter()
 const projectStore = useProjectStore()
 const workTaskStore = useWorkTaskStore()
+const i18nStore = useI18nStore()
+const t = (key) => i18nStore.t(key)
 
 const currentProjectId = computed(() => route.params.id || null)
 
@@ -359,8 +362,8 @@ watch(activeTab, () => {
         <!-- Recommended Spaces Section -->
         <section class="mb-10 mt-2">
           <div class="section-header flex-between mb-4">
-            <h2 class="section-title">Recommended spaces</h2>
-            <a href="/spaces" class="view-all-link">View all spaces</a>
+            <h2 class="section-title">{{ t('Recommended spaces') }}</h2>
+            <a href="/spaces" class="view-all-link">{{ t('View all spaces') }}</a>
           </div>
 
           <div v-if="loadingSpaces" class="loading-state">
@@ -410,7 +413,7 @@ watch(activeTab, () => {
         <!-- For You Section -->
         <section>
           <div class="foryou-header-row mb-6">
-            <h2 class="section-title text-2xl font-bold">For you</h2>
+            <h2 class="section-title text-2xl font-bold">{{ t('For you') }}</h2>
             
             <div class="jira-tabs">
               <button 
@@ -426,7 +429,7 @@ watch(activeTab, () => {
                 :class="{ 'active': activeTab === tab.id }"
                 @click="activeTab = tab.id"
               >
-                <span>{{ tab.label }}</span>
+                <span>{{ t(tab.label) }}</span>
                 <span 
                   v-if="tab.id === 'assigned' && myTasks.filter(t => t.assignedUserId === currentUserId).length > 0" 
                   class="tab-badge"
@@ -441,18 +444,18 @@ watch(activeTab, () => {
           <div class="task-toolbar mb-6">
             <div class="search-input">
               <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" v-model="taskSearch" placeholder="Search tasks..." />
+              <input type="text" v-model="taskSearch" :placeholder="t('Search tasks...')" />
             </div>
             <select v-model="statusFilter" class="jira-select">
-              <option value="all">All Statuses</option>
-              <option value="todo">To Do</option>
-              <option value="inprogress">In Progress</option>
-              <option value="done">Done</option>
+              <option value="all">{{ t('All Statuses') }}</option>
+              <option value="todo">{{ t('TO DO') }}</option>
+              <option value="inprogress">{{ t('IN PROGRESS') }}</option>
+              <option value="done">{{ t('DONE') }}</option>
             </select>
             <select v-model="sortOption" class="jira-select">
-              <option value="updated">Recently Updated</option>
-              <option value="created">Recently Created</option>
-              <option value="priority">Priority</option>
+              <option value="updated">{{ t('Recently Updated') }}</option>
+              <option value="created">{{ t('Recently Created') }}</option>
+              <option value="priority">{{ t('Priority') }}</option>
             </select>
           </div>
 
@@ -716,7 +719,7 @@ watch(activeTab, () => {
 .foryou-header-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: baseline;
   flex-wrap: wrap;
   gap: 16px;
   border-bottom: 2px solid var(--color-border, #dfe1e6);
