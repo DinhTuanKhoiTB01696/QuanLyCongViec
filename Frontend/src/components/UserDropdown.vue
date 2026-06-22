@@ -87,7 +87,7 @@ const langSubVisible = ref(false)
 const profileData = ref(null)
 
 const i18nStore = useI18nStore()
-const t = i18nStore.t
+const t = (key) => i18nStore.t(key)
 
 const currentUser = computed(() => profileData.value || getStoredUser())
 const userDisplayName = computed(() => currentUser.value?.fullName || currentUser.value?.name || currentUser.value?.publicName || currentUser.value?.email?.split('@')?.[0] || 'User')

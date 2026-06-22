@@ -48,6 +48,38 @@
     </div>
 
     <div class="nav-right">
+      <!-- Language Flags -->
+      <div class="lang-selector">
+        <button class="flag-btn" :class="{ active: i18nStore.locale === 'vi' }" @click="i18nStore.setLocale('vi')" title="Tiếng Việt">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" class="flag-svg">
+            <rect width="3" height="2" fill="#da251d"/>
+            <polygon points="1.5,0.4 1.62,0.85 2.1,0.85 1.71,1.13 1.86,1.6 1.5,1.31 1.14,1.6 1.29,1.13 0.9,0.85 1.38,0.85" fill="#ffff00"/>
+          </svg>
+        </button>
+        <button class="flag-btn" :class="{ active: i18nStore.locale === 'en' }" @click="i18nStore.setLocale('en')" title="English">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" class="flag-svg">
+            <clipPath id="australia-jack">
+              <path d="M0 0h300v150H0z"/>
+            </clipPath>
+            <rect width="600" height="300" fill="#00008b"/>
+            <g clip-path="url(#australia-jack)">
+              <path d="M0 0l300 150M300 0L0 150" stroke="#fff" stroke-width="30"/>
+              <path d="M0 0l300 150M300 0L0 150" stroke="#ff0000" stroke-width="20"/>
+              <path d="M150 0v150M0 75h300" stroke="#fff" stroke-width="50"/>
+              <path d="M150 0v150M0 75h300" stroke="#ff0000" stroke-width="30"/>
+            </g>
+            <g fill="#fff">
+              <path d="M150 205l5 15 15-5-10 13 13 10-16 1-3 16-3-16-16-1 13-10-10-13 15 5z"/>
+              <path d="M450 225l2.5 7.5 7.5-2.5-5 6.5 6.5 5-8 0.5-1.5 8-1.5-8-8-0.5 6.5-5-5-6.5 7.5 2.5z"/>
+              <path d="M380 125l2.5 7.5 7.5-2.5-5 6.5 6.5 5-8 0.5-1.5 8-1.5-8-8-0.5 6.5-5-5-6.5 7.5 2.5z"/>
+              <path d="M450 55l2.5 7.5 7.5-2.5-5 6.5 6.5 5-8 0.5-1.5 8-1.5-8-8-0.5 6.5-5-5-6.5 7.5 2.5z"/>
+              <path d="M510 115l2.5 7.5 7.5-2.5-5 6.5 6.5 5-8 0.5-1.5 8-1.5-8-8-0.5 6.5-5-5-6.5 7.5 2.5z"/>
+              <polygon points="475,145 477,151 483,151 478,155 480,161 475,157 470,161 472,155 467,151 473,151"/>
+            </g>
+          </svg>
+        </button>
+      </div>
+
       <NotificationsDropdown v-if="isSpaceContext" />
       <button class="icon-btn" @click="goToNotifications" v-else>
         <i class="fa-regular fa-bell"></i>
@@ -90,7 +122,7 @@ const router = useRouter()
 const route = useRoute()
 const projectStore = useProjectStore()
 const i18nStore = useI18nStore()
-const t = i18nStore.t
+const t = (key) => i18nStore.t(key)
 
 const isHomeContext = computed(() => route.path.startsWith('/home') || route.path.startsWith('/sites'))
 const isSpaceContext = computed(() => route.path.startsWith('/space') || route.path.startsWith('/dashboard') || route.path.startsWith('/stickies') || route.path.startsWith('/rewards'))
@@ -548,5 +580,45 @@ onUnmounted(() => {
 @media (max-width: 1024px) {
   .menu-toggle { display: block; }
   .nav-center { display: none; }
+}
+
+.lang-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 4px;
+}
+
+.flag-btn {
+  background: none;
+  border: 1px solid transparent;
+  padding: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.flag-btn:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.flag-btn.active {
+  opacity: 1;
+  border-color: #38bdf8;
+  background-color: rgba(56, 189, 248, 0.1);
+}
+
+.flag-svg {
+  width: 24px;
+  height: 16px;
+  border-radius: 2px;
+  display: block;
+  object-fit: cover;
 }
 </style>

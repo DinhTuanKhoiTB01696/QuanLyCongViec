@@ -63,6 +63,19 @@ export const useSprintStore = defineStore('sprint', {
         }
         reportExpectedError('Failed to toggle sprint favorite', error)
       }
+    },
+
+    async startSprint(projectId, sprintId) {
+      if (!projectId || !sprintId) return
+
+      try {
+        const response = await axiosClient.post(`/projects/${projectId}/sprints/${sprintId}/start`)
+        await this.fetchSprints(projectId, { force: true })
+        return response.data?.data
+      } catch (error) {
+        reportExpectedError('Failed to start sprint', error)
+        throw error
+      }
     }
   }
 })

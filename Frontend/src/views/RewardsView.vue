@@ -144,7 +144,9 @@
           <div v-if="!leaderboard.length" class="empty">Chưa có dữ liệu xếp hạng.</div>
           <article v-for="(item, index) in leaderboard" :key="item.userId" class="leader-row">
             <span class="rank">#{{ index + 1 }}</span>
-            <span class="avatar">{{ getInitials(item.userName) }}</span>
+            <span class="avatar" :style="{ backgroundColor: getAvatarBg(item.userName) }">
+              {{ getInitials(item.userName) }}
+            </span>
             <div class="leader-main">
               <strong>{{ item.userName || 'Thành viên' }}</strong>
               <small>{{ item.careerTitle || `Cấp độ ${item.level}` }}</small>
@@ -240,6 +242,17 @@ const loadRewards = async () => {
   }
 }
 
+const getAvatarBg = (name) => {
+  if (!name || name === 'Unassigned') return '#64748b'
+  const colors = ['#3b82f6', '#10b981', '#fbbf24', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316']
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const index = Math.abs(hash) % colors.length
+  return colors[index]
+}
+
 onMounted(loadRewards)
 </script>
 
@@ -249,6 +262,7 @@ onMounted(loadRewards)
   background: var(--color-bg);
   color: var(--color-text-primary);
   padding: 32px;
+  font-family: 'Inter', sans-serif;
 }
 
 .rewards-header,
@@ -286,59 +300,80 @@ onMounted(loadRewards)
 
 .rewards-header {
   gap: 24px;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .eyebrow {
   color: var(--color-accent);
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
   font-weight: 700;
-  margin: 0 0 8px;
+  margin: 0 0 6px;
+  letter-spacing: 1px;
 }
 
 h1 {
   margin: 0;
   font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
 .muted,
 time,
 small,
 .helper-copy {
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 }
 
 .refresh-btn {
-  border: 1px solid var(--border-color);
-  border-radius: 2px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  padding: 8px 16px;
   cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.refresh-btn:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-accent);
 }
 
 .wallet-band,
 .formula-band,
 .rewards-grid {
-  gap: 16px;
+  gap: 20px;
 }
 
 .wallet-band {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .wallet-card,
 .panel {
-  border: 1px solid var(--border-color);
-  border-radius: 2px;
-  background: var(--bg-secondary);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  backdrop-filter: blur(10px);
+}
+.wallet-card:hover,
+.panel:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+  border-color: var(--color-accent);
 }
 
 .wallet-card {
   flex: 1;
-  padding: 18px 20px;
+  padding: 24px;
 }
 
 .wallet-card.wide {
@@ -350,30 +385,34 @@ small,
   color: var(--color-text-secondary);
   font-size: 12px;
   margin-bottom: 8px;
+  font-weight: 500;
 }
 
 .wallet-card strong,
 .formula-cell strong {
-  font-size: 28px;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
 .unit {
   color: var(--color-text-muted);
   margin-left: 8px;
+  font-size: 13px;
 }
 
 .progress-container {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 10px;
+  gap: 16px;
+  margin-top: 14px;
 }
 
 .progress-track {
   flex: 1;
-  height: 12px;
-  background: var(--border-color);
-  border-radius: 6px;
+  height: 10px;
+  background: var(--color-border);
+  border-radius: 8px;
   overflow: hidden;
   position: relative;
 }
@@ -395,7 +434,7 @@ small,
 .rewards-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .lower-grid {
@@ -407,27 +446,33 @@ small,
 }
 
 .panel-head {
-  padding: 14px 16px;
+  padding: 18px 24px;
   border-bottom: 1px solid var(--color-border);
 }
 
 .panel-head h2 {
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .formula-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  padding: 18px 16px 0;
+  padding: 24px 24px 0;
 }
 
 .formula-cell {
-  padding: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 2px;
-  background: var(--bg-primary);
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg);
+  transition: all 0.2s ease;
+}
+.formula-cell:hover {
+  border-color: var(--color-accent);
+  background: var(--color-surface-hover);
 }
 
 .formula-cell span {
@@ -444,11 +489,11 @@ small,
 .helper-copy,
 .summary-list,
 .empty {
-  padding: 16px;
+  padding: 24px;
 }
 
 .summary-row {
-  padding: 10px 0;
+  padding: 12px 0;
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -460,9 +505,23 @@ small,
 .achievement-row,
 .tx-row,
 .leader-row {
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 16px;
+  padding: 16px 24px;
   border-bottom: 1px solid var(--color-border);
+  transition: background 0.2s ease;
+}
+.spotlight-row:hover,
+.achievement-row:hover,
+.tx-row:hover,
+.leader-row:hover {
+  background: var(--color-surface-hover);
+}
+
+.spotlight-row:last-child,
+.achievement-row:last-child,
+.tx-row:last-child,
+.leader-row:last-child {
+  border-bottom: 0;
 }
 
 .spotlight-main,
@@ -476,6 +535,7 @@ small,
 .tx-title {
   font-weight: 600;
   margin-top: 4px;
+  color: var(--color-text-primary);
 }
 
 .spotlight-side {
@@ -484,35 +544,36 @@ small,
 }
 
 .chip {
-  padding: 4px 8px;
-  border-radius: 2px;
-  background: var(--color-success-bg);
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
   color: var(--color-success);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
 }
 
 .chip.muted {
-  background: var(--hover-bg);
-  color: var(--text-secondary);
+  background: var(--color-surface-hover);
+  color: var(--color-text-muted);
 }
 
 .tx-icon,
 .avatar {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
-  border-radius: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .tx-icon {
-  background: var(--color-success-bg);
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
   color: var(--color-success);
 }
 
 .tx-icon.negative {
-  background: var(--color-danger-bg);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
   color: var(--color-danger);
 }
 
@@ -526,6 +587,7 @@ small,
 .achievement-points {
   color: var(--color-success);
   font-size: 18px;
+  font-weight: 700;
 }
 
 .tx-points.negative {
@@ -533,29 +595,39 @@ small,
 }
 
 .rank {
-  width: 36px;
+  width: 32px;
+  font-weight: 700;
+  font-size: 14px;
   color: var(--color-text-muted);
 }
+.leader-row:nth-child(1) .rank { color: #fbbf24; }
+.leader-row:nth-child(2) .rank { color: #94a3b8; }
+.leader-row:nth-child(3) .rank { color: #b45309; }
 
 .avatar {
-  background: var(--color-accent);
   color: #ffffff;
   font-size: 11px;
   font-weight: 700;
+  border: 1.5px solid var(--color-bg);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .leader-main strong {
   display: block;
   font-size: 14px;
+  font-weight: 500;
 }
 
 .leader-points {
   color: var(--color-warning);
   font-weight: 700;
+  font-size: 14px;
 }
 
 .empty {
   text-align: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
 }
 
 @media (max-width: 960px) {

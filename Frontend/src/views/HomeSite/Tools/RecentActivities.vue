@@ -1,11 +1,11 @@
 <template>
   <div class="recent-page">
     <header class="page-header">
-      <h1>Gần đây</h1>
+      <h1>{{ t('Recent') }}</h1>
       
       <div class="tabs">
-        <button class="tab-btn active">Làm việc trên</button>
-        <button class="tab-btn">Đã xem</button>
+        <button class="tab-btn active">{{ t('Worked on') }}</button>
+        <button class="tab-btn">{{ t('Viewed') }}</button>
       </div>
     </header>
 
@@ -13,13 +13,13 @@
       <div class="filter-container">
         <div class="search-input-wrapper">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="text" placeholder="Lọc theo tiêu đề" class="search-input" />
+          <input type="text" :placeholder="t('Filter by title')" class="search-input" />
         </div>
       </div>
 
       <div class="audit-list">
         <div class="time-group">
-          <h3 class="time-label">Hôm nay</h3>
+          <h3 class="time-label">{{ t('Today') }}</h3>
           <div class="audit-item">
             <div class="item-icon yellow-bg">😎</div>
             <div class="item-details">
@@ -34,7 +34,7 @@
         </div>
 
         <div class="time-group">
-          <h3 class="time-label">Tuần này</h3>
+          <h3 class="time-label">{{ t('This week') }}</h3>
           <div class="audit-item">
             <div class="item-icon light-blue"><i class="fa-solid fa-file-lines"></i></div>
             <div class="item-details">
@@ -54,6 +54,17 @@
             </div>
             <div class="item-meta">
               <span class="time-ago">2 ngày trước</span>
+            </div>
+          </div>
+          <div class="audit-item">
+            <div class="item-icon light-blue square"><i class="fa-solid fa-check"></i></div>
+            <div class="item-details">
+              <div class="item-title">fw</div>
+              <div class="item-path">Task • Jira • DTN-12 • Dự Án Tốt Nghiệp</div>
+            </div>
+            <div class="item-meta">
+              <span class="status-badge todo">TO DO</span>
+              <span class="time-ago">3 ngày trước</span>
             </div>
           </div>
           <div class="audit-item">
@@ -115,7 +126,7 @@
         </div>
 
         <div class="time-group">
-          <h3 class="time-label">Cũ hơn</h3>
+          <h3 class="time-label">{{ t('Older') }}</h3>
           <div class="audit-item">
             <div class="item-icon yellow-bg">😎</div>
             <div class="item-details">
@@ -148,7 +159,7 @@
 import { useI18nStore } from '@/store/useI18nStore'
 
 const i18nStore = useI18nStore()
-const t = i18nStore.t
+const t = (key) => i18nStore.t(key)
 </script>
 
 <style scoped>

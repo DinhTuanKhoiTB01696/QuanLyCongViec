@@ -56,11 +56,13 @@ namespace TaskManagement.Infrastructure.Services
         public async Task<object> UpdateAsync(Guid id, object dto)
         {
             var goal = await _context.Goals.FindAsync(id);
-            if (goal != null)
+            if (goal == null)
             {
-                goal.UpdatedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
+                throw new KeyNotFoundException($"Goal with ID {id} not found.");
             }
+
+            goal.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
             return goal;
         }
 
