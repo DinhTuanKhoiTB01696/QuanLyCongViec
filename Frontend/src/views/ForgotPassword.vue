@@ -6,146 +6,189 @@
           <img :src="logoImg" alt="SprintA Logo" class="custom-logo" />
           <span class="logo-text">SprintA</span>
         </router-link>
-        <div class="nav-actions">
-          <router-link class="nav-link" to="/login">{{ t('auth.nav.login') }}</router-link>
-          <router-link class="nav-primary" to="/register">{{ t('auth.nav.register') }}</router-link>
+        <div class="nav-actions" style="display: flex; align-items: center; gap: 16px;">
+          <el-button link @click="$router.push('/login')">{{ t('Sign In', 'Đăng nhập') }}</el-button>
+          <el-button type="primary" @click="$router.push('/register')">{{ t('Sign Up', 'Đăng ký') }}</el-button>
         </div>
       </div>
     </header>
 
-    <main class="auth-container">
-      <section class="auth-card">
-        <h1 class="auth-title">{{ getTitle() }}</h1>
-        <p class="auth-subtitle">{{ getSubtitle() }}</p>
+    <div class="auth-container">
+      <div class="auth-card">
+        <h1 class="auth-title">
+          {{ step === 1 ? t('Reset Password', 'Đặt Lại Mật Khẩu') : step === 2 ? t('Verify Email', 'Xác thực Email') : t('New Password', 'Tạo Mật Khẩu Mới') }}
+        </h1>
+        <p class="auth-subtitle">
+          {{
+            step === 1 ? t('Enter your email address to receive a verification OTP code.', 'Nhập email của bạn để nhận mã OTP xác thực.') :
+            step === 2 ? t('Enter the 6-digit OTP code sent to your email.', 'Nhập mã xác thực gồm 6 chữ số đã được gửi tới email của bạn.') :
+            t('Create a new secure password for your account.', 'Tạo mật khẩu an toàn mới cho tài khoản của bạn.')
+          }}
+        </p>
 
-        <!-- Bước 1: Nhập email -->
-        <el-form v-if="step === 1" class="auth-form" @submit.prevent="handleSendOtp" label-position="top">
-          <el-form-item :label="t('auth.forgotPassword.emailLabel')">
-            <el-input v-model="form.email" :placeholder="t('auth.forgotPassword.emailPlaceholder')" size="large" />
+        <!-- Step 1: Email Input -->
+        <el-form
+          v-if="step === 1"
+          ref="emailFormRef"
+          :model="form"
+          :rules="rules"
+          class="auth-form"
+          label-position="top"
+          @submit.prevent="handleSendOtp"
+        >
+          <el-form-item :label="t('Email Address', 'Địa chỉ Email')" prop="email">
+            <el-input v-model="form.email" placeholder="name@company.com" size="large" />
           </el-form-item>
 
           <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">
-            {{ t('auth.forgotPassword.sendOtp') }}
-          </el-button>
-        </el-form>
-
-        <!-- Bước 2: Nhập OTP -->
-        <el-form v-if="step === 2" class="auth-form" @submit.prevent="handleVerifyOtp" label-position="top">
-          <el-form-item :label="t('auth.forgotPassword.otpLabel')">
-            <el-input v-model="form.otp" :placeholder="t('auth.forgotPassword.otpPlaceholder')" size="large" />
-          </el-form-item>
-
-          <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">
-            {{ t('auth.forgotPassword.verifyOtpBtn') }}
+            {{ t('Send OTP Code', 'Gửi mã OTP') }}
           </el-button>
 
           <p class="auth-footer-text">
-            {{ t('auth.otp.backPrompt') }} <button type="button" class="link-btn" @click="step = 1">{{ t('auth.otp.backLink') }}</button>
+            {{ t('Remember password?', 'Đã nhớ mật khẩu?') }} <router-link to="/login">{{ t('Sign In', 'Đăng nhập') }}</router-link>
           </p>
         </el-form>
 
-        <!-- Bước 3: Đổi mật khẩu -->
-        <el-form v-if="step === 3" class="auth-form" @submit.prevent="handleResetPassword" label-position="top">
-          <el-form-item :label="t('auth.forgotPassword.passwordLabel')">
-            <el-input
-              v-model="form.newPassword"
-              type="password"
-              :placeholder="t('auth.forgotPassword.passwordPlaceholder')"
-              size="large"
-              show-password
-            />
+        <!-- Step 2: OTP Verification -->
+        <el-form v-else-if="step === 2" class="auth-form" @submit.prevent="handleVerifyOtp" label-position="top">
+          <div class="otp-instruction">
+            {{ t('We have sent a verification code to', 'Chúng tôi đã gửi mã xác thực tới') }} <strong>{{ form.email }}</strong>. {{ t('Please check your inbox.', 'Vui lòng kiểm tra hộp thư của bạn.') }}
+          </div>
+          <el-form-item :label="t('Verification Code', 'Mã xác thực OTP')">
+            <el-input v-model="form.otp" placeholder="123456" size="large" maxlength="6" class="otp-input" />
           </el-form-item>
 
           <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">
-            {{ t('auth.forgotPassword.resetBtn') }}
+            {{ t('Verify OTP', 'Xác thực Mã') }}
           </el-button>
+
+          <p class="auth-footer-text">
+            {{ t('Did not receive code?', 'Không nhận được mã?') }}
+            <a href="#" @click.prevent="step = 1">{{ t('Change email', 'Đổi email') }}</a>
+            {{ t('or', 'hoặc') }}
+            <a href="#" @click.prevent="handleSendOtp">{{ t('Resend OTP', 'Gửi lại OTP') }}</a>
+          </p>
         </el-form>
 
-        <div class="social-shell">
-          <div class="divider"><span>{{ t('auth.login.or').toUpperCase() }}</span></div>
-          <p class="auth-footer-text">
-            <router-link to="/login" class="back-login">{{ t('auth.forgotPassword.backToLogin') }}</router-link>
-          </p>
-        </div>
-      </section>
-    </main>
+        <!-- Step 3: Complete Reset Password -->
+        <el-form
+          v-else
+          ref="passwordFormRef"
+          :model="form"
+          :rules="rules"
+          class="auth-form"
+          label-position="top"
+          @submit.prevent="handleResetPassword"
+        >
+          <el-form-item :label="t('New Password', 'Mật khẩu mới')" prop="password">
+            <el-input v-model="form.password" type="password" :placeholder="t('Enter new password', 'Nhập mật khẩu mới')" size="large" show-password />
+          </el-form-item>
 
-    <div class="auth-bottom">
-      <p>© 2026 SprintA. {{ t('auth.footer.rights') }}</p>
+          <el-form-item :label="t('Confirm Password', 'Xác nhận mật khẩu')" prop="confirmPassword">
+            <el-input v-model="form.confirmPassword" type="password" :placeholder="t('Re-enter new password', 'Nhập lại mật khẩu mới')" size="large" show-password />
+          </el-form-item>
+
+          <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">
+            {{ t('Reset Password', 'Đặt Lại Mật Khẩu') }}
+          </el-button>
+        </el-form>
+      </div>
+
+      <div class="auth-small-links">
+        <a href="#">{{ t('Terms of Service', 'Điều khoản Dịch vụ') }}</a> &nbsp;•&nbsp; <a href="#">{{ t('Privacy Policy', 'Chính sách Bảo mật') }}</a>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import axiosClient from '../api/axiosClient'
-import { useI18n } from '@/composables/useI18n'
+import { useLocale } from '@/composables/useLocale'
+import { ElMessage } from 'element-plus'
 import logoImg from '../assets/logo_QLCV.png'
 
 const router = useRouter()
-const { t } = useI18n()
+const { t } = useLocale()
 
-const step = ref(1)
 const isLoading = ref(false)
-const otpToken = ref('')
+const emailFormRef = ref(null)
+const passwordFormRef = ref(null)
+const step = ref(1)
+const verifiedOtpToken = ref('')
 
 const form = reactive({
   email: '',
   otp: '',
-  newPassword: ''
+  password: '',
+  confirmPassword: ''
 })
 
-const getErrorMessage = (error, defaultMsg) => {
-  if (error.response?.data?.errors) {
-    const errObj = error.response.data.errors
-    const firstKey = Object.keys(errObj)[0]
-    if (firstKey && Array.isArray(errObj[firstKey]) && errObj[firstKey].length > 0) {
-      return errObj[firstKey][0]
-    }
+const validateConfirmPassword = (rule, value, callback) => {
+  if (value === '') {
+    callback(new Error(t('Please confirm your password', 'Vui lòng xác nhận mật khẩu')))
+  } else if (value !== form.password) {
+    callback(new Error(t('Passwords do not match', 'Mật khẩu xác nhận không khớp')))
+  } else {
+    callback()
   }
-  return error.response?.data?.message || defaultMsg
 }
 
-const getTitle = () => {
-  if (step.value === 1) return t('auth.forgotPassword.title')
-  if (step.value === 2) return t('auth.forgotPassword.verifyOtpTitle')
-  if (step.value === 3) return t('auth.forgotPassword.resetTitle')
-  return ''
-}
-
-const getSubtitle = () => {
-  if (step.value === 1) return t('auth.forgotPassword.subtitle')
-  if (step.value === 2) return t('auth.forgotPassword.verifyOtpSubtitle')
-  if (step.value === 3) return t('auth.forgotPassword.resetSubtitle')
-  return ''
-}
+const rules = reactive({
+  email: [
+    { required: true, message: t('Please input email address', 'Vui lòng nhập email'), trigger: 'blur' },
+    { type: 'email', message: t('Invalid email format', 'Email không đúng định dạng'), trigger: ['blur', 'change'] }
+  ],
+  password: [
+    { required: true, message: t('Please create a password', 'Vui lòng tạo mật khẩu'), trigger: 'blur' },
+    { min: 6, message: t('Password must be at least 6 characters', 'Mật khẩu phải có ít nhất 6 ký tự'), trigger: 'blur' },
+    {
+      pattern: /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/,
+      message: t('Must contain at least 1 uppercase letter, 1 number, and 1 special character', 'Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 số và 1 ký tự đặc biệt'),
+      trigger: 'blur'
+    }
+  ],
+  confirmPassword: [
+    { required: true, message: t('Please confirm your password', 'Vui lòng xác nhận mật khẩu'), trigger: 'blur' },
+    { validator: validateConfirmPassword, trigger: 'blur' }
+  ]
+})
 
 const handleSendOtp = async () => {
-  if (!form.email) {
-    ElMessage.warning(t('auth.forgotPassword.missingEmail'))
-    return
-  }
+  if (step.value === 1 && !emailFormRef.value) return
 
-  isLoading.value = true
+  const validatePromise = step.value === 1
+    ? emailFormRef.value.validate()
+    : Promise.resolve(true)
+
   try {
-    const response = await axiosClient.post('/auth/send-otp', {
-      email: form.email,
-      purpose: 'forgot-password'
-    })
-    ElMessage.success(response.data?.message || t('auth.forgotPassword.otpSentMessage'))
-    step.value = 2
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error, t('auth.register.messages.sendOtpFailed')))
-  } finally {
-    isLoading.value = false
+    const valid = await validatePromise
+    if (valid) {
+      isLoading.value = true
+      try {
+        const response = await axiosClient.post('/auth/send-otp', {
+          email: form.email,
+          purpose: 'forgot-password'
+        })
+        ElMessage.success(response.data?.message || t('OTP code has been sent to your email', 'Đã gửi mã OTP đến email của bạn'))
+        form.otp = ''
+        step.value = 2
+      } catch (error) {
+        console.error('Send OTP error:', error)
+        ElMessage.error(error.response?.data?.message || t('Failed to send OTP code', 'Có lỗi xảy ra khi gửi OTP'))
+      } finally {
+        isLoading.value = false
+      }
+    }
+  } catch (err) {
+    // validation failed
   }
 }
 
 const handleVerifyOtp = async () => {
-  if (!form.otp) {
-    ElMessage.warning(t('auth.forgotPassword.missingOtp'))
+  if (!form.otp || form.otp.length !== 6) {
+    ElMessage.error(t('Please input 6-digit OTP code', 'Vui lòng nhập mã OTP 6 ký tự'))
     return
   }
 
@@ -155,37 +198,48 @@ const handleVerifyOtp = async () => {
       email: form.email,
       otpCode: form.otp
     })
-    otpToken.value = response.data?.otpToken
-    ElMessage.success(response.data?.message || t('auth.forgotPassword.otpVerifiedSuccess'))
-    step.value = 3
+
+    if (response.data?.verified) {
+      ElMessage.success(t('Email verification succeeded', 'Xác thực email thành công'))
+      verifiedOtpToken.value = response.data?.otpToken || ''
+      step.value = 3
+    } else {
+      ElMessage.error(t('Invalid OTP code', 'Mã OTP không hợp lệ hoặc đã hết hạn'))
+    }
   } catch (error) {
-    ElMessage.error(getErrorMessage(error, t('auth.messages.otpInvalid')))
+    console.error('Verify OTP error:', error)
+    ElMessage.error(error.response?.data?.message || t('Invalid OTP code', 'Mã OTP không hợp lệ hoặc đã hết hạn'))
   } finally {
     isLoading.value = false
   }
 }
 
 const handleResetPassword = async () => {
-  if (!form.newPassword) {
-    ElMessage.warning(t('auth.forgotPassword.missingPassword'))
-    return
-  }
+  if (!passwordFormRef.value) return
 
-  isLoading.value = true
-  try {
-    const response = await axiosClient.post('/auth/reset-password', {
-      email: form.email,
-      newPassword: form.newPassword,
-      confirmPassword: form.newPassword,
-      otpToken: otpToken.value
-    })
-    ElMessage.success(response.data?.message || t('auth.forgotPassword.successMessage'))
-    router.push('/login')
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error, t('auth.forgotPassword.resetFailed')))
-  } finally {
-    isLoading.value = false
-  }
+  await passwordFormRef.value.validate(async (valid) => {
+    if (valid) {
+      isLoading.value = true
+      try {
+        // Gọi API reset password thật
+        const response = await axiosClient.post('/auth/reset-password', {
+          email: form.email,
+          otpToken: verifiedOtpToken.value,
+          newPassword: form.password
+        })
+
+        // Chỉ thông báo thành công khi API thành công
+        ElMessage.success(response.data?.message || t('Password reset succeeded. Please sign in.', 'Đặt lại mật khẩu thành công! Vui lòng đăng nhập.'))
+        router.push('/login')
+      } catch (error) {
+        console.error('Reset password error:', error)
+        // Hiển thị lỗi thật từ API
+        ElMessage.error(error.response?.data?.message || t('Failed to reset password. API endpoint might be missing.', 'Lỗi khi đặt lại mật khẩu. API endpoint có thể chưa được hỗ trợ.'))
+      } finally {
+        isLoading.value = false
+      }
+    }
+  })
 }
 </script>
 
@@ -194,190 +248,175 @@ const handleResetPassword = async () => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background:
-    radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 26%),
-    var(--color-bg);
+  background-color: var(--color-bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .auth-navbar {
-  min-height: 80px;
+  height: 80px;
   display: flex;
   align-items: center;
+  background: transparent;
 }
 
 .container {
-  width: min(1180px, calc(100% - 32px));
+  max-width: 1440px;
+  width: 100%;
   margin: 0 auto;
-}
-
-.nav-content,
-.nav-actions {
-  display: flex;
-  align-items: center;
+  padding: 0 24px;
 }
 
 .nav-content {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 24px;
-}
-
-.nav-actions {
-  gap: 12px;
 }
 
 .logo {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  color: inherit;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 24px;
+  color: var(--color-text-primary);
   text-decoration: none;
 }
 
 .custom-logo {
-  height: 56px;
+  height: 48px;
+  width: auto;
+  object-fit: contain;
 }
 
-.logo-text {
-  margin-left: -8px;
-  font-size: 24px;
-  font-weight: 900;
-  color: var(--color-text-primary);
-}
-
-.nav-link,
-.nav-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 2px;
-  text-decoration: none;
-  font-weight: 700;
-  transition: all 0.2s;
-}
-
-.nav-link {
-  padding: 10px 14px;
-  color: var(--color-text-secondary);
-}
-
-.nav-primary {
-  padding: 10px 18px;
-  color: #ffffff;
-  background: var(--color-accent);
+.nav-actions {
+  display: flex;
+  gap: 16px;
 }
 
 .auth-container {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px 16px 48px;
+  padding: 40px 20px;
 }
 
 .auth-card {
-  width: min(100%, 520px);
-  padding: 32px;
-  border-radius: 2px;
   background: var(--color-surface);
+  width: 100%;
+  max-width: 440px;
+  padding: 48px 40px 40px;
+  border-radius: 2px;
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-md);
 }
 
 .auth-title {
-  margin: 0;
-  font-size: 32px;
+  font-size: 24px;
+  font-weight: 700;
   color: var(--color-text-primary);
+  text-align: center;
+  margin-bottom: 8px;
 }
 
 .auth-subtitle {
-  margin: 10px 0 0;
   color: var(--color-text-secondary);
-  line-height: 1.6;
+  text-align: center;
+  font-size: 13px;
+  margin-bottom: 32px;
+  line-height: 1.5;
 }
 
-.auth-form,
-.social-shell {
-  margin-top: 24px;
+.auth-form {
+  width: 100%;
+}
+
+:deep(.el-form-item__label) {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  padding-bottom: 4px;
+  font-size: 13px;
 }
 
 .auth-btn {
   width: 100%;
-}
-
-.divider {
-  position: relative;
-  margin: 22px 0 18px;
-  text-align: center;
-  color: var(--color-text-muted);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.divider::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 1px;
-  background: var(--color-border);
-  z-index: 0;
-}
-
-.divider span {
-  position: relative;
-  z-index: 1;
-  padding: 0 10px;
-  background: var(--color-surface);
-}
-
-.auth-footer-text {
-  margin: 20px 0 0;
-  color: var(--color-text-secondary);
-  text-align: center;
-}
-
-.link-btn {
-  border: none;
-  background: transparent;
-  color: #2563eb;
-  cursor: pointer;
-  font: inherit;
-  padding: 0;
-}
-.link-btn:hover {
-  text-decoration: underline;
-}
-
-.back-login {
-  color: #2563eb;
-  text-decoration: none;
   font-weight: 600;
-}
-.back-login:hover {
-  text-decoration: underline;
+  border-radius: 2px;
+  height: 48px;
+  font-size: 15px;
+  background: var(--color-accent);
+  border: none;
+  margin-top: 8px;
+  margin-bottom: 24px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  color: #ffffff;
 }
 
-.auth-bottom {
-  padding: 0 0 32px;
+.auth-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 97, 255, 0.3);
+}
+
+.otp-instruction {
   text-align: center;
-  color: var(--color-text-muted);
   font-size: 14px;
+  color: var(--color-text-secondary);
+  margin-bottom: 24px;
+  background: var(--color-surface-hover);
+  padding: 12px;
+  border-radius: 2px;
+  line-height: 1.6;
+}
+
+.otp-input :deep(input) {
+  text-align: center;
+  letter-spacing: 8px;
+  font-size: 20px;
+  font-weight: 700;
 }
 
 @media (max-width: 640px) {
-  .container {
-    width: min(100% - 24px, 1180px);
+  .logo-text {
+    display: none;
   }
-
-  .nav-content,
-  .nav-actions {
-    flex-direction: column;
-    align-items: stretch;
+  .auth-navbar {
+    height: 60px;
   }
-
   .auth-card {
-    padding: 24px;
+    padding: 32px 20px;
   }
+  .auth-title {
+    font-size: 20px;
+  }
+}
+
+.auth-footer-text {
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.auth-footer-text a {
+  color: var(--el-color-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.auth-small-links {
+  margin-top: 24px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.auth-small-links a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.auth-small-links a:hover {
+  color: var(--color-text-primary);
 }
 </style>
