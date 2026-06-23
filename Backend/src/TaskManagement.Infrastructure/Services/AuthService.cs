@@ -512,6 +512,23 @@ namespace TaskManagement.Infrastructure.Services
             await _context.SaveChangesAsync();
         }
 
+        public async Task ResetPasswordAsync(ResetPasswordRequestDto request)
+        {
+            var email = request.Email?.Trim() ?? string.Empty;
+
+            if (!_otpService.ValidateOtp(email, request.OtpToken?.Trim() ?? string.Empty))
+                throw new UnauthorizedAccessException("Ma xac thuc khong hop le hoac da het han. Vui long thuc hien lai buoc quen mat khau.");
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && !u.IsDeleted);
+            if (user == null)
+                throw new ArgumentException("Khong the dat lai mat khau cho tai khoan nay.");
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+        }
+
         public async Task AcceptInviteAsync(Guid userId)
         {
             var user = await _context.Users.FindAsync(userId);

@@ -73,7 +73,6 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 import { useProjectStore } from '@/store/useProjectStore'
-import axiosClient from '@/api/axiosClient'
 
 const emit = defineEmits(['close'])
 const router = useRouter()
@@ -89,14 +88,7 @@ const starredTasks = computed(() => [...workTaskStore.starredTasks].reverse())
 // Gi\u1eef expose \u0111\u1ec3 t\u01b0\u01a1ng th\u00edch v\u1edbi parent (NexusSidebar @show="onStarredShow")
 const loadStarredItems = async () => {
   try {
-    const res = await axiosClient.get('/tasks/search')
-    const validTasks = res.data?.data || []
-    const stored = JSON.parse(localStorage.getItem('starred_tasks') || '[]')
-    const filtered = stored.filter(s => validTasks.some(v => v.id === s.id))
-    if (stored.length !== filtered.length) {
-      localStorage.setItem('starred_tasks', JSON.stringify(filtered))
-      workTaskStore.starredTasks = filtered
-    }
+    await workTaskStore.fetchStarredTasks()
   } catch (err) {
     console.error('Failed to validate starred tasks:', err)
   }

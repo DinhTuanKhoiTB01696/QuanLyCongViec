@@ -1,16 +1,15 @@
 <template>
   <NexusLayout>
     <div class="space-reports-page">
-      <!-- Premium Header Section -->
       <header class="reports-header">
         <div>
           <span class="reports-tag">Analytics Report</span>
-          <h1 class="reports-title">Project Reports</h1>
-          <p class="reports-subtitle">Real-time statistics and visual insights</p>
+          <h1 class="reports-title">{{ t('Reports') }}</h1>
+          <p class="reports-subtitle">{{ t('Analytics and insights for this project') }}</p>
         </div>
         <div class="reports-actions">
           <button class="btn-secondary" @click="fetchData">
-            <i class="fa-solid fa-rotate-right" :class="{ 'fa-spin': loading }"></i> Refresh
+            <i class="fa-solid fa-rotate-right" :class="{ 'fa-spin': loading }"></i> {{ t('Refresh') }}
           </button>
         </div>
       </header>
@@ -27,7 +26,6 @@
         <p class="font-semibold">{{ error }}</p>
       </div>
 
-      <!-- Empty State -->
       <div v-else-if="allTasks.length === 0" class="reports-empty-container">
         <div class="reports-empty-state">
           <i class="fa-solid fa-chart-line text-5xl mb-4 text-[var(--color-text-muted)]"></i>
@@ -35,7 +33,6 @@
           <p class="text-[var(--color-text-secondary)] mb-6 max-w-md mx-auto">This project doesn't have any tasks yet. Create a few tasks to see statistics, charts, and workload distributions here.</p>
         </div>
       </div>
-
       <!-- Main Dashboard Grid -->
       <div v-else class="reports-content">
         
@@ -275,6 +272,10 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
+import { useI18nStore } from '@/store/useI18nStore'
+
+const i18nStore = useI18nStore()
+const t = (key) => i18nStore.t(key)
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 
 const route = useRoute()

@@ -83,6 +83,7 @@ const defaultProjectNodes = (projectId) => ([
 
 const mapProjectRow = (project) => ({
   id: resolveProjectId(project),
+  workspaceId: project.workspaceId || project.WorkspaceId || null,
   name: project.name || project.Name || '',
   key: project.key || project.Key || project.identifier || project.Identifier || project.name?.substring(0, 4)?.toUpperCase() || project.Name?.substring(0, 4)?.toUpperCase() || 'PRJ',
   description: project.description || project.Description || '',

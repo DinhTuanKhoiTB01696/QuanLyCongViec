@@ -12,7 +12,7 @@ using TaskManagement.Infrastructure.Data;
 namespace TaskManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260621153802_PlaneRenovation")]
+    [Migration("20260623151912_PlaneRenovation")]
     partial class PlaneRenovation
     {
         /// <inheritdoc />

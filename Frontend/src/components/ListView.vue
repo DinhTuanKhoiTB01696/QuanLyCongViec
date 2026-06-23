@@ -15,78 +15,78 @@
 
       <div v-show="!collapsedGroups[key]" class="group-content">
         <div v-for="task in group.tasks" :key="task.id" class="task-row" @click="emit('task-click', task)">
-          <div class="tr-left">
-            <span class="task-id">{{ task.sequenceId || task.id.substring(0, 8).toUpperCase() }}</span>
-            <span class="task-title" :style="group.name === 'Done' ? { textDecoration: 'line-through', color: '#71717a' } : {}">
-              {{ task.title }}
-            </span>
+          <span class="task-id">{{ task.sequenceId || task.id.substring(0, 8).toUpperCase() }}</span>
+          <span class="task-title" :style="group.name === 'Done' ? { textDecoration: 'line-through', color: '#71717a' } : {}">
+            {{ task.title }}
+          </span>
+
+          <div class="task-progress-ring" :style="progressStyle(task)" :title="`${taskProgress(task)}% progress`">
+            <span class="ring-value">{{ taskProgress(task) }}</span>
           </div>
 
-          <div class="tr-right">
-            <div class="task-progress-ring" :style="progressStyle(task)" :title="`${taskProgress(task)}% progress`">
-              <span class="ring-value">{{ taskProgress(task) }}</span>
-            </div>
+          <div class="pill-group status-cell" @click.stop>
+            <el-dropdown trigger="click" @command="value => updateTaskProperty(task, 'statusName', value)">
+              <div class="pill status-pill">
+                <i class="status-icon-sm" :class="group.iconClass" :style="{ color: group.color }"></i>
+                {{ task.statusName || group.name }}
+              </div>
+              <template #dropdown>
+                <el-dropdown-menu class="plane-dropdown">
+                  <el-dropdown-item command="BACKLOG">Backlog</el-dropdown-item>
+                  <el-dropdown-item command="TO DO">To Do</el-dropdown-item>
+                  <el-dropdown-item command="IN PROGRESS">In Progress</el-dropdown-item>
+                  <el-dropdown-item command="IN REVIEW">In Review</el-dropdown-item>
+                  <el-dropdown-item command="DONE">Done</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
 
-            <div class="pill-group" @click.stop>
-              <el-dropdown trigger="click" @command="value => updateTaskProperty(task, 'statusName', value)">
-                <div class="pill">
-                  <i class="status-icon-sm" :class="group.iconClass" :style="{ color: group.color }"></i>
-                  {{ task.statusName || group.name }}
-                </div>
-                <template #dropdown>
-                  <el-dropdown-menu class="plane-dropdown">
-                    <el-dropdown-item command="BACKLOG">Backlog</el-dropdown-item>
-                    <el-dropdown-item command="TO DO">To Do</el-dropdown-item>
-                    <el-dropdown-item command="IN PROGRESS">In Progress</el-dropdown-item>
-                    <el-dropdown-item command="IN REVIEW">In Review</el-dropdown-item>
-                    <el-dropdown-item command="DONE">Done</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
+          <div class="pill-group priority-cell" @click.stop>
+            <el-dropdown trigger="click" @command="value => updateTaskProperty(task, 'priority', value)">
+              <div class="pill icon-pill">
+                <i class="fa-solid fa-angles-up text-red-500" v-if="task.priority === 1"></i>
+                <i class="fa-solid fa-chevron-up text-orange-500" v-else-if="task.priority === 2"></i>
+                <i class="fa-solid fa-minus text-blue-500" v-else-if="task.priority === 3"></i>
+                <i class="fa-solid fa-chevron-down text-gray-400" v-else></i>
+              </div>
+              <template #dropdown>
+                <el-dropdown-menu class="plane-dropdown">
+                  <el-dropdown-item :command="1">Urgent</el-dropdown-item>
+                  <el-dropdown-item :command="2">High</el-dropdown-item>
+                  <el-dropdown-item :command="3">Normal</el-dropdown-item>
+                  <el-dropdown-item :command="4">Low</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
 
-              <el-dropdown trigger="click" @command="value => updateTaskProperty(task, 'priority', value)">
-                <div class="pill">
-                  <i class="fa-solid fa-angles-up text-red-500" v-if="task.priority === 1"></i>
-                  <i class="fa-solid fa-chevron-up text-orange-500" v-else-if="task.priority === 2"></i>
-                  <i class="fa-solid fa-minus text-blue-500" v-else-if="task.priority === 3"></i>
-                  <i class="fa-solid fa-chevron-down text-gray-400" v-else></i>
-                </div>
-                <template #dropdown>
-                  <el-dropdown-menu class="plane-dropdown">
-                    <el-dropdown-item :command="1">Urgent</el-dropdown-item>
-                    <el-dropdown-item :command="2">High</el-dropdown-item>
-                    <el-dropdown-item :command="3">Normal</el-dropdown-item>
-                    <el-dropdown-item :command="4">Low</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-
-              <el-popover placement="bottom" trigger="click" width="260" popper-class="plane-popover">
-                <template #reference>
-                  <div class="pill">
-                    <div class="avatar-xxs">
-                      <i v-if="!getTaskAssigneeSummary(task).label" class="fa-regular fa-user"></i>
-                      <span v-else>{{ getTaskAssigneeSummary(task).avatar }}</span>
-                    </div>
-                    <span v-if="getTaskAssigneeSummary(task).label" class="pill-user-text">{{ getTaskAssigneeSummary(task).label }}</span>
+          <div class="pill-group assignee-cell" @click.stop>
+            <el-popover placement="bottom" trigger="click" width="260" popper-class="plane-popover">
+              <template #reference>
+                <div class="pill assignee-pill">
+                  <div class="avatar-xxs">
+                    <i v-if="!getTaskAssigneeSummary(task).label" class="fa-regular fa-user"></i>
+                    <span v-else>{{ getTaskAssigneeSummary(task).avatar }}</span>
                   </div>
-                </template>
-                <div class="popover-content">
-                  <input v-model="searchAssignee" type="text" class="plane-search-input" placeholder="Search members" />
-                  <div class="plane-list mt-2">
-                    <label
-                      v-for="member in filteredMembers"
-                      :key="member.userId || member.id"
-                      class="plane-list-item"
-                      @click.stop="toggleTaskAssignee(task, member.userId || member.id)"
-                    >
-                      <input type="checkbox" :checked="getTaskAssigneeIds(task).includes(member.userId || member.id)" />
-                      {{ member.fullName || member.name || member.email }}
-                    </label>
-                  </div>
+                  <span v-if="getTaskAssigneeSummary(task).label" class="pill-user-text">{{ getTaskAssigneeSummary(task).label }}</span>
                 </div>
-              </el-popover>
-            </div>
+              </template>
+              <div class="popover-content">
+                <input v-model="searchAssignee" type="text" class="plane-search-input" placeholder="Search members" />
+                <div class="plane-list mt-2">
+                  <label
+                    v-for="member in filteredMembers"
+                    :key="member.userId || member.id"
+                    class="plane-list-item"
+                    @click.stop="toggleTaskAssignee(task, member.userId || member.id)"
+                  >
+                    <input type="checkbox" :checked="getTaskAssigneeIds(task).includes(member.userId || member.id)" />
+                    {{ member.fullName || member.name || member.email }}
+                  </label>
+                </div>
+              </div>
+            </el-popover>
           </div>
         </div>
 
@@ -305,19 +305,26 @@ const updateTaskProperty = (task, field, value) => {
 
 <style scoped>
 .plane-list-view {
+  --list-panel: color-mix(in srgb, var(--color-surface) 82%, #020617);
+  --list-panel-strong: color-mix(in srgb, var(--color-surface) 92%, #020617);
+  --list-line: color-mix(in srgb, var(--color-border) 78%, #38bdf8);
+  --list-accent-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
   display: flex;
   flex-direction: column;
+  gap: 14px;
   color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .list-group {
-  margin-bottom: 24px;
+  overflow: hidden;
+  border: 1px solid var(--list-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--list-panel) 90%, transparent);
 }
 
 .group-header,
 .gh-left,
-.tr-left,
-.tr-right,
 .pill-group,
 .pill {
   display: flex;
@@ -326,25 +333,45 @@ const updateTaskProperty = (task, field, value) => {
 
 .group-header {
   justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--color-border);
+  min-height: 42px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--list-line);
+  background: color-mix(in srgb, var(--list-panel-strong) 84%, transparent);
   cursor: pointer;
+  user-select: none;
+  transition: background 160ms ease;
+}
+
+.group-header:hover {
+  background: color-mix(in srgb, var(--list-panel-strong) 90%, var(--color-accent));
 }
 
 .gh-left,
-.tr-left,
-.tr-right,
 .pill-group,
 .pill {
   gap: 10px;
 }
 
 .group-name {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 720;
 }
 
-.group-count,
+.group-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid var(--list-line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-bg) 58%, transparent);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 720;
+}
+
 .task-id,
 .add-row-placeholder,
 .ic-hint {
@@ -352,51 +379,88 @@ const updateTaskProperty = (task, field, value) => {
 }
 
 .add-icon {
-  opacity: 0;
+  color: var(--color-text-muted);
+  opacity: 0.55;
+  transition: opacity 160ms ease, color 160ms ease;
 }
 
 .group-header:hover .add-icon,
-.task-row:hover .pill-group {
+.task-row:hover .pill-group,
+.task-row:focus-within .pill-group {
   opacity: 1;
 }
 
 .task-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(76px, 92px) minmax(180px, 1fr) 42px 140px 42px 126px;
   align-items: center;
-  padding: 10px 0 10px 24px;
-  border-bottom: 1px solid var(--color-border);
+  column-gap: 10px;
+  min-height: 43px;
+  padding: 0 12px 0 32px;
+  border-bottom: 1px solid color-mix(in srgb, var(--list-line) 82%, transparent);
   cursor: pointer;
+  transition: background 150ms ease, box-shadow 150ms ease;
 }
 
 .task-row:hover {
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--list-panel-strong) 80%, #ffffff);
+  box-shadow: inset 2px 0 0 var(--color-accent);
+}
+
+.task-row:active {
+  background: color-mix(in srgb, var(--list-panel-strong) 88%, #ffffff);
+}
+
+.task-row:last-child {
+  border-bottom: 0;
 }
 
 .task-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 620;
 }
 
-.tr-right {
-  gap: 12px;
+.task-id {
+  min-width: 0;
+  color: color-mix(in srgb, var(--color-accent) 74%, var(--color-text-muted));
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.gh-chevron {
+  width: 14px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.status-icon {
+  width: 14px;
+  font-size: 13px;
 }
 
 .task-progress-ring {
   position: relative;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   flex-shrink: 0;
+  justify-self: center;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-border) 52%, transparent);
 }
 
 .task-progress-ring::after {
   content: '';
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: var(--color-bg);
+  background: color-mix(in srgb, var(--color-bg) 82%, #020617);
 }
 
 .ring-value {
@@ -412,16 +476,60 @@ const updateTaskProperty = (task, field, value) => {
 }
 
 .pill-group {
-  opacity: 0;
-  transition: opacity 0.2s;
+  min-width: 0;
+  opacity: 0.62;
+  transition: opacity 160ms ease;
+}
+
+.status-cell,
+.priority-cell,
+.assignee-cell {
+  justify-content: center;
+}
+
+.status-cell {
+  justify-content: flex-start;
+}
+
+.assignee-cell {
+  justify-content: flex-end;
 }
 
 .pill {
-  padding: 4px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: 2px;
+  min-height: 26px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-bg) 54%, transparent);
   font-size: 12px;
+  font-weight: 560;
   color: var(--color-text-secondary);
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.status-pill {
+  width: 128px;
+  justify-content: flex-start;
+}
+
+.icon-pill {
+  width: 32px;
+  justify-content: center;
+}
+
+.assignee-pill {
+  width: 116px;
+  justify-content: flex-start;
+}
+
+.pill:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border));
+  background: var(--list-accent-soft);
+  color: var(--color-text-primary);
+}
+
+.status-icon-sm {
+  font-size: 11px;
 }
 
 .pill-user-text {
@@ -432,37 +540,60 @@ const updateTaskProperty = (task, field, value) => {
 }
 
 .avatar-xxs {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1px dashed #3f3f46;
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 9px;
+  font-weight: 720;
 }
 
 .add-row-placeholder {
-  padding: 12px 0 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 12px 0 38px;
+  border-top: 1px solid color-mix(in srgb, var(--list-line) 58%, transparent);
   cursor: pointer;
+  font-size: 12px;
+  transition: color 150ms ease, background 150ms ease;
+}
+
+.add-row-placeholder:hover {
+  background: color-mix(in srgb, var(--list-accent-soft) 78%, transparent);
+  color: var(--color-accent);
 }
 
 .inline-create-box {
-  margin: 8px 16px;
+  margin: 10px 12px 12px 38px;
   padding: 12px;
-  border: 1px solid #38bdf8;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 66%, var(--color-border));
   border-radius: 8px;
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--list-panel-strong) 88%, #020617);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
 
 .ic-input,
 .plane-search-input {
   width: 100%;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-bg) 76%, #020617);
+  border: 1px solid var(--list-line);
+  border-radius: 7px;
+  color: var(--color-text-secondary);
+  padding: 9px 10px;
+  font-size: 13px;
+  outline: none;
+}
+
+.ic-input:focus,
+.plane-search-input:focus {
+  border-color: color-mix(in srgb, var(--color-accent) 62%, var(--color-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 12%, transparent);
   color: var(--color-text-primary);
-  padding: 8px 10px;
 }
 
 .dm-toolbar {
@@ -472,16 +603,88 @@ const updateTaskProperty = (task, field, value) => {
 }
 
 .dm-tool-btn {
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: transparent;
+  min-height: 28px;
+  border: 1px solid var(--list-line);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-bg) 68%, transparent);
   color: var(--color-text-secondary);
-  padding: 4px 8px;
+  padding: 0 10px;
   cursor: pointer;
+  font-size: 12px;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.dm-tool-btn:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border));
+  color: var(--color-text-primary);
+}
+
+.popover-content {
+  color: var(--color-text-primary);
+}
+
+.plane-list {
+  display: grid;
+  gap: 4px;
+}
+
+.plane-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.plane-list-item:hover {
+  background: color-mix(in srgb, var(--color-surface-hover) 78%, transparent);
+  color: var(--color-text-primary);
 }
 
 .mt-2 {
   margin-top: 8px;
+}
+
+@media (max-width: 820px) {
+  .task-row {
+    grid-template-columns: minmax(72px, auto) minmax(0, 1fr) 32px;
+    row-gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .task-progress-ring {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .status-cell {
+    grid-column: 1 / span 2;
+    grid-row: 2;
+  }
+
+  .priority-cell {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .assignee-cell {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-content: flex-start;
+  }
+
+  .pill-group {
+    opacity: 1;
+  }
+
+  .status-pill,
+  .assignee-pill {
+    width: auto;
+    max-width: 100%;
+  }
 }
 </style>
 

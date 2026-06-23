@@ -4,6 +4,10 @@ import { useRoute } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
 import { ElNotification, ElMessageBox } from 'element-plus'
 import ListView from '@/components/ListView.vue'
+import { useI18nStore } from '@/store/useI18nStore'
+
+const i18nStore = useI18nStore()
+const t = (key) => i18nStore.t(key)
 
 import FilterBar from '@/components/FilterBar.vue'
 
@@ -13,6 +17,7 @@ const projectId = computed(() => route.params.id || localStorage.getItem('curren
 const views = ref([])
 const activeView = ref(null)
 const tasks = ref([])
+const originalTasks = ref([])
 const projectMembers = ref([])
 const loading = ref(false)
 const showCreateModal = ref(false)
@@ -22,6 +27,10 @@ const viewType = ref('list')
 // Selected Filters State
 const activeFilters = ref([])
 const showViewSearch = ref(false)
+const showListFilters = ref(false)
+const showActiveFilters = ref(false)
+const listFavoritesOnly = ref(false)
+const listGlobalOnly = ref(false)
 
 const quickFilterPresets = {
     status: { field: 'status', label: 'Status', icon: 'fa-regular fa-circle-dot', operator: 'is', value: 'TO DO' },
@@ -126,6 +135,36 @@ const getTaskFieldValue = (task, field) => {
 }
 
 const normalizeValue = (value) => `${value ?? ''}`.toLowerCase()
+const normalizePriorityValue = (value) => {
+    const map = {
+        urgent: '1',
+        high: '2',
+        normal: '3',
+        medium: '3',
+        low: '4',
+        none: ''
+    }
+    const text = normalizeValue(value).trim()
+    return map[text] ?? text
+}
+
+const isSameDay = (left, right = new Date()) => {
+    if (!(left instanceof Date) || Number.isNaN(left.getTime())) return false
+    return left.getFullYear() === right.getFullYear()
+        && left.getMonth() === right.getMonth()
+        && left.getDate() === right.getDate()
+}
+
+const isThisWeek = (date) => {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return false
+    const now = new Date()
+    const start = new Date(now)
+    start.setDate(now.getDate() - now.getDay())
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(start)
+    end.setDate(start.getDate() + 7)
+    return date >= start && date < end
+}
 
 const applyTaskFilters = (items, filters) => {
     if (!filters?.length) return items
@@ -134,10 +173,30 @@ const applyTaskFilters = (items, filters) => {
         const actual = getTaskFieldValue(task, filter.field)
         const expected = filter.value
         const operator = filter.operator || filter.condition || 'is'
-        const actualText = normalizeValue(actual)
+        let actualText = normalizeValue(actual)
         const expectedText = normalizeValue(expected)
         const actualDate = actual ? new Date(actual).getTime() : null
         const expectedDate = expected ? new Date(expected).getTime() : null
+        const actualDateValue = actual ? new Date(actual) : null
+
+        if (filter.field === 'priority') {
+            actualText = normalizePriorityValue(actual)
+            const priorityValues = expectedText.split(',').map(v => normalizePriorityValue(v.trim()))
+            if (operator === 'is not' || operator === 'is_not' || operator === 'not in' || operator === 'not_in') return !priorityValues.includes(actualText)
+            return priorityValues.includes(actualText)
+        }
+
+        if (filter.field === 'assignee' && expectedText === 'unassigned') {
+            const hasAssignee = Boolean(actualText)
+            return operator === 'is not' ? hasAssignee : !hasAssignee
+        }
+
+        if (['startDate', 'dueDate', 'createdAt', 'updatedAt'].includes(filter.field)) {
+            if (operator === 'empty') return !actual
+            if (operator === 'overdue') return actualDate && actualDate < Date.now()
+            if (expectedText === 'today') return isSameDay(actualDateValue)
+            if (expectedText === 'this week') return isThisWeek(actualDateValue)
+        }
 
         if (operator === 'empty') return !actual
         if (operator === 'not empty') return Boolean(actual)
@@ -177,11 +236,19 @@ const showSubItems = ref(false)
 
 const filteredViews = computed(() => {
   const q = filterSearch.value.trim().toLowerCase()
-  const nextViews = !q
+  let nextViews = !q
     ? [...views.value]
     : views.value.filter(view =>
     `${view.name || ''} ${view.description || ''}`.toLowerCase().includes(q)
   )
+
+  if (listFavoritesOnly.value) {
+    nextViews = nextViews.filter(view => view.isFavorite)
+  }
+
+  if (listGlobalOnly.value) {
+    nextViews = nextViews.filter(view => view.isGlobal)
+  }
 
   const sortValue = (view) => {
     if (sortBy.value === 'Name') return `${view.name || ''}`.toLowerCase()
@@ -230,22 +297,17 @@ const fetchViewTasks = async (view, metadataInput = null) => {
   loading.value = true
   try {
     const metadata = metadataInput || parseViewMetadata(view.queryMetadata)
-    const priorityFilter = metadata.filters.find(filter => filter.field === 'priority' && ['is', 'in'].includes(filter.operator))
-    let priority = null
-    if ((priorityFilter?.value || '').toLowerCase() === 'urgent') priority = 1
-    else if ((priorityFilter?.value || '').toLowerCase() === 'high') priority = 2
-    else if ((priorityFilter?.value || '').toLowerCase() === 'normal') priority = 3
-    else if ((priorityFilter?.value || '').toLowerCase() === 'low') priority = 4
-
     const res = await axiosClient.get(`/tasks/search`, {
       params: { 
-        priority: priority,
         projectId: projectId.value
       }
     })
-    tasks.value = applyTaskFilters(res.data.data || [], metadata.filters)
+    originalTasks.value = res.data.data || []
+    tasks.value = applyTaskFilters(originalTasks.value, metadata.filters)
   } catch (err) {
     console.error('Failed to fetch tasks', err)
+    originalTasks.value = []
+    tasks.value = []
   } finally {
     loading.value = false
   }
@@ -260,11 +322,65 @@ const createView = async () => {
     }
     const res = await axiosClient.post(`/projects/${projectId.value}/views`, payload)
     views.value.unshift(res.data.data)
-    ElNotification.success('View created successfully')
+    ElNotification.success(t('View created successfully'))
     showCreateModal.value = false
     resetForm()
   } catch (err) {
-    ElNotification.error('Failed to create view')
+    ElNotification.error(t('Failed to create view'))
+  }
+}
+
+const openCreateModal = () => {
+  resetForm()
+  showCreateModal.value = true
+}
+
+const refreshActiveViewTasks = async () => {
+  if (!activeView.value) return
+  await fetchViewTasks(activeView.value, {
+    filters: activeFilters.value,
+    displayProps: displayProps.value,
+    groupBy: groupBy.value,
+    orderBy: orderBy.value,
+    showSubItems: showSubItems.value,
+    viewType: viewType.value
+  })
+}
+
+const handleTaskCreated = async (payload) => {
+  try {
+    await axiosClient.post(`/projects/${projectId.value}/WorkTasks`, {
+      title: payload.title,
+      description: payload.description || '',
+      statusName: payload.statusName || 'BACKLOG',
+      priority: payload.priority || 3
+    })
+    ElNotification.success(t('Work item created'))
+    await refreshActiveViewTasks()
+  } catch (err) {
+    console.error('Failed to create work item', err)
+    ElNotification.error(err.response?.data?.message || t('Failed to create work item'))
+  }
+}
+
+const handleTaskUpdate = async (task, field, value, previousValue = task ? task[field] : undefined) => {
+  if (!task?.id) return
+  const payload = field && typeof field === 'object' && !Array.isArray(field) ? field : { [field]: value }
+  const previousValues = Object.fromEntries(Object.keys(payload).map(key => [key, task[key]]))
+
+  try {
+    Object.entries(payload).forEach(([key, nextValue]) => {
+      task[key] = nextValue
+    })
+    await axiosClient.patch(`/projects/${projectId.value}/WorkTasks/${task.id}`, payload)
+    await refreshActiveViewTasks()
+  } catch (err) {
+    console.error('Failed to update work item', err)
+    Object.entries(previousValues).forEach(([key, rollbackValue]) => {
+      task[key] = rollbackValue
+    })
+    if (field && typeof field === 'string') task[field] = previousValue
+    ElNotification.error(err.response?.data?.message || t('Failed to update work item'))
   }
 }
 
@@ -281,17 +397,17 @@ const resetForm = () => {
 
 const deleteView = async (id) => {
   try {
-    await ElMessageBox.confirm('Are you sure you want to delete this view?', 'Warning', {
+    await ElMessageBox.confirm(t('Are you sure you want to delete this view?'), t('Warning'), {
       type: 'warning',
-      confirmButtonText: 'Delete',
+      confirmButtonText: t('Delete'),
       confirmButtonClass: 'el-button--danger'
     })
     await axiosClient.delete(`/projects/${projectId.value}/views/${id}`)
     views.value = views.value.filter(v => v.id !== id)
     if (activeView.value?.id === id) activeView.value = null
-    ElNotification.success('View deleted')
+    ElNotification.success(t('View deleted'))
   } catch (err) {
-    if (err !== 'cancel') ElNotification.error('Failed to delete view')
+    if (err !== 'cancel') ElNotification.error(t('Failed to delete view'))
   }
 }
 
@@ -300,7 +416,7 @@ const toggleFavorite = async (view) => {
     const res = await axiosClient.patch(`/projects/${projectId.value}/views/${view.id}/favorite`)
     view.isFavorite = res.data.data.isFavorite
   } catch (err) {
-    ElNotification.error('Failed to toggle favorite')
+    ElNotification.error(t('Failed to toggle favorite'))
   }
 }
 
@@ -321,6 +437,9 @@ const resetModal = () => {
 
 const goBackToList = () => {
     activeView.value = null
+    originalTasks.value = []
+    tasks.value = []
+    showActiveFilters.value = false
 }
 
 const toggleDisplayProp = (prop) => {
@@ -340,6 +459,48 @@ const viewTypeIcon = computed(() => {
     }
 })
 
+const activeFilterCount = computed(() => activeFilters.value.length)
+const displayedColumnCount = computed(() => displayProps.value.length)
+const activeListFilterCount = computed(() => Number(listFavoritesOnly.value) + Number(listGlobalOnly.value))
+const activeViewSubtitle = computed(() => {
+    if (activeView.value?.description) return activeView.value.description
+    if (activeFilterCount.value) return t('{count} filters applied').replace('{count}', activeFilterCount.value)
+    return t('Saved work item view')
+})
+
+const toTimestamp = (task, field) => {
+    const value = getTaskFieldValue(task, field)
+    const time = value ? new Date(value).getTime() : 0
+    return Number.isNaN(time) ? 0 : time
+}
+
+const prioritySortWeight = (priority) => {
+    const numeric = Number(priority)
+    if (!Number.isNaN(numeric) && numeric > 0) return numeric
+    return 99
+}
+
+const sortTasksByDisplayOrder = (items) => {
+    const next = [...items]
+    return next.sort((a, b) => {
+        if (orderBy.value === 'Last created') return toTimestamp(b, 'createdAt') - toTimestamp(a, 'createdAt')
+        if (orderBy.value === 'Last updated') return toTimestamp(b, 'updatedAt') - toTimestamp(a, 'updatedAt')
+        if (orderBy.value === 'Start date') return toTimestamp(a, 'startDate') - toTimestamp(b, 'startDate')
+        if (orderBy.value === 'Due date') return toTimestamp(a, 'dueDate') - toTimestamp(b, 'dueDate')
+        if (orderBy.value === 'Priority') return prioritySortWeight(a.priority) - prioritySortWeight(b.priority)
+        return (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0)
+    })
+}
+
+const visibleViewTasks = computed(() => {
+    return sortTasksByDisplayOrder(applyTaskFilters(originalTasks.value, activeFilters.value))
+})
+
+const clearListFilters = () => {
+    listFavoritesOnly.value = false
+    listGlobalOnly.value = false
+}
+
 onMounted(() => {
   fetchViews()
   fetchProjectMembers()
@@ -348,6 +509,7 @@ onMounted(() => {
 watch(projectId, async () => {
     activeView.value = null
     tasks.value = []
+    originalTasks.value = []
     await Promise.all([fetchViews(), fetchProjectMembers()])
 })
 
@@ -358,11 +520,11 @@ const getCreatorName = (view) => {
     const member = projectMembers.value.find(m => m.id === view.createdBy || m.userId === view.createdBy || m.userId === view.createdById)
     if (member) return member.fullName || member.name
   }
-  return 'Owner'
+  return t('Owner')
 }
 
 const getAvatarBg = (name) => {
-  if (!name || name === 'Owner') return '#64748b'
+  if (!name || name === t('Owner')) return '#64748b'
   const colors = ['#3b82f6', '#10b981', '#fbbf24', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316']
   let hash = 0
   for (let i = 0; i < name.length; i++) {
@@ -386,10 +548,10 @@ const getInitials = (name) => {
   <div class="views-page">
     <header class="nexus-project-header">
       <div class="nexus-breadcrumb">
-        <div class="project-icon" style="background: #FACC15">
+        <div class="project-icon">
           <i class="fa-solid fa-certificate"></i>
         </div>
-        <span class="view-name cursor-pointer" @click="goBackToList">Views</span>
+        <span class="view-name cursor-pointer" @click="goBackToList">{{ t('Views') }}</span>
         <template v-if="activeView">
             <i class="fa-solid fa-chevron-right sep"></i>
             <span class="view-name">{{ activeView.name }}</span>
@@ -400,7 +562,7 @@ const getInitials = (name) => {
         <template v-if="!activeView">
             <!-- Consolidated Clusters -->
             <div class="flex items-center gap-2" v-if="showViewSearch">
-               <input v-model="filterSearch" class="nexus-search-input" type="text" placeholder="Search views..." style="width: 200px" />
+               <input v-model="filterSearch" class="nexus-search-input" type="text" :placeholder="t('Search views...')" style="width: 200px" />
             </div>
             
             <button class="nexus-btn-icon" type="button" @click="showViewSearch = !showViewSearch" :class="{ 'bg-surface-hover border-accent': showViewSearch }">
@@ -409,36 +571,108 @@ const getInitials = (name) => {
             
             <el-dropdown trigger="click">
                 <button class="nexus-btn-outlined" type="button">
-                    <i class="fa-solid fa-arrow-down-short-wide"></i> {{ sortBy }}
+                    <i class="fa-solid fa-arrow-down-short-wide"></i> {{ t(sortBy) }}
                 </button>
                 <template #dropdown>
                     <el-dropdown-menu class="dark-popover">
-                        <el-dropdown-item @click="sortBy = 'Name'">Name</el-dropdown-item>
-                        <el-dropdown-item @click="sortBy = 'Created at'">Created at</el-dropdown-item>
-                        <el-dropdown-item @click="sortBy = 'Updated at'">Updated at</el-dropdown-item>
+                        <el-dropdown-item @click="sortBy = 'Name'">{{ t('Name') }}</el-dropdown-item>
+                        <el-dropdown-item @click="sortBy = 'Created at'">{{ t('Created at') }}</el-dropdown-item>
+                        <el-dropdown-item @click="sortBy = 'Updated at'">{{ t('Updated at') }}</el-dropdown-item>
                     </el-dropdown-menu>
                 </template>
             </el-dropdown>
             
-            <button class="nexus-btn-outlined" type="button">
-                <i class="fa-solid fa-bars-staggered"></i> Filters
-            </button>
+            <el-dropdown trigger="click" :hide-on-click="false" popper-class="views-popper-clean">
+                <button class="nexus-btn-outlined" type="button" :class="{ active: showListFilters || activeListFilterCount }" @click="showListFilters = !showListFilters">
+                    <i class="fa-solid fa-bars-staggered"></i> {{ t('Filters') }}
+                    <span v-if="activeListFilterCount" class="toolbar-count">{{ activeListFilterCount }}</span>
+                </button>
+                <template #dropdown>
+                    <div class="views-filter-menu" @click.stop>
+                        <label class="menu-check">
+                            <input type="checkbox" v-model="listFavoritesOnly" />
+                            <span>{{ t('Favorites') }}</span>
+                        </label>
+                        <label class="menu-check">
+                            <input type="checkbox" v-model="listGlobalOnly" />
+                            <span>{{ t('Global views') }}</span>
+                        </label>
+                        <button class="menu-clear" type="button" :disabled="!activeListFilterCount" @click="clearListFilters">{{ t('Clear filters') }}</button>
+                    </div>
+                </template>
+            </el-dropdown>
 
-            <button class="nexus-btn-primary" type="button" @click="showCreateModal = true">
-              <i class="fa-solid fa-plus"></i> Add view
+            <button class="nexus-btn-primary" type="button" @click="openCreateModal">
+              <i class="fa-solid fa-plus"></i> {{ t('Add view') }}
             </button>
         </template>
         <template v-else>
-            <button class="nexus-btn-outlined" type="button" disabled title="Display settings are configured when creating the view"><i class="fa-solid fa-sliders"></i> Display</button>
+            <button class="nexus-btn-outlined" type="button" :class="{ active: showActiveFilters || activeFilterCount }" @click="showActiveFilters = !showActiveFilters">
+              <i class="fa-solid fa-filter"></i> {{ t('Filters') }}
+              <span v-if="activeFilterCount" class="toolbar-count">{{ activeFilterCount }}</span>
+            </button>
+            <el-dropdown trigger="click" popper-class="display-popper-final" placement="bottom-end" :hide-on-click="false" :z-index="5000">
+              <button class="nexus-btn-outlined" type="button">
+                <i class="fa-solid fa-sliders"></i> {{ t('Display') }}
+              </button>
+              <template #dropdown>
+                <div class="display-scroll-vfinal" @click.stop>
+                  <div class="st-content">
+                    <div class="st-sect">
+                      <div class="st-sect-header"><span>{{ t('Display Properties') }}</span><i class="fa-solid fa-chevron-up"></i></div>
+                      <div class="st-chips">
+                        <span v-for="p in ['ID', 'Assignee', 'Start date', 'Due date', 'Labels', 'Priority', 'State', 'Sub-work item count', 'Attachment count', 'Link', 'Module', 'Cycle']"
+                              :key="p" class="p-chip-st" :class="{ selected: displayProps.includes(p) }" @click.stop="toggleDisplayProp(p)">{{ t(p) }}</span>
+                      </div>
+                    </div>
+                    <div class="st-sect">
+                      <div class="st-sect-header"><span>{{ t('Group by') }}</span><i class="fa-solid fa-chevron-up"></i></div>
+                      <div class="st-radios">
+                        <label class="st-opt" v-for="g in ['States', 'Priority', 'None']" :key="g">
+                          <input type="radio" name="active-groupby" :value="g" v-model="groupBy" />
+                          <span class="st-dot"></span><span class="st-label">{{ t(g) }}</span>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="st-sect">
+                      <div class="st-sect-header"><span>{{ t('Order by') }}</span><i class="fa-solid fa-chevron-up"></i></div>
+                      <div class="st-radios">
+                        <label class="st-opt" v-for="o in ['Manual', 'Last created', 'Last updated', 'Start date', 'Due date', 'Priority']" :key="o">
+                          <input type="radio" name="active-orderby" :value="o" v-model="orderBy" />
+                          <span class="st-dot"></span><span class="st-label">{{ t(o) }}</span>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="st-foot">
+                      <label class="st-check">
+                        <input type="checkbox" v-model="showSubItems" />
+                        <span class="checkmark"></span>
+                        <span class="st-label">{{ t('Show sub-work items') }}</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </el-dropdown>
         </template>
       </div>
     </header>
 
-    <!-- Main Content Body - Restored to Turn 9 layout -->
     <main class="views-content">
       <div v-if="!activeView" class="views-list">
+        <div class="views-list-head">
+          <div>
+            <span class="section-kicker">{{ t('Saved views') }}</span>
+            <h2>{{ t('Views') }}</h2>
+          </div>
+          <span class="views-count">{{ filteredViews.length }} {{ t('views') }}</span>
+        </div>
+
         <div v-if="views.length === 0" class="empty-placeholder">
-          <p>No custom views here.</p>
+          <div class="empty-mark"><i class="fa-solid fa-layer-group"></i></div>
+          <h3>{{ t('No custom views here.') }}</h3>
+          <p>{{ t('Create a filtered view to keep important work easy to find.') }}</p>
         </div>
         
         <div class="view-item-row" v-for="view in filteredViews" :key="view.id" @click="selectView(view)">
@@ -452,7 +686,7 @@ const getInitials = (name) => {
                 </div>
             </div>
             <div class="vi-right">
-                <i class="fa-solid fa-earth-americas vi-globe" v-if="view.isGlobal" title="Global View"></i>
+                <i class="fa-solid fa-earth-americas vi-globe" v-if="view.isGlobal" :title="t('Global view')"></i>
                 <div class="vi-avatar" :style="{ backgroundColor: getAvatarBg(getCreatorName(view)) }" :title="getCreatorName(view)">
                     {{ getInitials(getCreatorName(view)) }}
                 </div>
@@ -462,9 +696,9 @@ const getInitials = (name) => {
                 <el-dropdown trigger="click" @command="command => handleViewCommand(view, command)">
                     <button class="vi-more" type="button" @click.stop><i class="fa-solid fa-ellipsis"></i></button>
                     <template #dropdown>
-                        <el-dropdown-menu class="plane-dropdown">
-                            <el-dropdown-item command="favorite">{{ view.isFavorite ? 'Remove favorite' : 'Add to favorite' }}</el-dropdown-item>
-                            <el-dropdown-item command="delete" class="text-red-500">Delete view</el-dropdown-item>
+                        <el-dropdown-menu class="dark-popover">
+                            <el-dropdown-item command="favorite">{{ view.isFavorite ? t('Remove favorite') : t('Add to favorite') }}</el-dropdown-item>
+                            <el-dropdown-item command="delete">{{ t('Delete view') }}</el-dropdown-item>
                         </el-dropdown-menu>
                     </template>
                 </el-dropdown>
@@ -473,20 +707,48 @@ const getInitials = (name) => {
       </div>
 
       <div v-else class="detail-container">
-        <ListView :tasks="tasks" :project-members="projectMembers" />
+        <section class="view-detail-summary">
+          <div>
+            <span class="section-kicker">{{ t('Active view') }}</span>
+            <h2>{{ activeView.name }}</h2>
+            <p>{{ activeViewSubtitle }}</p>
+          </div>
+          <div class="summary-metrics">
+            <span><strong>{{ visibleViewTasks.length }}</strong> {{ t('items') }}</span>
+            <span><strong>{{ activeFilterCount }}</strong> {{ t('filters') }}</span>
+            <span><strong>{{ displayedColumnCount }}</strong> {{ t('columns') }}</span>
+          </div>
+        </section>
+
+        <div v-if="showActiveFilters || activeFilterCount" class="active-filter-row">
+          <FilterBar v-model:filters="activeFilters" />
+        </div>
+
+        <div v-if="loading" class="view-loading-shell">
+          <div v-for="line in 6" :key="line" class="skeleton-row"></div>
+        </div>
+
+        <ListView
+          v-else
+          :tasks="visibleViewTasks"
+          :project-members="projectMembers"
+          :group-by="groupBy"
+          :show-sub-items="showSubItems"
+          @task-created="handleTaskCreated"
+          @update-task="handleTaskUpdate"
+        />
       </div>
     </main>
 
-    <!-- Modal (ONLY REFORMING THE DISPLAY DROPDOWN) -->
     <div class="modal-overlay" v-if="showCreateModal" @click.self="resetModal">
       <div class="view-modal premium">
-        <div class="modal-header"><h3>Create View</h3></div>
+        <div class="modal-header"><h3>{{ t('Create View') }}</h3></div>
         <div class="modal-body">
             <div class="input-row">
                 <div class="icon-box"><i class="fa-solid fa-layer-group"></i></div>
-                <input type="text" v-model="newView.name" placeholder="Title" class="title-input" />
+                <input type="text" v-model="newView.name" :placeholder="t('Title')" class="title-input" />
             </div>
-            <textarea v-model="newView.description" placeholder="Description" rows="4" class="desc-input"></textarea>
+            <textarea v-model="newView.description" :placeholder="t('Description')" rows="4" class="desc-input"></textarea>
             
             <div class="m-filter-section">
                 <FilterBar 
@@ -500,36 +762,36 @@ const getInitials = (name) => {
             <div class="modal-controls-bar">
                 <div class="toggle-group">
                     <button class="m-toggle" :class="{ active: modalTab === 'list' }" @click="modalTab = 'list'" type="button">
-                        <i :class="viewTypeIcon" class="mr-2"></i> List
+                        <i :class="viewTypeIcon" class="mr-2"></i> {{ t('List') }}
                     </button>
                     <!-- UPDATED PLACEMENT TO 'right-start' FOR SCROLLABILITY -->
                     <el-dropdown trigger="click" popper-class="display-popper-final" placement="right-start" :hide-on-click="false" :z-index="5000">
-                        <button class="m-toggle" :class="{ active: modalTab === 'display' }" @click="modalTab = 'display'" type="button">Display</button>
+                        <button class="m-toggle" :class="{ active: modalTab === 'display' }" @click="modalTab = 'display'" type="button">{{ t('Display') }}</button>
                         <template #dropdown>
                             <div class="display-scroll-vfinal">
                                 <div class="st-content">
                                     <div class="st-sect">
-                                        <div class="st-sect-header"><span>Display Properties</span><i class="fa-solid fa-chevron-up"></i></div>
+                                        <div class="st-sect-header"><span>{{ t('Display Properties') }}</span><i class="fa-solid fa-chevron-up"></i></div>
                                         <div class="st-chips">
-                                            <span v-for="p in ['ID', 'Assignee', 'Start date', 'Due date', 'Labels', 'Priority', 'State', 'Sub-work item count', 'Attachment count', 'Link', 'Estimate', 'Module', 'Cycle']" 
-                                                  :key="p" class="p-chip-st" :class="{ selected: displayProps.includes(p) }" @click.stop="toggleDisplayProp(p)">{{ p }}</span>
+                                <span v-for="p in ['ID', 'Assignee', 'Start date', 'Due date', 'Labels', 'Priority', 'State', 'Sub-work item count', 'Attachment count', 'Link', 'Module', 'Cycle']"
+                                                  :key="p" class="p-chip-st" :class="{ selected: displayProps.includes(p) }" @click.stop="toggleDisplayProp(p)">{{ t(p) }}</span>
                                         </div>
                                     </div>
                                     <div class="st-sect">
-                                        <div class="st-sect-header"><span>Group by</span><i class="fa-solid fa-chevron-up"></i></div>
+                                        <div class="st-sect-header"><span>{{ t('Group by') }}</span><i class="fa-solid fa-chevron-up"></i></div>
                                         <div class="st-radios">
                                             <label class="st-opt" v-for="g in ['States', 'Priority', 'Cycle', 'Module', 'Labels', 'Assignees', 'Created by', 'None']" :key="g">
                                                 <input type="radio" name="pop-groupby" :value="g" v-model="groupBy" />
-                                                <span class="st-dot"></span><span class="st-label">{{ g }}</span>
+                                                <span class="st-dot"></span><span class="st-label">{{ t(g) }}</span>
                                             </label>
                                         </div>
                                     </div>
                                     <div class="st-sect">
-                                        <div class="st-sect-header"><span>Order by</span><i class="fa-solid fa-chevron-up"></i></div>
+                                        <div class="st-sect-header"><span>{{ t('Order by') }}</span><i class="fa-solid fa-chevron-up"></i></div>
                                         <div class="st-radios">
                                             <label class="st-opt" v-for="o in ['Manual', 'Last created', 'Last updated', 'Start date', 'Due date', 'Priority']" :key="o">
                                                 <input type="radio" name="pop-orderby" :value="o" v-model="orderBy" />
-                                                <span class="st-dot"></span><span class="st-label">{{ o }}</span>
+                                                <span class="st-dot"></span><span class="st-label">{{ t(o) }}</span>
                                             </label>
                                         </div>
                                     </div>
@@ -538,7 +800,7 @@ const getInitials = (name) => {
                                         <label class="st-check">
                                             <input type="checkbox" v-model="showSubItems" />
                                             <span class="checkmark"></span>
-                                            <span class="st-label">Show sub-work items</span>
+                                            <span class="st-label">{{ t('Show sub-work items') }}</span>
                                         </label>
                                     </div>
                                 </div>
@@ -547,24 +809,24 @@ const getInitials = (name) => {
                     </el-dropdown>
                 </div>
                 <el-dropdown trigger="click" popper-class="filter-modal-popper" placement="bottom-start" :z-index="5000">
-                    <button class="filter-btn" type="button"><i class="fa-solid fa-filter-circle-plus mr-2"></i> Filters</button>
+                    <button class="filter-btn" type="button"><i class="fa-solid fa-filter-circle-plus mr-2"></i> {{ t('Filters') }}</button>
                     <template #dropdown>
                         <div class="filter-modal-dropdown">
                             <div class="f-search">
                                 <i class="fa-solid fa-magnifying-glass"></i>
-                                <input type="text" placeholder="Search" />
+                                <input type="text" :placeholder="t('Search')" />
                             </div>
                             <div class="f-options">
-                                <div class="f-opt" @click="addFilterOption('status')"><i class="fa-regular fa-circle-dot"></i> State</div>
-                                <div class="f-opt" @click="addFilterOption('assignee')"><i class="fa-regular fa-user"></i> Assignees</div>
-                                <div class="f-opt" @click="addFilterOption('priority')"><i class="fa-solid fa-signal"></i> Priority</div>
-                                <div class="f-opt" @click="addFilterOption('label')"><i class="fa-solid fa-tag"></i> Label</div>
-                                <div class="f-opt" @click="addFilterOption('cycle')"><i class="fa-regular fa-circle-pause"></i> Cycle</div>
-                                <div class="f-opt" @click="addFilterOption('module')"><i class="fa-solid fa-table-cells-large"></i> Module</div>
-                                <div class="f-opt" @click="addFilterOption('startDate')"><i class="fa-regular fa-calendar-plus"></i> Start date</div>
-                                <div class="f-opt" @click="addFilterOption('dueDate')"><i class="fa-regular fa-calendar"></i> Target date</div>
-                                <div class="f-opt" @click="addFilterOption('createdAt')"><i class="fa-regular fa-calendar"></i> Created at</div>
-                                <div class="f-opt" @click="addFilterOption('updatedAt')"><i class="fa-regular fa-calendar"></i> Updated at</div>
+                                <div class="f-opt" @click="addFilterOption('status')"><i class="fa-regular fa-circle-dot"></i> {{ t('State') }}</div>
+                                <div class="f-opt" @click="addFilterOption('assignee')"><i class="fa-regular fa-user"></i> {{ t('Assignees') }}</div>
+                                <div class="f-opt" @click="addFilterOption('priority')"><i class="fa-solid fa-signal"></i> {{ t('Priority') }}</div>
+                                <div class="f-opt" @click="addFilterOption('label')"><i class="fa-solid fa-tag"></i> {{ t('Label') }}</div>
+                                <div class="f-opt" @click="addFilterOption('cycle')"><i class="fa-regular fa-circle-pause"></i> {{ t('Cycles') }}</div>
+                                <div class="f-opt" @click="addFilterOption('module')"><i class="fa-solid fa-table-cells-large"></i> {{ t('Modules') }}</div>
+                                <div class="f-opt" @click="addFilterOption('startDate')"><i class="fa-regular fa-calendar-plus"></i> {{ t('Start date') }}</div>
+                                <div class="f-opt" @click="addFilterOption('dueDate')"><i class="fa-regular fa-calendar"></i> {{ t('Target date') }}</div>
+                                <div class="f-opt" @click="addFilterOption('createdAt')"><i class="fa-regular fa-calendar"></i> {{ t('Created at') }}</div>
+                                <div class="f-opt" @click="addFilterOption('updatedAt')"><i class="fa-regular fa-calendar"></i> {{ t('Updated at') }}</div>
                             </div>
                         </div>
                     </template>
@@ -572,8 +834,8 @@ const getInitials = (name) => {
             </div>
         </div>
         <div class="modal-footer">
-            <button class="cancel-btn" type="button" @click="resetModal">Cancel</button>
-            <button class="create-btn" type="button" @click="createView" :disabled="!newView.name">Create View</button>
+            <button class="cancel-btn" type="button" @click="resetModal">{{ t('Cancel') }}</button>
+            <button class="create-btn" type="button" @click="createView" :disabled="!newView.name">{{ t('Create View') }}</button>
         </div>
       </div>
     </div>
@@ -581,159 +843,875 @@ const getInitials = (name) => {
 </template>
 
 <style scoped>
-/* Main Page Layout (Restored to Turn 9) */
-.views-page { display: flex; flex-direction: column; height: 100vh; background-color: var(--color-bg); font-family: 'Inter', sans-serif; color: var(--color-text-primary); }
-.app-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; border-bottom: 1px solid rgba(255,255,255,0.03); }
-.breadcrumb-refined { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; }
-.sep { font-size: 8px; color: #3F3F46; }
-.v-name { color: var(--color-text-muted); cursor: pointer; transition: color 0.2s; }
-.v-name:hover { color: var(--color-text-primary); }
+.views-page {
+  --views-bg: color-mix(in srgb, var(--color-bg) 92%, #020617);
+  --views-panel: color-mix(in srgb, var(--color-surface) 82%, #020617);
+  --views-panel-strong: color-mix(in srgb, var(--color-surface) 92%, #0b1220);
+  --views-line: color-mix(in srgb, var(--color-border) 74%, #38bdf8);
+  --views-muted-line: color-mix(in srgb, var(--color-border) 84%, transparent);
+  --views-accent-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--views-bg) 94%, #38bdf8) 0%, var(--views-bg) 240px),
+    var(--views-bg);
+  color: var(--color-text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+}
 
-.header-right { display: flex; align-items: center; gap: 8px; }
-.h-tool-btn { background: transparent; border: none; color: var(--color-text-muted); cursor: pointer; padding: 6px 12px; border-radius: 4px; font-size: 13px; }
-.h-tool-btn.outlined { border: 1px solid #1E1E22; }
-.view-search-input { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text-primary); font-size: 13px; padding: 6px 10px; outline: none; width: 180px; }
-.add-view-primary { background: #0EA5E9; border: none; color: var(--color-text-primary); padding: 6px 16px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; }
+.nexus-project-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--views-muted-line);
+  background: color-mix(in srgb, var(--views-bg) 88%, transparent);
+  backdrop-filter: blur(14px);
+}
 
-/* Content List */
-.views-content { flex: 1; padding: 16px 24px; }
+.nexus-breadcrumb,
+.nexus-controls-row,
+.vi-left,
+.vi-right {
+  display: flex;
+  align-items: center;
+}
+
+.nexus-breadcrumb {
+  gap: 10px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.project-icon {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--color-accent) 90%, #ffffff);
+  color: #020617;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+
+.view-name {
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+}
+
+.view-name.cursor-pointer {
+  color: var(--color-text-secondary);
+}
+
+.view-name.cursor-pointer:hover {
+  color: var(--color-text-primary);
+}
+
+.sep {
+  font-size: 9px;
+  color: var(--color-text-muted);
+}
+
+.nexus-controls-row {
+  gap: 8px;
+}
+
+.nexus-search-input,
+.title-input,
+.desc-input,
+.plane-search-input {
+  outline: none;
+}
+
+.nexus-search-input {
+  height: 32px;
+  border: 1px solid var(--views-muted-line);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--views-panel) 78%, #020617);
+  color: var(--color-text-primary);
+  padding: 0 11px;
+  font-size: 13px;
+}
+
+.nexus-search-input:focus,
+.title-input:focus,
+.desc-input:focus {
+  border-color: color-mix(in srgb, var(--color-accent) 68%, var(--color-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 14%, transparent);
+}
+
+.nexus-btn-icon,
+.nexus-btn-outlined,
+.nexus-btn-primary,
+.filter-btn,
+.m-toggle,
+.cancel-btn,
+.create-btn {
+  min-height: 32px;
+  border-radius: 7px;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease, transform 120ms ease;
+}
+
+.nexus-btn-icon:active,
+.nexus-btn-outlined:active,
+.nexus-btn-primary:active,
+.filter-btn:active,
+.m-toggle:active,
+.cancel-btn:active,
+.create-btn:active {
+  transform: translateY(1px);
+}
+
+.nexus-btn-icon,
+.nexus-btn-outlined {
+  border: 1px solid var(--views-muted-line);
+  background: color-mix(in srgb, var(--views-panel) 82%, transparent);
+  color: var(--color-text-secondary);
+}
+
+.nexus-btn-icon {
+  width: 32px;
+  display: grid;
+  place-items: center;
+}
+
+.nexus-btn-outlined,
+.nexus-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.nexus-btn-icon:hover,
+.nexus-btn-outlined:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 46%, var(--color-border));
+  background: color-mix(in srgb, var(--views-panel-strong) 92%, var(--color-accent));
+  color: var(--color-text-primary);
+}
+
+.nexus-btn-outlined.active {
+  border-color: color-mix(in srgb, var(--color-accent) 56%, var(--color-border));
+  background: var(--views-accent-soft);
+  color: var(--color-accent);
+}
+
+.toolbar-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: #020617;
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.nexus-btn-primary {
+  border: 1px solid color-mix(in srgb, var(--color-accent) 76%, #ffffff);
+  background: color-mix(in srgb, var(--color-accent) 88%, #0f172a);
+  color: #020617;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+
+.nexus-btn-primary:hover {
+  background: var(--color-accent-hover);
+}
+
+.views-filter-menu {
+  --views-menu-panel: color-mix(in srgb, var(--color-surface) 92%, #020617);
+  --views-menu-line: color-mix(in srgb, var(--color-border) 82%, transparent);
+  width: 220px;
+  padding: 8px;
+  border: 1px solid var(--views-menu-line);
+  border-radius: 8px;
+  background: var(--views-menu-panel);
+  box-shadow: 0 18px 48px color-mix(in srgb, #020617 44%, transparent);
+}
+
+.menu-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  padding: 0 8px;
+  border-radius: 7px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.menu-check:hover {
+  background: color-mix(in srgb, var(--color-surface-hover) 72%, transparent);
+  color: var(--color-text-primary);
+}
+
+.menu-check input {
+  accent-color: var(--color-accent);
+}
+
+.menu-clear {
+  width: 100%;
+  margin-top: 6px;
+  min-height: 32px;
+  border: 1px solid var(--views-menu-line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.menu-clear:hover:not(:disabled) {
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-surface-hover) 72%, transparent);
+}
+
+.menu-clear:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.views-content {
+  flex: 1;
+  padding: 22px 28px 32px;
+  overflow: auto;
+}
+
+.views-list,
+.detail-container {
+  width: min(100%, 1280px);
+  margin: 0 auto;
+}
+
+.views-list-head,
+.view-detail-summary {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+.section-kicker {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--color-accent);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.views-list-head h2,
+.view-detail-summary h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: 760;
+  letter-spacing: 0;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.view-detail-summary p {
+  margin: 6px 0 0;
+  max-width: 58ch;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.views-count,
+.summary-metrics {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-metrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.summary-metrics span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 6px 9px;
+  border: 1px solid var(--views-muted-line);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--views-panel) 76%, transparent);
+}
+
+.summary-metrics strong {
+  color: var(--color-text-primary);
+}
+
 .view-item-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    margin-bottom: 12px;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 12px;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  min-height: 62px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  border: 1px solid var(--views-muted-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--views-panel) 88%, transparent);
+  cursor: pointer;
+  box-shadow: 0 14px 32px color-mix(in srgb, #020617 18%, transparent);
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
 }
+
 .view-item-row:hover {
-    background: var(--color-surface-hover);
-    border-color: var(--color-accent);
-    transform: translateX(4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border));
+  background: color-mix(in srgb, var(--views-panel-strong) 88%, var(--color-accent));
+  transform: translateY(-1px);
 }
-.vi-left { display: flex; align-items: center; gap: 16px; }
+
+.view-item-row:active {
+  transform: translateY(0);
+}
+
+.vi-left {
+  gap: 12px;
+  min-width: 0;
+}
+
 .vi-icon-wrapper {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--color-accent);
-    font-size: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: var(--views-accent-soft);
+  color: var(--color-accent);
+  font-size: 14px;
 }
-.vi-meta { display: flex; flex-direction: column; gap: 2px; }
-.vi-name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
-.vi-desc { font-size: 12px; color: var(--color-text-muted); }
-.vi-right { display: flex; align-items: center; gap: 12px; }
+
+.vi-meta {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.vi-name {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.vi-desc {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.vi-right {
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
 .vi-avatar {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    color: #ffffff;
-    font-size: 10px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1.5px solid var(--color-bg);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, #ffffff 26%, transparent);
+  border-radius: 7px;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 750;
+  box-shadow: 0 1px 0 color-mix(in srgb, #ffffff 18%, transparent) inset;
 }
-.vi-star, .vi-more {
-    background: transparent;
-    border: none;
-    color: var(--color-text-muted);
-    cursor: pointer;
-    font-size: 14px;
-    padding: 6px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
+
+.vi-star,
+.vi-more {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
 }
-.view-item-row:hover .vi-star,
-.view-item-row:hover .vi-more,
+
+.vi-star:hover,
+.vi-more:hover {
+  border-color: var(--views-muted-line);
+  background: color-mix(in srgb, var(--views-panel-strong) 86%, #ffffff);
+  color: var(--color-text-primary);
+}
+
 .vi-star.active {
-    opacity: 1;
+  color: #fbbf24;
 }
-.vi-star:hover, .vi-more:hover {
-    color: var(--color-text-primary);
-    background: var(--color-surface-hover);
-}
-.vi-star.active {
-    color: #fbbf24 !important;
-}
+
 .vi-globe {
-    color: var(--color-accent);
-    font-size: 13px;
+  color: var(--color-accent);
+  font-size: 13px;
 }
 
-/* Modal (Restored to Premium layout) */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 2000; }
-.view-modal.premium { width: 700px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; overflow: hidden; }
-.modal-header { padding: 20px 24px; border-bottom: 1px solid var(--color-border); font-size: 16px; font-weight: 600; }
-.modal-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
-.m-filter-section { margin: 4px 0; }
-.input-row { display: flex; align-items: center; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; }
-.icon-box { padding: 0 16px; border-right: 1px solid var(--color-border); color: var(--color-text-muted); }
-.title-input { flex: 1; background: transparent; border: none; padding: 14px; color: var(--color-text-primary); outline: none; }
-.desc-input { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: 14px; color: var(--color-text-secondary); outline: none; resize: none; }
+.empty-placeholder,
+.view-loading-shell {
+  border: 1px solid var(--views-muted-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--views-panel) 86%, transparent);
+}
 
-.modal-controls-bar { display: flex; justify-content: space-between; align-items: center; }
-.toggle-group { display: flex; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: 3px; gap: 4px; }
-.m-toggle { background: transparent; border: none; color: var(--color-text-muted); padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
-.m-toggle.active { background: var(--color-surface-hover); color: var(--color-text-primary); border: 1px solid var(--color-border); }
-.filter-btn { background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-muted); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+.empty-placeholder {
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+  padding: 32px;
+  text-align: center;
+}
 
-.modal-footer { padding: 16px 24px; background: var(--color-bg); border-top: 1px solid var(--color-border); display: flex; justify-content: flex-end; gap: 12px; }
-.cancel-btn { background: transparent; border: none; color: var(--color-text-muted); padding: 8px 16px; cursor: pointer; }
-.create-btn { background: var(--color-accent); border: none; color: var(--color-text-inverse); font-weight: 700; padding: 8px 24px; border-radius: 6px; cursor: pointer; }
+.empty-mark {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  background: var(--views-accent-soft);
+  color: var(--color-accent);
+}
 
-/* REFINED DISPLAY DROPDOWN (ONLY PART EDITED) */
+.empty-placeholder h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.empty-placeholder p {
+  margin: 8px 0 0;
+  max-width: 36ch;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.detail-container {
+  padding: 18px;
+  border: 1px solid var(--views-muted-line);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--views-panel-strong) 86%, transparent), color-mix(in srgb, var(--views-panel) 92%, transparent)),
+    var(--views-panel);
+  box-shadow: 0 18px 48px color-mix(in srgb, #020617 24%, transparent);
+}
+
+.active-filter-row {
+  margin-bottom: 14px;
+}
+
+.view-loading-shell {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.skeleton-row {
+  height: 42px;
+  border-radius: 7px;
+  background:
+    linear-gradient(90deg, transparent, color-mix(in srgb, #ffffff 7%, transparent), transparent),
+    color-mix(in srgb, var(--color-surface-hover) 52%, transparent);
+  background-size: 240px 100%, 100% 100%;
+  animation: skeleton-sweep 1.2s ease-in-out infinite;
+}
+
+@keyframes skeleton-sweep {
+  from { background-position: -240px 0, 0 0; }
+  to { background-position: calc(100% + 240px) 0, 0 0; }
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: color-mix(in srgb, #020617 74%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.view-modal.premium {
+  width: min(720px, 100%);
+  max-height: min(820px, calc(100dvh - 48px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 22%, var(--color-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--views-panel-strong) 96%, #020617);
+  box-shadow: 0 26px 80px color-mix(in srgb, #020617 54%, transparent);
+}
+
+.modal-header,
+.modal-footer {
+  flex: 0 0 auto;
+  border-color: var(--views-muted-line);
+}
+
+.modal-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--views-muted-line);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 22px;
+  overflow: auto;
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--views-muted-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 64%, #020617);
+}
+
+.icon-box {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  color: var(--color-text-muted);
+}
+
+.title-input,
+.desc-input {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 13px;
+}
+
+.title-input {
+  padding: 13px 14px 13px 0;
+}
+
+.desc-input {
+  min-height: 96px;
+  resize: vertical;
+  padding: 13px 14px;
+  border-color: var(--views-muted-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 64%, #020617);
+  color: var(--color-text-secondary);
+}
+
+.m-filter-section {
+  margin: 2px 0;
+}
+
+.modal-controls-bar,
+.toggle-group,
+.st-opt,
+.st-check {
+  display: flex;
+  align-items: center;
+}
+
+.modal-controls-bar {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.toggle-group {
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--views-muted-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 72%, #020617);
+}
+
+.m-toggle,
+.filter-btn,
+.cancel-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.m-toggle {
+  padding: 6px 12px;
+}
+
+.m-toggle.active,
+.m-toggle:hover,
+.filter-btn:hover,
+.cancel-btn:hover {
+  border-color: var(--views-muted-line);
+  background: color-mix(in srgb, var(--views-panel-strong) 90%, #ffffff);
+  color: var(--color-text-primary);
+}
+
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border-color: var(--views-muted-line);
+  background: color-mix(in srgb, var(--color-bg) 72%, #020617);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--views-muted-line);
+  background: color-mix(in srgb, var(--color-bg) 68%, #020617);
+}
+
+.cancel-btn {
+  padding: 8px 13px;
+}
+
+.create-btn {
+  border: 1px solid color-mix(in srgb, var(--color-accent) 72%, #ffffff);
+  background: var(--color-accent);
+  color: #020617;
+  font-size: 13px;
+  font-weight: 760;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.create-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
+
 .display-scroll-vfinal {
-    width: 330px; background: var(--color-surface); border-radius: 12px; border: 1px solid var(--color-border);
-    max-height: 520px; overflow-y: auto; overflow-x: hidden;
+  --views-panel-strong: color-mix(in srgb, var(--color-surface) 92%, #020617);
+  --views-muted-line: color-mix(in srgb, var(--color-border) 84%, transparent);
+  --views-accent-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  width: 330px;
+  max-height: 520px;
+  overflow: auto;
+  border: 1px solid var(--views-muted-line);
+  border-radius: 8px;
+  background: var(--views-panel-strong);
+  box-shadow: 0 18px 54px color-mix(in srgb, #020617 48%, transparent);
 }
-.display-scroll-vfinal::-webkit-scrollbar { width: 5px; }
-.display-scroll-vfinal::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 10px; }
 
-.st-content { padding: 20px; padding-bottom: 30px; }
-.st-sect { margin-bottom: 24px; }
-.st-sect-header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 700; color: var(--color-text-muted); margin-bottom: 12px; }
+.display-scroll-vfinal::-webkit-scrollbar {
+  width: 5px;
+}
 
-.st-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.p-chip-st { padding: 6px 10px; background: var(--color-bg); border-radius: 6px; font-size: 12px; color: var(--color-text-secondary); cursor: pointer; border: 1px solid var(--color-border); }
-.p-chip-st.selected { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+.display-scroll-vfinal::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background: var(--color-border);
+}
 
-.st-radios { display: flex; flex-direction: column; gap: 11px; }
-.st-opt { display: flex; align-items: center; gap: 12px; cursor: pointer; }
-.st-opt input { display: none; }
-.st-dot { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--color-border); position: relative; }
-.st-opt input:checked + .st-dot { border-color: var(--color-accent); }
+.st-content {
+  padding: 18px;
+}
+
+.st-sect {
+  margin-bottom: 22px;
+}
+
+.st-sect-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 11px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.st-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.p-chip-st {
+  padding: 6px 9px;
+  border: 1px solid var(--views-muted-line);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-bg) 68%, #020617);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.p-chip-st:hover {
+  color: var(--color-text-primary);
+  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border));
+}
+
+.p-chip-st.selected {
+  border-color: color-mix(in srgb, var(--color-accent) 72%, #ffffff);
+  background: var(--views-accent-soft);
+  color: var(--color-accent);
+}
+
+.st-radios {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.st-opt {
+  gap: 10px;
+  cursor: pointer;
+}
+
+.st-opt input,
+.st-check input {
+  display: none;
+}
+
+.st-dot {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 50%;
+}
+
+.st-opt input:checked + .st-dot {
+  border-color: var(--color-accent);
+}
+
 .st-opt input:checked + .st-dot::after {
-    content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: 8px; color: var(--color-accent);
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--color-accent);
 }
-.st-label { font-size: 13px; color: var(--color-text-secondary); }
 
-.divider { height: 1px; background: #2D2F36; margin: 16px 0; }
-.st-check { display: flex; align-items: center; gap: 10px; cursor: pointer; }
-.st-check input { display: none; }
-.checkmark { width: 15px; height: 15px; border: 1.5px solid #3F3F46; border-radius: 4px; position: relative; }
-.st-check input:checked + .checkmark { background: #0EA5E9; border-color: #0EA5E9; }
+.st-label {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.divider {
+  height: 1px;
+  margin: 16px 0;
+  background: var(--views-muted-line);
+}
+
+.st-check {
+  gap: 10px;
+  cursor: pointer;
+}
+
+.checkmark {
+  position: relative;
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 4px;
+}
+
+.st-check input:checked + .checkmark {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
 .st-check input:checked + .checkmark::after {
-    content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px; border: solid white; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid #020617;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
 }
 
-:deep(.display-popper-final) { background: transparent !important; border: none !important; box-shadow: none !important; z-index: 10000 !important; }
+:deep(.display-popper-final) {
+  z-index: 10000 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:deep(.views-popper-clean) {
+  z-index: 10000 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 760px) {
+  .nexus-project-header,
+  .views-list-head,
+  .view-detail-summary,
+  .modal-controls-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .nexus-project-header {
+    position: static;
+    padding: 12px 16px;
+  }
+
+  .nexus-controls-row,
+  .summary-metrics {
+    justify-content: flex-start;
+  }
+
+  .views-content {
+    padding: 16px;
+  }
+
+  .detail-container {
+    padding: 12px;
+  }
+}
 
 /* MODAL FILTER DROPDOWN REFINEMENT */
 .filter-modal-dropdown {
