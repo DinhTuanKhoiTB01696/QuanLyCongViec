@@ -73,7 +73,6 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 import { useProjectStore } from '@/store/useProjectStore'
-import axiosClient from '@/api/axiosClient'
 
 const emit = defineEmits(['close'])
 const router = useRouter()

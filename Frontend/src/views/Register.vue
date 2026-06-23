@@ -20,7 +20,7 @@
         </h1>
         <p class="auth-subtitle">
           {{ 
-            step === 1 ? t('auth.register.subtitleStep1') : 
+            step === 1 ? t('auth.register.subtitleStep1') :
             step === 2 ? t('auth.register.subtitleStep2') :
             t('auth.register.subtitleStep3')
           }}
@@ -62,9 +62,9 @@
           </el-button>
           
           <p class="auth-footer-text">
-            {{ t('auth.register.noOtpCode') }} 
-            <a href="#" @click.prevent="step = 1">{{ t('auth.register.changeEmail') }}</a> 
-            {{ t('auth.register.or') }} 
+            {{ t('auth.register.noOtpCode') }}
+            <a href="#" @click.prevent="step = 1">{{ t('auth.register.changeEmail') }}</a>
+            {{ t('auth.register.or') }}
             <a href="#" @click.prevent="handleSendOtp">{{ t('auth.register.resendOtp') }}</a>
           </p>
         </el-form>
@@ -138,7 +138,7 @@ const rules = computed(() => ({
     { min: 6, message: t('auth.register.rules.passwordMin'), trigger: 'blur' },
     { 
       pattern: /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/, 
-      message: t('auth.register.rules.passwordComplexity'), 
+      message: t('auth.register.rules.passwordComplexity'),
       trigger: 'blur' 
     }
   ]
