@@ -5,4 +5,5 @@
     <Project Path="src/TaskManagement.Domain/TaskManagement.Domain.csproj" />
     <Project Path="src/TaskManagement.Infrastructure/TaskManagement.Infrastructure.csproj" />
   </Folder>
+  <Project Path="TaskManagement.Tests/TaskManagement.Tests.csproj" />
 </Solution>

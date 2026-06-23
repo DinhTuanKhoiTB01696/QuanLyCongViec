@@ -3,9 +3,9 @@
     <div v-if="isForbidden" class="forbidden-overlay">
       <div class="forbidden-content">
         <div class="lock-icon"><i class="fa-solid fa-lock"></i></div>
-        <h2>Access Denied</h2>
-        <p>Bạn không đủ quyền để truy cập dự án này.</p>
-        <button class="plane-primary-btn mt-4" @click="router.push('/spaces')">Quay lại trang Home</button>
+        <h2>{{ t('common.accessDenied') }}</h2>
+        <p>{{ t('common.accessDeniedProject') }}</p>
+        <button class="plane-primary-btn mt-4" @click="router.push('/spaces')">{{ t('common.backToHome') }}</button>
       </div>
     </div>
     <div v-else class="plane-board-container">
@@ -14,25 +14,16 @@
         <div class="sh-left">
           <div class="breadcrumb">
             <span class="proj-icon">{{ projectBadge }}</span>
-            <span class="proj-name">{{ project?.name || 'Project' }}</span>
+            <span class="proj-name">{{ project?.name || t('common.project') }}</span>
             <i class="fa-solid fa-chevron-right separator"></i>
             <span class="active-page">
-              <i class="fa-solid fa-layer-group"></i> {{ t('Work items') }}
+              <i class="fa-solid fa-layer-group"></i> {{ t('workItems.workItems') }}
             </span>
             <span class="item-count">{{ visibleTopLevelTasks.length }}</span>
           </div>
         </div>
         
         <div class="sh-right">
-          <!-- View Toggles -->
-          <div class="view-toggles">
-            <button class="toggle-btn" :class="{ active: currentTab === 'list' }" @click="currentTab = 'list'" title="List view"><i class="fa-solid fa-bars"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'board' }" @click="currentTab = 'board'" title="Kanban view"><i class="fa-solid fa-table-columns"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'calendar' }" @click="currentTab = 'calendar'" title="Calendar view"><i class="fa-regular fa-calendar"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'spreadsheet' }" @click="currentTab = 'spreadsheet'" title="Spreadsheet view"><i class="fa-solid fa-table-cells"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'timeline' }" @click="currentTab = 'timeline'" title="Gantt chart view"><i class="fa-solid fa-chart-gantt"></i></button>
-          </div>
-
           <button class="plane-toolbar-btn" @click="showFilterPanel = !showFilterPanel" :class="{ active: showFilterPanel || activeTaskFilters.length }">
             <i class="fa-solid fa-filter"></i>
             <span v-if="activeTaskFilters.length" class="filter-count">{{ activeTaskFilters.length }}</span>
@@ -40,44 +31,58 @@
           
           <!-- Display Dropdown -->
           <div class="display-dropdown-wrapper">
-             <button class="plane-toolbar-btn" @click.stop="showDisplayDropdown = !showDisplayDropdown" :class="{ 'active': showDisplayDropdown }">{{ t('Display') }}</button>
+             <button class="plane-toolbar-btn" @click.stop="showDisplayDropdown = !showDisplayDropdown" :class="{ 'active': showDisplayDropdown }">{{ t('workItems.display') }}</button>
              <div class="plane-dropdown-menu" v-show="showDisplayDropdown" @click.stop>
                 <div class="dd-section">
                    <div class="dd-title">
-                      <span>{{ t('Display Properties') }}</span>
+                      <span>{{ t('workItems.displayProperties') }}</span>
                       <i class="fa-solid fa-chevron-up"></i>
                    </div>
                    <div class="dd-btns">
-                      <button class="dd-tag active">ID</button>
+                      <button class="dd-tag active" type="button" disabled title="[Cáº¦N FLOW] TÃ¹y chá»‰nh thuá»™c tÃ­nh hiá»ƒn thá»‹ chÆ°a há»— trá»£">ID</button>
                    </div>
                 </div>
                 <div class="dd-section border-top">
                    <div class="dd-title">
-                      <span>{{ t('Order by') }}</span>
+                      <span>{{ t('workItems.orderBy') }}</span>
                       <i class="fa-solid fa-chevron-up"></i>
                    </div>
                    <div class="dd-list">
-                      <label class="dd-item"><input type="radio" name="order" value="manual" v-model="displayOrder" /> {{ t('Manual') }}</label>
-                      <label class="dd-item"><input type="radio" name="order" value="created" v-model="displayOrder" /> {{ t('Last created') }}</label>
-                      <label class="dd-item"><input type="radio" name="order" value="updated" v-model="displayOrder" /> {{ t('Last updated') }}</label>
-                      <label class="dd-item"><input type="radio" name="order" value="priority" v-model="displayOrder" /> {{ t('Priority') }}</label>
+                      <label class="dd-item"><input type="radio" name="order" value="manual" v-model="displayOrder" /> {{ t('workItems.manual') }}</label>
+                      <label class="dd-item"><input type="radio" name="order" value="created" v-model="displayOrder" /> {{ t('workItems.lastCreated') }}</label>
+                      <label class="dd-item"><input type="radio" name="order" value="updated" v-model="displayOrder" /> {{ t('workItems.lastUpdated') }}</label>
+                      <label class="dd-item"><input type="radio" name="order" value="priority" v-model="displayOrder" /> {{ t('common.priority') }}</label>
                    </div>
                 </div>
                 <div class="dd-section border-top">
                    <label class="dd-item checkbox">
-                     <input type="checkbox" v-model="showSubtasks" /> {{ t('Show sub-work items') }}
+                     <input type="checkbox" v-model="showSubtasks" /> {{ t('workItems.showSubWorkItems') }}
                    </label>
                 </div>
              </div>
           </div>
           
-          <button class="plane-toolbar-btn" @click="showAnalyticsSidebar = true">{{ t('Analytics') }}</button>
+          <button class="plane-toolbar-btn" @click="showAnalyticsSidebar = true">{{ t('workItems.analytics') }}</button>
           
           <button class="plane-primary-btn" @click="openCreateTask('TO DO')">
-            {{ t('Add work item') }}
+            {{ t('workItems.addWorkItem') }}
           </button>
         </div>
       </header>
+
+      <!-- Jira-style tab bar (dá»±ng theo áº£nh Board.jpeg / Backlog1.jpeg) -->
+      <nav class="jira-tab-bar">
+        <button
+          v-for="tab in projectTabs"
+          :key="tab.key"
+          class="jira-tab"
+          :class="{ active: currentTab === tab.key }"
+          @click="currentTab = tab.key"
+        >
+          <i :class="tab.icon"></i> {{ t(tab.labelKey) }}
+        </button>
+        <button class="jira-tab add-tab" type="button" disabled title="[Cáº¦N FLOW] ThÃªm view chÆ°a há»— trá»£"><i class="fa-solid fa-plus"></i></button>
+      </nav>
 
       <div class="work-filter-row" v-if="showFilterPanel || activeTaskFilters.length">
         <FilterBar
@@ -88,6 +93,44 @@
         />
       </div>
 
+      <!-- Backlog tab -->
+      <BacklogTab
+        v-if="currentTab === 'backlog'"
+        :tasks="filteredTasksList"
+        :projectMembers="projectMembers"
+        :statusOptions="taskStatusOptions"
+        :selectedTaskId="selectedTask?.id || null"
+        @open-task="openTaskDetail"
+        @update-task="updateTask"
+        @create-task="(status) => openCreateTask(status)"
+      />
+
+      <!-- Reports tab -->
+      <ReportsTab
+        v-if="currentTab === 'reports'"
+        :tasks="visibleTopLevelTasks"
+        :projectMembers="projectMembers"
+        :statusOptions="taskStatusOptions"
+        @open-task="openTaskDetail"
+      />
+
+      <!-- Summary tab -->
+      <SummaryTab
+        v-if="currentTab === 'summary'"
+        :tasks="visibleTopLevelTasks"
+        :projectMembers="projectMembers"
+        :statusOptions="taskStatusOptions"
+        @view-work-items="currentTab = 'list'"
+      />
+
+      <!-- Auxiliary Jira-style tabs. Missing flows stay disabled inside each tab. -->
+      <DevelopmentTab
+        v-if="currentTab === 'development'"
+        :tasks="visibleTopLevelTasks"
+      />
+      <FormsTab v-if="currentTab === 'forms'" />
+      <DocsTab v-if="currentTab === 'docs'" />
+
       <!-- Other Tab Views -->
       <div v-if="currentTab === 'list'" class="list-wrapper" style="padding: 16px;">
          <div class="plane-list-view">
@@ -96,7 +139,7 @@
                <div class="gh-left">
                  <i class="gh-chevron fa-solid" :class="collapsedListGroups[group.id] ? 'fa-chevron-right' : 'fa-chevron-down'"></i>
                  <i class="status-icon" :class="group.icon" :style="{ color: group.color }"></i>
-                 <span class="group-name">{{ normalizeStatusLabel(group.statusName) }}</span>
+                 <span class="group-name">{{ group.name }}</span>
                  <span class="group-count">{{ group.items.length }}</span>
                </div>
                <div class="gh-right">
@@ -139,11 +182,11 @@
                        </div>
                        <template #dropdown>
                          <el-dropdown-menu class="plane-dropdown">
-                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> {{ t('Urgent') }}</el-dropdown-item>
-                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> {{ t('High') }}</el-dropdown-item>
-                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> {{ t('Normal') }}</el-dropdown-item>
-                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> {{ t('Low') }}</el-dropdown-item>
-                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> {{ t('None') }}</el-dropdown-item>
+                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> Urgent</el-dropdown-item>
+                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> High</el-dropdown-item>
+                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> Normal</el-dropdown-item>
+                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> Low</el-dropdown-item>
+                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> None</el-dropdown-item>
                          </el-dropdown-menu>
                        </template>
                      </el-dropdown>
@@ -159,7 +202,7 @@
                          </div>
                        </template>
                        <div class="popover-content">
-                         <input type="text" class="plane-search-input" v-model="assigneeSearch" :placeholder="t('Search members')" />
+                         <input type="text" class="plane-search-input" v-model="assigneeSearch" :placeholder="t('workItems.searchMembers')" />
                          <div class="plane-list mt-2">
                            <label
                              class="plane-list-item"
@@ -179,7 +222,7 @@
                </template>
 
                <div class="add-row-placeholder" @click="openCreateTask(group.statusName)">
-                 <i class="fa-solid fa-plus"></i> {{ t('New work item') }}
+                 <i class="fa-solid fa-plus"></i> {{ t('workItems.newWorkItem') }}
                </div>
              </div>
            </div>
@@ -209,7 +252,7 @@
           <div class="col-head">
             <div class="col-title">
               <i :class="col.icon" :style="{ color: col.color }"></i>
-              <span>{{ normalizeStatusLabel(col.name) }}</span>
+              <span>{{ col.name }}</span>
               <span class="col-count">{{ col.items.length }}</span>
             </div>
             <i class="fa-solid fa-plus add-btn" @click="openCreateTask(col.name)"></i>
@@ -254,11 +297,11 @@
                        </div>
                        <template #dropdown>
                          <el-dropdown-menu class="plane-dropdown">
-                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> {{ t('Urgent') }}</el-dropdown-item>
-                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> {{ t('High') }}</el-dropdown-item>
-                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> {{ t('Normal') }}</el-dropdown-item>
-                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> {{ t('Low') }}</el-dropdown-item>
-                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> {{ t('None') }}</el-dropdown-item>
+                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> Urgent</el-dropdown-item>
+                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> High</el-dropdown-item>
+                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> Medium</el-dropdown-item>
+                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> Low</el-dropdown-item>
+                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> None</el-dropdown-item>
                          </el-dropdown-menu>
                        </template>
                      </el-dropdown>
@@ -271,7 +314,7 @@
                          <div class="avatar-xs ms-auto cursor-pointer hover:bg-[var(--color-border)]" style="border: 1px dashed var(--color-text-muted); background: transparent; color: var(--color-text-muted);" v-else><i class="fa-solid fa-user"></i></div>
                        </template>
                        <div class="popover-content">
-                         <input type="text" class="plane-search-input" v-model="assigneeSearch" :placeholder="t('Search members')" />
+                         <input type="text" class="plane-search-input" v-model="assigneeSearch" :placeholder="t('workItems.searchMembers')" />
                          <div class="plane-list mt-2">
                            <label
                              class="plane-list-item"
@@ -293,16 +336,16 @@
             <div class="inline-create-box" v-if="inlineCreateColId === col.id">
                <div class="ic-top">
                  <i class="fa-solid fa-plus ic-plus"></i>
-                 <input type="text" class="ic-input" v-model="inlineTaskTitle" :placeholder="t('New work item')" @keyup.enter="submitInlineTask(col)" @keyup.esc="inlineCreateColId = null" ref="inlineInput" />
+                 <input type="text" class="ic-input" v-model="inlineTaskTitle" :placeholder="t('workItems.newWorkItem')" @keyup.enter="submitInlineTask(col)" @keyup.esc="inlineCreateColId = null" ref="inlineInput" />
                </div>
                <div class="ic-bottom">
-                 <div class="ic-chip"><i class="fa-regular fa-circle"></i> {{ normalizeStatusLabel(col.name) }}</div>
+                 <div class="ic-chip"><i class="fa-regular fa-circle"></i> {{ col.name }}</div>
                  <div class="ic-chip"><i class="fa-solid fa-minus text-blue"></i></div>
                  <div class="avatar-xs ms-auto ic-avatar"><i class="fa-solid fa-user"></i></div>
                </div>
             </div>
             <div class="add-btn-bottom" v-else @click="openInlineCreate(col.id)">
-               <i class="fa-solid fa-plus"></i> {{ t('New work item') }}
+               <i class="fa-solid fa-plus"></i> {{ t('workItems.newWorkItem') }}
             </div>
           </div>
         </div>
@@ -329,7 +372,7 @@
     <div v-if="showAnalyticsSidebar" class="analytics-overlay" @click.self="closeAnalyticsSidebar">
       <div class="analytics-panel" :class="{ 'slide-in': showAnalyticsSidebar, 'is-expanded': isAnalyticsExpanded }">
          <div class="ap-header">
-            <h3>Analytics for {{ project?.name || 'Project' }}</h3>
+            <h3>{{ t('workItems.analyticsFor', { project: project?.name || t('common.project') }) }}</h3>
             <div class="ap-actions">
                <button class="icon-btn" @click="toggleAnalyticsExpand"><i :class="isAnalyticsExpanded ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
                <button class="icon-btn" @click="closeAnalyticsSidebar"><i class="fa-solid fa-xmark"></i></button>
@@ -340,46 +383,46 @@
             <!-- Stats -->
             <div class="ap-stats-grid">
                <div class="stat-box">
-                  <span class="lbl">Total Work items</span>
+                  <span class="lbl">{{ t('workItems.totalWorkItems') }}</span>
                   <span class="val">{{ visibleTopLevelTasks.length }}</span>
                </div>
                <div class="stat-box">
-                  <span class="lbl">Started Work items</span>
+                  <span class="lbl">{{ t('workItems.startedWorkItems') }}</span>
                   <span class="val">{{ visibleTopLevelTasks.filter(t => t.statusName === 'IN PROGRESS').length }}</span>
                </div>
                <div class="stat-box">
-                  <span class="lbl">Backlog Work items</span>
+                  <span class="lbl">{{ t('workItems.backlogWorkItems') }}</span>
                   <span class="val">{{ visibleTopLevelTasks.filter(t => !t.statusName || t.statusName === 'TO DO' || t.statusName === 'TODO').length }}</span>
                </div>
                <div class="stat-box">
-                  <span class="lbl">Unstarted Work items</span>
+                  <span class="lbl">{{ t('workItems.unstartedWorkItems') }}</span>
                   <span class="val">{{ visibleTopLevelTasks.filter(t => t.statusName === 'IN REVIEW').length }}</span>
                </div>
                <div class="stat-box">
-                  <span class="lbl">Completed Work items</span>
+                  <span class="lbl">{{ t('workItems.completedWorkItems') }}</span>
                   <span class="val">{{ visibleTopLevelTasks.filter(t => t.statusName === 'DONE').length }}</span>
                </div>
             </div>
             
             <!-- Created vs Resolved Chart Overlay -->
             <div class="ap-chart-card mt-4">
-               <h4>Created vs Resolved</h4>
+               <h4>{{ t('workItems.createdVsResolved') }}</h4>
                <v-chart class="chart-container" :option="createdResolvedOptions" autoresize />
             </div>
 
             <!-- Customized Insights -->
             <div class="ap-chart-card mt-4">
                <div class="flex-between">
-                  <h4>Customized Insights</h4>
+                  <h4>{{ t('workItems.customizedInsights') }}</h4>
                   <el-dropdown trigger="click" @command="setAnalyticsInsightMode">
                     <button class="filter-btn" type="button">
                       <i class="fa-solid fa-sliders"></i> {{ analyticsInsightLabel }} <i class="fa-solid fa-chevron-down"></i>
                     </button>
                     <template #dropdown>
                       <el-dropdown-menu class="plane-dropdown">
-                        <el-dropdown-item command="priority">Priority distribution</el-dropdown-item>
-                        <el-dropdown-item command="status">Status distribution</el-dropdown-item>
-                        <el-dropdown-item command="assignee">Assignee distribution</el-dropdown-item>
+                        <el-dropdown-item command="priority">{{ t('workItems.priorityDistribution') }}</el-dropdown-item>
+                        <el-dropdown-item command="status">{{ t('workItems.statusDistribution') }}</el-dropdown-item>
+                        <el-dropdown-item command="assignee">{{ t('workItems.assigneeDistribution') }}</el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
                   </el-dropdown>
@@ -394,11 +437,11 @@
                   <span class="text-muted">{{ analyticsBreakdownRows.length }} {{ analyticsTableHeading }}</span>
                   <div class="flex-center gap-1">
                      <i class="fa-solid fa-magnifying-glass text-muted"></i>
-                     <button class="export-btn" @click="exportAnalyticsCsv()"><i class="fa-solid fa-download"></i> Export as csv</button>
+                     <button class="export-btn" @click="exportAnalyticsCsv()"><i class="fa-solid fa-download"></i> {{ t('workItems.exportCsv') }}</button>
                   </div>
                </div>
                <table class="ap-table">
-                  <thead><tr><th>{{ analyticsTableHeading }}</th><th style="text-align: right;">Count</th></tr></thead>
+                  <thead><tr><th>{{ analyticsTableHeading }}</th><th style="text-align: right;">{{ t('workItems.count') }}</th></tr></thead>
                   <tbody>
                      <tr v-for="row in analyticsBreakdownRows" :key="row.label">
                        <td>{{ row.label }}</td>
@@ -410,21 +453,21 @@
 
             <div class="ap-table-wrap mt-4">
                <div class="table-head">
-                  <span class="text-muted">{{ assigneeAnalyticsRows.length }} Assignee{{ assigneeAnalyticsRows.length === 1 ? '' : 's' }}</span>
+                  <span class="text-muted">{{ t('workItems.assigneeCount', { count: assigneeAnalyticsRows.length }) }}</span>
                   <div class="flex-center gap-1">
                      <i class="fa-solid fa-magnifying-glass text-muted"></i>
-                     <button class="export-btn" @click="exportAnalyticsCsv('assignee')"><i class="fa-solid fa-download"></i> Export as csv</button>
+                     <button class="export-btn" @click="exportAnalyticsCsv('assignee')"><i class="fa-solid fa-download"></i> {{ t('workItems.exportCsv') }}</button>
                   </div>
                </div>
                <table class="ap-table">
                   <thead>
                      <tr>
-                        <th>Assignee</th>
-                        <th style="text-align: right;">Backlog</th>
-                        <th style="text-align: right;">Started</th>
-                        <th style="text-align: right;">Unstarted</th>
-                        <th style="text-align: right;">Completed</th>
-                        <th style="text-align: right;">Cancelled</th>
+                        <th>{{ t('workItems.assignee') }}</th>
+                        <th style="text-align: right;">{{ t('workItems.backlog') }}</th>
+                        <th style="text-align: right;">{{ t('workItems.started') }}</th>
+                        <th style="text-align: right;">{{ t('workItems.unstarted') }}</th>
+                        <th style="text-align: right;">{{ t('workItems.completed') }}</th>
+                        <th style="text-align: right;">{{ t('workItems.cancelled') }}</th>
                      </tr>
                   </thead>
                   <tbody>
@@ -446,7 +489,7 @@
 </template>
 
 <script setup>
-// AI 3: CHUYÊN VIÊN GHÉP NỐI LOGIC FRONT-TO-BACK
+// AI 3: CHUYÃŠN VIÃŠN GHÃ‰P Ná»I LOGIC FRONT-TO-BACK
 import { ref, onMounted, computed, defineAsyncComponent, watch, nextTick, onUnmounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { ElMessage } from 'element-plus'
@@ -463,10 +506,15 @@ import CalendarTab from '@/components/CalendarTab.vue'
 import TimelineTab from '@/components/TimelineTab.vue'
 import SpreadsheetTab from '@/components/SpreadsheetTab.vue'
 import FilterBar from '@/components/FilterBar.vue'
+import BacklogTab from '@/components/BacklogTab.vue'
+import ReportsTab from '@/components/ReportsTab.vue'
+import SummaryTab from '@/components/SummaryTab.vue'
+import DevelopmentTab from '@/components/DevelopmentTab.vue'
+import FormsTab from '@/components/FormsTab.vue'
+import DocsTab from '@/components/DocsTab.vue'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore';
 import { useProjectStore } from '@/store/useProjectStore';
-import { useI18nStore } from '@/store/useI18nStore';
-
+import { useI18n } from '@/composables/useI18n'
 
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
@@ -497,12 +545,10 @@ const assigneeSearch = ref('')
 
 const route = useRoute()
 const router = useRouter()
-const i18nStore = useI18nStore()
-const t = (key) => i18nStore.t(key)
+const { t } = useI18n()
 const currentProjectId = computed(() => route.params.id || getScopedCurrentProjectId() || null)
 const store = useWorkTaskStore();
 const projectStore = useProjectStore()
-
 
 const project = ref({})
 const rawTasks = ref([])
@@ -520,6 +566,19 @@ const inlineCreateColId = ref(null)
 const inlineTaskTitle = ref('')
 
 const currentTab = ref('board')
+// Jira-style project tab order. Tabs with missing backend flows render disabled connect/empty states.
+const projectTabs = [
+  { key: 'backlog', labelKey: 'projectTabs.backlog', icon: 'fa-solid fa-bars-staggered' },
+  { key: 'board', labelKey: 'projectTabs.board', icon: 'fa-solid fa-table-columns' },
+  { key: 'summary', labelKey: 'projectTabs.summary', icon: 'fa-solid fa-globe' },
+  { key: 'list', labelKey: 'projectTabs.list', icon: 'fa-solid fa-list' },
+  { key: 'development', labelKey: 'projectTabs.development', icon: 'fa-solid fa-code' },
+  { key: 'forms', labelKey: 'projectTabs.forms', icon: 'fa-solid fa-clipboard-list' },
+  { key: 'timeline', labelKey: 'projectTabs.timeline', icon: 'fa-solid fa-chart-gantt' },
+  { key: 'docs', labelKey: 'projectTabs.docs', icon: 'fa-regular fa-file-lines' },
+  { key: 'reports', labelKey: 'projectTabs.reports', icon: 'fa-solid fa-chart-line' },
+  { key: 'calendar', labelKey: 'projectTabs.calendar', icon: 'fa-regular fa-calendar' }
+]
 const searchQuery = ref('')
 const activeFilters = ref({ assignee: null })
 const activeTaskFilters = ref([])
@@ -589,7 +648,7 @@ const recoverFromForbiddenProject = async (forbiddenProjectId) => {
     allTasks.value = []
     projectMembers.value = []
     project.value = {}
-    ElMessage.error('You do not have permission to load work items for this project.')
+    ElMessage.error(t('messages.noWorkItemsPermission'))
     return false
   }
 
@@ -627,11 +686,11 @@ const getTaskAssigneeSummary = (task) => {
   if (!ids.length) return { label: '', avatar: '' }
   if (ids.length === 1) {
     const member = projectMembers.value.find(item => (item.userId || item.id) === ids[0])
-    const label = member?.fullName || member?.name || member?.email || task.assigneeName || 'Assignee'
+    const label = member?.fullName || member?.name || member?.email || task.assigneeName || t('workItems.assignee')
     return { label, avatar: label.substring(0, 1).toUpperCase() }
   }
 
-  return { label: `${ids.length} assignees`, avatar: `${ids.length}` }
+  return { label: t('workItems.assigneeCount', { count: ids.length }), avatar: `${ids.length}` }
 }
 
 const matchesTaskFilters = (task) => {
@@ -659,14 +718,14 @@ const visibleTasks = computed(() => {
   return sourceTasks.filter(canCurrentUserSeeTask)
 })
 const visibleTopLevelTasks = computed(() => filteredTasksList.value.filter(task => !isSubtask(task)))
-const defaultTaskStatusOptions = [
-  { name: 'BACKLOG', label: 'Backlog', color: 'var(--color-text-muted)', icon: 'fa-regular fa-circle-dashed' },
-  { name: 'TO DO', label: 'To Do', color: '#D4D4D8', icon: 'fa-regular fa-circle' },
-  { name: 'IN PROGRESS', label: 'In Progress', color: '#3B82F6', icon: 'fa-solid fa-circle-half-stroke' },
-  { name: 'IN REVIEW', label: 'In Review', color: '#F59E0B', icon: 'fa-solid fa-eye' },
-  { name: 'DONE', label: 'Done', color: '#10B981', icon: 'fa-solid fa-circle-check' },
-  { name: 'CANCELLED', label: 'Cancelled', color: '#EF4444', icon: 'fa-regular fa-circle-xmark' }
-]
+const defaultTaskStatusOptions = computed(() => [
+  { name: 'BACKLOG', label: t('workItems.statusLabels.backlog'), color: 'var(--color-text-muted)', icon: 'fa-regular fa-circle-dashed' },
+  { name: 'TO DO', label: t('workItems.statusLabels.toDo'), color: '#D4D4D8', icon: 'fa-regular fa-circle' },
+  { name: 'IN PROGRESS', label: t('workItems.statusLabels.inProgress'), color: '#3B82F6', icon: 'fa-solid fa-circle-half-stroke' },
+  { name: 'IN REVIEW', label: t('workItems.statusLabels.inReview'), color: '#F59E0B', icon: 'fa-solid fa-eye' },
+  { name: 'DONE', label: t('workItems.statusLabels.done'), color: '#10B981', icon: 'fa-solid fa-circle-check' },
+  { name: 'CANCELLED', label: t('workItems.statusLabels.cancelled'), color: '#EF4444', icon: 'fa-regular fa-circle-xmark' }
+])
 
 const normalizeText = (value) => `${value || ''}`.toLowerCase().trim()
 const normalizeStatus = (value) => `${value || 'BACKLOG'}`.toUpperCase().replace(/\s+/g, ' ').trim()
@@ -680,19 +739,16 @@ const resolveStatusIcon = (value) => {
   return 'fa-regular fa-circle-dashed'
 }
 const taskStatusOptions = computed(() => {
-  const options = projectStatuses.value.length
-    ? projectStatuses.value.map((status, index) => ({
-        name: normalizeStatus(status.name),
-        label: status.displayName || status.name,
-        color: status.colorCode || defaultTaskStatusOptions[index % defaultTaskStatusOptions.length]?.color || 'var(--color-text-muted)',
-        icon: resolveStatusIcon(status.name)
-      }))
-    : defaultTaskStatusOptions
+  if (projectStatuses.value.length) {
+    return projectStatuses.value.map((status, index) => ({
+      name: normalizeStatus(status.name),
+      label: status.displayName || status.name,
+      color: status.colorCode || defaultTaskStatusOptions.value[index % defaultTaskStatusOptions.value.length]?.color || 'var(--color-text-muted)',
+      icon: resolveStatusIcon(status.name)
+    }))
+  }
 
-  return options.map(opt => ({
-    ...opt,
-    label: t(opt.name) !== opt.name ? t(opt.name) : opt.label
-  }))
+  return defaultTaskStatusOptions.value
 })
 const normalizeDateOnly = (value) => {
   if (!value) return null
@@ -745,7 +801,7 @@ const currentUserId = () => {
 }
 
 const toggleTaskStar = (task) => {
-  store.toggleTaskStar(task.id)
+  store.toggleTaskStar(task)
 }
 
 const isTaskStarred = (taskId) => {
@@ -998,15 +1054,17 @@ const filteredTasksList = computed(() => {
 });
 
 const createdResolvedOptions = computed(() => {
+   const createdLabel = t('workItems.created')
+   const resolvedLabel = t('workItems.resolved')
    return {
       tooltip: { trigger: 'axis' },
-      legend: { data: ['Created', 'Resolved'], bottom: 0, textStyle: { color: 'var(--color-text-muted)' } },
+      legend: { data: [createdLabel, resolvedLabel], bottom: 0, textStyle: { color: 'var(--color-text-muted)' } },
       grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
       xAxis: { type: 'category', data: ['Apr 01', 'Apr 02', 'Apr 03', 'Apr 04'], axisLine: { lineStyle: { color: '#3F3F46' } } },
       yAxis: { type: 'value', splitLine: { lineStyle: { color: 'var(--color-border)' } } },
       series: [
-         { name: 'Created', type: 'line', data: [visibleTopLevelTasks.value.length, 0, 0, 0], itemStyle: { color: '#3B82F6' }, smooth: true },
-         { name: 'Resolved', type: 'line', data: [visibleTopLevelTasks.value.filter(t => t.statusName === 'DONE').length, 0, 0, 0], itemStyle: { color: '#10B981' }, smooth: true }
+         { name: createdLabel, type: 'line', data: [visibleTopLevelTasks.value.length, 0, 0, 0], itemStyle: { color: '#3B82F6' }, smooth: true },
+         { name: resolvedLabel, type: 'line', data: [visibleTopLevelTasks.value.filter(t => t.statusName === 'DONE').length, 0, 0, 0], itemStyle: { color: '#10B981' }, smooth: true }
       ],
       backgroundColor: 'transparent'
    }
@@ -1030,7 +1088,7 @@ const analyticsBreakdownRows = computed(() => {
       .map(([id, count]) => {
         const member = projectMembers.value.find(item => (item.userId || item.id) === id)
         return {
-          label: id === 'unassigned' ? 'Unassigned' : (member?.fullName || member?.name || member?.email || 'Assignee'),
+          label: id === 'unassigned' ? t('workItems.unassigned') : (member?.fullName || member?.name || member?.email || t('workItems.assignee')),
           count,
           color: id === 'unassigned' ? 'var(--color-text-muted)' : '#38BDF8'
         }
@@ -1047,11 +1105,11 @@ const analyticsBreakdownRows = computed(() => {
   }
 
   return [
-    { label: 'Urgent', count: visibleTopLevelTasks.value.filter(task => task.priority === 1).length, color: '#EF4444' },
-    { label: 'High', count: visibleTopLevelTasks.value.filter(task => task.priority === 2).length, color: '#F97316' },
-    { label: 'Normal', count: visibleTopLevelTasks.value.filter(task => task.priority === 3).length, color: '#3B82F6' },
-    { label: 'Low', count: visibleTopLevelTasks.value.filter(task => task.priority === 4).length, color: '#10B981' },
-    { label: 'None', count: visibleTopLevelTasks.value.filter(task => !task.priority).length, color: 'var(--color-text-muted)' }
+    { label: t('workItems.priority.urgent'), count: visibleTopLevelTasks.value.filter(task => task.priority === 1).length, color: '#EF4444' },
+    { label: t('workItems.priority.high'), count: visibleTopLevelTasks.value.filter(task => task.priority === 2).length, color: '#F97316' },
+    { label: t('workItems.priority.normal'), count: visibleTopLevelTasks.value.filter(task => task.priority === 3).length, color: '#3B82F6' },
+    { label: t('workItems.priority.low'), count: visibleTopLevelTasks.value.filter(task => task.priority === 4).length, color: '#10B981' },
+    { label: t('workItems.priority.none'), count: visibleTopLevelTasks.value.filter(task => !task.priority).length, color: 'var(--color-text-muted)' }
   ]
 })
 
@@ -1068,7 +1126,7 @@ const assigneeAnalyticsRows = computed(() => {
         const member = projectMembers.value.find(item => (item.userId || item.id) === id)
         rows.set(id, {
           id,
-          label: id === 'unassigned' ? 'Unassigned' : (member?.fullName || member?.name || member?.email || 'Assignee'),
+          label: id === 'unassigned' ? t('workItems.unassigned') : (member?.fullName || member?.name || member?.email || t('workItems.assignee')),
           backlog: 0,
           started: 0,
           unstarted: 0,
@@ -1088,14 +1146,14 @@ const assigneeAnalyticsRows = computed(() => {
 })
 
 const analyticsInsightLabel = computed(() => {
-  if (analyticsInsightMode.value === 'status') return 'Status distribution'
-  if (analyticsInsightMode.value === 'assignee') return 'Assignee distribution'
-  return 'Priority distribution'
+  if (analyticsInsightMode.value === 'status') return t('workItems.statusDistribution')
+  if (analyticsInsightMode.value === 'assignee') return t('workItems.assigneeDistribution')
+  return t('workItems.priorityDistribution')
 })
 const analyticsTableHeading = computed(() => {
-  if (analyticsInsightMode.value === 'status') return 'Status'
-  if (analyticsInsightMode.value === 'assignee') return 'Assignee'
-  return 'Priority'
+  if (analyticsInsightMode.value === 'status') return t('workItems.status')
+  if (analyticsInsightMode.value === 'assignee') return t('workItems.assignee')
+  return t('workItems.priorityLabel')
 })
 const setAnalyticsInsightMode = (mode) => {
   analyticsInsightMode.value = mode
@@ -1235,6 +1293,16 @@ const loadInitialData = async (options = {}) => {
       axiosClient.get(`/projects/${pid}/execution-rules`).catch(() => ({ data: { data: {} } }))
     ])
     project.value = pRes.data.data
+    if (project.value?.id) {
+      projectStore.projectDetailsById[project.value.id] = project.value
+      if (project.value.id === pid) {
+        projectStore.currentProject = project.value
+      }
+    }
+    const wId = project.value?.workspaceId || project.value?.WorkspaceId
+    if (wId) {
+      localStorage.setItem('recent_site_id', wId)
+    }
     projectMembers.value = (mRes.data.data || []).map(member => ({
       ...member,
       userId: member.userId || member.id,
@@ -1262,7 +1330,7 @@ const loadInitialData = async (options = {}) => {
     if (isForbiddenError(error)) {
       isForbidden.value = true
     } else {
-      console.error('Lỗi load dự án:', error)
+      console.error('Lá»—i load dá»± Ã¡n:', error)
     }
   }
 }
@@ -1281,7 +1349,7 @@ const fetchTasks = async (options = {}) => {
         else if (!updatedTask || !canCurrentUserSeeTask(selectedTask.value)) selectedTask.value = null;
       }
   } catch(error) {
-    console.error('Lỗi load tasks:', error)
+    console.error('Lá»—i load tasks:', error)
   }
 }
 
@@ -1305,18 +1373,20 @@ const logViewedTask = (task) => {
 }
 
 const openTaskDetail = (task) => {
-  logViewedTask(task)
+  const normalizedTask = store.normalizeTaskRecord(task, getProjectId())
+  logViewedTask(normalizedTask)
   taskDetailHistory.value = []
-  selectedTask.value = task;
+  selectedTask.value = normalizedTask
 }
 const openTaskDetailFromModal = (task, options = {}) => {
-  logViewedTask(task)
+  const normalizedTask = store.normalizeTaskRecord(task, getProjectId())
+  logViewedTask(normalizedTask)
   const previousTask = options?.fromTask || selectedTask.value
   if (previousTask?.id && previousTask.id !== task?.id) {
     const cachedPrevious = allTasks.value.find(item => item.id === previousTask.id) || previousTask
     taskDetailHistory.value = [...taskDetailHistory.value, cachedPrevious]
   }
-  selectedTask.value = task
+  selectedTask.value = normalizedTask
 }
 const goBackTaskDetail = () => {
   const history = [...taskDetailHistory.value]
@@ -1470,7 +1540,8 @@ const submitInlineTask = async (col) => {
       return;
    }
    try {
-      await axiosClient.post(`/projects/${getProjectId()}/WorkTasks`, {
+      const pid = getProjectId()
+      await store.createTask(pid, {
          title: inlineTaskTitle.value.trim(),
          description: '',
          statusName: col.name || 'BACKLOG',
@@ -1478,7 +1549,8 @@ const submitInlineTask = async (col) => {
           sprintId: activeSprintFilterId.value || null
       });
       inlineTaskTitle.value = '';
-      fetchTasks();
+      inlineCreateColId.value = null;
+      await fetchTasks({ reset: false });
    } catch (e) {
       console.error(e);
       ElMessage.error(e.response?.data?.message || 'Khong the tao cong viec');
@@ -1489,14 +1561,14 @@ const handleListTaskCreate = async (payload) => {
    const pid = getProjectId();
    if (!pid) return;
    try {
-      await axiosClient.post(`/projects/${pid}/WorkTasks`, {
+      await store.createTask(pid, {
          title: payload.title,
          description: '',
          statusName: payload.statusName || 'BACKLOG',
           priority: payload.priority || 3,
           sprintId: activeSprintFilterId.value || null
       });
-      fetchTasks();
+      await fetchTasks({ reset: false });
    } catch (error) {
       console.error(error);
       ElMessage.error(error.response?.data?.message || 'Khong the tao cong viec');
@@ -1530,15 +1602,15 @@ const handleDraggableChange = async (evt, group) => {
     element.sortOrder = newSortOrder;
     
     if (groupBy.value === 'status') {
-       element.statusName = group.name; // Cập nhật Optimistic UI
+       element.statusName = group.name; // Cáº­p nháº­t Optimistic UI
        try {
          await store.reorderTask(getProjectId(), element.id, newSortOrder, group.name);
          await fetchTasks();
        } catch (error) {
          Object.assign(element, previousTask);
          ElMessage.error(error.response?.data?.message || 'Khong the cap nhat bang Kanban');
-         console.error('Lỗi API reorder:', error);
-         fetchTasks(); // Load lại data nếu gặp lỗi
+         console.error('Lá»—i API reorder:', error);
+         fetchTasks(); // Load láº¡i data náº¿u gáº·p lá»—i
        }
     } else if (groupBy.value === 'priority') {
        element.priority = group.priorityValue;
@@ -1551,7 +1623,7 @@ const handleDraggableChange = async (evt, group) => {
         } catch (error) {
           Object.assign(element, previousTask);
           ElMessage.error(error.response?.data?.message || 'Khong the cap nhat do uu tien');
-         console.error('Lỗi API reorder:', error);
+         console.error('Lá»—i API reorder:', error);
          fetchTasks();
        }
     }
@@ -1606,11 +1678,11 @@ const hydrateFiltersFromUrl = () => {
 const exportAnalyticsCsv = (mode = analyticsInsightMode.value) => {
   const rows = mode === 'assignee'
     ? [
-        ['Assignee', 'Backlog', 'Started', 'Unstarted', 'Completed', 'Cancelled', 'Total'],
+        [t('workItems.assignee'), t('workItems.backlog'), t('workItems.started'), t('workItems.unstarted'), t('workItems.completed'), t('workItems.cancelled'), t('workItems.total')],
         ...assigneeAnalyticsRows.value.map(item => [item.label, item.backlog, item.started, item.unstarted, item.completed, item.cancelled, item.total])
       ]
     : [
-        [analyticsTableHeading.value, 'Count'],
+        [analyticsTableHeading.value, t('workItems.count')],
         ...analyticsBreakdownRows.value.map(item => [item.label, item.count])
       ]
   const csv = rows.map(row => row.join(',')).join('\n')
@@ -1781,7 +1853,7 @@ onUnmounted(() => {
   overflow: auto;
 }
 
-/* ── PLANE HEADER ── */
+/* â”€â”€ PLANE HEADER â”€â”€ */
 .plane-space-header {
   height: 52px;
   display: flex;
@@ -1871,6 +1943,52 @@ onUnmounted(() => {
   background: var(--color-border);
   color: var(--color-text-primary);
 }
+
+/* â”€â”€ JIRA TAB BAR â”€â”€ */
+.jira-tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.jira-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 12px 12px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.jira-tab i { font-size: 12px; color: var(--color-text-muted); }
+.jira-tab:hover { color: var(--color-text-primary); }
+.jira-tab:hover i { color: var(--color-text-primary); }
+.jira-tab.active {
+  color: #0c66e4;
+  border-bottom-color: #0c66e4;
+  font-weight: 600;
+}
+.jira-tab.active i { color: #0c66e4; }
+.jira-tab.add-tab { color: var(--color-text-muted); padding: 12px 10px 10px; }
+.jira-tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.jira-tab:disabled:hover,
+.jira-tab:disabled:hover i {
+  color: var(--color-text-muted);
+}
+.backlog-wrapper, .reports-wrapper { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 
 .plane-toolbar-btn {
   background: transparent;
@@ -2157,6 +2275,7 @@ onUnmounted(() => {
 .dd-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .dd-tag { background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-primary); border-radius: 2px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
 .dd-tag.active { background: #0EA5E9; color: var(--color-text-primary); border-color: #0EA5E9; }
+.dd-tag:disabled { cursor: not-allowed; opacity: 0.75; }
 .dd-list { display: flex; flex-direction: column; gap: 8px; }
 .dd-item { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .dd-item input[type="radio"], .dd-item input[type="checkbox"] { accent-color: #0EA5E9; cursor: pointer; }

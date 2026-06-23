@@ -774,8 +774,6 @@ onUnmounted(() => {
                 </button>
                 <button class="filter-action" type="button" @click.stop="toggleCarryOverPlanner(cycle)" :class="{ active: expandedCarryOverCycleId === cycle.id }">
                   <i class="fa-solid fa-list-check"></i> {{ t('Carry-over') }}
-                <button v-if="false" class="filter-action" type="button" @click.stop="toggleCarryOverPlanner(cycle)" :class="{ active: expandedCarryOverCycleId === cycle.id }">
-                  <i class="fa-solid fa-list-check"></i> Carry-over
                 </button>
               </div>
             </div>

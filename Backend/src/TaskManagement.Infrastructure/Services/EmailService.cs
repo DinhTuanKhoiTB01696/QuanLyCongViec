@@ -19,6 +19,10 @@ namespace TaskManagement.Infrastructure.Services
 
         public async Task SendOtpEmailAsync(string toEmail, string otpCode)
         {
+            Console.WriteLine($"=========================================");
+            Console.WriteLine($"[DEBUG OTP] Email: {toEmail} -> OTP Code: {otpCode}");
+            Console.WriteLine($"=========================================");
+
             var subject = "Ma xac thuc OTP - SprintA";
             var html = $@"
                 <div style='font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;'>

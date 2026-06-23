@@ -512,6 +512,26 @@ namespace TaskManagement.Infrastructure.Services
             await _context.SaveChangesAsync();
         }
 
+        public async Task ResetPasswordAsync(ResetPasswordRequestDto request)
+        {
+            var email = request.Email?.Trim() ?? string.Empty;
+
+            // OTP dùng 1 lần: verify-otp đã cấp lại otpToken (OTP mới) cho chính email này.
+            // ValidateOtp sẽ xoá token khỏi cache khi hợp lệ.
+            if (!_otpService.ValidateOtp(email, request.OtpToken?.Trim() ?? string.Empty))
+                throw new UnauthorizedAccessException("Mã xác thực không hợp lệ hoặc đã hết hạn. Vui lòng thực hiện lại bước quên mật khẩu.");
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && !u.IsDeleted);
+            if (user == null)
+                throw new ArgumentException("Không thể đặt lại mật khẩu cho tài khoản này.");
+
+            // Dùng lại cơ chế hash hiện có (BCrypt). Không đổi IsActive để tránh kích hoạt lại tài khoản đã bị khoá.
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+        }
+
         public async Task AcceptInviteAsync(Guid userId)
         {
             var user = await _context.Users.FindAsync(userId);

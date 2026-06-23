@@ -40,6 +40,16 @@ const nextMonth = () => {
 const monthLabel = computed(() => currentDate.value.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
 const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
+const hasScheduleDate = (task) => Boolean(task?.plannedStartDate || task?.plannedEndDate || task?.dueDate)
+
+const unscheduledTasks = computed(() =>
+  props.tasks.filter(task => {
+    const status = `${task.statusName || ''}`.toUpperCase()
+    if (!showDoneTasks.value && status.includes('DONE')) return false
+    return !hasScheduleDate(task)
+  })
+)
+
 const calendarDays = computed(() => {
   const year = currentDate.value.getFullYear()
   const month = currentDate.value.getMonth()
@@ -224,47 +234,70 @@ function formatDateOnly(value) {
       </div>
     </div>
 
-    <div class="cal-grid">
-      <div v-for="dayName in weekDays" :key="dayName" class="cal-day-header">{{ dayName }}</div>
+    <div class="cal-content">
+      <div class="cal-grid">
+        <div v-for="dayName in weekDays" :key="dayName" class="cal-day-header">{{ dayName }}</div>
 
-      <div
-        v-for="(day, index) in calendarDays"
-        :key="index"
-        class="cal-day-cell"
-        :class="{ 'other-month': !day.isCurrentMonth, 'is-today': isToday(day.date) }"
-        @mouseenter="showTooltip($event, day.date)"
-        @mousemove="moveTooltip"
-        @mouseleave="hideTooltip"
-      >
-        <div class="day-number" :class="{ 'today-badge': isToday(day.date) }">{{ formatDayNum(day.date) }}</div>
+        <div
+          v-for="(day, index) in calendarDays"
+          :key="index"
+          class="cal-day-cell"
+          :class="{ 'other-month': !day.isCurrentMonth, 'is-today': isToday(day.date) }"
+          @mouseenter="showTooltip($event, day.date)"
+          @mousemove="moveTooltip"
+          @mouseleave="hideTooltip"
+        >
+          <div class="day-number" :class="{ 'today-badge': isToday(day.date) }">{{ formatDayNum(day.date) }}</div>
 
-        <div class="day-tasks">
-          <div
-            v-for="task in visibleTasksForDay(day.date)"
-            :key="task.id"
-            class="day-task-chip"
-            :class="{ overdue: isOverdueTask(task) }"
-            :style="{ borderLeft: `3px solid ${getStatusColor(task.statusName)}` }"
-            @click="emit('open-task', task)"
-            @mouseenter.stop="showTooltip($event, day.date)"
-          >
-            <span class="chip-text">{{ task.title }}</span>
+          <div class="day-tasks">
+            <div
+              v-for="task in visibleTasksForDay(day.date)"
+              :key="task.id"
+              class="day-task-chip"
+              :class="{ overdue: isOverdueTask(task) }"
+              :style="{ borderLeft: `3px solid ${getStatusColor(task.statusName)}` }"
+              @click="emit('open-task', task)"
+              @mouseenter.stop="showTooltip($event, day.date)"
+            >
+              <span class="chip-text">{{ task.title }}</span>
+            </div>
+
+            <button
+              v-if="hiddenCountForDay(day.date) > 0 || (getTasksForDay(day.date).length > 2 && expandedDayKey === dayKey(day.date))"
+              type="button"
+              class="day-more"
+              @click="toggleTaskLimit(day.date)"
+            >
+              {{ expandedDayKey === dayKey(day.date) ? 'Show less' : `+ ${hiddenCountForDay(day.date)} more` }}
+            </button>
           </div>
 
-          <button
-            v-if="hiddenCountForDay(day.date) > 0 || (getTasksForDay(day.date).length > 2 && expandedDayKey === dayKey(day.date))"
-            type="button"
-            class="day-more"
-            @click="toggleTaskLimit(day.date)"
-          >
-            {{ expandedDayKey === dayKey(day.date) ? 'Show less' : `+ ${hiddenCountForDay(day.date)} more` }}
+          <button v-if="day.isCurrentMonth" class="day-add-btn" type="button" @click="requestCreateTask(day.date)">
+            <i class="fa-solid fa-plus"></i> Add work item
           </button>
         </div>
-
-        <button v-if="day.isCurrentMonth" class="day-add-btn" type="button" @click="requestCreateTask(day.date)">
-          <i class="fa-solid fa-plus"></i> Add work item
-        </button>
       </div>
+
+      <aside class="unscheduled-panel">
+        <div class="unscheduled-head">
+          <span>Unscheduled</span>
+          <strong>{{ unscheduledTasks.length }}</strong>
+        </div>
+        <p class="unscheduled-note">Tasks without start or due date from API.</p>
+        <div class="unscheduled-list">
+          <button
+            v-for="task in unscheduledTasks"
+            :key="task.id"
+            type="button"
+            class="unscheduled-item"
+            @click="emit('open-task', task)"
+          >
+            <span class="unscheduled-key">{{ task.sequenceId || task.id?.substring(0, 8)?.toUpperCase() }}</span>
+            <span class="unscheduled-title">{{ task.title }}</span>
+          </button>
+          <div v-if="!unscheduledTasks.length" class="unscheduled-empty">No unscheduled work items.</div>
+        </div>
+      </aside>
     </div>
 
     <div
@@ -358,10 +391,18 @@ function formatDateOnly(value) {
   padding: 6px 0;
 }
 
+.cal-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  flex: 1;
+  min-height: 0;
+}
+
 .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   flex: 1;
+  min-width: 0;
   border-left: 1px solid var(--color-border);
 }
 
@@ -464,6 +505,76 @@ function formatDateOnly(value) {
   opacity: 1;
 }
 
+.unscheduled-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-left: 1px solid var(--color-border);
+  background: var(--bg-secondary);
+  padding: 16px;
+  min-width: 0;
+}
+
+.unscheduled-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.unscheduled-head strong {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.unscheduled-note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.unscheduled-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+}
+
+.unscheduled-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  color: var(--color-text-primary);
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.unscheduled-item:hover {
+  border-color: var(--color-primary);
+}
+
+.unscheduled-key,
+.unscheduled-empty {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.unscheduled-title {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .calendar-tooltip {
   position: fixed;
   z-index: 40;
@@ -504,6 +615,17 @@ function formatDateOnly(value) {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+@media (max-width: 1100px) {
+  .cal-content {
+    grid-template-columns: 1fr;
+  }
+
+  .unscheduled-panel {
+    border-top: 1px solid var(--color-border);
+    border-left: 0;
+  }
 }
 </style>
 

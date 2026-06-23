@@ -8,57 +8,57 @@
         <div class="settings-content-wrapper">
           <div class="settings-list">
             <!-- Personal Settings -->
-            <div class="settings-section-header">Personal Jira settings</div>
+            <div class="settings-section-header">{{ t('Personal Jira settings') }}</div>
             <div class="settings-menu-item" @click="handleCommand('/profile')">
               <i class="fa-regular fa-user"></i>
               <div class="item-info">
-                <span class="item-title">General settings</span>
-                <span class="item-desc">Manage language, time zone, and other personal preferences</span>
+                <span class="item-title">{{ t('General settings') }}</span>
+                <span class="item-desc">{{ t('Manage language, time zone, and other personal preferences') }}</span>
               </div>
             </div>
 
             <div class="settings-menu-item" @click="handleCommand('/your-work')">
               <i class="fa-regular fa-bell"></i>
               <div class="item-info">
-                <span class="item-title">Notification settings</span>
-                <span class="item-desc">Manage email and in-app notifications from Jira</span>
+                <span class="item-title">{{ t('Notification settings') }}</span>
+                <span class="item-desc">{{ t('Manage email and in-app notifications from Jira') }}</span>
               </div>
             </div>
 
             <div class="menu-divider"></div>
 
             <!-- Jira Admin Settings -->
-            <div class="settings-section-header">Jira admin settings</div>
+            <div class="settings-section-header">{{ t('Jira admin settings') }}</div>
 
             <div v-if="canAccessAdmin" class="settings-menu-item" @click="handleCommand('/admin/audit-log')">
               <i class="fa-solid fa-desktop"></i>
               <div class="item-info">
-                <span class="item-title">System</span>
-                <span class="item-desc">Manage general configuration, security, audit logs, and more</span>
+                <span class="item-title">{{ t('System') }}</span>
+                <span class="item-desc">{{ t('Manage general configuration, security, audit logs, and more') }}</span>
               </div>
             </div>
 
             <div v-if="canAccessUserDirectory" class="settings-menu-item" @click="handleCommand('/admin/users')">
               <i class="fa-solid fa-users"></i>
               <div class="item-info">
-                <span class="item-title">Jira apps</span>
-                <span class="item-desc">Manage access, settings, and integrations across Jira</span>
+                <span class="item-title">{{ t('Jira apps') }}</span>
+                <span class="item-desc">{{ t('Manage access, settings, and integrations across Jira') }}</span>
               </div>
             </div>
 
             <div class="settings-menu-item" @click="handleCommand('/spaces')">
               <i class="fa-solid fa-rocket"></i>
               <div class="item-info">
-                <span class="item-title">Spaces</span>
-                <span class="item-desc">Manage space settings, categories, and more</span>
+                <span class="item-title">{{ t('Spaces') }}</span>
+                <span class="item-desc">{{ t('Manage space settings, categories, and more') }}</span>
               </div>
             </div>
 
             <div v-if="canAccessAdmin" class="settings-menu-item" @click="handleCommand('/admin/configuration')">
               <i class="fa-regular fa-folder-open"></i>
               <div class="item-info">
-                <span class="item-title">Work items</span>
-                <span class="item-desc">Configure work types, workflows, screens, fields, and more</span>
+                <span class="item-title">{{ t('Work items') }}</span>
+                <span class="item-desc">{{ t('Configure work types, workflows, screens, fields, and more') }}</span>
               </div>
             </div>
           </div>
@@ -74,8 +74,12 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { canAccessAdminUserDirectory, getStoredUser, hasSystemAdminAccess } from '@/utils/permissions'
 import { openNamedAppWindow, PROJECT_ADMIN_WINDOW_NAME } from '@/utils/windowTabs'
+import { useI18nStore } from '@/store/useI18nStore'
 
 const router = useRouter()
+const i18nStore = useI18nStore()
+const t = i18nStore.t
+
 const currentUser = computed(() => getStoredUser())
 const canAccessAdmin = computed(() => hasSystemAdminAccess(currentUser.value))
 const canAccessUserDirectory = computed(() => canAccessAdminUserDirectory(currentUser.value))
@@ -83,7 +87,7 @@ const canAccessUserDirectory = computed(() => canAccessAdminUserDirectory(curren
 const handleCommand = (path) => {
   const canOpenPath = !path.startsWith('/admin') || canAccessAdmin.value || (['/admin/users', '/admin/roles'].includes(path) && canAccessUserDirectory.value)
   if (!canOpenPath) {
-    ElMessage.warning('You do not have permission to access admin settings.')
+    ElMessage.warning(t('You do not have permission to access admin settings.'))
     return
   }
 

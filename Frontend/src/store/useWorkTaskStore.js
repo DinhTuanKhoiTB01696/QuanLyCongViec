@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import axiosClient from '@/api/axiosClient'
 import { useSiteStore } from './useSiteStore'
+import { useProjectStore } from './useProjectStore'
 
 const normalizeDateOnly = (value) => {
   if (!value) return null
@@ -166,6 +167,7 @@ export const useWorkTaskStore = defineStore('workTask', {
 
         this.tasks = (res.data?.data || [])
           .map(task => normalizeTaskRecord(task, projectId))
+        this.fetchStarredTasks().catch(() => {})
         return this.tasks
       } catch (err) {
         if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
@@ -252,23 +254,93 @@ export const useWorkTaskStore = defineStore('workTask', {
         throw err;
       }
     },
-    async fetchStarredTasks() {
+    resolveWorkspaceId(projectId = null, taskProjectId = null) {
       const siteStore = useSiteStore()
-      const workspaceId = siteStore.activeSite?.id
-      if (!workspaceId) return
+      const projectStore = useProjectStore()
+      
+      const searchId = projectId || this.currentProjectId
+      
+      // 1. Try projectStore.currentProject
+      let p = projectStore.currentProject
+      if (p && p.id === searchId) {
+        const wId = p.workspaceId || p.WorkspaceId
+        if (wId && wId.length >= 36) return wId
+      }
+      
+      // 2. Try projectDetailsById
+      if (searchId) {
+        p = projectStore.projectDetailsById[searchId]
+        if (p) {
+          const wId = p.workspaceId || p.WorkspaceId
+          if (wId && wId.length >= 36) return wId
+        }
+      }
+      
+      // 3. Try allProjects
+      if (searchId) {
+        p = projectStore.allProjects.find(item => item.id === searchId)
+        if (p) {
+          const wId = p.workspaceId || p.WorkspaceId || p.originalRow?.workspaceId || p.originalRow?.WorkspaceId
+          if (wId && wId.length >= 36) return wId
+        }
+      }
+      
+      // 4. Try task's projectId
+      const tPid = taskProjectId || projectId
+      if (tPid) {
+        p = projectStore.allProjects.find(item => item.id === tPid)
+        if (p) {
+          const wId = p.workspaceId || p.WorkspaceId || p.originalRow?.workspaceId || p.originalRow?.WorkspaceId
+          if (wId && wId.length >= 36) return wId
+        }
+      }
+      
+      // 5. Try local storage
+      const localId = localStorage.getItem('sprinta_recent_site_id') || localStorage.getItem('recent_site_id')
+      if (localId && localId.length >= 36 && localId !== '00000000-0000-0000-0000-000000000000') {
+        return localId
+      }
+      
+      // 6. Try siteStore
+      const siteId = siteStore.recentSite?.id || siteStore.recentSite?.Id
+      if (siteId && siteId.length >= 36) {
+        return siteId
+      }
+      
+      return null
+    },
+    async fetchStarredTasks() {
+      let workspaceId = this.resolveWorkspaceId()
+      if (!workspaceId) {
+        workspaceId = '00000000-0000-0000-0000-000000000000'
+      }
       try {
         const response = await axiosClient.get(`/workspaces/${workspaceId}/StarredItems`)
-        this.starredTasks = response.data?.data || []
+        const data = response.data
+        if (Array.isArray(data)) {
+          this.starredTasks = data
+        } else if (data && Array.isArray(data.data)) {
+          this.starredTasks = data.data
+        } else {
+          this.starredTasks = []
+        }
       } catch (error) {
         console.error('Failed to fetch starred tasks:', error)
       }
     },
     async toggleTaskStar(taskOrId) {
-      const siteStore = useSiteStore()
-      const workspaceId = siteStore.activeSite?.id
-      if (!taskOrId || !workspaceId) return
+      if (!taskOrId) return
       const taskId = typeof taskOrId === 'object' ? taskOrId.id : taskOrId
       const fullTask = typeof taskOrId === 'object' ? taskOrId : this.tasks.find(t => t.id === taskId)
+      
+      let workspaceId = this.resolveWorkspaceId(null, fullTask?.projectId)
+      if (!workspaceId || workspaceId.length < 36) {
+        workspaceId = '00000000-0000-0000-0000-000000000000'
+      }
+      if (workspaceId === '00000000-0000-0000-0000-000000000000') {
+        console.error('Cannot toggle star: workspace ID is empty')
+        return
+      }
       
       const index = this.starredTasks.findIndex(t => t.itemId === taskId)
       const isStarred = index >= 0

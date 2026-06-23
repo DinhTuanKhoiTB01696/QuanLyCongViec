@@ -232,6 +232,10 @@ namespace TaskManagement.Tests.Logic
             var sprint = await _context.Sprints.FindAsync(sprintId);
             Assert.False(sprint!.Status); // Sprint đã đóng
 
+            var reloadedSprint = await _sprintService.GetByIdAsync(sprintId);
+            Assert.NotNull(reloadedSprint);
+            Assert.False(reloadedSprint!.Status); // Đồng bộ không được tự kích hoạt lại Sprint đã đóng
+
             var task = await _context.WorkTasks.FindAsync(taskId);
             Assert.Null(task!.SprintId); // Task đã về Backlog (null)
         }

@@ -4,7 +4,7 @@
       <div class="app-launcher-icon">
         <span class="grid-icon">⋮⋮⋮</span>
       </div>
-      
+
       <div class="sprinta-logo" @click="router.push('/site-selection')">
         <img src="@/assets/logo_QLCV.png" alt="SprintA Logo" class="sprinta-logo-img" />
         <span class="logo-text">SprintA</span>
@@ -33,7 +33,7 @@
         <i class="fa-solid fa-magnifying-glass search-icon"></i>
         <input type="text" :placeholder="isSpaceContext ? t('Search work items...') : t('Search')" v-model="searchQuery" @input="handleSearchInput" />
         <div v-if="showSearchDropdown" class="search-dropdown">
-          <div v-if="searching" class="search-state">{{ t('Searching...', 'Đang tìm kiếm...') }}</div>
+          <div v-if="searching" class="search-state">{{ t('Searching...') }}</div>
           <template v-else-if="searchResults.length">
             <button v-for="result in searchResults" :key="result.id" type="button" class="search-result" @click="openSearchResult(result)">
               <strong>{{ result.sequenceId || result.title || result.name }}</strong>
@@ -41,7 +41,7 @@
               <small v-if="result.projectName">{{ result.projectName }}</small>
             </button>
           </template>
-          <div v-else class="search-state">{{ t('No items found.', 'Không tìm thấy kết quả.') }}</div>
+          <div v-else class="search-state">{{ t('No items found.') }}</div>
         </div>
       </div>
       <button v-if="isHomeContext" class="topbar-btn create-btn" @click="handleGlobalCreate">{{ t('Create', 'Tạo') }}</button>
@@ -84,8 +84,8 @@
       <button class="icon-btn" @click="goToNotifications" v-else>
         <i class="fa-regular fa-bell"></i>
       </button>
-      
-      <button class="icon-btn" @click="toggleTheme()" :title="currentTheme === 'dark' ? 'Light mode' : 'Dark mode'">
+
+      <button class="icon-btn" @click="toggleTheme()" :title="currentTheme === 'dark' ? t('Light mode') : t('Dark mode')">
         <i :class="currentTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i>
       </button>
 
@@ -207,13 +207,13 @@ const openSearchResult = (result) => {
   searchAbortController?.abort()
   searchResults.value = []
   searchQuery.value = ''
-  
+
   if (isHomeContext.value) {
     // Navigate logic pending global search API implementation
     console.log('Global search item clicked:', result)
     return
   }
-  
+
   router.push(`/space/${result.projectId}?task=${result.id}`)
 }
 
@@ -489,19 +489,19 @@ onUnmounted(() => {
   color: #172b4d;
 }
 
-.search-icon { 
-  color: #DEEBFF; 
-  font-size: 13px; 
-  margin-right: 8px; 
+.search-icon {
+  color: #DEEBFF;
+  font-size: 13px;
+  margin-right: 8px;
 }
 
-.search-input-wrapper input { 
-  background: transparent; 
-  border: none; 
-  color: #DEEBFF; 
-  font-size: 14px; 
-  width: 100%; 
-  outline: none; 
+.search-input-wrapper input {
+  background: transparent;
+  border: none;
+  color: #DEEBFF;
+  font-size: 14px;
+  width: 100%;
+  outline: none;
 }
 
 .search-dropdown {

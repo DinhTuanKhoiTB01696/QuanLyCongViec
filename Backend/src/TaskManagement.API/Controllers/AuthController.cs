@@ -91,6 +91,31 @@ namespace TaskManagement.API.Controllers
             return Ok(new { statusCode = 200, message = "Xác thực OTP thành công.", verified = true, otpToken = newOtp });
         }
 
+        /// <summary>
+        /// Đặt lại mật khẩu cho user quên mật khẩu (public). Yêu cầu otpToken hợp lệ do verify-otp cấp.
+        /// </summary>
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestDto request)
+        {
+            try
+            {
+                await _authService.ResetPasswordAsync(request);
+                return Ok(new { statusCode = 200, message = "Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới." });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { statusCode = 500, message = "Internal server error" });
+            }
+        }
+
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {

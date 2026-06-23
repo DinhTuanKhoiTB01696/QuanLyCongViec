@@ -18,5 +18,10 @@ export default [
     path: '/accept-invite',
     name: 'AcceptInvite',
     component: () => import('../views/AcceptInvite.vue')
+  },
+  {
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: () => import('../views/ForgotPassword.vue')
   }
 ]
