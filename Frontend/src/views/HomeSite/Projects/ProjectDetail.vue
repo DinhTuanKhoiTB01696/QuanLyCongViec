@@ -92,11 +92,7 @@
           </section>
 
           <section class="content-section">
-            <h4>Nhận xét</h4>
-            <div class="comment-input-mockup">
-              <div class="user-avatar-current">T</div>
-              <div class="fake-input">Thêm nhận xét... tham gia cuộc hội thoại</div>
-            </div>
+            <CommentSection :entity-id="route.params.id" entity-type="Project" />
           </section>
         </template>
 
@@ -446,6 +442,7 @@ import { useRoute } from 'vue-router'
 import { useHomeProjectStore } from '@/store/useHomeProjectStore'
 import RichTextEditor from '@/components/common/RichTextEditor.vue'
 import ShareModal from '@/components/common/ShareModal.vue'
+import CommentSection from '@/components/common/CommentSection.vue'
 
 const route = useRoute()
 const projectStore = useHomeProjectStore()

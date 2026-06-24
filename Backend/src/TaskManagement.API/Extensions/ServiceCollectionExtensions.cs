@@ -80,6 +80,9 @@ namespace TaskManagement.API.Extensions
             services.AddHttpContextAccessor();
             services.AddSingleton<IAuditLogQueue, AuditLogQueue>();
             services.AddHostedService<AuditLogWorker>();
+            services.AddScoped<ISignalRClientNotifier, TaskManagement.API.Services.SignalRClientNotifier>();
+            services.AddScoped<ISiteAuditService, SiteAuditService>();
+            services.AddScoped<INotificationService, NotificationService>();
             return services;
         }
     }

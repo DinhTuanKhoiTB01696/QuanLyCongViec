@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -91,7 +92,10 @@ namespace TaskManagement.API.Controllers
                     avatarUrl = user.AvatarUrl,
                     coverUrl = user.CoverUrl,
                     publicName = string.IsNullOrEmpty(extra.PublicName) ? user.FullName : extra.PublicName,
-                    jobTitle = extra.JobTitle,
+                    jobTitle = user.JobTitle,
+                    bio = user.Bio,
+                    location = user.Location,
+                    timezone = user.Timezone,
                     departmentName = activeDepartment?.Name ?? extra.DepartmentName,
                     organizationName = extra.OrganizationName,
                     collaborationRules = extra.CollaborationRules,
@@ -106,13 +110,124 @@ namespace TaskManagement.API.Controllers
 
         public class UpdateProfileRequest
         {
+            [MaxLength(100, ErrorMessage = "Tên đầy đủ không được vượt quá 100 ký tự.")]
             public string FullName { get; set; } = string.Empty;
+            
+            [MaxLength(100, ErrorMessage = "Tên hiển thị không được vượt quá 100 ký tự.")]
             public string PublicName { get; set; } = string.Empty;
+            
+            [MaxLength(100, ErrorMessage = "Chức danh không được vượt quá 100 ký tự.")]
             public string JobTitle { get; set; } = string.Empty;
+            
+            [MaxLength(100)]
             public string DepartmentName { get; set; } = string.Empty;
+            
+            [MaxLength(100)]
             public string OrganizationName { get; set; } = string.Empty;
+            
+            [MaxLength(500)]
             public string CollaborationRules { get; set; } = string.Empty;
+            
             public int CoverPositionY { get; set; } = 50;
+            
+            [MaxLength(500, ErrorMessage = "Tiểu sử không được vượt quá 500 ký tự.")]
+            public string Bio { get; set; } = string.Empty;
+            
+            [MaxLength(200, ErrorMessage = "Vị trí không được vượt quá 200 ký tự.")]
+            public string Location { get; set; } = string.Empty;
+            
+            [MaxLength(100)]
+            public string Timezone { get; set; } = string.Empty;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetUsers([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            var query = _context.Users
+                .AsNoTracking()
+                .Include(u => u.DepartmentMemberships)
+                .ThenInclude(dm => dm.Department)
+                .Where(u => !u.IsDeleted && u.IsActive)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var lowerSearch = search.ToLower();
+                query = query.Where(u => 
+                    u.FullName.ToLower().Contains(lowerSearch) || 
+                    u.Email.ToLower().Contains(lowerSearch) ||
+                    (u.JobTitle != null && u.JobTitle.ToLower().Contains(lowerSearch)));
+            }
+
+            var totalCount = await query.CountAsync();
+            var users = await query
+                .OrderBy(u => u.FullName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var result = users.Select(u => new
+            {
+                id = u.Id,
+                email = u.Email,
+                fullName = u.FullName,
+                avatarUrl = u.AvatarUrl,
+                coverUrl = u.CoverUrl,
+                jobTitle = u.JobTitle,
+                location = u.Location,
+                timezone = u.Timezone,
+                departmentName = u.DepartmentMemberships.FirstOrDefault(dm => dm.Department != null && dm.Department.IsActive && !dm.Department.IsDeleted)?.Department?.Name
+            }).ToList();
+
+            return Ok(new { statusCode = 200, data = result, total = totalCount, page, pageSize });
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetUserById(Guid id)
+        {
+            var user = await _context.Users
+                .AsNoTracking()
+                .Include(u => u.DepartmentMemberships)
+                .ThenInclude(dm => dm.Department)
+                .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted && u.IsActive);
+                
+            if (user == null) return NotFound(new { message = "Không tìm thấy người dùng." });
+
+            var extraProfileSetting = await _context.SystemSettings
+                .FirstOrDefaultAsync(s => s.Key == "Profile_" + id.ToString());
+
+            var extra = new UpdateProfileRequest();
+            if (extraProfileSetting != null && !string.IsNullOrEmpty(extraProfileSetting.Value))
+            {
+                try { extra = JsonSerializer.Deserialize<UpdateProfileRequest>(extraProfileSetting.Value, ProfileJsonOptions) ?? extra; }
+                catch { }
+            }
+
+            var activeDepartment = user.DepartmentMemberships
+                .Select(dm => dm.Department)
+                .FirstOrDefault(department => department != null && department.IsActive && !department.IsDeleted);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                data = new
+                {
+                    id = user.Id,
+                    email = user.Email,
+                    fullName = user.FullName,
+                    avatarUrl = user.AvatarUrl,
+                    coverUrl = user.CoverUrl,
+                    publicName = string.IsNullOrEmpty(extra.PublicName) ? user.FullName : extra.PublicName,
+                    jobTitle = user.JobTitle,
+                    bio = user.Bio,
+                    location = user.Location,
+                    timezone = user.Timezone,
+                    departmentName = activeDepartment?.Name ?? extra.DepartmentName,
+                    organizationName = extra.OrganizationName,
+                    collaborationRules = extra.CollaborationRules,
+                    coverPositionY = extra.CoverPositionY
+                }
+            });
         }
 
         [HttpPut("profile")]
@@ -126,6 +241,10 @@ namespace TaskManagement.API.Controllers
             if (user == null) return NotFound(new { message = "Không tìm thấy người dùng." });
 
             user.FullName = string.IsNullOrWhiteSpace(request.FullName) ? user.FullName : request.FullName.Trim();
+            user.JobTitle = request.JobTitle?.Trim() ?? string.Empty;
+            user.Bio = request.Bio?.Trim() ?? string.Empty;
+            user.Location = request.Location?.Trim() ?? string.Empty;
+            user.Timezone = request.Timezone?.Trim() ?? string.Empty;
             user.UpdatedAt = DateTime.UtcNow;
 
             var extraProfileSetting = await _context.SystemSettings
@@ -146,7 +265,6 @@ namespace TaskManagement.API.Controllers
             {
                 FullName = user.FullName,
                 PublicName = request.PublicName?.Trim() ?? string.Empty,
-                JobTitle = request.JobTitle?.Trim() ?? string.Empty,
                 DepartmentName = request.DepartmentName?.Trim() ?? string.Empty,
                 OrganizationName = request.OrganizationName?.Trim() ?? string.Empty,
                 CollaborationRules = request.CollaborationRules?.Trim() ?? string.Empty,

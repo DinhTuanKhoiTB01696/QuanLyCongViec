@@ -26,7 +26,7 @@
       <div class="toolbar-divider"></div>
       <div class="toolbar-group">
         <button class="toolbar-btn"><i class="fa-solid fa-link"></i></button>
-        <button class="toolbar-btn"><i class="fa-regular fa-image"></i></button>
+        <button class="toolbar-btn" @click="triggerFileUpload"><i class="fa-regular fa-image"></i></button>
         <button class="toolbar-btn"><i class="fa-solid fa-at"></i></button>
         <button class="toolbar-btn"><i class="fa-regular fa-face-smile"></i></button>
         <button class="toolbar-btn"><i class="fa-solid fa-table"></i></button>
@@ -35,6 +35,8 @@
       </div>
     </div>
     
+    <input type="file" ref="fileInputRef" style="display: none" accept="image/*" @change="handleFileUpload" />
+
     <div class="rte-content-area">
       <textarea 
         class="rte-textarea" 
@@ -54,6 +56,7 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
+import { uploadApi } from '@/api/uploadApi'
 
 const props = defineProps({
   modelValue: {
@@ -70,6 +73,7 @@ const emit = defineEmits(['update:modelValue', 'save', 'cancel'])
 
 const internalValue = ref(props.modelValue)
 const textareaRef = ref(null)
+const fileInputRef = ref(null)
 
 watch(() => props.modelValue, (newVal) => {
   internalValue.value = newVal
@@ -95,6 +99,37 @@ const handleSave = () => {
 const handleCancel = () => {
   internalValue.value = props.modelValue
   emit('cancel')
+}
+
+const triggerFileUpload = () => {
+  if (fileInputRef.value) {
+    fileInputRef.value.click()
+  }
+}
+
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  try {
+    const response = await uploadApi.uploadImage(file)
+    const imageUrl = response.data.url
+    
+    // Insert markdown image syntax at current cursor position or at the end
+    const cursorPosition = textareaRef.value?.selectionStart || internalValue.value.length
+    const textBefore = internalValue.value.substring(0, cursorPosition)
+    const textAfter = internalValue.value.substring(cursorPosition)
+    
+    internalValue.value = `${textBefore}\n![Image](${imageUrl})\n${textAfter}`
+    emit('update:modelValue', internalValue.value)
+    
+    // Clear the input
+    event.target.value = ''
+    autoResize()
+  } catch (error) {
+    console.error('Failed to upload image:', error)
+    alert('Không thể tải ảnh lên. Vui lòng thử lại.')
+  }
 }
 </script>
 

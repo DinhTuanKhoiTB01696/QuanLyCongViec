@@ -88,6 +88,7 @@
           </tbody>
         </table>
         
+        
         <div class="empty-state" v-if="filteredUsers.length === 0">
           <div class="empty-icon-wrapper">
             <i class="fa-solid fa-user-group"></i>
@@ -99,6 +100,10 @@
       
       <div class="loading-state" v-else>
         <div class="loader-spinner"></div>
+      </div>
+      
+      <div class="error-state" v-if="error">
+        <p style="color: #DE350B; text-align: center; margin-top: 24px;">Đã xảy ra lỗi khi tải danh sách người dùng. Vui lòng thử lại.</p>
       </div>
     </div>
 
@@ -148,9 +153,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePeopleStore } from '@/store/usePeopleStore'
+import debounce from 'lodash/debounce'
 
 const router = useRouter()
 const peopleStore = usePeopleStore()
@@ -227,25 +233,21 @@ onMounted(async () => {
 })
 
 const isLoading = computed(() => peopleStore.isLoading)
+const error = computed(() => peopleStore.error)
 
 const filteredUsers = computed(() => {
-  let list = peopleStore.users || []
-
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase()
-    list = list.filter(u => 
-      u.fullName.toLowerCase().includes(q) || 
-      (u.position && u.position.toLowerCase().includes(q)) || 
-      (u.team && u.team.toLowerCase().includes(q)) ||
-      (u.department && u.department.toLowerCase().includes(q))
-    )
-  }
-
-  // Map to format with avatar if missing
-  return list.map(u => ({
+  return (peopleStore.users || []).map(u => ({
     ...u,
     avatar: u.avatar || (u.fullName ? u.fullName.substring(0, 2).toUpperCase() : 'U')
   }))
+})
+
+const handleSearch = debounce(async () => {
+  await peopleStore.fetchPeople(searchQuery.value)
+}, 500)
+
+watch(searchQuery, () => {
+  handleSearch()
 })
 
 const goToProfile = (id) => {
