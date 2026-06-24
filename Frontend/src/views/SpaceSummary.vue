@@ -3,9 +3,9 @@
     <div v-if="isForbidden" class="forbidden-overlay">
       <div class="forbidden-content">
         <div class="lock-icon"><i class="fa-solid fa-lock"></i></div>
-        <h2>Access Denied</h2>
-        <p>Bạn không đủ quyền để truy cập dự án này.</p>
-        <button class="plane-primary-btn mt-4" @click="router.push('/spaces')">Quay lại trang Home</button>
+        <h2>{{ t('Access Denied') }}</h2>
+        <p>{{ t('You do not have permission to access this project.') }}</p>
+        <button class="plane-primary-btn mt-4" @click="router.push('/spaces')">{{ t('Back to Home') }}</button>
       </div>
     </div>
     <div v-else class="plane-board-container">
@@ -14,10 +14,10 @@
         <div class="sh-left">
           <div class="breadcrumb">
             <span class="proj-icon">{{ projectBadge }}</span>
-            <span class="proj-name">{{ project?.name || 'Project' }}</span>
+            <span class="proj-name">{{ project?.name || t('Project') }}</span>
             <i class="fa-solid fa-chevron-right separator"></i>
             <span class="active-page">
-              <i class="fa-solid fa-layer-group"></i> Work Items
+              <i class="fa-solid fa-layer-group"></i> {{ t('Work Items') }}
             </span>
             <span class="item-count">{{ visibleTopLevelTasks.length }}</span>
           </div>
@@ -26,11 +26,11 @@
         <div class="sh-right">
           <!-- View Toggles -->
           <div class="view-toggles">
-            <button class="toggle-btn" :class="{ active: currentTab === 'list' }" @click="currentTab = 'list'" title="List view"><i class="fa-solid fa-bars"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'board' }" @click="currentTab = 'board'" title="Kanban view"><i class="fa-solid fa-table-columns"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'calendar' }" @click="currentTab = 'calendar'" title="Calendar view"><i class="fa-regular fa-calendar"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'spreadsheet' }" @click="currentTab = 'spreadsheet'" title="Spreadsheet view"><i class="fa-solid fa-table-cells"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'timeline' }" @click="currentTab = 'timeline'" title="Gantt chart view"><i class="fa-solid fa-chart-gantt"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'list' }" @click="currentTab = 'list'" :title="t('List view')"><i class="fa-solid fa-bars"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'board' }" @click="currentTab = 'board'" :title="t('Kanban view')"><i class="fa-solid fa-table-columns"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'calendar' }" @click="currentTab = 'calendar'" :title="t('Calendar view')"><i class="fa-regular fa-calendar"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'spreadsheet' }" @click="currentTab = 'spreadsheet'" :title="t('Spreadsheet view')"><i class="fa-solid fa-table-cells"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'timeline' }" @click="currentTab = 'timeline'" :title="t('Gantt chart view')"><i class="fa-solid fa-chart-gantt"></i></button>
           </div>
 
           <button class="plane-toolbar-btn" @click="showFilterPanel = !showFilterPanel" :class="{ active: showFilterPanel || activeTaskFilters.length }">
@@ -40,11 +40,11 @@
           
           <!-- Display Dropdown -->
           <div class="display-dropdown-wrapper">
-             <button class="plane-toolbar-btn" @click.stop="showDisplayDropdown = !showDisplayDropdown" :class="{ 'active': showDisplayDropdown }">Display</button>
+             <button class="plane-toolbar-btn" @click.stop="showDisplayDropdown = !showDisplayDropdown" :class="{ 'active': showDisplayDropdown }">{{ t('Display') }}</button>
              <div class="plane-dropdown-menu" v-show="showDisplayDropdown" @click.stop>
-                <div class="dd-section">
+                <div class="nexus-display-properties-dropdown dd-section">
                    <div class="dd-title">
-                      <span>Display Properties</span>
+                      <span>{{ t('Display Properties') }}</span>
                       <i class="fa-solid fa-chevron-up"></i>
                    </div>
                    <div class="dd-btns">
@@ -53,28 +53,28 @@
                 </div>
                 <div class="dd-section border-top">
                    <div class="dd-title">
-                      <span>Order by</span>
+                      <span>{{ t('Order by') }}</span>
                       <i class="fa-solid fa-chevron-up"></i>
                    </div>
                    <div class="dd-list">
-                      <label class="dd-item"><input type="radio" name="order" value="manual" v-model="displayOrder" /> Manual</label>
-                      <label class="dd-item"><input type="radio" name="order" value="created" v-model="displayOrder" /> Last created</label>
-                      <label class="dd-item"><input type="radio" name="order" value="updated" v-model="displayOrder" /> Last updated</label>
-                      <label class="dd-item"><input type="radio" name="order" value="priority" v-model="displayOrder" /> Priority</label>
+                      <label class="dd-item"><input type="radio" name="order" value="manual" v-model="displayOrder" /> {{ t('Manual') }}</label>
+                      <label class="dd-item"><input type="radio" name="order" value="created" v-model="displayOrder" /> {{ t('Last created') }}</label>
+                      <label class="dd-item"><input type="radio" name="order" value="updated" v-model="displayOrder" /> {{ t('Last updated') }}</label>
+                      <label class="dd-item"><input type="radio" name="order" value="priority" v-model="displayOrder" /> {{ t('Priority') }}</label>
                    </div>
                 </div>
                 <div class="dd-section border-top">
                    <label class="dd-item checkbox">
-                     <input type="checkbox" v-model="showSubtasks" /> Show sub-work items
+                     <input type="checkbox" v-model="showSubtasks" /> {{ t('Show sub-work items') }}
                    </label>
                 </div>
              </div>
           </div>
           
-          <button class="plane-toolbar-btn" @click="showAnalyticsSidebar = true">Analytics</button>
+          <button class="plane-toolbar-btn" @click="showAnalyticsSidebar = true">{{ t('Analytics') }}</button>
           
           <button class="plane-primary-btn" @click="openCreateTask('TO DO')">
-            Add work item
+            {{ t('Add work item') }}
           </button>
         </div>
       </header>

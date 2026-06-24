@@ -5,7 +5,7 @@
         <div class="gh-left">
           <i class="gh-chevron fa-solid" :class="collapsedGroups[key] ? 'fa-chevron-right' : 'fa-chevron-down'"></i>
           <i class="status-icon" :class="group.iconClass" :style="{ color: group.color }"></i>
-          <span class="group-name">{{ group.name }}</span>
+          <span class="group-name">{{ getGroupName(group.name, key) }}</span>
           <span class="group-count">{{ group.tasks.length }}</span>
         </div>
         <div class="gh-right">
@@ -20,7 +20,7 @@
             {{ task.title }}
           </span>
 
-          <div class="task-progress-ring" :style="progressStyle(task)" :title="`${taskProgress(task)}% progress`">
+          <div class="task-progress-ring" :style="progressStyle(task)" :title="`${taskProgress(task)}% ${t('workItems.progress', 'progress')}`">
             <span class="ring-value">{{ taskProgress(task) }}</span>
           </div>
 
@@ -28,15 +28,15 @@
             <el-dropdown trigger="click" @command="value => updateTaskProperty(task, 'statusName', value)">
               <div class="pill status-pill">
                 <i class="status-icon-sm" :class="group.iconClass" :style="{ color: group.color }"></i>
-                {{ task.statusName || group.name }}
+                {{ getStatusLabel(task.statusName || group.name) }}
               </div>
               <template #dropdown>
                 <el-dropdown-menu class="plane-dropdown">
-                  <el-dropdown-item command="BACKLOG">Backlog</el-dropdown-item>
-                  <el-dropdown-item command="TO DO">To Do</el-dropdown-item>
-                  <el-dropdown-item command="IN PROGRESS">In Progress</el-dropdown-item>
-                  <el-dropdown-item command="IN REVIEW">In Review</el-dropdown-item>
-                  <el-dropdown-item command="DONE">Done</el-dropdown-item>
+                  <el-dropdown-item command="BACKLOG">{{ t('workItems.statusLabels.backlog') }}</el-dropdown-item>
+                  <el-dropdown-item command="TO DO">{{ t('workItems.statusLabels.toDo') }}</el-dropdown-item>
+                  <el-dropdown-item command="IN PROGRESS">{{ t('workItems.statusLabels.inProgress') }}</el-dropdown-item>
+                  <el-dropdown-item command="IN REVIEW">{{ t('workItems.statusLabels.inReview') }}</el-dropdown-item>
+                  <el-dropdown-item command="DONE">{{ t('workItems.statusLabels.done') }}</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -52,10 +52,10 @@
               </div>
               <template #dropdown>
                 <el-dropdown-menu class="plane-dropdown">
-                  <el-dropdown-item :command="1">Urgent</el-dropdown-item>
-                  <el-dropdown-item :command="2">High</el-dropdown-item>
-                  <el-dropdown-item :command="3">Normal</el-dropdown-item>
-                  <el-dropdown-item :command="4">Low</el-dropdown-item>
+                  <el-dropdown-item :command="1">{{ t('workItems.priority.urgent') }}</el-dropdown-item>
+                  <el-dropdown-item :command="2">{{ t('workItems.priority.high') }}</el-dropdown-item>
+                  <el-dropdown-item :command="3">{{ t('workItems.priority.normal') }}</el-dropdown-item>
+                  <el-dropdown-item :command="4">{{ t('workItems.priority.low') }}</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -73,7 +73,7 @@
                 </div>
               </template>
               <div class="popover-content">
-                <input v-model="searchAssignee" type="text" class="plane-search-input" placeholder="Search members" />
+                <input v-model="searchAssignee" type="text" class="plane-search-input" :placeholder="t('workItems.searchMembers')" />
                 <div class="plane-list mt-2">
                   <label
                     v-for="member in filteredMembers"
@@ -91,7 +91,7 @@
         </div>
 
         <div v-if="inlineCreateGroup !== key" class="add-row-placeholder" @click="openInlineCreate(key)">
-          <i class="fa-solid fa-plus"></i> New work item
+          <i class="fa-solid fa-plus"></i> {{ t('workItems.newWorkItem') }}
         </div>
 
         <div v-if="inlineCreateGroup === key" class="inline-create-box">
@@ -100,38 +100,38 @@
             v-model="inlineTaskTitle"
             type="text"
             class="ic-input"
-            placeholder="Work item title"
+            :placeholder="t('workItems.workItemTitlePlaceholder', 'Work item title')"
             @keyup.enter="submitInlineTask(group)"
             @keyup.esc="inlineCreateGroup = null"
           />
           <div class="dm-toolbar mt-2">
             <el-dropdown trigger="click" @command="value => (inlineTaskStatus = value)">
-              <button class="dm-tool-btn">{{ inlineTaskStatus }}</button>
+              <button class="dm-tool-btn">{{ getStatusLabel(inlineTaskStatus) }}</button>
               <template #dropdown>
                 <el-dropdown-menu class="plane-dropdown">
-                  <el-dropdown-item command="BACKLOG">Backlog</el-dropdown-item>
-                  <el-dropdown-item command="TO DO">To Do</el-dropdown-item>
-                  <el-dropdown-item command="IN PROGRESS">In Progress</el-dropdown-item>
-                  <el-dropdown-item command="DONE">Done</el-dropdown-item>
+                  <el-dropdown-item command="BACKLOG">{{ t('workItems.statusLabels.backlog') }}</el-dropdown-item>
+                  <el-dropdown-item command="TO DO">{{ t('workItems.statusLabels.toDo') }}</el-dropdown-item>
+                  <el-dropdown-item command="IN PROGRESS">{{ t('workItems.statusLabels.inProgress') }}</el-dropdown-item>
+                  <el-dropdown-item command="DONE">{{ t('workItems.statusLabels.done') }}</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
 
             <el-dropdown trigger="click" @command="value => (inlineTaskPriority = value)">
               <button class="dm-tool-btn">
-                {{ inlineTaskPriority === 1 ? 'Urgent' : inlineTaskPriority === 2 ? 'High' : inlineTaskPriority === 3 ? 'Normal' : 'Low' }}
+                {{ inlineTaskPriority === 1 ? t('workItems.priority.urgent') : inlineTaskPriority === 2 ? t('workItems.priority.high') : inlineTaskPriority === 3 ? t('workItems.priority.normal') : t('workItems.priority.low') }}
               </button>
               <template #dropdown>
                 <el-dropdown-menu class="plane-dropdown">
-                  <el-dropdown-item :command="1">Urgent</el-dropdown-item>
-                  <el-dropdown-item :command="2">High</el-dropdown-item>
-                  <el-dropdown-item :command="3">Normal</el-dropdown-item>
-                  <el-dropdown-item :command="4">Low</el-dropdown-item>
+                  <el-dropdown-item :command="1">{{ t('workItems.priority.urgent') }}</el-dropdown-item>
+                  <el-dropdown-item :command="2">{{ t('workItems.priority.high') }}</el-dropdown-item>
+                  <el-dropdown-item :command="3">{{ t('workItems.priority.normal') }}</el-dropdown-item>
+                  <el-dropdown-item :command="4">{{ t('workItems.priority.low') }}</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
           </div>
-          <div class="ic-hint mt-2">Press Enter to add another work item.</div>
+          <div class="ic-hint mt-2">{{ t('workItems.pressEnterToAddHint', 'Press Enter to add another work item.') }}</div>
         </div>
       </div>
     </div>
@@ -140,6 +140,9 @@
 
 <script setup>
 import { computed, nextTick, ref } from 'vue'
+import { useI18n } from '@/composables/useI18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   tasks: { type: Array, default: () => [] },
@@ -147,6 +150,32 @@ const props = defineProps({
   groupBy: { type: String, default: 'States' },
   showSubItems: { type: Boolean, default: false }
 })
+
+const getStatusLabel = (status) => {
+  if (!status) return ''
+  const s = status.toLowerCase().replace(/\s+/g, '')
+  if (s === 'todo') return t('workItems.statusLabels.toDo')
+  if (s === 'inprogress') return t('workItems.statusLabels.inProgress')
+  if (s === 'inreview') return t('workItems.statusLabels.inReview')
+  if (s === 'done') return t('workItems.statusLabels.done')
+  if (s === 'cancelled') return t('workItems.statusLabels.cancelled')
+  if (s === 'backlog') return t('workItems.statusLabels.backlog')
+  return status
+}
+
+const getGroupName = (name, key) => {
+  if (props.groupBy === 'None') {
+    return t('workItems.allTasks', 'All tasks')
+  }
+  if (props.groupBy === 'Priority') {
+    if (key === 'normal') return t('workItems.priority.normal', 'Normal')
+    return t(`workItems.priority.${key}`)
+  }
+  // States
+  if (key === 'todo') return t('workItems.statusLabels.toDo')
+  if (key === 'inprogress') return t('workItems.statusLabels.inProgress')
+  return t(`workItems.statusLabels.${key}`)
+}
 
 const emit = defineEmits(['task-click', 'task-created', 'update-task'])
 
@@ -179,10 +208,10 @@ const getTaskAssigneeSummary = (task) => {
   if (!ids.length) return { label: '', avatar: '' }
   if (ids.length === 1) {
     const member = props.projectMembers.find(item => (item.userId || item.id) === ids[0])
-    const label = member?.fullName || member?.name || member?.email || task.assigneeName || 'Assignee'
+    const label = member?.fullName || member?.name || member?.email || task.assigneeName || t('workItems.assignee', 'Assignee')
     return { label, avatar: label.substring(0, 1).toUpperCase() }
   }
-  return { label: `${ids.length} assignees`, avatar: `${ids.length}` }
+  return { label: t('workItems.assigneeCount', { count: ids.length }), avatar: `${ids.length}` }
 }
 
 const toggleTaskAssignee = (task, memberId) => {
