@@ -37,13 +37,6 @@
     <div class="form-section">
       <h3 class="section-title">{{ t('Personal Information', 'Thông tin cá nhân') }}</h3>
       <p class="section-desc">{{ t('Provide details about your role, department, and location. You can also specify visibility settings for each field.', 'Cung cấp chi tiết về vai trò, phòng ban và vị trí của bạn. Bạn cũng có thể thiết lập chế độ hiển thị cho từng trường.') }}</p>
-      <el-alert
-        style="margin-bottom: 16px;"
-        :title="t('Note: Location, Time zone, Visibility, and Language preferences are saved locally on this browser. Other profile fields are synced with the server.', 'Lưu ý: Các thiết lập Vị trí, Múi giờ, Quyền hiển thị và Ngôn ngữ chỉ được lưu cục bộ trên trình duyệt này. Các thông tin khác sẽ được đồng bộ với máy chủ.')"
-        type="warning"
-        :closable="false"
-        show-icon
-      />
 
       <div class="atlassian-form-grid">
         <!-- Full Name Row -->
@@ -165,10 +158,10 @@
           <div class="row-info">
             <label class="row-label">{{ t('Time zone', 'Múi giờ') }}</label>
             <el-select v-model="form.timeZone" style="width: 100%;">
-              <el-option value="UTC" :label="t('Coordinated Universal Time (UTC)', 'Giờ Phối hợp Quốc tế (UTC)')" />
-              <el-option value="GMT+7" :label="t('Bangkok, Hanoi, Jakarta (GMT+7)', 'Bangkok, Hà Nội, Jakarta (GMT+7)')" />
-              <el-option value="GMT+8" :label="t('Singapore, Beijing, Taipei (GMT+8)', 'Singapore, Bắc Kinh, Đài Bắc (GMT+8)')" />
-              <el-option value="GMT-5" :label="t('New York, Toronto (EST)', 'New York, Toronto (EST)')" />
+              <el-option value="UTC" label="Coordinated Universal Time (UTC)" />
+              <el-option value="GMT+7" label="Bangkok, Hanoi, Jakarta (GMT+7)" />
+              <el-option value="GMT+8" label="Singapore, Beijing, Taipei (GMT+8)" />
+              <el-option value="GMT-5" label="New York, Toronto (EST)" />
             </el-select>
           </div>
           <div class="row-visibility">
@@ -181,23 +174,6 @@
               <el-option value="Organization" :label="t('Organization', 'Tổ chức')" />
               <el-option value="OnlyMe" :label="t('Only me', 'Chỉ mình tôi')" />
             </el-select>
-          </div>
-        </div>
-
-        <!-- Language Row -->
-        <div class="form-row">
-          <div class="row-info">
-            <label class="row-label">{{ t('Language', 'Ngôn ngữ') }}</label>
-            <el-select v-model="form.language" style="width: 100%;" @change="changeLanguage">
-              <el-option value="vi" :label="t('Vietnamese (Tiếng Việt)', 'Tiếng Việt (Vietnamese)')" />
-              <el-option value="en" :label="t('English (Tiếng Anh)', 'Tiếng Anh (English)')" />
-            </el-select>
-          </div>
-          <div class="row-visibility">
-            <label class="row-label">{{ t('Storage Type', 'Phương thức lưu trữ') }}</label>
-            <el-tag type="info" size="large" style="width: 100%; text-align: center; height: 40px; display: flex; align-items: center; justify-content: center;">
-              {{ t('Local Storage', 'Lưu cục bộ') }}
-            </el-tag>
           </div>
         </div>
 
@@ -228,11 +204,8 @@
 import { computed, ref, watch, onMounted } from 'vue'
 import { useLocale } from '@/composables/useLocale'
 import { ElMessage } from 'element-plus'
-import { useI18nStore } from '@/store/useI18nStore'
-import { language, setLanguage } from '@/i18n'
 
 const { t } = useLocale()
-const i18nStore = useI18nStore()
 const avatarInput = ref(null)
 
 const props = defineProps({
@@ -260,19 +233,9 @@ const form = ref({
   organization: '',
   location: localStorage.getItem('profile_location') || '',
   timeZone: localStorage.getItem('profile_timezone') || 'GMT+7',
-  language: language.value,
   collaboration: '',
   coverPositionY: 50
 })
-
-watch(language, (newLang) => {
-  form.value.language = newLang
-})
-
-const changeLanguage = (newLang) => {
-  setLanguage(newLang)
-  i18nStore.setLocale(newLang)
-}
 
 const visibility = ref({
   fullName: 'Anyone',
