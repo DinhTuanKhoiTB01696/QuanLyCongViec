@@ -3,9 +3,9 @@
     <div v-if="isForbidden" class="forbidden-overlay">
       <div class="forbidden-content">
         <div class="lock-icon"><i class="fa-solid fa-lock"></i></div>
-        <h2>{{ t('common.accessDenied') }}</h2>
-        <p>{{ t('common.accessDeniedProject') }}</p>
-        <button class="plane-primary-btn mt-4" @click="router.push('/spaces')">{{ t('common.backToHome') }}</button>
+        <h2>Access Denied</h2>
+        <p>Bạn không đủ quyền để truy cập dự án này.</p>
+        <button class="plane-primary-btn mt-4" @click="router.push('/spaces')">Quay lại trang Home</button>
       </div>
     </div>
     <div v-else class="plane-board-container">
@@ -14,16 +14,25 @@
         <div class="sh-left">
           <div class="breadcrumb">
             <span class="proj-icon">{{ projectBadge }}</span>
-            <span class="proj-name">{{ project?.name || t('common.project') }}</span>
+            <span class="proj-name">{{ project?.name || 'Project' }}</span>
             <i class="fa-solid fa-chevron-right separator"></i>
             <span class="active-page">
-              <i class="fa-solid fa-layer-group"></i> {{ t('workItems.workItems') }}
+              <i class="fa-solid fa-layer-group"></i> Work Items
             </span>
             <span class="item-count">{{ visibleTopLevelTasks.length }}</span>
           </div>
         </div>
         
         <div class="sh-right">
+          <!-- View Toggles -->
+          <div class="view-toggles">
+            <button class="toggle-btn" :class="{ active: currentTab === 'list' }" @click="currentTab = 'list'" title="List view"><i class="fa-solid fa-bars"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'board' }" @click="currentTab = 'board'" title="Kanban view"><i class="fa-solid fa-table-columns"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'calendar' }" @click="currentTab = 'calendar'" title="Calendar view"><i class="fa-regular fa-calendar"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'spreadsheet' }" @click="currentTab = 'spreadsheet'" title="Spreadsheet view"><i class="fa-solid fa-table-cells"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'timeline' }" @click="currentTab = 'timeline'" title="Gantt chart view"><i class="fa-solid fa-chart-gantt"></i></button>
+          </div>
+
           <button class="plane-toolbar-btn" @click="showFilterPanel = !showFilterPanel" :class="{ active: showFilterPanel || activeTaskFilters.length }">
             <i class="fa-solid fa-filter"></i>
             <span v-if="activeTaskFilters.length" class="filter-count">{{ activeTaskFilters.length }}</span>
@@ -31,58 +40,44 @@
           
           <!-- Display Dropdown -->
           <div class="display-dropdown-wrapper">
-             <button class="plane-toolbar-btn" @click.stop="showDisplayDropdown = !showDisplayDropdown" :class="{ 'active': showDisplayDropdown }">{{ t('workItems.display') }}</button>
+             <button class="plane-toolbar-btn" @click.stop="showDisplayDropdown = !showDisplayDropdown" :class="{ 'active': showDisplayDropdown }">Display</button>
              <div class="plane-dropdown-menu" v-show="showDisplayDropdown" @click.stop>
                 <div class="dd-section">
                    <div class="dd-title">
-                      <span>{{ t('workItems.displayProperties') }}</span>
+                      <span>Display Properties</span>
                       <i class="fa-solid fa-chevron-up"></i>
                    </div>
                    <div class="dd-btns">
-                      <button class="dd-tag active" type="button" disabled title="[Cáº¦N FLOW] TÃ¹y chá»‰nh thuá»™c tÃ­nh hiá»ƒn thá»‹ chÆ°a há»— trá»£">ID</button>
+                      <button class="dd-tag active">ID</button>
                    </div>
                 </div>
                 <div class="dd-section border-top">
                    <div class="dd-title">
-                      <span>{{ t('workItems.orderBy') }}</span>
+                      <span>Order by</span>
                       <i class="fa-solid fa-chevron-up"></i>
                    </div>
                    <div class="dd-list">
-                      <label class="dd-item"><input type="radio" name="order" value="manual" v-model="displayOrder" /> {{ t('workItems.manual') }}</label>
-                      <label class="dd-item"><input type="radio" name="order" value="created" v-model="displayOrder" /> {{ t('workItems.lastCreated') }}</label>
-                      <label class="dd-item"><input type="radio" name="order" value="updated" v-model="displayOrder" /> {{ t('workItems.lastUpdated') }}</label>
-                      <label class="dd-item"><input type="radio" name="order" value="priority" v-model="displayOrder" /> {{ t('common.priority') }}</label>
+                      <label class="dd-item"><input type="radio" name="order" value="manual" v-model="displayOrder" /> Manual</label>
+                      <label class="dd-item"><input type="radio" name="order" value="created" v-model="displayOrder" /> Last created</label>
+                      <label class="dd-item"><input type="radio" name="order" value="updated" v-model="displayOrder" /> Last updated</label>
+                      <label class="dd-item"><input type="radio" name="order" value="priority" v-model="displayOrder" /> Priority</label>
                    </div>
                 </div>
                 <div class="dd-section border-top">
                    <label class="dd-item checkbox">
-                     <input type="checkbox" v-model="showSubtasks" /> {{ t('workItems.showSubWorkItems') }}
+                     <input type="checkbox" v-model="showSubtasks" /> Show sub-work items
                    </label>
                 </div>
              </div>
           </div>
           
-          <button class="plane-toolbar-btn" @click="showAnalyticsSidebar = true">{{ t('workItems.analytics') }}</button>
+          <button class="plane-toolbar-btn" @click="showAnalyticsSidebar = true">Analytics</button>
           
           <button class="plane-primary-btn" @click="openCreateTask('TO DO')">
-            {{ t('workItems.addWorkItem') }}
+            Add work item
           </button>
         </div>
       </header>
-
-      <!-- Jira-style tab bar (dá»±ng theo áº£nh Board.jpeg / Backlog1.jpeg) -->
-      <nav class="jira-tab-bar">
-        <button
-          v-for="tab in projectTabs"
-          :key="tab.key"
-          class="jira-tab"
-          :class="{ active: currentTab === tab.key }"
-          @click="currentTab = tab.key"
-        >
-          <i :class="tab.icon"></i> {{ t(tab.labelKey) }}
-        </button>
-        <button class="jira-tab add-tab" type="button" disabled title="[Cáº¦N FLOW] ThÃªm view chÆ°a há»— trá»£"><i class="fa-solid fa-plus"></i></button>
-      </nav>
 
       <div class="work-filter-row" v-if="showFilterPanel || activeTaskFilters.length">
         <FilterBar
@@ -92,44 +87,6 @@
           @clear="clearTaskFilters"
         />
       </div>
-
-      <!-- Backlog tab -->
-      <BacklogTab
-        v-if="currentTab === 'backlog'"
-        :tasks="filteredTasksList"
-        :projectMembers="projectMembers"
-        :statusOptions="taskStatusOptions"
-        :selectedTaskId="selectedTask?.id || null"
-        @open-task="openTaskDetail"
-        @update-task="updateTask"
-        @create-task="(status) => openCreateTask(status)"
-      />
-
-      <!-- Reports tab -->
-      <ReportsTab
-        v-if="currentTab === 'reports'"
-        :tasks="visibleTopLevelTasks"
-        :projectMembers="projectMembers"
-        :statusOptions="taskStatusOptions"
-        @open-task="openTaskDetail"
-      />
-
-      <!-- Summary tab -->
-      <SummaryTab
-        v-if="currentTab === 'summary'"
-        :tasks="visibleTopLevelTasks"
-        :projectMembers="projectMembers"
-        :statusOptions="taskStatusOptions"
-        @view-work-items="currentTab = 'list'"
-      />
-
-      <!-- Auxiliary Jira-style tabs. Missing flows stay disabled inside each tab. -->
-      <DevelopmentTab
-        v-if="currentTab === 'development'"
-        :tasks="visibleTopLevelTasks"
-      />
-      <FormsTab v-if="currentTab === 'forms'" />
-      <DocsTab v-if="currentTab === 'docs'" />
 
       <!-- Other Tab Views -->
       <div v-if="currentTab === 'list'" class="list-wrapper" style="padding: 16px;">
@@ -202,7 +159,7 @@
                          </div>
                        </template>
                        <div class="popover-content">
-                         <input type="text" class="plane-search-input" v-model="assigneeSearch" :placeholder="t('workItems.searchMembers')" />
+                         <input type="text" class="plane-search-input" v-model="assigneeSearch" placeholder="Search members" />
                          <div class="plane-list mt-2">
                            <label
                              class="plane-list-item"
@@ -222,7 +179,7 @@
                </template>
 
                <div class="add-row-placeholder" @click="openCreateTask(group.statusName)">
-                 <i class="fa-solid fa-plus"></i> {{ t('workItems.newWorkItem') }}
+                 <i class="fa-solid fa-plus"></i> New work item
                </div>
              </div>
            </div>
@@ -314,7 +271,7 @@
                          <div class="avatar-xs ms-auto cursor-pointer hover:bg-[var(--color-border)]" style="border: 1px dashed var(--color-text-muted); background: transparent; color: var(--color-text-muted);" v-else><i class="fa-solid fa-user"></i></div>
                        </template>
                        <div class="popover-content">
-                         <input type="text" class="plane-search-input" v-model="assigneeSearch" :placeholder="t('workItems.searchMembers')" />
+                         <input type="text" class="plane-search-input" v-model="assigneeSearch" placeholder="Search members" />
                          <div class="plane-list mt-2">
                            <label
                              class="plane-list-item"
@@ -336,7 +293,7 @@
             <div class="inline-create-box" v-if="inlineCreateColId === col.id">
                <div class="ic-top">
                  <i class="fa-solid fa-plus ic-plus"></i>
-                 <input type="text" class="ic-input" v-model="inlineTaskTitle" :placeholder="t('workItems.newWorkItem')" @keyup.enter="submitInlineTask(col)" @keyup.esc="inlineCreateColId = null" ref="inlineInput" />
+                 <input type="text" class="ic-input" v-model="inlineTaskTitle" placeholder="New work item" @keyup.enter="submitInlineTask(col)" @keyup.esc="inlineCreateColId = null" ref="inlineInput" />
                </div>
                <div class="ic-bottom">
                  <div class="ic-chip"><i class="fa-regular fa-circle"></i> {{ col.name }}</div>
@@ -345,7 +302,7 @@
                </div>
             </div>
             <div class="add-btn-bottom" v-else @click="openInlineCreate(col.id)">
-               <i class="fa-solid fa-plus"></i> {{ t('workItems.newWorkItem') }}
+               <i class="fa-solid fa-plus"></i> New work item
             </div>
           </div>
         </div>
@@ -372,7 +329,7 @@
     <div v-if="showAnalyticsSidebar" class="analytics-overlay" @click.self="closeAnalyticsSidebar">
       <div class="analytics-panel" :class="{ 'slide-in': showAnalyticsSidebar, 'is-expanded': isAnalyticsExpanded }">
          <div class="ap-header">
-            <h3>{{ t('workItems.analyticsFor', { project: project?.name || t('common.project') }) }}</h3>
+            <h3>Thống kê {{ project?.name || t('Project') }}</h3>
             <div class="ap-actions">
                <button class="icon-btn" @click="toggleAnalyticsExpand"><i :class="isAnalyticsExpanded ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
                <button class="icon-btn" @click="closeAnalyticsSidebar"><i class="fa-solid fa-xmark"></i></button>
@@ -383,46 +340,46 @@
             <!-- Stats -->
             <div class="ap-stats-grid">
                <div class="stat-box">
-                  <span class="lbl">{{ t('workItems.totalWorkItems') }}</span>
+                  <span class="lbl">Tổng công việc</span>
                   <span class="val">{{ visibleTopLevelTasks.length }}</span>
                </div>
                <div class="stat-box">
-                  <span class="lbl">{{ t('workItems.startedWorkItems') }}</span>
+                  <span class="lbl">Đang thực hiện</span>
                   <span class="val">{{ visibleTopLevelTasks.filter(t => t.statusName === 'IN PROGRESS').length }}</span>
                </div>
                <div class="stat-box">
-                  <span class="lbl">{{ t('workItems.backlogWorkItems') }}</span>
+                  <span class="lbl">Chờ xử lý</span>
                   <span class="val">{{ visibleTopLevelTasks.filter(t => !t.statusName || t.statusName === 'TO DO' || t.statusName === 'TODO').length }}</span>
                </div>
                <div class="stat-box">
-                  <span class="lbl">{{ t('workItems.unstartedWorkItems') }}</span>
+                  <span class="lbl">Đang đánh giá</span>
                   <span class="val">{{ visibleTopLevelTasks.filter(t => t.statusName === 'IN REVIEW').length }}</span>
                </div>
                <div class="stat-box">
-                  <span class="lbl">{{ t('workItems.completedWorkItems') }}</span>
+                  <span class="lbl">Hoàn thành</span>
                   <span class="val">{{ visibleTopLevelTasks.filter(t => t.statusName === 'DONE').length }}</span>
                </div>
             </div>
             
             <!-- Created vs Resolved Chart Overlay -->
             <div class="ap-chart-card mt-4">
-               <h4>{{ t('workItems.createdVsResolved') }}</h4>
+               <h4>Đã tạo và đã xử lý</h4>
                <v-chart class="chart-container" :option="createdResolvedOptions" autoresize />
             </div>
 
             <!-- Customized Insights -->
             <div class="ap-chart-card mt-4">
                <div class="flex-between">
-                  <h4>{{ t('workItems.customizedInsights') }}</h4>
+                  <h4>Phân tích tùy chỉnh</h4>
                   <el-dropdown trigger="click" @command="setAnalyticsInsightMode">
                     <button class="filter-btn" type="button">
                       <i class="fa-solid fa-sliders"></i> {{ analyticsInsightLabel }} <i class="fa-solid fa-chevron-down"></i>
                     </button>
                     <template #dropdown>
                       <el-dropdown-menu class="plane-dropdown">
-                        <el-dropdown-item command="priority">{{ t('workItems.priorityDistribution') }}</el-dropdown-item>
-                        <el-dropdown-item command="status">{{ t('workItems.statusDistribution') }}</el-dropdown-item>
-                        <el-dropdown-item command="assignee">{{ t('workItems.assigneeDistribution') }}</el-dropdown-item>
+                        <el-dropdown-item command="priority">Phân bổ độ ưu tiên</el-dropdown-item>
+                        <el-dropdown-item command="status">Phân bổ trạng thái</el-dropdown-item>
+                        <el-dropdown-item command="assignee">Phân bổ người thực hiện</el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
                   </el-dropdown>
@@ -437,11 +394,11 @@
                   <span class="text-muted">{{ analyticsBreakdownRows.length }} {{ analyticsTableHeading }}</span>
                   <div class="flex-center gap-1">
                      <i class="fa-solid fa-magnifying-glass text-muted"></i>
-                     <button class="export-btn" @click="exportAnalyticsCsv()"><i class="fa-solid fa-download"></i> {{ t('workItems.exportCsv') }}</button>
+                     <button class="export-btn" @click="exportAnalyticsCsv()"><i class="fa-solid fa-download"></i> Xuất CSV</button>
                   </div>
                </div>
                <table class="ap-table">
-                  <thead><tr><th>{{ analyticsTableHeading }}</th><th style="text-align: right;">{{ t('workItems.count') }}</th></tr></thead>
+                  <thead><tr><th>{{ analyticsTableHeading }}</th><th style="text-align: right;">Số lượng</th></tr></thead>
                   <tbody>
                      <tr v-for="row in analyticsBreakdownRows" :key="row.label">
                        <td>{{ row.label }}</td>
@@ -453,21 +410,21 @@
 
             <div class="ap-table-wrap mt-4">
                <div class="table-head">
-                  <span class="text-muted">{{ t('workItems.assigneeCount', { count: assigneeAnalyticsRows.length }) }}</span>
+                  <span class="text-muted">{{ assigneeAnalyticsRows.length }} người thực hiện</span>
                   <div class="flex-center gap-1">
                      <i class="fa-solid fa-magnifying-glass text-muted"></i>
-                     <button class="export-btn" @click="exportAnalyticsCsv('assignee')"><i class="fa-solid fa-download"></i> {{ t('workItems.exportCsv') }}</button>
+                     <button class="export-btn" @click="exportAnalyticsCsv('assignee')"><i class="fa-solid fa-download"></i> Xuất CSV</button>
                   </div>
                </div>
                <table class="ap-table">
                   <thead>
                      <tr>
-                        <th>{{ t('workItems.assignee') }}</th>
-                        <th style="text-align: right;">{{ t('workItems.backlog') }}</th>
-                        <th style="text-align: right;">{{ t('workItems.started') }}</th>
-                        <th style="text-align: right;">{{ t('workItems.unstarted') }}</th>
-                        <th style="text-align: right;">{{ t('workItems.completed') }}</th>
-                        <th style="text-align: right;">{{ t('workItems.cancelled') }}</th>
+                        <th>Người thực hiện</th>
+                        <th style="text-align: right;">Chờ xử lý</th>
+                        <th style="text-align: right;">Đang làm</th>
+                        <th style="text-align: right;">Đang đánh giá</th>
+                        <th style="text-align: right;">Hoàn thành</th>
+                        <th style="text-align: right;">Đã hủy</th>
                      </tr>
                   </thead>
                   <tbody>
@@ -489,7 +446,7 @@
 </template>
 
 <script setup>
-// AI 3: CHUYÃŠN VIÃŠN GHÃ‰P Ná»I LOGIC FRONT-TO-BACK
+// AI 3: CHUYÊN VIÊN GHÉP NỐI LOGIC FRONT-TO-BACK
 import { ref, onMounted, computed, defineAsyncComponent, watch, nextTick, onUnmounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { ElMessage } from 'element-plus'
@@ -506,15 +463,9 @@ import CalendarTab from '@/components/CalendarTab.vue'
 import TimelineTab from '@/components/TimelineTab.vue'
 import SpreadsheetTab from '@/components/SpreadsheetTab.vue'
 import FilterBar from '@/components/FilterBar.vue'
-import BacklogTab from '@/components/BacklogTab.vue'
-import ReportsTab from '@/components/ReportsTab.vue'
-import SummaryTab from '@/components/SummaryTab.vue'
-import DevelopmentTab from '@/components/DevelopmentTab.vue'
-import FormsTab from '@/components/FormsTab.vue'
-import DocsTab from '@/components/DocsTab.vue'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore';
 import { useProjectStore } from '@/store/useProjectStore';
-import { useI18n } from '@/composables/useI18n'
+import { useI18nStore } from '@/store/useI18nStore';
 
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
@@ -545,10 +496,64 @@ const assigneeSearch = ref('')
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
 const currentProjectId = computed(() => route.params.id || getScopedCurrentProjectId() || null)
 const store = useWorkTaskStore();
 const projectStore = useProjectStore()
+const i18nStore = useI18nStore()
+const tr = (en, vi) => i18nStore.locale === 'vi' ? vi : en
+const t = (key) => {
+  const map = {
+    'Project': 'Dự án',
+    'Work Items': 'Công việc',
+    'Display': 'Hiển thị',
+    'Display Properties': 'Thuộc tính hiển thị',
+    'Order by': 'Sắp xếp theo',
+    'Manual': 'Thủ công',
+    'Last created': 'Tạo gần nhất',
+    'Last updated': 'Cập nhật gần nhất',
+    'Priority': 'Độ ưu tiên',
+    'Show sub-work items': 'Hiển thị công việc con',
+    'Analytics': 'Thống kê',
+    'Add work item': 'Thêm công việc',
+    'Access Denied': 'Truy cập bị từ chối',
+    'You do not have permission to access this project.': 'Bạn không đủ quyền để truy cập dự án này.',
+    'Back to Home': 'Quay lại trang Home',
+    'List view': 'Xem danh sách',
+    'Kanban view': 'Xem Kanban',
+    'Calendar view': 'Xem lịch',
+    'Spreadsheet view': 'Xem bảng tính',
+    'Gantt chart view': 'Xem biểu đồ Gantt',
+    'Urgent': 'Khẩn cấp',
+    'High': 'Cao',
+    'Normal': 'Bình thường',
+    'Medium': 'Trung bình',
+    'Low': 'Thấp',
+    'None': 'Không',
+    'Search members': 'Tìm thành viên',
+    'New work item': 'Công việc mới',
+    'Statistics of': 'Thống kê',
+    'Total tasks': 'Tổng công việc',
+    'In progress': 'Đang thực hiện',
+    'Pending': 'Chờ xử lý',
+    'In review': 'Đang đánh giá',
+    'Completed': 'Hoàn thành',
+    'Created and resolved': 'Đã tạo và đã xử lý',
+    'Custom analysis': 'Phân tích tùy chỉnh',
+    'Priority distribution': 'Phân bổ độ ưu tiên',
+    'Status distribution': 'Phân bổ trạng thái',
+    'Assignee distribution': 'Phân bổ người thực hiện',
+    'Export CSV': 'Xuất CSV',
+    'Count': 'Số lượng',
+    'assignees': 'người thực hiện',
+    'Assignee': 'Người thực hiện',
+    'Working': 'Đang làm',
+    'Cancelled': 'Đã hủy'
+  }
+  if (i18nStore.locale === 'vi') {
+    return map[key] || key
+  }
+  return key
+}
 
 const project = ref({})
 const rawTasks = ref([])
@@ -566,19 +571,6 @@ const inlineCreateColId = ref(null)
 const inlineTaskTitle = ref('')
 
 const currentTab = ref('board')
-// Jira-style project tab order. Tabs with missing backend flows render disabled connect/empty states.
-const projectTabs = [
-  { key: 'backlog', labelKey: 'projectTabs.backlog', icon: 'fa-solid fa-bars-staggered' },
-  { key: 'board', labelKey: 'projectTabs.board', icon: 'fa-solid fa-table-columns' },
-  { key: 'summary', labelKey: 'projectTabs.summary', icon: 'fa-solid fa-globe' },
-  { key: 'list', labelKey: 'projectTabs.list', icon: 'fa-solid fa-list' },
-  { key: 'development', labelKey: 'projectTabs.development', icon: 'fa-solid fa-code' },
-  { key: 'forms', labelKey: 'projectTabs.forms', icon: 'fa-solid fa-clipboard-list' },
-  { key: 'timeline', labelKey: 'projectTabs.timeline', icon: 'fa-solid fa-chart-gantt' },
-  { key: 'docs', labelKey: 'projectTabs.docs', icon: 'fa-regular fa-file-lines' },
-  { key: 'reports', labelKey: 'projectTabs.reports', icon: 'fa-solid fa-chart-line' },
-  { key: 'calendar', labelKey: 'projectTabs.calendar', icon: 'fa-regular fa-calendar' }
-]
 const searchQuery = ref('')
 const activeFilters = ref({ assignee: null })
 const activeTaskFilters = ref([])
@@ -648,7 +640,7 @@ const recoverFromForbiddenProject = async (forbiddenProjectId) => {
     allTasks.value = []
     projectMembers.value = []
     project.value = {}
-    ElMessage.error(t('messages.noWorkItemsPermission'))
+    ElMessage.error('You do not have permission to load work items for this project.')
     return false
   }
 
@@ -686,11 +678,11 @@ const getTaskAssigneeSummary = (task) => {
   if (!ids.length) return { label: '', avatar: '' }
   if (ids.length === 1) {
     const member = projectMembers.value.find(item => (item.userId || item.id) === ids[0])
-    const label = member?.fullName || member?.name || member?.email || task.assigneeName || t('workItems.assignee')
+    const label = member?.fullName || member?.name || member?.email || task.assigneeName || 'Assignee'
     return { label, avatar: label.substring(0, 1).toUpperCase() }
   }
 
-  return { label: t('workItems.assigneeCount', { count: ids.length }), avatar: `${ids.length}` }
+  return { label: `${ids.length} assignees`, avatar: `${ids.length}` }
 }
 
 const matchesTaskFilters = (task) => {
@@ -719,12 +711,12 @@ const visibleTasks = computed(() => {
 })
 const visibleTopLevelTasks = computed(() => filteredTasksList.value.filter(task => !isSubtask(task)))
 const defaultTaskStatusOptions = computed(() => [
-  { name: 'BACKLOG', label: t('workItems.statusLabels.backlog'), color: 'var(--color-text-muted)', icon: 'fa-regular fa-circle-dashed' },
-  { name: 'TO DO', label: t('workItems.statusLabels.toDo'), color: '#D4D4D8', icon: 'fa-regular fa-circle' },
-  { name: 'IN PROGRESS', label: t('workItems.statusLabels.inProgress'), color: '#3B82F6', icon: 'fa-solid fa-circle-half-stroke' },
-  { name: 'IN REVIEW', label: t('workItems.statusLabels.inReview'), color: '#F59E0B', icon: 'fa-solid fa-eye' },
-  { name: 'DONE', label: t('workItems.statusLabels.done'), color: '#10B981', icon: 'fa-solid fa-circle-check' },
-  { name: 'CANCELLED', label: t('workItems.statusLabels.cancelled'), color: '#EF4444', icon: 'fa-regular fa-circle-xmark' }
+  { name: 'BACKLOG', label: tr('Backlog', 'Chờ xử lý'), color: 'var(--color-text-muted)', icon: 'fa-regular fa-circle-dashed' },
+  { name: 'TO DO', label: tr('To Do', 'Cần làm'), color: '#D4D4D8', icon: 'fa-regular fa-circle' },
+  { name: 'IN PROGRESS', label: tr('In Progress', 'Đang thực hiện'), color: '#3B82F6', icon: 'fa-solid fa-circle-half-stroke' },
+  { name: 'IN REVIEW', label: tr('In Review', 'Đang đánh giá'), color: '#F59E0B', icon: 'fa-solid fa-eye' },
+  { name: 'DONE', label: tr('Done', 'Hoàn thành'), color: '#10B981', icon: 'fa-solid fa-circle-check' },
+  { name: 'CANCELLED', label: tr('Cancelled', 'Đã hủy'), color: '#EF4444', icon: 'fa-regular fa-circle-xmark' }
 ])
 
 const normalizeText = (value) => `${value || ''}`.toLowerCase().trim()
@@ -768,6 +760,69 @@ const normalizeDateOnly = (value) => {
   const day = `${parsed.getDate()}`.padStart(2, '0')
   return `${year}-${month}-${day}`
 }
+const getTaskDateOnly = (task, fields) => {
+  for (const field of fields) {
+    const normalized = normalizeDateOnly(task?.[field])
+    if (normalized) return normalized
+  }
+  return null
+}
+const getTaskCreatedDate = (task) => getTaskDateOnly(task, ['createdAt', 'createdDate', 'createdOn', 'CreatedAt', 'CreatedDate'])
+const getTaskResolvedDate = (task) => {
+  if (normalizeStatus(task?.statusName) !== 'DONE') return null
+  return getTaskDateOnly(task, [
+    'completedAt',
+    'completedDate',
+    'resolvedAt',
+    'doneAt',
+    'closedAt',
+    'updatedAt',
+    'updatedDate',
+    'UpdatedAt'
+  ]) || getTaskCreatedDate(task)
+}
+const formatAnalyticsDateLabel = (dateOnly) => {
+  if (!dateOnly) return ''
+  const [year, month, day] = dateOnly.split('-').map(Number)
+  return new Date(year, month - 1, day).toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit'
+  })
+}
+const buildAnalyticsDateBuckets = (tasks) => {
+  const dates = new Set()
+  tasks.forEach(task => {
+    const createdDate = getTaskCreatedDate(task)
+    const resolvedDate = getTaskResolvedDate(task)
+    if (createdDate) dates.add(createdDate)
+    if (resolvedDate) dates.add(resolvedDate)
+  })
+
+  const sortedDates = Array.from(dates).sort()
+  const windowDates = sortedDates.length > 14 ? sortedDates.slice(-14) : sortedDates
+  const fallbackDate = normalizeDateOnly(new Date())
+  const labels = windowDates.length ? windowDates : [fallbackDate]
+  const createdCounts = new Map(labels.map(date => [date, 0]))
+  const resolvedCounts = new Map(labels.map(date => [date, 0]))
+
+  tasks.forEach(task => {
+    const createdDate = getTaskCreatedDate(task)
+    if (createdCounts.has(createdDate)) {
+      createdCounts.set(createdDate, createdCounts.get(createdDate) + 1)
+    }
+
+    const resolvedDate = getTaskResolvedDate(task)
+    if (resolvedCounts.has(resolvedDate)) {
+      resolvedCounts.set(resolvedDate, resolvedCounts.get(resolvedDate) + 1)
+    }
+  })
+
+  return {
+    labels,
+    created: labels.map(date => createdCounts.get(date) || 0),
+    resolved: labels.map(date => resolvedCounts.get(date) || 0)
+  }
+}
 const normalizeStatusLabel = (value) => {
   const status = normalizeStatus(value)
   return taskStatusOptions.value.find(item => item.name === status)?.label || status
@@ -801,7 +856,7 @@ const currentUserId = () => {
 }
 
 const toggleTaskStar = (task) => {
-  store.toggleTaskStar(task)
+  store.toggleTaskStar(task.id)
 }
 
 const isTaskStarred = (taskId) => {
@@ -1054,17 +1109,49 @@ const filteredTasksList = computed(() => {
 });
 
 const createdResolvedOptions = computed(() => {
-   const createdLabel = t('workItems.created')
-   const resolvedLabel = t('workItems.resolved')
+   const buckets = buildAnalyticsDateBuckets(visibleTopLevelTasks.value)
    return {
-      tooltip: { trigger: 'axis' },
-      legend: { data: [createdLabel, resolvedLabel], bottom: 0, textStyle: { color: 'var(--color-text-muted)' } },
-      grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-      xAxis: { type: 'category', data: ['Apr 01', 'Apr 02', 'Apr 03', 'Apr 04'], axisLine: { lineStyle: { color: '#3F3F46' } } },
-      yAxis: { type: 'value', splitLine: { lineStyle: { color: 'var(--color-border)' } } },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: '#f8fafc',
+        borderWidth: 0,
+        textStyle: { color: '#0f172a' }
+      },
+      legend: { data: [tr('Created', 'Đã tạo'), tr('Resolved', 'Đã xử lý')], bottom: 0, textStyle: { color: 'var(--color-text-muted)' } },
+      grid: { left: '2%', right: '3%', bottom: '16%', top: '10%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: buckets.labels.map(formatAnalyticsDateLabel),
+        axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.35)' } },
+        axisLabel: { color: 'var(--color-text-muted)' }
+      },
+      yAxis: {
+        type: 'value',
+        minInterval: 1,
+        splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.16)' } },
+        axisLabel: { color: 'var(--color-text-muted)' }
+      },
       series: [
-         { name: createdLabel, type: 'line', data: [visibleTopLevelTasks.value.length, 0, 0, 0], itemStyle: { color: '#3B82F6' }, smooth: true },
-         { name: resolvedLabel, type: 'line', data: [visibleTopLevelTasks.value.filter(t => t.statusName === 'DONE').length, 0, 0, 0], itemStyle: { color: '#10B981' }, smooth: true }
+         {
+           name: tr('Created', 'Đã tạo'),
+           type: 'line',
+           data: buckets.created,
+           symbolSize: 8,
+           lineStyle: { width: 3, color: '#38BDF8' },
+           itemStyle: { color: '#38BDF8' },
+           areaStyle: { color: 'rgba(56, 189, 248, 0.12)' },
+           smooth: true
+         },
+         {
+           name: tr('Resolved', 'Đã xử lý'),
+           type: 'line',
+           data: buckets.resolved,
+           symbolSize: 8,
+           lineStyle: { width: 3, color: '#34D399' },
+           itemStyle: { color: '#34D399' },
+           areaStyle: { color: 'rgba(52, 211, 153, 0.1)' },
+           smooth: true
+         }
       ],
       backgroundColor: 'transparent'
    }
@@ -1088,7 +1175,7 @@ const analyticsBreakdownRows = computed(() => {
       .map(([id, count]) => {
         const member = projectMembers.value.find(item => (item.userId || item.id) === id)
         return {
-          label: id === 'unassigned' ? t('workItems.unassigned') : (member?.fullName || member?.name || member?.email || t('workItems.assignee')),
+          label: id === 'unassigned' ? tr('Unassigned', 'Chưa giao') : (member?.fullName || member?.name || member?.email || tr('Assignee', 'Người thực hiện')),
           count,
           color: id === 'unassigned' ? 'var(--color-text-muted)' : '#38BDF8'
         }
@@ -1105,11 +1192,11 @@ const analyticsBreakdownRows = computed(() => {
   }
 
   return [
-    { label: t('workItems.priority.urgent'), count: visibleTopLevelTasks.value.filter(task => task.priority === 1).length, color: '#EF4444' },
-    { label: t('workItems.priority.high'), count: visibleTopLevelTasks.value.filter(task => task.priority === 2).length, color: '#F97316' },
-    { label: t('workItems.priority.normal'), count: visibleTopLevelTasks.value.filter(task => task.priority === 3).length, color: '#3B82F6' },
-    { label: t('workItems.priority.low'), count: visibleTopLevelTasks.value.filter(task => task.priority === 4).length, color: '#10B981' },
-    { label: t('workItems.priority.none'), count: visibleTopLevelTasks.value.filter(task => !task.priority).length, color: 'var(--color-text-muted)' }
+    { label: tr('Urgent', 'Khẩn cấp'), count: visibleTopLevelTasks.value.filter(task => task.priority === 1).length, color: '#EF4444' },
+    { label: tr('High', 'Cao'), count: visibleTopLevelTasks.value.filter(task => task.priority === 2).length, color: '#F97316' },
+    { label: tr('Medium', 'Trung bình'), count: visibleTopLevelTasks.value.filter(task => task.priority === 3).length, color: '#3B82F6' },
+    { label: tr('Low', 'Thấp'), count: visibleTopLevelTasks.value.filter(task => task.priority === 4).length, color: '#10B981' },
+    { label: tr('None', 'Không có'), count: visibleTopLevelTasks.value.filter(task => !task.priority).length, color: 'var(--color-text-muted)' }
   ]
 })
 
@@ -1126,7 +1213,7 @@ const assigneeAnalyticsRows = computed(() => {
         const member = projectMembers.value.find(item => (item.userId || item.id) === id)
         rows.set(id, {
           id,
-          label: id === 'unassigned' ? t('workItems.unassigned') : (member?.fullName || member?.name || member?.email || t('workItems.assignee')),
+          label: id === 'unassigned' ? tr('Unassigned', 'Chưa giao') : (member?.fullName || member?.name || member?.email || tr('Assignee', 'Người thực hiện')),
           backlog: 0,
           started: 0,
           unstarted: 0,
@@ -1146,14 +1233,14 @@ const assigneeAnalyticsRows = computed(() => {
 })
 
 const analyticsInsightLabel = computed(() => {
-  if (analyticsInsightMode.value === 'status') return t('workItems.statusDistribution')
-  if (analyticsInsightMode.value === 'assignee') return t('workItems.assigneeDistribution')
-  return t('workItems.priorityDistribution')
+  if (analyticsInsightMode.value === 'status') return tr('Status Distribution', 'Phân bổ trạng thái')
+  if (analyticsInsightMode.value === 'assignee') return tr('Assignee Distribution', 'Phân bổ người thực hiện')
+  return tr('Priority Distribution', 'Phân bổ độ ưu tiên')
 })
 const analyticsTableHeading = computed(() => {
-  if (analyticsInsightMode.value === 'status') return t('workItems.status')
-  if (analyticsInsightMode.value === 'assignee') return t('workItems.assignee')
-  return t('workItems.priorityLabel')
+  if (analyticsInsightMode.value === 'status') return tr('Status', 'Trạng thái')
+  if (analyticsInsightMode.value === 'assignee') return tr('Assignee', 'Người thực hiện')
+  return tr('Priority', 'Độ ưu tiên')
 })
 const setAnalyticsInsightMode = (mode) => {
   analyticsInsightMode.value = mode
@@ -1293,16 +1380,6 @@ const loadInitialData = async (options = {}) => {
       axiosClient.get(`/projects/${pid}/execution-rules`).catch(() => ({ data: { data: {} } }))
     ])
     project.value = pRes.data.data
-    if (project.value?.id) {
-      projectStore.projectDetailsById[project.value.id] = project.value
-      if (project.value.id === pid) {
-        projectStore.currentProject = project.value
-      }
-    }
-    const wId = project.value?.workspaceId || project.value?.WorkspaceId
-    if (wId) {
-      localStorage.setItem('recent_site_id', wId)
-    }
     projectMembers.value = (mRes.data.data || []).map(member => ({
       ...member,
       userId: member.userId || member.id,
@@ -1330,7 +1407,7 @@ const loadInitialData = async (options = {}) => {
     if (isForbiddenError(error)) {
       isForbidden.value = true
     } else {
-      console.error('Lá»—i load dá»± Ã¡n:', error)
+      console.error('Lỗi load dự án:', error)
     }
   }
 }
@@ -1349,7 +1426,7 @@ const fetchTasks = async (options = {}) => {
         else if (!updatedTask || !canCurrentUserSeeTask(selectedTask.value)) selectedTask.value = null;
       }
   } catch(error) {
-    console.error('Lá»—i load tasks:', error)
+    console.error('Lỗi load tasks:', error)
   }
 }
 
@@ -1373,20 +1450,18 @@ const logViewedTask = (task) => {
 }
 
 const openTaskDetail = (task) => {
-  const normalizedTask = store.normalizeTaskRecord(task, getProjectId())
-  logViewedTask(normalizedTask)
+  logViewedTask(task)
   taskDetailHistory.value = []
-  selectedTask.value = normalizedTask
+  selectedTask.value = task;
 }
 const openTaskDetailFromModal = (task, options = {}) => {
-  const normalizedTask = store.normalizeTaskRecord(task, getProjectId())
-  logViewedTask(normalizedTask)
+  logViewedTask(task)
   const previousTask = options?.fromTask || selectedTask.value
   if (previousTask?.id && previousTask.id !== task?.id) {
     const cachedPrevious = allTasks.value.find(item => item.id === previousTask.id) || previousTask
     taskDetailHistory.value = [...taskDetailHistory.value, cachedPrevious]
   }
-  selectedTask.value = normalizedTask
+  selectedTask.value = task
 }
 const goBackTaskDetail = () => {
   const history = [...taskDetailHistory.value]
@@ -1540,8 +1615,7 @@ const submitInlineTask = async (col) => {
       return;
    }
    try {
-      const pid = getProjectId()
-      await store.createTask(pid, {
+      await axiosClient.post(`/projects/${getProjectId()}/WorkTasks`, {
          title: inlineTaskTitle.value.trim(),
          description: '',
          statusName: col.name || 'BACKLOG',
@@ -1549,8 +1623,7 @@ const submitInlineTask = async (col) => {
           sprintId: activeSprintFilterId.value || null
       });
       inlineTaskTitle.value = '';
-      inlineCreateColId.value = null;
-      await fetchTasks({ reset: false });
+      fetchTasks();
    } catch (e) {
       console.error(e);
       ElMessage.error(e.response?.data?.message || 'Khong the tao cong viec');
@@ -1561,14 +1634,14 @@ const handleListTaskCreate = async (payload) => {
    const pid = getProjectId();
    if (!pid) return;
    try {
-      await store.createTask(pid, {
+      await axiosClient.post(`/projects/${pid}/WorkTasks`, {
          title: payload.title,
          description: '',
          statusName: payload.statusName || 'BACKLOG',
           priority: payload.priority || 3,
           sprintId: activeSprintFilterId.value || null
       });
-      await fetchTasks({ reset: false });
+      fetchTasks();
    } catch (error) {
       console.error(error);
       ElMessage.error(error.response?.data?.message || 'Khong the tao cong viec');
@@ -1602,15 +1675,15 @@ const handleDraggableChange = async (evt, group) => {
     element.sortOrder = newSortOrder;
     
     if (groupBy.value === 'status') {
-       element.statusName = group.name; // Cáº­p nháº­t Optimistic UI
+       element.statusName = group.name; // Cập nhật Optimistic UI
        try {
          await store.reorderTask(getProjectId(), element.id, newSortOrder, group.name);
          await fetchTasks();
        } catch (error) {
          Object.assign(element, previousTask);
          ElMessage.error(error.response?.data?.message || 'Khong the cap nhat bang Kanban');
-         console.error('Lá»—i API reorder:', error);
-         fetchTasks(); // Load láº¡i data náº¿u gáº·p lá»—i
+         console.error('Lỗi API reorder:', error);
+         fetchTasks(); // Load lại data nếu gặp lỗi
        }
     } else if (groupBy.value === 'priority') {
        element.priority = group.priorityValue;
@@ -1623,7 +1696,7 @@ const handleDraggableChange = async (evt, group) => {
         } catch (error) {
           Object.assign(element, previousTask);
           ElMessage.error(error.response?.data?.message || 'Khong the cap nhat do uu tien');
-         console.error('Lá»—i API reorder:', error);
+         console.error('Lỗi API reorder:', error);
          fetchTasks();
        }
     }
@@ -1678,11 +1751,11 @@ const hydrateFiltersFromUrl = () => {
 const exportAnalyticsCsv = (mode = analyticsInsightMode.value) => {
   const rows = mode === 'assignee'
     ? [
-        [t('workItems.assignee'), t('workItems.backlog'), t('workItems.started'), t('workItems.unstarted'), t('workItems.completed'), t('workItems.cancelled'), t('workItems.total')],
+        ['Người thực hiện', 'Chờ xử lý', 'Đang làm', 'Đang đánh giá', 'Hoàn thành', 'Đã hủy', 'Tổng'],
         ...assigneeAnalyticsRows.value.map(item => [item.label, item.backlog, item.started, item.unstarted, item.completed, item.cancelled, item.total])
       ]
     : [
-        [analyticsTableHeading.value, t('workItems.count')],
+        [analyticsTableHeading.value, 'Số lượng'],
         ...analyticsBreakdownRows.value.map(item => [item.label, item.count])
       ]
   const csv = rows.map(row => row.join(',')).join('\n')
@@ -1853,7 +1926,7 @@ onUnmounted(() => {
   overflow: auto;
 }
 
-/* â”€â”€ PLANE HEADER â”€â”€ */
+/* ── PLANE HEADER ── */
 .plane-space-header {
   height: 52px;
   display: flex;
@@ -1943,52 +2016,6 @@ onUnmounted(() => {
   background: var(--color-border);
   color: var(--color-text-primary);
 }
-
-/* â”€â”€ JIRA TAB BAR â”€â”€ */
-.jira-tab-bar {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg);
-  flex-shrink: 0;
-  overflow-x: auto;
-}
-.jira-tab {
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 12px 12px 10px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  transition: color 0.15s, border-color 0.15s;
-}
-.jira-tab i { font-size: 12px; color: var(--color-text-muted); }
-.jira-tab:hover { color: var(--color-text-primary); }
-.jira-tab:hover i { color: var(--color-text-primary); }
-.jira-tab.active {
-  color: #0c66e4;
-  border-bottom-color: #0c66e4;
-  font-weight: 600;
-}
-.jira-tab.active i { color: #0c66e4; }
-.jira-tab.add-tab { color: var(--color-text-muted); padding: 12px 10px 10px; }
-.jira-tab:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-.jira-tab:disabled:hover,
-.jira-tab:disabled:hover i {
-  color: var(--color-text-muted);
-}
-.backlog-wrapper, .reports-wrapper { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 
 .plane-toolbar-btn {
   background: transparent;
@@ -2104,7 +2131,7 @@ onUnmounted(() => {
 
 .chart-container {
   width: 100%;
-  height: 250px;
+  height: 230px;
 }
 
 .col-draggable {
@@ -2275,7 +2302,6 @@ onUnmounted(() => {
 .dd-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .dd-tag { background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-primary); border-radius: 2px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
 .dd-tag.active { background: #0EA5E9; color: var(--color-text-primary); border-color: #0EA5E9; }
-.dd-tag:disabled { cursor: not-allowed; opacity: 0.75; }
 .dd-list { display: flex; flex-direction: column; gap: 8px; }
 .dd-item { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .dd-item input[type="radio"], .dd-item input[type="checkbox"] { accent-color: #0EA5E9; cursor: pointer; }
@@ -2576,17 +2602,20 @@ onUnmounted(() => {
 .analytics-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(2, 6, 23, 0.52);
   z-index: 9999;
   display: flex;
   justify-content: flex-end;
+  backdrop-filter: blur(2px);
 }
 .analytics-panel {
-  width: 900px;
-  max-width: 90vw;
-  background: var(--color-surface);
+  width: min(860px, 92vw);
+  max-width: 92vw;
+  background:
+    linear-gradient(180deg, rgba(14, 165, 233, 0.10), transparent 280px),
+    color-mix(in srgb, var(--color-bg) 88%, #0f172a 12%);
   height: 100%;
-  box-shadow: none !important;
+  box-shadow: -24px 0 64px rgba(0, 0, 0, 0.36) !important;
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
@@ -2604,30 +2633,69 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--color-border);
+  background:
+    linear-gradient(90deg, rgba(56, 189, 248, 0.18), transparent 56%),
+    color-mix(in srgb, var(--color-surface) 82%, transparent);
 }
-.ap-header h3 { margin: 0; font-size: 16px; font-weight: 500; color: var(--color-text-primary); }
+.ap-header h3 { margin: 0; font-size: 18px; font-weight: 800; color: var(--color-text-primary); letter-spacing: 0; }
 .ap-actions { display: flex; gap: 12px; }
 .icon-btn { background: transparent; border: none; color: var(--color-text-muted); font-size: 14px; cursor: pointer; }
 .icon-btn:hover { color: var(--color-text-primary); }
 
 .ap-body {
-  padding: 24px;
+  padding: 22px 24px 30px;
   overflow-y: auto;
   flex: 1;
 }
 
 /* Stats Grid */
 .ap-stats-grid {
-  display: flex;
-  gap: 24px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
 }
-.stat-box { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 150px; }
-.stat-box .lbl { color: var(--color-text-muted); font-size: 12px; font-weight: 500; }
-.stat-box .val { color: var(--color-text-primary); font-size: 20px; font-weight: 600; }
+.stat-box {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+}
+.stat-box::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--stat-accent, #38bdf8);
+}
+.stat-box:nth-child(1) { --stat-accent: #38bdf8; }
+.stat-box:nth-child(2) { --stat-accent: #3b82f6; }
+.stat-box:nth-child(3) { --stat-accent: #94a3b8; }
+.stat-box:nth-child(4) { --stat-accent: #f59e0b; }
+.stat-box:nth-child(5) { --stat-accent: #22c55e; }
+.stat-box:hover {
+  border-color: color-mix(in srgb, var(--stat-accent) 56%, var(--color-border));
+  background: color-mix(in srgb, var(--color-surface) 86%, var(--stat-accent) 14%);
+}
+.stat-box .lbl { color: var(--color-text-muted); font-size: 11px; font-weight: 650; line-height: 1.35; }
+.stat-box .val { color: var(--color-text-primary); font-size: 24px; font-weight: 850; line-height: 1; }
 
-.ap-chart-card { margin-top: 32px; }
-.ap-chart-card h4 { margin: 0; font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
+.ap-chart-card {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 34%),
+    color-mix(in srgb, var(--color-surface) 78%, transparent);
+}
+.ap-chart-card h4 { margin: 0; font-size: 14px; font-weight: 800; color: var(--color-text-primary); }
+.chart-container { height: 260px; }
 
 .line-chart-mock {
   position: relative;
@@ -2690,16 +2758,28 @@ onUnmounted(() => {
   letter-spacing: 1px;
 }
 
-.ap-table-wrap { margin-top: 40px; }
+.ap-table-wrap {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+}
 .table-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; }
 .flex-center { display: flex; align-items: center; }
-.export-btn { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-primary); border-radius: 2px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
-.export-btn:hover { background: var(--color-border); }
+.export-btn { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-secondary); border-radius: 6px; padding: 5px 8px; font-size: 12px; cursor: pointer; }
+.export-btn:hover { background: var(--color-bg-secondary); color: var(--color-text-primary); }
 
 .ap-table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--color-text-primary); }
-.ap-table th { color: var(--color-text-muted); font-weight: 500; border-bottom: 1px solid var(--color-border); padding: 12px 16px; text-align: left; }
-.ap-table td { padding: 16px; border-bottom: 1px solid var(--color-border); }
-.ap-table tr:hover { background: var(--color-surface); }
+.ap-table th { color: var(--color-text-muted); font-weight: 650; border-bottom: 1px solid var(--color-border); padding: 10px 0; text-align: left; }
+.ap-table td { padding: 11px 0; border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent); }
+.ap-table tr:hover { background: color-mix(in srgb, var(--color-surface) 82%, transparent); }
+
+@media (max-width: 920px) {
+  .ap-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 </style>
 
 

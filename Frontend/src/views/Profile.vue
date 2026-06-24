@@ -142,7 +142,7 @@ const isPasswordChangeLocked = computed(() => {
 })
 
 const passwordEligibleLabel = computed(() => {
-  if (!profileData.value.canChangePasswordAt) return t('now', 'ngay bây giờ')
+  if (!profileData.value.canChangePasswordAt) return 'now'
   return new Date(profileData.value.canChangePasswordAt).toLocaleString()
 })
 

@@ -257,56 +257,39 @@ export const useWorkTaskStore = defineStore('workTask', {
     resolveWorkspaceId(projectId = null, taskProjectId = null) {
       const siteStore = useSiteStore()
       const projectStore = useProjectStore()
-      
       const searchId = projectId || this.currentProjectId
-      
-      // 1. Try projectStore.currentProject
-      let p = projectStore.currentProject
-      if (p && p.id === searchId) {
-        const wId = p.workspaceId || p.WorkspaceId
-        if (wId && wId.length >= 36) return wId
+
+      let project = projectStore.currentProject
+      if (project && project.id === searchId) {
+        const workspaceId = project.workspaceId || project.WorkspaceId
+        if (workspaceId && workspaceId.length >= 36) return workspaceId
       }
-      
-      // 2. Try projectDetailsById
+
       if (searchId) {
-        p = projectStore.projectDetailsById[searchId]
-        if (p) {
-          const wId = p.workspaceId || p.WorkspaceId
-          if (wId && wId.length >= 36) return wId
-        }
+        project = projectStore.projectDetailsById[searchId]
+        const workspaceId = project?.workspaceId || project?.WorkspaceId
+        if (workspaceId && workspaceId.length >= 36) return workspaceId
       }
-      
-      // 3. Try allProjects
+
       if (searchId) {
-        p = projectStore.allProjects.find(item => item.id === searchId)
-        if (p) {
-          const wId = p.workspaceId || p.WorkspaceId || p.originalRow?.workspaceId || p.originalRow?.WorkspaceId
-          if (wId && wId.length >= 36) return wId
-        }
+        project = projectStore.allProjects.find(item => item.id === searchId)
+        const workspaceId = project?.workspaceId || project?.WorkspaceId || project?.originalRow?.workspaceId || project?.originalRow?.WorkspaceId
+        if (workspaceId && workspaceId.length >= 36) return workspaceId
       }
-      
-      // 4. Try task's projectId
-      const tPid = taskProjectId || projectId
-      if (tPid) {
-        p = projectStore.allProjects.find(item => item.id === tPid)
-        if (p) {
-          const wId = p.workspaceId || p.WorkspaceId || p.originalRow?.workspaceId || p.originalRow?.WorkspaceId
-          if (wId && wId.length >= 36) return wId
-        }
+
+      const taskProject = taskProjectId || projectId
+      if (taskProject) {
+        project = projectStore.allProjects.find(item => item.id === taskProject)
+        const workspaceId = project?.workspaceId || project?.WorkspaceId || project?.originalRow?.workspaceId || project?.originalRow?.WorkspaceId
+        if (workspaceId && workspaceId.length >= 36) return workspaceId
       }
-      
-      // 5. Try local storage
+
       const localId = localStorage.getItem('sprinta_recent_site_id') || localStorage.getItem('recent_site_id')
-      if (localId && localId.length >= 36 && localId !== '00000000-0000-0000-0000-000000000000') {
-        return localId
-      }
-      
-      // 6. Try siteStore
-      const siteId = siteStore.recentSite?.id || siteStore.recentSite?.Id
-      if (siteId && siteId.length >= 36) {
-        return siteId
-      }
-      
+      if (localId && localId.length >= 36 && localId !== '00000000-0000-0000-0000-000000000000') return localId
+
+      const siteId = siteStore.activeSite?.id || siteStore.recentSite?.id || siteStore.recentSite?.Id
+      if (siteId && siteId.length >= 36) return siteId
+
       return null
     },
     async fetchStarredTasks() {
@@ -317,13 +300,11 @@ export const useWorkTaskStore = defineStore('workTask', {
       try {
         const response = await axiosClient.get(`/workspaces/${workspaceId}/StarredItems`)
         const data = response.data
-        if (Array.isArray(data)) {
-          this.starredTasks = data
-        } else if (data && Array.isArray(data.data)) {
-          this.starredTasks = data.data
-        } else {
-          this.starredTasks = []
-        }
+        this.starredTasks = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.data)
+            ? data.data
+            : []
       } catch (error) {
         console.error('Failed to fetch starred tasks:', error)
       }
@@ -332,12 +313,8 @@ export const useWorkTaskStore = defineStore('workTask', {
       if (!taskOrId) return
       const taskId = typeof taskOrId === 'object' ? taskOrId.id : taskOrId
       const fullTask = typeof taskOrId === 'object' ? taskOrId : this.tasks.find(t => t.id === taskId)
-      
-      let workspaceId = this.resolveWorkspaceId(null, fullTask?.projectId)
-      if (!workspaceId || workspaceId.length < 36) {
-        workspaceId = '00000000-0000-0000-0000-000000000000'
-      }
-      if (workspaceId === '00000000-0000-0000-0000-000000000000') {
+      const workspaceId = this.resolveWorkspaceId(null, fullTask?.projectId)
+      if (!workspaceId) {
         console.error('Cannot toggle star: workspace ID is empty')
         return
       }

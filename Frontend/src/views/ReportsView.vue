@@ -1,22 +1,15 @@
 <template>
   <NexusLayout>
     <div class="space-reports-page">
-      <!-- Premium Header Section -->
       <header class="reports-header">
         <div>
-          <h1 class="text-2xl font-bold text-[var(--color-text-primary)]">{{ t('Reports') }}</h1>
-          <p class="text-[var(--color-text-muted)] text-sm mt-1">{{ t('Analytics and insights for this project') }}</p>
-        </div>
-        <div class="flex gap-2">
-          <button class="plane-btn-secondary" @click="fetchData"><i class="fa-solid fa-rotate-right mr-2"></i> {{ t('Refresh') }}</button>
-          <button class="plane-btn-primary"><i class="fa-solid fa-download mr-2"></i> {{ t('Export') }}</button>
           <span class="reports-tag">Analytics Report</span>
-          <h1 class="reports-title">Project Reports</h1>
-          <p class="reports-subtitle">Real-time statistics and visual insights</p>
+          <h1 class="reports-title">{{ t('Reports') }}</h1>
+          <p class="reports-subtitle">{{ t('Analytics and insights for this project') }}</p>
         </div>
         <div class="reports-actions">
           <button class="btn-secondary" @click="fetchData">
-            <i class="fa-solid fa-rotate-right" :class="{ 'fa-spin': loading }"></i> Refresh
+            <i class="fa-solid fa-rotate-right" :class="{ 'fa-spin': loading }"></i> {{ t('Refresh') }}
           </button>
         </div>
       </header>
@@ -33,8 +26,6 @@
         <p class="font-semibold">{{ error }}</p>
       </div>
 
-
-      <!-- Empty State -->
       <div v-else-if="allTasks.length === 0" class="reports-empty-container">
         <div class="reports-empty-state">
           <i class="fa-solid fa-chart-line text-5xl mb-4 text-[var(--color-text-muted)]"></i>
