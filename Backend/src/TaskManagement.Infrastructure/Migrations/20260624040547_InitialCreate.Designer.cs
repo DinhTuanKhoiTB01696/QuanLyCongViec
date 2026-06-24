@@ -12,8 +12,8 @@ using TaskManagement.Infrastructure.Data;
 namespace TaskManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260624014140_PlaneRenovation")]
-    partial class PlaneRenovation
+    [Migration("20260624040547_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

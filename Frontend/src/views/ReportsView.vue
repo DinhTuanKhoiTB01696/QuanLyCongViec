@@ -3,13 +3,13 @@
     <div class="space-reports-page">
       <header class="reports-header">
         <div>
-          <span class="reports-tag">Analytics Report</span>
-          <h1 class="reports-title">{{ t('Reports') }}</h1>
-          <p class="reports-subtitle">{{ t('Analytics and insights for this project') }}</p>
+          <span class="reports-tag">{{ t('reports.analyticsReport', 'Analytics Report') }}</span>
+          <h1 class="reports-title">{{ t('projectTabs.reports', 'Reports') }}</h1>
+          <p class="reports-subtitle">{{ t('reports.analyticsAndInsights', 'Analytics and insights for this project') }}</p>
         </div>
         <div class="reports-actions">
           <button class="btn-secondary" @click="fetchData">
-            <i class="fa-solid fa-rotate-right" :class="{ 'fa-spin': loading }"></i> {{ t('Refresh') }}
+            <i class="fa-solid fa-rotate-right" :class="{ 'fa-spin': loading }"></i> {{ t('reports.refresh', 'Refresh') }}
           </button>
         </div>
       </header>
@@ -17,7 +17,7 @@
       <!-- Loading State -->
       <div v-if="loading" class="reports-loading">
         <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-[var(--color-accent)]"></i>
-        <p class="text-sm font-medium">Analyzing project data...</p>
+        <p class="text-sm font-medium">{{ t('reports.analyzingProjectData', 'Analyzing project data...') }}</p>
       </div>
       
       <!-- Error State -->
@@ -29,8 +29,8 @@
       <div v-else-if="allTasks.length === 0" class="reports-empty-container">
         <div class="reports-empty-state">
           <i class="fa-solid fa-chart-line text-5xl mb-4 text-[var(--color-text-muted)]"></i>
-          <h3 class="text-xl font-semibold text-[var(--color-text-primary)] mb-2">No reports to generate</h3>
-          <p class="text-[var(--color-text-secondary)] mb-6 max-w-md mx-auto">This project doesn't have any tasks yet. Create a few tasks to see statistics, charts, and workload distributions here.</p>
+          <h3 class="text-xl font-semibold text-[var(--color-text-primary)] mb-2">{{ t('reports.noReportsToGenerate', 'No reports to generate') }}</h3>
+          <p class="text-[var(--color-text-secondary)] mb-6 max-w-md mx-auto">{{ t('reports.noTasksPlaceholderDesc', "This project doesn't have any tasks yet. Create a few tasks to see statistics, charts, and workload distributions here.") }}</p>
         </div>
       </div>
       <!-- Main Dashboard Grid -->
@@ -46,7 +46,7 @@
                 <i class="fa-solid fa-list-check"></i>
               </div>
               <div class="stat-info">
-                <span class="label">Total Tasks</span>
+                <span class="label">{{ t('reports.totalTasks', 'Total Tasks') }}</span>
                 <span class="value">{{ allTasks.length }}</span>
               </div>
             </div>
@@ -60,7 +60,7 @@
                 <i class="fa-solid fa-circle-check"></i>
               </div>
               <div class="stat-info">
-                <span class="label">Completed Tasks</span>
+                <span class="label">{{ t('reports.completedTasks', 'Completed Tasks') }}</span>
                 <span class="value">{{ completedTasksCount }}</span>
               </div>
             </div>
@@ -74,7 +74,7 @@
                 <i class="fa-solid fa-clock-rotate-left"></i>
               </div>
               <div class="stat-info">
-                <span class="label">In Progress</span>
+                <span class="label">{{ t('reports.inProgress', 'In Progress') }}</span>
                 <span class="value">{{ inProgressTasksCount }}</span>
               </div>
             </div>
@@ -88,7 +88,7 @@
                 <i class="fa-solid fa-triangle-exclamation"></i>
               </div>
               <div class="stat-info">
-                <span class="label">Overdue Tasks</span>
+                <span class="label">{{ t('reports.overdueTasks', 'Overdue Tasks') }}</span>
                 <span class="value">{{ overdueTasksCount }}</span>
               </div>
             </div>
@@ -101,14 +101,14 @@
           <!-- Status Distribution Card -->
           <div class="report-card">
             <h3 class="card-title">
-              <i class="fa-solid fa-chart-bar text-sky-500"></i> Status Distribution
+              <i class="fa-solid fa-chart-bar text-sky-500"></i> {{ t('reports.statusDistribution', 'Status Distribution') }}
             </h3>
             <div class="status-list">
               <div v-for="status in statusDistribution" :key="status.name" class="status-item">
                 <div class="status-item-header">
                   <span class="status-badge" :style="{ color: getStatusColor(status.name), backgroundColor: getStatusBgColor(status.name) }">
                     <span class="status-dot"></span>
-                    {{ status.name }}
+                    {{ getStatusLabel(status.name) }}
                   </span>
                   <span class="status-count">
                     <strong>{{ status.count }}</strong> 
@@ -128,7 +128,7 @@
           <!-- Priority Distribution Card -->
           <div class="report-card">
             <h3 class="card-title">
-              <i class="fa-solid fa-chart-pie text-indigo-500"></i> Priority Distribution
+              <i class="fa-solid fa-chart-pie text-indigo-500"></i> {{ t('reports.priorityDistribution', 'Priority Distribution') }}
             </h3>
             <div class="priority-chart-container">
               <!-- Custom Donut Chart (SVG) -->
@@ -151,7 +151,7 @@
                 </svg>
                 <div class="donut-center">
                   <span class="donut-number">{{ allTasks.length }}</span>
-                  <span class="donut-label">Tasks</span>
+                  <span class="donut-label">{{ t('reports.tasks', 'Tasks') }}</span>
                 </div>
               </div>
 
@@ -164,7 +164,7 @@
                 >
                   <div class="legend-info">
                     <span class="legend-color-dot" :style="{ background: seg.color }"></span>
-                    <span class="legend-label">{{ seg.label }}</span>
+                    <span class="legend-label">{{ t('workItems.priority.' + seg.label.toLowerCase(), seg.label) }}</span>
                   </div>
                   <div class="legend-value">
                     <span class="legend-count">{{ seg.count }}</span>
@@ -182,13 +182,13 @@
           <!-- Team Workload Panel -->
           <div class="report-card">
             <h3 class="card-title">
-              <i class="fa-solid fa-users text-emerald-500"></i> Workload & Completion Progress
+              <i class="fa-solid fa-users text-emerald-500"></i> {{ t('reports.workloadAndCompletionProgress', 'Workload & Completion Progress') }}
             </h3>
             
             <div v-if="teamWorkload.length === 0" class="workload-empty">
               <i class="fa-solid fa-users-slash text-4xl mb-3 text-[var(--color-text-muted)]"></i>
-              <span class="text-sm font-semibold">No assignee data available</span>
-              <p class="text-xs text-[var(--color-text-muted)] mt-1">Assign tasks to users to track workload metrics.</p>
+              <span class="text-sm font-semibold">{{ t('reports.noAssigneeDataAvailable', 'No assignee data available') }}</span>
+              <p class="text-xs text-[var(--color-text-muted)] mt-1">{{ t('reports.assignTasksToUsersDesc', 'Assign tasks to users to track workload metrics.') }}</p>
             </div>
 
             <div v-else class="workload-list">
@@ -202,7 +202,7 @@
                     <span class="workload-name">{{ member.fullName }}</span>
                   </div>
                   <span class="workload-completion-text">
-                    <strong>{{ member.doneCount }}</strong> / {{ member.count }} tasks completed
+                    <strong>{{ member.doneCount }}</strong> / {{ member.count }} {{ t('reports.tasksCompleted', 'tasks completed') }}
                   </span>
                 </div>
                 <div class="workload-progress-container">
@@ -221,15 +221,15 @@
           <!-- Overdue Tasks Card -->
           <div class="report-card">
             <h3 class="card-title">
-              <i class="fa-solid fa-circle-exclamation text-rose-500"></i> Overdue Task Alert
+              <i class="fa-solid fa-circle-exclamation text-rose-500"></i> {{ t('reports.overdueTaskAlert', 'Overdue Task Alert') }}
             </h3>
             
             <div v-if="overdueTasks.length === 0" class="overdue-empty">
               <div class="overdue-empty-icon">
                 <i class="fa-solid fa-circle-check text-4xl text-green-400"></i>
               </div>
-              <h4 class="font-bold text-sm text-green-400 mt-2">All tasks on track!</h4>
-              <p class="text-xs text-[var(--color-text-muted)] mt-1">There are no overdue pending tasks in this project.</p>
+              <h4 class="font-bold text-sm text-green-400 mt-2">{{ t('reports.allTasksOnTrack', 'All tasks on track!') }}</h4>
+              <p class="text-xs text-[var(--color-text-muted)] mt-1">{{ t('reports.noOverduePendingTasks', 'There are no overdue pending tasks in this project.') }}</p>
             </div>
 
             <div v-else class="overdue-list-container">
@@ -254,9 +254,9 @@
                   </div>
                   <div class="overdue-task-right">
                     <span class="overdue-badge">
-                      <i class="fa-solid fa-triangle-exclamation"></i> Overdue
+                      <i class="fa-solid fa-triangle-exclamation"></i> {{ t('reports.overdue', 'Overdue') }}
                     </span>
-                    <span class="overdue-date">Due: {{ formatDate(task.dueDate) }}</span>
+                    <span class="overdue-date">{{ t('reports.due', 'Due:') }} {{ formatDate(task.dueDate) }}</span>
                   </div>
                 </div>
               </div>
@@ -272,10 +272,9 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
-import { useI18nStore } from '@/store/useI18nStore'
+import { useI18n } from '@/composables/useI18n'
 
-const i18nStore = useI18nStore()
-const t = (key) => i18nStore.t(key)
+const { t } = useI18n()
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 
 const route = useRoute()
@@ -417,6 +416,21 @@ const teamWorkload = computed(() => {
     completionRate: member.count > 0 ? Math.round((member.doneCount / member.count) * 100) : 0
   })).sort((a, b) => b.count - a.count)
 })
+
+const getStatusLabel = (statusName) => {
+  if (!statusName) return ''
+  const norm = statusName.toLowerCase().trim()
+  const keyMap = {
+    'backlog': 'workItems.statusLabels.backlog',
+    'to do': 'workItems.statusLabels.toDo',
+    'in progress': 'workItems.statusLabels.inProgress',
+    'in review': 'workItems.statusLabels.inReview',
+    'done': 'workItems.statusLabels.done',
+    'cancelled': 'workItems.statusLabels.cancelled'
+  }
+  const key = keyMap[norm]
+  return key ? t(key) : statusName
+}
 
 const getStatusColor = (statusName) => {
   const norm = statusName.toLowerCase().trim()

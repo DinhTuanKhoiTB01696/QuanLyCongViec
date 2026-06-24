@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSprintStore } from '@/store/useSprintStore'
+import { useI18n } from '@/composables/useI18n'
 import axiosClient from '@/api/axiosClient'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 
@@ -20,6 +21,7 @@ const props = defineProps({
 const router = useRouter()
 const route = useRoute()
 const sprintStore = useSprintStore()
+const { t } = useI18n()
 
 provide(THEME_KEY, 'dark')
 
@@ -319,7 +321,7 @@ const fetchBurndowns = async () => {
         backgroundColor: 'transparent',
         tooltip: { trigger: 'axis' },
         legend: {
-          data: ['Current work items', 'Ideal work items'],
+          data: [t('cyclesTab.currentWorkItems', 'Current work items'), t('cyclesTab.idealWorkItems', 'Ideal work items')],
           bottom: 0,
           textStyle: { color: 'var(--color-text-muted)', fontSize: 10 }
         },
@@ -338,7 +340,7 @@ const fetchBurndowns = async () => {
         },
         series: [
           {
-            name: 'Current work items',
+            name: t('cyclesTab.currentWorkItems', 'Current work items'),
             type: 'line',
             data: burndown.map(item => item.actualRemaining ?? item.remainingPoints ?? 0),
             itemStyle: { color: '#3B82F6' },
@@ -350,7 +352,7 @@ const fetchBurndowns = async () => {
             smooth: false
           },
           {
-            name: 'Ideal work items',
+            name: t('cyclesTab.idealWorkItems', 'Ideal work items'),
             type: 'line',
             data: burndown.map(item => item.idealRemaining ?? item.idealPoints ?? 0),
             itemStyle: { color: 'var(--color-text-muted)' },
@@ -566,32 +568,32 @@ onUnmounted(() => {
         <div class="project-icon" style="background: #F59E0B">
           <i class="fa-solid fa-certificate"></i>
         </div>
-        <span class="view-name">Cycles</span>
+        <span class="view-name">{{ t('cyclesTab.cycles', 'Cycles') }}</span>
       </div>
 
       <div class="nexus-controls-row">
         <!-- Unified clustering: Search -> Filter -> Add Button -->
         <div class="flex items-center gap-2" v-if="showCycleSearch">
-           <input v-model="cycleSearchQuery" class="nexus-search-input" type="text" placeholder="Search cycles..." style="width: 200px" />
+           <input v-model="cycleSearchQuery" class="nexus-search-input" type="text" :placeholder="t('cyclesTab.searchCycles', 'Search cycles...')" style="width: 200px" />
         </div>
         <button class="nexus-btn-icon" type="button" @click="showCycleSearch = !showCycleSearch" :class="{ active: showCycleSearch }"><i class="fa-solid fa-magnifying-glass"></i></button>
         
         <div class="cycle-filter-wrapper">
           <button class="nexus-btn-outlined" type="button" @click="showCycleFilters = !showCycleFilters" :class="{ active: showCycleFilters || hasCycleFilters }">
-            <i class="fa-solid fa-filter"></i> Filters
+            <i class="fa-solid fa-filter"></i> {{ t('cyclesTab.filters', 'Filters') }}
           </button>
           <div class="cycle-filter-menu" v-if="showCycleFilters" @click.stop>
-            <div class="filter-title">Progress</div>
-            <label class="filter-option"><input type="radio" value="all" v-model="cycleProgressFilter" /> All cycles</label>
-            <label class="filter-option"><input type="radio" value="not-started" v-model="cycleProgressFilter" /> Not started</label>
-            <label class="filter-option"><input type="radio" value="in-progress" v-model="cycleProgressFilter" /> In progress</label>
-            <label class="filter-option"><input type="radio" value="completed" v-model="cycleProgressFilter" /> Completed</label>
-            <button class="clear-filter-btn" type="button" @click="clearCycleFilters">Clear filters</button>
+            <div class="filter-title">{{ t('cyclesTab.progress', 'Progress') }}</div>
+            <label class="filter-option"><input type="radio" value="all" v-model="cycleProgressFilter" /> {{ t('cyclesTab.allCycles', 'All cycles') }}</label>
+            <label class="filter-option"><input type="radio" value="not-started" v-model="cycleProgressFilter" /> {{ t('cyclesTab.notStarted', 'Not started') }}</label>
+            <label class="filter-option"><input type="radio" value="in-progress" v-model="cycleProgressFilter" /> {{ t('cyclesTab.inProgress', 'In progress') }}</label>
+            <label class="filter-option"><input type="radio" value="completed" v-model="cycleProgressFilter" /> {{ t('cyclesTab.completed', 'Completed') }}</label>
+            <button class="clear-filter-btn" type="button" @click="clearCycleFilters">{{ t('cyclesTab.clearFilters', 'Clear filters') }}</button>
           </div>
         </div>
         
         <button class="nexus-btn-primary" type="button" @click="showCreateModal = true">
-          <i class="fa-solid fa-plus"></i> Add cycle
+          <i class="fa-solid fa-plus"></i> {{ t('cyclesTab.addCycle', 'Add cycle') }}
         </button>
       </div>
     </header>
@@ -601,11 +603,11 @@ onUnmounted(() => {
         <div class="cs-header" @click="toggleTab('active')">
           <i class="chevron fa-solid" :class="expandedTabs.active ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
           <i class="fa-solid fa-circle-half-stroke text-orange"></i>
-          <span class="cs-title">Active cycle</span>
+          <span class="cs-title">{{ t('cyclesTab.activeCycle', 'Active cycle') }}</span>
         </div>
 
         <div class="cs-content" v-show="expandedTabs.active">
-          <div class="empty-state text-muted" v-if="activeSprints.length === 0">No active cycles.</div>
+          <div class="empty-state text-muted" v-if="activeSprints.length === 0">{{ t('cyclesTab.noActiveCycles', 'No active cycles.') }}</div>
           <div class="cycle-card expanded" v-for="cycle in activeSprints" :key="cycle.id">
             <div class="cc-top">
               <div class="cct-left">
@@ -614,7 +616,7 @@ onUnmounted(() => {
               </div>
               <div class="cct-right">
                 <span class="detail-link cursor-pointer hover:text-white" @click.stop="openCycleBoard(cycle)">
-                  <i class="fa-solid fa-info-circle"></i> Open board
+                  <i class="fa-solid fa-info-circle"></i> {{ t('cyclesTab.openBoard', 'Open board') }}
                 </span>
                 <span class="date-range">
                   <i class="fa-regular fa-calendar"></i>
@@ -630,8 +632,8 @@ onUnmounted(() => {
             <div class="cc-grid">
               <div class="grid-panel panel-progress">
                 <div class="gp-header">
-                  <span>Progress</span>
-                  <span class="sub">Work items</span>
+                  <span>{{ t('cyclesTab.progress', 'Progress') }}</span>
+                  <span class="sub">{{ t('cyclesTab.workItems', 'Work items') }}</span>
                 </div>
                 <div class="progress-bar-container">
                   <div
@@ -653,19 +655,19 @@ onUnmounted(() => {
 
               <div class="grid-panel panel-chart">
                 <div class="gp-header">
-                  <span>Work item burndown</span>
+                  <span>{{ t('cyclesTab.workItemBurndown', 'Work item burndown') }}</span>
                   <span class="sub text-right">{{ percentLabel(cycle) }}</span>
                 </div>
                 <div class="chart-mockup" style="height: 140px;">
                   <v-chart v-if="burndownCharts[cycle.id]" :option="burndownCharts[cycle.id]" autoresize />
-                  <div v-else class="text-muted text-xs text-center pt-8">No burndown data yet.</div>
+                  <div v-else class="text-muted text-xs text-center pt-8">{{ t('cyclesTab.noBurndownData', 'No burndown data yet.') }}</div>
                 </div>
               </div>
 
               <div class="grid-panel panel-tabs">
                 <div class="tabs-header">
-                  <button class="tab-h" :class="{ active: getCyclePanelTab(cycle.id) === 'state' }" @click="setCyclePanelTab(cycle, 'state')">Cycle state</button>
-                  <button class="tab-h" :class="{ active: getCyclePanelTab(cycle.id) === 'items' }" @click="setCyclePanelTab(cycle, 'items')">Work items</button>
+                  <button class="tab-h" :class="{ active: getCyclePanelTab(cycle.id) === 'state' }" @click="setCyclePanelTab(cycle, 'state')">{{ t('cyclesTab.cycleState', 'Cycle state') }}</button>
+                  <button class="tab-h" :class="{ active: getCyclePanelTab(cycle.id) === 'items' }" @click="setCyclePanelTab(cycle, 'items')">{{ t('cyclesTab.workItems', 'Work items') }}</button>
                 </div>
                 <div class="tabs-body" v-if="getCyclePanelTab(cycle.id) === 'state'">
                   <div class="tab-row">
@@ -676,14 +678,14 @@ onUnmounted(() => {
                   </div>
                   <div class="tab-row">
                     <div class="tr-user">
-                      <i class="fa-solid fa-circle-check avatar-icon"></i> Completed
+                      <i class="fa-solid fa-circle-check avatar-icon"></i> {{ t('cyclesTab.completed', 'Completed') }}
                     </div>
                     <div class="tr-stat text-muted">{{ cycle.completedTaskCount || 0 }}</div>
                   </div>
                 </div>
                 <div class="tabs-body work-items-body" v-else>
-                  <div v-if="cycleWorkItemsLoading[cycle.id]" class="tab-empty text-muted">Loading work items...</div>
-                  <div v-else-if="cycleItemsFor(cycle.id).length === 0" class="tab-empty text-muted">No work items in this cycle.</div>
+                  <div v-if="cycleWorkItemsLoading[cycle.id]" class="tab-empty text-muted">{{ t('cyclesTab.loadingWorkItems', 'Loading work items...') }}</div>
+                  <div v-else-if="cycleItemsFor(cycle.id).length === 0" class="tab-empty text-muted">{{ t('cyclesTab.noWorkItemsInCycle', 'No work items in this cycle.') }}</div>
                   <div v-else class="cycle-work-item" v-for="item in cycleItemsFor(cycle.id)" :key="item.id">
                     <div class="work-item-main">
                       <span class="work-item-id">{{ item.sequenceId || item.id?.substring(0, 8).toUpperCase() }}</span>
@@ -705,12 +707,12 @@ onUnmounted(() => {
         <div class="cs-header" @click="toggleTab('upcoming')">
           <i class="chevron fa-solid" :class="expandedTabs.upcoming ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
           <i class="fa-regular fa-circle-dashed text-blue"></i>
-          <span class="cs-title">Upcoming cycle</span>
+          <span class="cs-title">{{ t('cyclesTab.upcomingCycle', 'Upcoming cycle') }}</span>
           <span class="cs-count">{{ upcomingSprints.length }}</span>
         </div>
 
         <div class="cs-content" v-show="expandedTabs.upcoming">
-          <div class="empty-state text-muted" v-if="upcomingSprints.length === 0">No upcoming cycles.</div>
+          <div class="empty-state text-muted" v-if="upcomingSprints.length === 0">{{ t('cyclesTab.noUpcomingCycles', 'No upcoming cycles.') }}</div>
           <div class="cycle-card collapsed hover-card" v-for="cycle in upcomingSprints" :key="cycle.id">
             <div class="cct-left">
               <div class="progress-ring text-muted">{{ percentLabel(cycle) }}</div>
@@ -722,10 +724,10 @@ onUnmounted(() => {
                 {{ formatDateCompact(cycle.startDate) }} - {{ formatDateCompact(cycle.endDate) }}
               </span>
               <button class="plane-primary-btn" style="margin-right: 8px;" @click.stop="startCycle(cycle)">
-                <i class="fa-solid fa-play"></i> Start cycle
+                <i class="fa-solid fa-play"></i> {{ t('cyclesTab.startCycle', 'Start cycle') }}
               </button>
               <span class="detail-link cursor-pointer hover:text-white" @click.stop="openCycleBoard(cycle)">
-                <i class="fa-solid fa-info-circle"></i> Open board
+                <i class="fa-solid fa-info-circle"></i> {{ t('cyclesTab.openBoard', 'Open board') }}
               </span>
               <button class="icon-btn" @click.stop="sprintStore.toggleFavorite(props.projectId, cycle.id)">
                 <i class="fa-solid fa-star text-orange-400" v-if="cycle.isFavorite"></i>
@@ -740,12 +742,12 @@ onUnmounted(() => {
         <div class="cs-header" @click="toggleTab('completed')">
           <i class="chevron fa-solid" :class="expandedTabs.completed ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
           <i class="fa-solid fa-circle-check text-green"></i>
-          <span class="cs-title">Completed cycle</span>
+          <span class="cs-title">{{ t('cyclesTab.completedCycle', 'Completed cycle') }}</span>
           <span class="cs-count">{{ completedSprints.length }}</span>
         </div>
 
         <div class="cs-content" v-show="expandedTabs.completed">
-          <div class="empty-state text-muted" v-if="completedSprints.length === 0">No completed cycles yet.</div>
+          <div class="empty-state text-muted" v-if="completedSprints.length === 0">{{ t('cyclesTab.noCompletedCyclesYet', 'No completed cycles yet.') }}</div>
           <div v-for="cycle in completedSprints" :key="cycle.id" class="completed-cycle-wrapper">
             <div class="cycle-card collapsed hover-card">
               <div class="cct-left">
@@ -753,9 +755,9 @@ onUnmounted(() => {
                 <span class="cycle-name">{{ cycle.name }}</span>
               </div>
               <div class="cct-right">
-                <span class="completed-badge">Completed</span>
+                <span class="completed-badge">{{ t('cyclesTab.completed', 'Completed') }}</span>
                 <span class="detail-link cursor-pointer hover:text-white" @click.stop="openCycleBoard(cycle)">
-                  <i class="fa-solid fa-info-circle"></i> Open board
+                  <i class="fa-solid fa-info-circle"></i> {{ t('cyclesTab.openBoard', 'Open board') }}
                 </span>
                 <span class="date-range">
                   <i class="fa-regular fa-calendar"></i>
@@ -769,7 +771,7 @@ onUnmounted(() => {
                   <i class="fa-regular fa-star" v-else></i>
                 </button>
                 <button v-if="false" class="filter-action" type="button" @click.stop="toggleCarryOverPlanner(cycle)" :class="{ active: expandedCarryOverCycleId === cycle.id }">
-                  <i class="fa-solid fa-list-check"></i> Carry-over
+                  <i class="fa-solid fa-list-check"></i> {{ t('cyclesTab.carryOver', 'Carry-over') }}
                 </button>
               </div>
             </div>
