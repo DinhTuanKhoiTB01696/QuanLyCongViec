@@ -465,6 +465,7 @@ import SpreadsheetTab from '@/components/SpreadsheetTab.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore';
 import { useProjectStore } from '@/store/useProjectStore';
+import { useI18nStore } from '@/store/useI18nStore';
 
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
@@ -498,6 +499,61 @@ const router = useRouter()
 const currentProjectId = computed(() => route.params.id || getScopedCurrentProjectId() || null)
 const store = useWorkTaskStore();
 const projectStore = useProjectStore()
+const i18nStore = useI18nStore()
+const tr = (en, vi) => i18nStore.locale === 'vi' ? vi : en
+const t = (key) => {
+  const map = {
+    'Project': 'Dự án',
+    'Work Items': 'Công việc',
+    'Display': 'Hiển thị',
+    'Display Properties': 'Thuộc tính hiển thị',
+    'Order by': 'Sắp xếp theo',
+    'Manual': 'Thủ công',
+    'Last created': 'Tạo gần nhất',
+    'Last updated': 'Cập nhật gần nhất',
+    'Priority': 'Độ ưu tiên',
+    'Show sub-work items': 'Hiển thị công việc con',
+    'Analytics': 'Thống kê',
+    'Add work item': 'Thêm công việc',
+    'Access Denied': 'Truy cập bị từ chối',
+    'You do not have permission to access this project.': 'Bạn không đủ quyền để truy cập dự án này.',
+    'Back to Home': 'Quay lại trang Home',
+    'List view': 'Xem danh sách',
+    'Kanban view': 'Xem Kanban',
+    'Calendar view': 'Xem lịch',
+    'Spreadsheet view': 'Xem bảng tính',
+    'Gantt chart view': 'Xem biểu đồ Gantt',
+    'Urgent': 'Khẩn cấp',
+    'High': 'Cao',
+    'Normal': 'Bình thường',
+    'Medium': 'Trung bình',
+    'Low': 'Thấp',
+    'None': 'Không',
+    'Search members': 'Tìm thành viên',
+    'New work item': 'Công việc mới',
+    'Statistics of': 'Thống kê',
+    'Total tasks': 'Tổng công việc',
+    'In progress': 'Đang thực hiện',
+    'Pending': 'Chờ xử lý',
+    'In review': 'Đang đánh giá',
+    'Completed': 'Hoàn thành',
+    'Created and resolved': 'Đã tạo và đã xử lý',
+    'Custom analysis': 'Phân tích tùy chỉnh',
+    'Priority distribution': 'Phân bổ độ ưu tiên',
+    'Status distribution': 'Phân bổ trạng thái',
+    'Assignee distribution': 'Phân bổ người thực hiện',
+    'Export CSV': 'Xuất CSV',
+    'Count': 'Số lượng',
+    'assignees': 'người thực hiện',
+    'Assignee': 'Người thực hiện',
+    'Working': 'Đang làm',
+    'Cancelled': 'Đã hủy'
+  }
+  if (i18nStore.locale === 'vi') {
+    return map[key] || key
+  }
+  return key
+}
 
 const project = ref({})
 const rawTasks = ref([])
@@ -654,14 +710,14 @@ const visibleTasks = computed(() => {
   return sourceTasks.filter(canCurrentUserSeeTask)
 })
 const visibleTopLevelTasks = computed(() => filteredTasksList.value.filter(task => !isSubtask(task)))
-const defaultTaskStatusOptions = [
-  { name: 'BACKLOG', label: 'Chờ xử lý', color: 'var(--color-text-muted)', icon: 'fa-regular fa-circle-dashed' },
-  { name: 'TO DO', label: 'Cần làm', color: '#D4D4D8', icon: 'fa-regular fa-circle' },
-  { name: 'IN PROGRESS', label: 'Đang thực hiện', color: '#3B82F6', icon: 'fa-solid fa-circle-half-stroke' },
-  { name: 'IN REVIEW', label: 'Đang đánh giá', color: '#F59E0B', icon: 'fa-solid fa-eye' },
-  { name: 'DONE', label: 'Hoàn thành', color: '#10B981', icon: 'fa-solid fa-circle-check' },
-  { name: 'CANCELLED', label: 'Đã hủy', color: '#EF4444', icon: 'fa-regular fa-circle-xmark' }
-]
+const defaultTaskStatusOptions = computed(() => [
+  { name: 'BACKLOG', label: tr('Backlog', 'Chờ xử lý'), color: 'var(--color-text-muted)', icon: 'fa-regular fa-circle-dashed' },
+  { name: 'TO DO', label: tr('To Do', 'Cần làm'), color: '#D4D4D8', icon: 'fa-regular fa-circle' },
+  { name: 'IN PROGRESS', label: tr('In Progress', 'Đang thực hiện'), color: '#3B82F6', icon: 'fa-solid fa-circle-half-stroke' },
+  { name: 'IN REVIEW', label: tr('In Review', 'Đang đánh giá'), color: '#F59E0B', icon: 'fa-solid fa-eye' },
+  { name: 'DONE', label: tr('Done', 'Hoàn thành'), color: '#10B981', icon: 'fa-solid fa-circle-check' },
+  { name: 'CANCELLED', label: tr('Cancelled', 'Đã hủy'), color: '#EF4444', icon: 'fa-regular fa-circle-xmark' }
+])
 
 const normalizeText = (value) => `${value || ''}`.toLowerCase().trim()
 const normalizeStatus = (value) => `${value || 'BACKLOG'}`.toUpperCase().replace(/\s+/g, ' ').trim()
@@ -679,12 +735,12 @@ const taskStatusOptions = computed(() => {
     return projectStatuses.value.map((status, index) => ({
       name: normalizeStatus(status.name),
       label: status.displayName || status.name,
-      color: status.colorCode || defaultTaskStatusOptions[index % defaultTaskStatusOptions.length]?.color || 'var(--color-text-muted)',
+      color: status.colorCode || defaultTaskStatusOptions.value[index % defaultTaskStatusOptions.value.length]?.color || 'var(--color-text-muted)',
       icon: resolveStatusIcon(status.name)
     }))
   }
 
-  return defaultTaskStatusOptions
+  return defaultTaskStatusOptions.value
 })
 const normalizeDateOnly = (value) => {
   if (!value) return null
@@ -1061,7 +1117,7 @@ const createdResolvedOptions = computed(() => {
         borderWidth: 0,
         textStyle: { color: '#0f172a' }
       },
-      legend: { data: ['Đã tạo', 'Đã xử lý'], bottom: 0, textStyle: { color: 'var(--color-text-muted)' } },
+      legend: { data: [tr('Created', 'Đã tạo'), tr('Resolved', 'Đã xử lý')], bottom: 0, textStyle: { color: 'var(--color-text-muted)' } },
       grid: { left: '2%', right: '3%', bottom: '16%', top: '10%', containLabel: true },
       xAxis: {
         type: 'category',
@@ -1077,7 +1133,7 @@ const createdResolvedOptions = computed(() => {
       },
       series: [
          {
-           name: 'Đã tạo',
+           name: tr('Created', 'Đã tạo'),
            type: 'line',
            data: buckets.created,
            symbolSize: 8,
@@ -1087,7 +1143,7 @@ const createdResolvedOptions = computed(() => {
            smooth: true
          },
          {
-           name: 'Đã xử lý',
+           name: tr('Resolved', 'Đã xử lý'),
            type: 'line',
            data: buckets.resolved,
            symbolSize: 8,
@@ -1119,7 +1175,7 @@ const analyticsBreakdownRows = computed(() => {
       .map(([id, count]) => {
         const member = projectMembers.value.find(item => (item.userId || item.id) === id)
         return {
-          label: id === 'unassigned' ? 'Chưa giao' : (member?.fullName || member?.name || member?.email || 'Người thực hiện'),
+          label: id === 'unassigned' ? tr('Unassigned', 'Chưa giao') : (member?.fullName || member?.name || member?.email || tr('Assignee', 'Người thực hiện')),
           count,
           color: id === 'unassigned' ? 'var(--color-text-muted)' : '#38BDF8'
         }
@@ -1136,11 +1192,11 @@ const analyticsBreakdownRows = computed(() => {
   }
 
   return [
-    { label: 'Khẩn cấp', count: visibleTopLevelTasks.value.filter(task => task.priority === 1).length, color: '#EF4444' },
-    { label: 'Cao', count: visibleTopLevelTasks.value.filter(task => task.priority === 2).length, color: '#F97316' },
-    { label: 'Trung bình', count: visibleTopLevelTasks.value.filter(task => task.priority === 3).length, color: '#3B82F6' },
-    { label: 'Thấp', count: visibleTopLevelTasks.value.filter(task => task.priority === 4).length, color: '#10B981' },
-    { label: 'Không có', count: visibleTopLevelTasks.value.filter(task => !task.priority).length, color: 'var(--color-text-muted)' }
+    { label: tr('Urgent', 'Khẩn cấp'), count: visibleTopLevelTasks.value.filter(task => task.priority === 1).length, color: '#EF4444' },
+    { label: tr('High', 'Cao'), count: visibleTopLevelTasks.value.filter(task => task.priority === 2).length, color: '#F97316' },
+    { label: tr('Medium', 'Trung bình'), count: visibleTopLevelTasks.value.filter(task => task.priority === 3).length, color: '#3B82F6' },
+    { label: tr('Low', 'Thấp'), count: visibleTopLevelTasks.value.filter(task => task.priority === 4).length, color: '#10B981' },
+    { label: tr('None', 'Không có'), count: visibleTopLevelTasks.value.filter(task => !task.priority).length, color: 'var(--color-text-muted)' }
   ]
 })
 
@@ -1157,7 +1213,7 @@ const assigneeAnalyticsRows = computed(() => {
         const member = projectMembers.value.find(item => (item.userId || item.id) === id)
         rows.set(id, {
           id,
-          label: id === 'unassigned' ? 'Chưa giao' : (member?.fullName || member?.name || member?.email || 'Người thực hiện'),
+          label: id === 'unassigned' ? tr('Unassigned', 'Chưa giao') : (member?.fullName || member?.name || member?.email || tr('Assignee', 'Người thực hiện')),
           backlog: 0,
           started: 0,
           unstarted: 0,
@@ -1177,14 +1233,14 @@ const assigneeAnalyticsRows = computed(() => {
 })
 
 const analyticsInsightLabel = computed(() => {
-  if (analyticsInsightMode.value === 'status') return 'Phân bổ trạng thái'
-  if (analyticsInsightMode.value === 'assignee') return 'Phân bổ người thực hiện'
-  return 'Phân bổ độ ưu tiên'
+  if (analyticsInsightMode.value === 'status') return tr('Status Distribution', 'Phân bổ trạng thái')
+  if (analyticsInsightMode.value === 'assignee') return tr('Assignee Distribution', 'Phân bổ người thực hiện')
+  return tr('Priority Distribution', 'Phân bổ độ ưu tiên')
 })
 const analyticsTableHeading = computed(() => {
-  if (analyticsInsightMode.value === 'status') return 'Trạng thái'
-  if (analyticsInsightMode.value === 'assignee') return 'Người thực hiện'
-  return 'Độ ưu tiên'
+  if (analyticsInsightMode.value === 'status') return tr('Status', 'Trạng thái')
+  if (analyticsInsightMode.value === 'assignee') return tr('Assignee', 'Người thực hiện')
+  return tr('Priority', 'Độ ưu tiên')
 })
 const setAnalyticsInsightMode = (mode) => {
   analyticsInsightMode.value = mode
