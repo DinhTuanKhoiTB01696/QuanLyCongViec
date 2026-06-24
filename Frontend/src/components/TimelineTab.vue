@@ -507,7 +507,7 @@ function moveDateByView(date, steps) {
     return
   }
 
-  date.setMonth(date.getMonth() + steps)
+  date.setDate(date.getDate() + steps)
 }
 
 function diffInDays(left, right) {

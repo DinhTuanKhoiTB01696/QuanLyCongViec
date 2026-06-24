@@ -3,28 +3,28 @@
     <div class="plane-dashboard">
       <header class="nexus-feature-header">
         <div class="header-info">
-          <p class="eyebrow">SprintA Workspace</p>
-          <h1><i class="fa-solid fa-house"></i> Home</h1>
-          <p class="muted">Welcome back. Track your project health and jump into your active work items.</p>
+          <p class="eyebrow">{{ t('dashboard.workspace') }}</p>
+          <h1><i class="fa-solid fa-house"></i> {{ t('dashboard.title') }}</h1>
+          <p class="muted">{{ t('dashboard.subtitle') }}</p>
         </div>
         <div class="nexus-controls-row">
-          <button class="nexus-btn nexus-btn-outlined" type="button" @click="router.push('/spaces')">Browse projects</button>
-          <button class="nexus-btn nexus-btn-primary" type="button" @click="openTaskModal"><i class="fa-solid fa-plus"></i> New Work Item</button>
+          <button class="nexus-btn nexus-btn-outlined" type="button" @click="router.push('/spaces')">{{ t('dashboard.browseProjects') }}</button>
+          <button class="nexus-btn nexus-btn-primary" type="button" @click="openTaskModal"><i class="fa-solid fa-plus"></i> {{ t('dashboard.newWorkItem') }}</button>
         </div>
       </header>
 
       <section class="hero-panel">
         <div class="hero-copy">
-          <h2>{{ currentUser?.fullName || 'Teammate' }}, keep work moving.</h2>
-          <p>Track project health, jump into a space, and draft a new work item without leaving the dashboard.</p>
+          <h2>{{ t('dashboard.heroTitle', { name: currentUser?.fullName || t('dashboard.teammateFallback') }) }}</h2>
+          <p>{{ t('dashboard.heroSubtitle') }}</p>
         </div>
         <div class="hero-stats">
           <div class="stat-box">
-            <span class="stat-label">Projects</span>
+            <span class="stat-label">{{ t('common.projects') }}</span>
             <strong>{{ visibleProjects.length }}</strong>
           </div>
           <div class="stat-box">
-            <span class="stat-label">Favorites</span>
+            <span class="stat-label">{{ t('dashboard.favorites') }}</span>
             <strong>{{ favoriteProjects.length }}</strong>
           </div>
         </div>
@@ -33,24 +33,24 @@
       <section class="search-panel">
         <div class="search-shell">
           <i class="fa-solid fa-magnifying-glass"></i>
-          <input v-model="projectSearch" type="text" placeholder="Filter projects by name or key" />
+          <input v-model="projectSearch" type="text" :placeholder="t('dashboard.filterProjectsPlaceholder')" />
         </div>
       </section>
 
       <section class="projects-panel">
         <div class="section-head">
-          <h2>Projects</h2>
-          <span>{{ filteredProjects.length }} shown</span>
+          <h2>{{ t('common.projects') }}</h2>
+          <span>{{ t('common.shown', { count: filteredProjects.length }) }}</span>
         </div>
 
         <div v-if="projectStore.loading" class="empty-state">
           <i class="fa-solid fa-spinner fa-spin"></i>
-          <p>Loading projects...</p>
+          <p>{{ t('dashboard.loadingProjects') }}</p>
         </div>
 
         <div v-else-if="filteredProjects.length === 0" class="empty-state">
           <i class="fa-regular fa-folder-open"></i>
-          <p>No projects match your search.</p>
+          <p>{{ t('dashboard.noProjectsMatch') }}</p>
         </div>
 
         <div v-else class="project-grid">
@@ -68,16 +68,16 @@
                 <h3>{{ project.name }}</h3>
                 <span>{{ project.key }}</span>
               </div>
-              <p>{{ project.description || 'No description yet.' }}</p>
+              <p>{{ project.description || t('dashboard.noDescription') }}</p>
               <div class="project-meta">
                 <span>{{ project.networkType || 'Public' }}</span>
-                <span>{{ project.leadName || 'Project owner' }}</span>
+                <span>{{ project.leadName || t('dashboard.projectOwner') }}</span>
               </div>
             </div>
 
             <div class="project-actions">
-              <button class="secondary-btn small" type="button" @click="openProject(project.id)">Open</button>
-              <button class="primary-btn small" type="button" @click="openTaskModal(project)">New Work Item</button>
+              <button class="secondary-btn small" type="button" @click="openProject(project.id)">{{ t('common.open') }}</button>
+              <button class="primary-btn small" type="button" @click="openTaskModal(project)">{{ t('dashboard.newWorkItem') }}</button>
             </div>
           </article>
         </div>
@@ -85,8 +85,8 @@
 
       <section v-if="favoriteProjects.length" class="projects-panel">
         <div class="section-head">
-          <h2>Favorites</h2>
-          <span>{{ favoriteProjects.length }} starred</span>
+          <h2>{{ t('dashboard.favorites') }}</h2>
+          <span>{{ t('dashboard.starredCount', { count: favoriteProjects.length }) }}</span>
         </div>
 
         <div class="project-grid">
@@ -104,37 +104,37 @@
                 <h3>{{ project.name }}</h3>
                 <span>{{ project.key }}</span>
               </div>
-              <p>{{ project.description || 'No description yet.' }}</p>
+              <p>{{ project.description || t('dashboard.noDescription') }}</p>
               <div class="project-meta">
                 <span>{{ project.networkType || 'Public' }}</span>
-                <span>{{ project.leadName || 'Project owner' }}</span>
+                <span>{{ project.leadName || t('dashboard.projectOwner') }}</span>
               </div>
             </div>
 
             <div class="project-actions">
-              <button class="secondary-btn small" type="button" @click="openProject(project.id)">Open</button>
+              <button class="secondary-btn small" type="button" @click="openProject(project.id)">{{ t('common.open') }}</button>
             </div>
           </article>
         </div>
       </section>
 
-      <el-dialog v-model="taskModalVisible" title="New Work Item" width="560px" append-to-body>
+      <el-dialog v-model="taskModalVisible" :title="t('dashboard.dialogTitle')" width="560px" append-to-body>
         <div class="task-form">
           <label>
-            Project
+            {{ t('common.project') }}
             <select v-model="taskForm.projectId">
-              <option value="" disabled>Select a project</option>
+              <option value="" disabled>{{ t('dashboard.selectProject') }}</option>
               <option v-for="project in visibleProjects" :key="project.id" :value="project.id">{{ project.name }}</option>
             </select>
           </label>
 
           <label>
-            Title
-            <input v-model="taskForm.title" type="text" placeholder="What needs to be done?" />
+            {{ t('common.title') }}
+            <input v-model="taskForm.title" type="text" :placeholder="t('dashboard.titlePlaceholder')" />
           </label>
 
           <label>
-            Status
+            {{ t('common.status') }}
             <select v-model="taskForm.statusName">
               <option value="BACKLOG">BACKLOG</option>
               <option value="TO DO">TO DO</option>
@@ -144,16 +144,16 @@
           </label>
 
           <label>
-            Description
-            <textarea v-model="taskForm.description" rows="5" placeholder="Add context"></textarea>
+            {{ t('dashboard.description') }}
+            <textarea v-model="taskForm.description" rows="5" :placeholder="t('dashboard.descriptionPlaceholder')"></textarea>
           </label>
         </div>
 
         <template #footer>
           <div class="dialog-actions">
-            <button class="secondary-btn" type="button" @click="taskModalVisible = false">Cancel</button>
+            <button class="secondary-btn" type="button" @click="taskModalVisible = false">{{ t('common.cancel') }}</button>
             <button class="primary-btn" type="button" :disabled="submittingTask" @click="submitTask">
-              {{ submittingTask ? 'Creating...' : 'Create work item' }}
+              {{ submittingTask ? t('common.creating') : t('dashboard.newWorkItem') }}
             </button>
           </div>
         </template>
@@ -163,15 +163,17 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import axiosClient from '@/api/axiosClient'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import { useProjectStore } from '@/store/useProjectStore'
+import { useI18n } from '@/composables/useI18n'
 
 const router = useRouter()
 const projectStore = useProjectStore()
+const { t, language } = useI18n()
 
 const currentUser = ref(null)
 const currentDateTime = ref('')
@@ -197,7 +199,7 @@ const filteredProjects = computed(() => {
 
 const updateTime = () => {
   const now = new Date()
-  currentDateTime.value = now.toLocaleString('en-GB', {
+  currentDateTime.value = now.toLocaleString(language.value === 'vi' ? 'vi-VN' : 'en-GB', {
     weekday: 'long',
     day: '2-digit',
     month: 'short',
@@ -228,7 +230,7 @@ const openTaskModal = async (project = null) => {
     : await projectStore.fetchAllProjects(true)
 
   if (!availableProjects.length) {
-    ElMessage.warning('Create a project before creating a work item.')
+    ElMessage.warning(t('dashboard.createProjectFirst'))
     await router.push('/spaces')
     return
   }
@@ -247,16 +249,16 @@ const toggleFavorite = async (project) => {
   project.isFavorite = nextValue
   try {
     await projectStore.updateFavorite(project.id, nextValue)
-    ElMessage.success(nextValue ? 'Project starred' : 'Project unstarred')
+    ElMessage.success(nextValue ? t('dashboard.projectStarred') : t('dashboard.projectUnstarred'))
   } catch (error) {
     project.isFavorite = !nextValue
-    ElMessage.error('Could not update favorite')
+    ElMessage.error(t('dashboard.favoriteUpdateFailed'))
   }
 }
 
 const submitTask = async () => {
   if (!taskForm.value.projectId || !taskForm.value.title.trim()) {
-    ElMessage.warning('Please choose a project and enter a title')
+    ElMessage.warning(t('dashboard.chooseProjectAndTitle'))
     return
   }
 
@@ -268,10 +270,10 @@ const submitTask = async () => {
       statusName: taskForm.value.statusName,
       priority: 3
     })
-    ElMessage.success('Work item created')
+    ElMessage.success(t('dashboard.workItemCreated'))
     taskModalVisible.value = false
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || 'Could not create work item')
+    ElMessage.error(error.response?.data?.message || t('dashboard.createWorkItemFailed'))
   } finally {
     submittingTask.value = false
   }
@@ -284,6 +286,8 @@ onMounted(async () => {
   setInterval(updateTime, 60000)
   await projectStore.fetchAllProjects(true)
 })
+
+watch(language, updateTime)
 </script>
 
 <style scoped>

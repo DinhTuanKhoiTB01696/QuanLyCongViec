@@ -3,9 +3,9 @@
     <div v-if="isForbidden" class="forbidden-overlay">
       <div class="forbidden-content">
         <div class="lock-icon"><i class="fa-solid fa-lock"></i></div>
-        <h2>Access Denied</h2>
-        <p>Bạn không đủ quyền để truy cập dự án này.</p>
-        <button class="plane-primary-btn mt-4" @click="router.push('/spaces')">Quay lại trang Home</button>
+        <h2>{{ t('Access Denied') }}</h2>
+        <p>{{ t('You do not have permission to access this project.') }}</p>
+        <button class="plane-primary-btn mt-4" @click="router.push('/spaces')">{{ t('Back to Home') }}</button>
       </div>
     </div>
     <div v-else class="plane-board-container">
@@ -14,10 +14,10 @@
         <div class="sh-left">
           <div class="breadcrumb">
             <span class="proj-icon">{{ projectBadge }}</span>
-            <span class="proj-name">{{ project?.name || 'Project' }}</span>
+            <span class="proj-name">{{ project?.name || t('Project') }}</span>
             <i class="fa-solid fa-chevron-right separator"></i>
             <span class="active-page">
-              <i class="fa-solid fa-layer-group"></i> {{ t('Work items') }}
+              <i class="fa-solid fa-layer-group"></i> {{ t('Work Items') }}
             </span>
             <span class="item-count">{{ visibleTopLevelTasks.length }}</span>
           </div>
@@ -26,11 +26,11 @@
         <div class="sh-right">
           <!-- View Toggles -->
           <div class="view-toggles">
-            <button class="toggle-btn" :class="{ active: currentTab === 'list' }" @click="currentTab = 'list'" title="List view"><i class="fa-solid fa-bars"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'board' }" @click="currentTab = 'board'" title="Kanban view"><i class="fa-solid fa-table-columns"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'calendar' }" @click="currentTab = 'calendar'" title="Calendar view"><i class="fa-regular fa-calendar"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'spreadsheet' }" @click="currentTab = 'spreadsheet'" title="Spreadsheet view"><i class="fa-solid fa-table-cells"></i></button>
-            <button class="toggle-btn" :class="{ active: currentTab === 'timeline' }" @click="currentTab = 'timeline'" title="Gantt chart view"><i class="fa-solid fa-chart-gantt"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'list' }" @click="currentTab = 'list'" :title="t('List view')"><i class="fa-solid fa-bars"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'board' }" @click="currentTab = 'board'" :title="t('Kanban view')"><i class="fa-solid fa-table-columns"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'calendar' }" @click="currentTab = 'calendar'" :title="t('Calendar view')"><i class="fa-regular fa-calendar"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'spreadsheet' }" @click="currentTab = 'spreadsheet'" :title="t('Spreadsheet view')"><i class="fa-solid fa-table-cells"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'timeline' }" @click="currentTab = 'timeline'" :title="t('Gantt chart view')"><i class="fa-solid fa-chart-gantt"></i></button>
           </div>
 
           <button class="plane-toolbar-btn" @click="showFilterPanel = !showFilterPanel" :class="{ active: showFilterPanel || activeTaskFilters.length }">
@@ -42,7 +42,7 @@
           <div class="display-dropdown-wrapper">
              <button class="plane-toolbar-btn" @click.stop="showDisplayDropdown = !showDisplayDropdown" :class="{ 'active': showDisplayDropdown }">{{ t('Display') }}</button>
              <div class="plane-dropdown-menu" v-show="showDisplayDropdown" @click.stop>
-                <div class="dd-section">
+                <div class="nexus-display-properties-dropdown dd-section">
                    <div class="dd-title">
                       <span>{{ t('Display Properties') }}</span>
                       <i class="fa-solid fa-chevron-up"></i>
@@ -96,7 +96,7 @@
                <div class="gh-left">
                  <i class="gh-chevron fa-solid" :class="collapsedListGroups[group.id] ? 'fa-chevron-right' : 'fa-chevron-down'"></i>
                  <i class="status-icon" :class="group.icon" :style="{ color: group.color }"></i>
-                 <span class="group-name">{{ normalizeStatusLabel(group.statusName) }}</span>
+                 <span class="group-name">{{ group.name }}</span>
                  <span class="group-count">{{ group.items.length }}</span>
                </div>
                <div class="gh-right">
@@ -139,11 +139,11 @@
                        </div>
                        <template #dropdown>
                          <el-dropdown-menu class="plane-dropdown">
-                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> {{ t('Urgent') }}</el-dropdown-item>
-                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> {{ t('High') }}</el-dropdown-item>
-                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> {{ t('Normal') }}</el-dropdown-item>
-                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> {{ t('Low') }}</el-dropdown-item>
-                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> {{ t('None') }}</el-dropdown-item>
+                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> Urgent</el-dropdown-item>
+                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> High</el-dropdown-item>
+                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> Normal</el-dropdown-item>
+                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> Low</el-dropdown-item>
+                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> None</el-dropdown-item>
                          </el-dropdown-menu>
                        </template>
                      </el-dropdown>
@@ -159,7 +159,7 @@
                          </div>
                        </template>
                        <div class="popover-content">
-                         <input type="text" class="plane-search-input" v-model="assigneeSearch" :placeholder="t('Search members')" />
+                         <input type="text" class="plane-search-input" v-model="assigneeSearch" placeholder="Search members" />
                          <div class="plane-list mt-2">
                            <label
                              class="plane-list-item"
@@ -179,7 +179,7 @@
                </template>
 
                <div class="add-row-placeholder" @click="openCreateTask(group.statusName)">
-                 <i class="fa-solid fa-plus"></i> {{ t('New work item') }}
+                 <i class="fa-solid fa-plus"></i> New work item
                </div>
              </div>
            </div>
@@ -209,7 +209,7 @@
           <div class="col-head">
             <div class="col-title">
               <i :class="col.icon" :style="{ color: col.color }"></i>
-              <span>{{ normalizeStatusLabel(col.name) }}</span>
+              <span>{{ col.name }}</span>
               <span class="col-count">{{ col.items.length }}</span>
             </div>
             <i class="fa-solid fa-plus add-btn" @click="openCreateTask(col.name)"></i>
@@ -254,11 +254,11 @@
                        </div>
                        <template #dropdown>
                          <el-dropdown-menu class="plane-dropdown">
-                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> {{ t('Urgent') }}</el-dropdown-item>
-                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> {{ t('High') }}</el-dropdown-item>
-                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> {{ t('Normal') }}</el-dropdown-item>
-                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> {{ t('Low') }}</el-dropdown-item>
-                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> {{ t('None') }}</el-dropdown-item>
+                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up text-red-500"></i> Urgent</el-dropdown-item>
+                           <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up text-orange-500"></i> High</el-dropdown-item>
+                           <el-dropdown-item :command="3"><i class="fa-solid fa-minus text-blue-500"></i> Medium</el-dropdown-item>
+                           <el-dropdown-item :command="4"><i class="fa-solid fa-chevron-down text-gray-400"></i> Low</el-dropdown-item>
+                           <el-dropdown-item :command="0"><i class="fa-solid fa-ban text-gray-500"></i> None</el-dropdown-item>
                          </el-dropdown-menu>
                        </template>
                      </el-dropdown>
@@ -271,7 +271,7 @@
                          <div class="avatar-xs ms-auto cursor-pointer hover:bg-[var(--color-border)]" style="border: 1px dashed var(--color-text-muted); background: transparent; color: var(--color-text-muted);" v-else><i class="fa-solid fa-user"></i></div>
                        </template>
                        <div class="popover-content">
-                         <input type="text" class="plane-search-input" v-model="assigneeSearch" :placeholder="t('Search members')" />
+                         <input type="text" class="plane-search-input" v-model="assigneeSearch" placeholder="Search members" />
                          <div class="plane-list mt-2">
                            <label
                              class="plane-list-item"
@@ -293,16 +293,16 @@
             <div class="inline-create-box" v-if="inlineCreateColId === col.id">
                <div class="ic-top">
                  <i class="fa-solid fa-plus ic-plus"></i>
-                 <input type="text" class="ic-input" v-model="inlineTaskTitle" :placeholder="t('New work item')" @keyup.enter="submitInlineTask(col)" @keyup.esc="inlineCreateColId = null" ref="inlineInput" />
+                 <input type="text" class="ic-input" v-model="inlineTaskTitle" placeholder="New work item" @keyup.enter="submitInlineTask(col)" @keyup.esc="inlineCreateColId = null" ref="inlineInput" />
                </div>
                <div class="ic-bottom">
-                 <div class="ic-chip"><i class="fa-regular fa-circle"></i> {{ normalizeStatusLabel(col.name) }}</div>
+                 <div class="ic-chip"><i class="fa-regular fa-circle"></i> {{ col.name }}</div>
                  <div class="ic-chip"><i class="fa-solid fa-minus text-blue"></i></div>
                  <div class="avatar-xs ms-auto ic-avatar"><i class="fa-solid fa-user"></i></div>
                </div>
             </div>
             <div class="add-btn-bottom" v-else @click="openInlineCreate(col.id)">
-               <i class="fa-solid fa-plus"></i> {{ t('New work item') }}
+               <i class="fa-solid fa-plus"></i> New work item
             </div>
           </div>
         </div>
@@ -329,7 +329,7 @@
     <div v-if="showAnalyticsSidebar" class="analytics-overlay" @click.self="closeAnalyticsSidebar">
       <div class="analytics-panel" :class="{ 'slide-in': showAnalyticsSidebar, 'is-expanded': isAnalyticsExpanded }">
          <div class="ap-header">
-            <h3>Analytics for {{ project?.name || 'Project' }}</h3>
+            <h3>Thống kê {{ project?.name || t('Project') }}</h3>
             <div class="ap-actions">
                <button class="icon-btn" @click="toggleAnalyticsExpand"><i :class="isAnalyticsExpanded ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
                <button class="icon-btn" @click="closeAnalyticsSidebar"><i class="fa-solid fa-xmark"></i></button>
@@ -340,46 +340,46 @@
             <!-- Stats -->
             <div class="ap-stats-grid">
                <div class="stat-box">
-                  <span class="lbl">Total Work items</span>
+                  <span class="lbl">Tổng công việc</span>
                   <span class="val">{{ visibleTopLevelTasks.length }}</span>
                </div>
                <div class="stat-box">
-                  <span class="lbl">Started Work items</span>
+                  <span class="lbl">Đang thực hiện</span>
                   <span class="val">{{ visibleTopLevelTasks.filter(t => t.statusName === 'IN PROGRESS').length }}</span>
                </div>
                <div class="stat-box">
-                  <span class="lbl">Backlog Work items</span>
+                  <span class="lbl">Chờ xử lý</span>
                   <span class="val">{{ visibleTopLevelTasks.filter(t => !t.statusName || t.statusName === 'TO DO' || t.statusName === 'TODO').length }}</span>
                </div>
                <div class="stat-box">
-                  <span class="lbl">Unstarted Work items</span>
+                  <span class="lbl">Đang đánh giá</span>
                   <span class="val">{{ visibleTopLevelTasks.filter(t => t.statusName === 'IN REVIEW').length }}</span>
                </div>
                <div class="stat-box">
-                  <span class="lbl">Completed Work items</span>
+                  <span class="lbl">Hoàn thành</span>
                   <span class="val">{{ visibleTopLevelTasks.filter(t => t.statusName === 'DONE').length }}</span>
                </div>
             </div>
             
             <!-- Created vs Resolved Chart Overlay -->
             <div class="ap-chart-card mt-4">
-               <h4>Created vs Resolved</h4>
+               <h4>Đã tạo và đã xử lý</h4>
                <v-chart class="chart-container" :option="createdResolvedOptions" autoresize />
             </div>
 
             <!-- Customized Insights -->
             <div class="ap-chart-card mt-4">
                <div class="flex-between">
-                  <h4>Customized Insights</h4>
+                  <h4>Phân tích tùy chỉnh</h4>
                   <el-dropdown trigger="click" @command="setAnalyticsInsightMode">
                     <button class="filter-btn" type="button">
                       <i class="fa-solid fa-sliders"></i> {{ analyticsInsightLabel }} <i class="fa-solid fa-chevron-down"></i>
                     </button>
                     <template #dropdown>
                       <el-dropdown-menu class="plane-dropdown">
-                        <el-dropdown-item command="priority">Priority distribution</el-dropdown-item>
-                        <el-dropdown-item command="status">Status distribution</el-dropdown-item>
-                        <el-dropdown-item command="assignee">Assignee distribution</el-dropdown-item>
+                        <el-dropdown-item command="priority">Phân bổ độ ưu tiên</el-dropdown-item>
+                        <el-dropdown-item command="status">Phân bổ trạng thái</el-dropdown-item>
+                        <el-dropdown-item command="assignee">Phân bổ người thực hiện</el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
                   </el-dropdown>
@@ -394,11 +394,11 @@
                   <span class="text-muted">{{ analyticsBreakdownRows.length }} {{ analyticsTableHeading }}</span>
                   <div class="flex-center gap-1">
                      <i class="fa-solid fa-magnifying-glass text-muted"></i>
-                     <button class="export-btn" @click="exportAnalyticsCsv()"><i class="fa-solid fa-download"></i> Export as csv</button>
+                     <button class="export-btn" @click="exportAnalyticsCsv()"><i class="fa-solid fa-download"></i> Xuất CSV</button>
                   </div>
                </div>
                <table class="ap-table">
-                  <thead><tr><th>{{ analyticsTableHeading }}</th><th style="text-align: right;">Count</th></tr></thead>
+                  <thead><tr><th>{{ analyticsTableHeading }}</th><th style="text-align: right;">Số lượng</th></tr></thead>
                   <tbody>
                      <tr v-for="row in analyticsBreakdownRows" :key="row.label">
                        <td>{{ row.label }}</td>
@@ -410,21 +410,21 @@
 
             <div class="ap-table-wrap mt-4">
                <div class="table-head">
-                  <span class="text-muted">{{ assigneeAnalyticsRows.length }} Assignee{{ assigneeAnalyticsRows.length === 1 ? '' : 's' }}</span>
+                  <span class="text-muted">{{ assigneeAnalyticsRows.length }} người thực hiện</span>
                   <div class="flex-center gap-1">
                      <i class="fa-solid fa-magnifying-glass text-muted"></i>
-                     <button class="export-btn" @click="exportAnalyticsCsv('assignee')"><i class="fa-solid fa-download"></i> Export as csv</button>
+                     <button class="export-btn" @click="exportAnalyticsCsv('assignee')"><i class="fa-solid fa-download"></i> Xuất CSV</button>
                   </div>
                </div>
                <table class="ap-table">
                   <thead>
                      <tr>
-                        <th>Assignee</th>
-                        <th style="text-align: right;">Backlog</th>
-                        <th style="text-align: right;">Started</th>
-                        <th style="text-align: right;">Unstarted</th>
-                        <th style="text-align: right;">Completed</th>
-                        <th style="text-align: right;">Cancelled</th>
+                        <th>Người thực hiện</th>
+                        <th style="text-align: right;">Chờ xử lý</th>
+                        <th style="text-align: right;">Đang làm</th>
+                        <th style="text-align: right;">Đang đánh giá</th>
+                        <th style="text-align: right;">Hoàn thành</th>
+                        <th style="text-align: right;">Đã hủy</th>
                      </tr>
                   </thead>
                   <tbody>
@@ -467,7 +467,6 @@ import { useWorkTaskStore } from '@/store/useWorkTaskStore';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useI18nStore } from '@/store/useI18nStore';
 
-
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
 import { LineChart, BarChart } from 'echarts/charts';
@@ -497,12 +496,64 @@ const assigneeSearch = ref('')
 
 const route = useRoute()
 const router = useRouter()
-const i18nStore = useI18nStore()
-const t = (key) => i18nStore.t(key)
 const currentProjectId = computed(() => route.params.id || getScopedCurrentProjectId() || null)
 const store = useWorkTaskStore();
 const projectStore = useProjectStore()
-
+const i18nStore = useI18nStore()
+const tr = (en, vi) => i18nStore.locale === 'vi' ? vi : en
+const t = (key) => {
+  const map = {
+    'Project': 'Dự án',
+    'Work Items': 'Công việc',
+    'Display': 'Hiển thị',
+    'Display Properties': 'Thuộc tính hiển thị',
+    'Order by': 'Sắp xếp theo',
+    'Manual': 'Thủ công',
+    'Last created': 'Tạo gần nhất',
+    'Last updated': 'Cập nhật gần nhất',
+    'Priority': 'Độ ưu tiên',
+    'Show sub-work items': 'Hiển thị công việc con',
+    'Analytics': 'Thống kê',
+    'Add work item': 'Thêm công việc',
+    'Access Denied': 'Truy cập bị từ chối',
+    'You do not have permission to access this project.': 'Bạn không đủ quyền để truy cập dự án này.',
+    'Back to Home': 'Quay lại trang Home',
+    'List view': 'Xem danh sách',
+    'Kanban view': 'Xem Kanban',
+    'Calendar view': 'Xem lịch',
+    'Spreadsheet view': 'Xem bảng tính',
+    'Gantt chart view': 'Xem biểu đồ Gantt',
+    'Urgent': 'Khẩn cấp',
+    'High': 'Cao',
+    'Normal': 'Bình thường',
+    'Medium': 'Trung bình',
+    'Low': 'Thấp',
+    'None': 'Không',
+    'Search members': 'Tìm thành viên',
+    'New work item': 'Công việc mới',
+    'Statistics of': 'Thống kê',
+    'Total tasks': 'Tổng công việc',
+    'In progress': 'Đang thực hiện',
+    'Pending': 'Chờ xử lý',
+    'In review': 'Đang đánh giá',
+    'Completed': 'Hoàn thành',
+    'Created and resolved': 'Đã tạo và đã xử lý',
+    'Custom analysis': 'Phân tích tùy chỉnh',
+    'Priority distribution': 'Phân bổ độ ưu tiên',
+    'Status distribution': 'Phân bổ trạng thái',
+    'Assignee distribution': 'Phân bổ người thực hiện',
+    'Export CSV': 'Xuất CSV',
+    'Count': 'Số lượng',
+    'assignees': 'người thực hiện',
+    'Assignee': 'Người thực hiện',
+    'Working': 'Đang làm',
+    'Cancelled': 'Đã hủy'
+  }
+  if (i18nStore.locale === 'vi') {
+    return map[key] || key
+  }
+  return key
+}
 
 const project = ref({})
 const rawTasks = ref([])
@@ -659,14 +710,14 @@ const visibleTasks = computed(() => {
   return sourceTasks.filter(canCurrentUserSeeTask)
 })
 const visibleTopLevelTasks = computed(() => filteredTasksList.value.filter(task => !isSubtask(task)))
-const defaultTaskStatusOptions = [
-  { name: 'BACKLOG', label: 'Backlog', color: 'var(--color-text-muted)', icon: 'fa-regular fa-circle-dashed' },
-  { name: 'TO DO', label: 'To Do', color: '#D4D4D8', icon: 'fa-regular fa-circle' },
-  { name: 'IN PROGRESS', label: 'In Progress', color: '#3B82F6', icon: 'fa-solid fa-circle-half-stroke' },
-  { name: 'IN REVIEW', label: 'In Review', color: '#F59E0B', icon: 'fa-solid fa-eye' },
-  { name: 'DONE', label: 'Done', color: '#10B981', icon: 'fa-solid fa-circle-check' },
-  { name: 'CANCELLED', label: 'Cancelled', color: '#EF4444', icon: 'fa-regular fa-circle-xmark' }
-]
+const defaultTaskStatusOptions = computed(() => [
+  { name: 'BACKLOG', label: tr('Backlog', 'Chờ xử lý'), color: 'var(--color-text-muted)', icon: 'fa-regular fa-circle-dashed' },
+  { name: 'TO DO', label: tr('To Do', 'Cần làm'), color: '#D4D4D8', icon: 'fa-regular fa-circle' },
+  { name: 'IN PROGRESS', label: tr('In Progress', 'Đang thực hiện'), color: '#3B82F6', icon: 'fa-solid fa-circle-half-stroke' },
+  { name: 'IN REVIEW', label: tr('In Review', 'Đang đánh giá'), color: '#F59E0B', icon: 'fa-solid fa-eye' },
+  { name: 'DONE', label: tr('Done', 'Hoàn thành'), color: '#10B981', icon: 'fa-solid fa-circle-check' },
+  { name: 'CANCELLED', label: tr('Cancelled', 'Đã hủy'), color: '#EF4444', icon: 'fa-regular fa-circle-xmark' }
+])
 
 const normalizeText = (value) => `${value || ''}`.toLowerCase().trim()
 const normalizeStatus = (value) => `${value || 'BACKLOG'}`.toUpperCase().replace(/\s+/g, ' ').trim()
@@ -680,19 +731,16 @@ const resolveStatusIcon = (value) => {
   return 'fa-regular fa-circle-dashed'
 }
 const taskStatusOptions = computed(() => {
-  const options = projectStatuses.value.length
-    ? projectStatuses.value.map((status, index) => ({
-        name: normalizeStatus(status.name),
-        label: status.displayName || status.name,
-        color: status.colorCode || defaultTaskStatusOptions[index % defaultTaskStatusOptions.length]?.color || 'var(--color-text-muted)',
-        icon: resolveStatusIcon(status.name)
-      }))
-    : defaultTaskStatusOptions
+  if (projectStatuses.value.length) {
+    return projectStatuses.value.map((status, index) => ({
+      name: normalizeStatus(status.name),
+      label: status.displayName || status.name,
+      color: status.colorCode || defaultTaskStatusOptions.value[index % defaultTaskStatusOptions.value.length]?.color || 'var(--color-text-muted)',
+      icon: resolveStatusIcon(status.name)
+    }))
+  }
 
-  return options.map(opt => ({
-    ...opt,
-    label: t(opt.name) !== opt.name ? t(opt.name) : opt.label
-  }))
+  return defaultTaskStatusOptions.value
 })
 const normalizeDateOnly = (value) => {
   if (!value) return null
@@ -711,6 +759,69 @@ const normalizeDateOnly = (value) => {
   const month = `${parsed.getMonth() + 1}`.padStart(2, '0')
   const day = `${parsed.getDate()}`.padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+const getTaskDateOnly = (task, fields) => {
+  for (const field of fields) {
+    const normalized = normalizeDateOnly(task?.[field])
+    if (normalized) return normalized
+  }
+  return null
+}
+const getTaskCreatedDate = (task) => getTaskDateOnly(task, ['createdAt', 'createdDate', 'createdOn', 'CreatedAt', 'CreatedDate'])
+const getTaskResolvedDate = (task) => {
+  if (normalizeStatus(task?.statusName) !== 'DONE') return null
+  return getTaskDateOnly(task, [
+    'completedAt',
+    'completedDate',
+    'resolvedAt',
+    'doneAt',
+    'closedAt',
+    'updatedAt',
+    'updatedDate',
+    'UpdatedAt'
+  ]) || getTaskCreatedDate(task)
+}
+const formatAnalyticsDateLabel = (dateOnly) => {
+  if (!dateOnly) return ''
+  const [year, month, day] = dateOnly.split('-').map(Number)
+  return new Date(year, month - 1, day).toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit'
+  })
+}
+const buildAnalyticsDateBuckets = (tasks) => {
+  const dates = new Set()
+  tasks.forEach(task => {
+    const createdDate = getTaskCreatedDate(task)
+    const resolvedDate = getTaskResolvedDate(task)
+    if (createdDate) dates.add(createdDate)
+    if (resolvedDate) dates.add(resolvedDate)
+  })
+
+  const sortedDates = Array.from(dates).sort()
+  const windowDates = sortedDates.length > 14 ? sortedDates.slice(-14) : sortedDates
+  const fallbackDate = normalizeDateOnly(new Date())
+  const labels = windowDates.length ? windowDates : [fallbackDate]
+  const createdCounts = new Map(labels.map(date => [date, 0]))
+  const resolvedCounts = new Map(labels.map(date => [date, 0]))
+
+  tasks.forEach(task => {
+    const createdDate = getTaskCreatedDate(task)
+    if (createdCounts.has(createdDate)) {
+      createdCounts.set(createdDate, createdCounts.get(createdDate) + 1)
+    }
+
+    const resolvedDate = getTaskResolvedDate(task)
+    if (resolvedCounts.has(resolvedDate)) {
+      resolvedCounts.set(resolvedDate, resolvedCounts.get(resolvedDate) + 1)
+    }
+  })
+
+  return {
+    labels,
+    created: labels.map(date => createdCounts.get(date) || 0),
+    resolved: labels.map(date => resolvedCounts.get(date) || 0)
+  }
 }
 const normalizeStatusLabel = (value) => {
   const status = normalizeStatus(value)
@@ -998,15 +1109,49 @@ const filteredTasksList = computed(() => {
 });
 
 const createdResolvedOptions = computed(() => {
+   const buckets = buildAnalyticsDateBuckets(visibleTopLevelTasks.value)
    return {
-      tooltip: { trigger: 'axis' },
-      legend: { data: ['Created', 'Resolved'], bottom: 0, textStyle: { color: 'var(--color-text-muted)' } },
-      grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-      xAxis: { type: 'category', data: ['Apr 01', 'Apr 02', 'Apr 03', 'Apr 04'], axisLine: { lineStyle: { color: '#3F3F46' } } },
-      yAxis: { type: 'value', splitLine: { lineStyle: { color: 'var(--color-border)' } } },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: '#f8fafc',
+        borderWidth: 0,
+        textStyle: { color: '#0f172a' }
+      },
+      legend: { data: [tr('Created', 'Đã tạo'), tr('Resolved', 'Đã xử lý')], bottom: 0, textStyle: { color: 'var(--color-text-muted)' } },
+      grid: { left: '2%', right: '3%', bottom: '16%', top: '10%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: buckets.labels.map(formatAnalyticsDateLabel),
+        axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.35)' } },
+        axisLabel: { color: 'var(--color-text-muted)' }
+      },
+      yAxis: {
+        type: 'value',
+        minInterval: 1,
+        splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.16)' } },
+        axisLabel: { color: 'var(--color-text-muted)' }
+      },
       series: [
-         { name: 'Created', type: 'line', data: [visibleTopLevelTasks.value.length, 0, 0, 0], itemStyle: { color: '#3B82F6' }, smooth: true },
-         { name: 'Resolved', type: 'line', data: [visibleTopLevelTasks.value.filter(t => t.statusName === 'DONE').length, 0, 0, 0], itemStyle: { color: '#10B981' }, smooth: true }
+         {
+           name: tr('Created', 'Đã tạo'),
+           type: 'line',
+           data: buckets.created,
+           symbolSize: 8,
+           lineStyle: { width: 3, color: '#38BDF8' },
+           itemStyle: { color: '#38BDF8' },
+           areaStyle: { color: 'rgba(56, 189, 248, 0.12)' },
+           smooth: true
+         },
+         {
+           name: tr('Resolved', 'Đã xử lý'),
+           type: 'line',
+           data: buckets.resolved,
+           symbolSize: 8,
+           lineStyle: { width: 3, color: '#34D399' },
+           itemStyle: { color: '#34D399' },
+           areaStyle: { color: 'rgba(52, 211, 153, 0.1)' },
+           smooth: true
+         }
       ],
       backgroundColor: 'transparent'
    }
@@ -1030,7 +1175,7 @@ const analyticsBreakdownRows = computed(() => {
       .map(([id, count]) => {
         const member = projectMembers.value.find(item => (item.userId || item.id) === id)
         return {
-          label: id === 'unassigned' ? 'Unassigned' : (member?.fullName || member?.name || member?.email || 'Assignee'),
+          label: id === 'unassigned' ? tr('Unassigned', 'Chưa giao') : (member?.fullName || member?.name || member?.email || tr('Assignee', 'Người thực hiện')),
           count,
           color: id === 'unassigned' ? 'var(--color-text-muted)' : '#38BDF8'
         }
@@ -1047,11 +1192,11 @@ const analyticsBreakdownRows = computed(() => {
   }
 
   return [
-    { label: 'Urgent', count: visibleTopLevelTasks.value.filter(task => task.priority === 1).length, color: '#EF4444' },
-    { label: 'High', count: visibleTopLevelTasks.value.filter(task => task.priority === 2).length, color: '#F97316' },
-    { label: 'Normal', count: visibleTopLevelTasks.value.filter(task => task.priority === 3).length, color: '#3B82F6' },
-    { label: 'Low', count: visibleTopLevelTasks.value.filter(task => task.priority === 4).length, color: '#10B981' },
-    { label: 'None', count: visibleTopLevelTasks.value.filter(task => !task.priority).length, color: 'var(--color-text-muted)' }
+    { label: tr('Urgent', 'Khẩn cấp'), count: visibleTopLevelTasks.value.filter(task => task.priority === 1).length, color: '#EF4444' },
+    { label: tr('High', 'Cao'), count: visibleTopLevelTasks.value.filter(task => task.priority === 2).length, color: '#F97316' },
+    { label: tr('Medium', 'Trung bình'), count: visibleTopLevelTasks.value.filter(task => task.priority === 3).length, color: '#3B82F6' },
+    { label: tr('Low', 'Thấp'), count: visibleTopLevelTasks.value.filter(task => task.priority === 4).length, color: '#10B981' },
+    { label: tr('None', 'Không có'), count: visibleTopLevelTasks.value.filter(task => !task.priority).length, color: 'var(--color-text-muted)' }
   ]
 })
 
@@ -1068,7 +1213,7 @@ const assigneeAnalyticsRows = computed(() => {
         const member = projectMembers.value.find(item => (item.userId || item.id) === id)
         rows.set(id, {
           id,
-          label: id === 'unassigned' ? 'Unassigned' : (member?.fullName || member?.name || member?.email || 'Assignee'),
+          label: id === 'unassigned' ? tr('Unassigned', 'Chưa giao') : (member?.fullName || member?.name || member?.email || tr('Assignee', 'Người thực hiện')),
           backlog: 0,
           started: 0,
           unstarted: 0,
@@ -1088,14 +1233,14 @@ const assigneeAnalyticsRows = computed(() => {
 })
 
 const analyticsInsightLabel = computed(() => {
-  if (analyticsInsightMode.value === 'status') return 'Status distribution'
-  if (analyticsInsightMode.value === 'assignee') return 'Assignee distribution'
-  return 'Priority distribution'
+  if (analyticsInsightMode.value === 'status') return tr('Status Distribution', 'Phân bổ trạng thái')
+  if (analyticsInsightMode.value === 'assignee') return tr('Assignee Distribution', 'Phân bổ người thực hiện')
+  return tr('Priority Distribution', 'Phân bổ độ ưu tiên')
 })
 const analyticsTableHeading = computed(() => {
-  if (analyticsInsightMode.value === 'status') return 'Status'
-  if (analyticsInsightMode.value === 'assignee') return 'Assignee'
-  return 'Priority'
+  if (analyticsInsightMode.value === 'status') return tr('Status', 'Trạng thái')
+  if (analyticsInsightMode.value === 'assignee') return tr('Assignee', 'Người thực hiện')
+  return tr('Priority', 'Độ ưu tiên')
 })
 const setAnalyticsInsightMode = (mode) => {
   analyticsInsightMode.value = mode
@@ -1606,11 +1751,11 @@ const hydrateFiltersFromUrl = () => {
 const exportAnalyticsCsv = (mode = analyticsInsightMode.value) => {
   const rows = mode === 'assignee'
     ? [
-        ['Assignee', 'Backlog', 'Started', 'Unstarted', 'Completed', 'Cancelled', 'Total'],
+        ['Người thực hiện', 'Chờ xử lý', 'Đang làm', 'Đang đánh giá', 'Hoàn thành', 'Đã hủy', 'Tổng'],
         ...assigneeAnalyticsRows.value.map(item => [item.label, item.backlog, item.started, item.unstarted, item.completed, item.cancelled, item.total])
       ]
     : [
-        [analyticsTableHeading.value, 'Count'],
+        [analyticsTableHeading.value, 'Số lượng'],
         ...analyticsBreakdownRows.value.map(item => [item.label, item.count])
       ]
   const csv = rows.map(row => row.join(',')).join('\n')
@@ -1986,7 +2131,7 @@ onUnmounted(() => {
 
 .chart-container {
   width: 100%;
-  height: 250px;
+  height: 230px;
 }
 
 .col-draggable {
@@ -2457,17 +2602,20 @@ onUnmounted(() => {
 .analytics-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(2, 6, 23, 0.52);
   z-index: 9999;
   display: flex;
   justify-content: flex-end;
+  backdrop-filter: blur(2px);
 }
 .analytics-panel {
-  width: 900px;
-  max-width: 90vw;
-  background: var(--color-surface);
+  width: min(860px, 92vw);
+  max-width: 92vw;
+  background:
+    linear-gradient(180deg, rgba(14, 165, 233, 0.10), transparent 280px),
+    color-mix(in srgb, var(--color-bg) 88%, #0f172a 12%);
   height: 100%;
-  box-shadow: none !important;
+  box-shadow: -24px 0 64px rgba(0, 0, 0, 0.36) !important;
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
@@ -2485,30 +2633,69 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--color-border);
+  background:
+    linear-gradient(90deg, rgba(56, 189, 248, 0.18), transparent 56%),
+    color-mix(in srgb, var(--color-surface) 82%, transparent);
 }
-.ap-header h3 { margin: 0; font-size: 16px; font-weight: 500; color: var(--color-text-primary); }
+.ap-header h3 { margin: 0; font-size: 18px; font-weight: 800; color: var(--color-text-primary); letter-spacing: 0; }
 .ap-actions { display: flex; gap: 12px; }
 .icon-btn { background: transparent; border: none; color: var(--color-text-muted); font-size: 14px; cursor: pointer; }
 .icon-btn:hover { color: var(--color-text-primary); }
 
 .ap-body {
-  padding: 24px;
+  padding: 22px 24px 30px;
   overflow-y: auto;
   flex: 1;
 }
 
 /* Stats Grid */
 .ap-stats-grid {
-  display: flex;
-  gap: 24px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
 }
-.stat-box { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 150px; }
-.stat-box .lbl { color: var(--color-text-muted); font-size: 12px; font-weight: 500; }
-.stat-box .val { color: var(--color-text-primary); font-size: 20px; font-weight: 600; }
+.stat-box {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+}
+.stat-box::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--stat-accent, #38bdf8);
+}
+.stat-box:nth-child(1) { --stat-accent: #38bdf8; }
+.stat-box:nth-child(2) { --stat-accent: #3b82f6; }
+.stat-box:nth-child(3) { --stat-accent: #94a3b8; }
+.stat-box:nth-child(4) { --stat-accent: #f59e0b; }
+.stat-box:nth-child(5) { --stat-accent: #22c55e; }
+.stat-box:hover {
+  border-color: color-mix(in srgb, var(--stat-accent) 56%, var(--color-border));
+  background: color-mix(in srgb, var(--color-surface) 86%, var(--stat-accent) 14%);
+}
+.stat-box .lbl { color: var(--color-text-muted); font-size: 11px; font-weight: 650; line-height: 1.35; }
+.stat-box .val { color: var(--color-text-primary); font-size: 24px; font-weight: 850; line-height: 1; }
 
-.ap-chart-card { margin-top: 32px; }
-.ap-chart-card h4 { margin: 0; font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
+.ap-chart-card {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 34%),
+    color-mix(in srgb, var(--color-surface) 78%, transparent);
+}
+.ap-chart-card h4 { margin: 0; font-size: 14px; font-weight: 800; color: var(--color-text-primary); }
+.chart-container { height: 260px; }
 
 .line-chart-mock {
   position: relative;
@@ -2571,16 +2758,28 @@ onUnmounted(() => {
   letter-spacing: 1px;
 }
 
-.ap-table-wrap { margin-top: 40px; }
+.ap-table-wrap {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+}
 .table-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; }
 .flex-center { display: flex; align-items: center; }
-.export-btn { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-primary); border-radius: 2px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
-.export-btn:hover { background: var(--color-border); }
+.export-btn { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-secondary); border-radius: 6px; padding: 5px 8px; font-size: 12px; cursor: pointer; }
+.export-btn:hover { background: var(--color-bg-secondary); color: var(--color-text-primary); }
 
 .ap-table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--color-text-primary); }
-.ap-table th { color: var(--color-text-muted); font-weight: 500; border-bottom: 1px solid var(--color-border); padding: 12px 16px; text-align: left; }
-.ap-table td { padding: 16px; border-bottom: 1px solid var(--color-border); }
-.ap-table tr:hover { background: var(--color-surface); }
+.ap-table th { color: var(--color-text-muted); font-weight: 650; border-bottom: 1px solid var(--color-border); padding: 10px 0; text-align: left; }
+.ap-table td { padding: 11px 0; border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent); }
+.ap-table tr:hover { background: color-mix(in srgb, var(--color-surface) 82%, transparent); }
+
+@media (max-width: 920px) {
+  .ap-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 </style>
 
 

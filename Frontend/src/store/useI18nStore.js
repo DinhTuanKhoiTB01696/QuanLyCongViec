@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { setLanguage } from '@/i18n'
 
 const dictionary = {
   en: {
@@ -503,7 +504,7 @@ const dictionary = {
 
 export const useI18nStore = defineStore('i18n', {
   state: () => ({
-    locale: localStorage.getItem('sprinta_locale') || 'en'
+    locale: localStorage.getItem('app_language') || localStorage.getItem('sprinta_locale') || localStorage.getItem('admin_locale') || 'vi'
   }),
   getters: {
     t: (state) => (key) => {
@@ -516,6 +517,9 @@ export const useI18nStore = defineStore('i18n', {
     setLocale(newLocale) {
       if (dictionary[newLocale]) {
         this.locale = newLocale
+        setLanguage(newLocale)
+        localStorage.setItem('app_language', newLocale)
+        localStorage.setItem('admin_locale', newLocale)
         localStorage.setItem('sprinta_locale', newLocale)
       }
     }

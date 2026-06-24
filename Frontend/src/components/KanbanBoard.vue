@@ -3,6 +3,9 @@ import { computed, ref } from 'vue'
 import draggable from 'vuedraggable'
 import { ElMessage } from 'element-plus'
 import axiosClient from '@/api/axiosClient'
+import { useI18n } from '@/composables/useI18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   tasks: { type: Array, default: () => [] },
@@ -20,10 +23,10 @@ const creatingByStatus = ref({})
 
 const statusColumns = computed(() => {
   const defaultColumns = [
-    { key: 'TO DO', label: 'To Do', color: 'var(--color-text-muted)', icon: 'O' },
-    { key: 'IN PROGRESS', label: 'In Progress', color: 'var(--color-accent)', icon: '~' },
-    { key: 'IN REVIEW', label: 'In Review', color: 'var(--color-warning)', icon: '*' },
-    { key: 'DONE', label: 'Done', color: 'var(--color-success)', icon: '+' }
+    { key: 'TO DO', label: t('workItems.statusLabels.toDo'), color: 'var(--color-text-muted)', icon: 'O' },
+    { key: 'IN PROGRESS', label: t('workItems.statusLabels.inProgress'), color: 'var(--color-accent)', icon: '~' },
+    { key: 'IN REVIEW', label: t('workItems.statusLabels.inReview'), color: 'var(--color-warning)', icon: '*' },
+    { key: 'DONE', label: t('workItems.statusLabels.done'), color: 'var(--color-success)', icon: '+' }
   ]
 
   return defaultColumns.map(column => ({
@@ -78,11 +81,11 @@ function onDragEnd(event, targetStatus) {
 
 function getPriorityInfo(priority) {
   const map = {
-    0: { label: 'None', color: 'var(--color-text-muted)', icon: '-' },
-    1: { label: 'Urgent', color: 'var(--color-danger)', icon: '!!' },
-    2: { label: 'High', color: 'var(--color-danger)', icon: '!' },
-    3: { label: 'Normal', color: 'var(--color-accent)', icon: '=' },
-    4: { label: 'Low', color: 'var(--color-success)', icon: '.' }
+    0: { label: t('workItems.priority.none', 'None'), color: 'var(--color-text-muted)', icon: '-' },
+    1: { label: t('workItems.priority.urgent'), color: 'var(--color-danger)', icon: '!!' },
+    2: { label: t('workItems.priority.high'), color: 'var(--color-danger)', icon: '!' },
+    3: { label: t('workItems.priority.normal'), color: 'var(--color-accent)', icon: '=' },
+    4: { label: t('workItems.priority.low'), color: 'var(--color-success)', icon: '.' }
   }
   return map[priority] || map[0]
 }
@@ -160,9 +163,9 @@ function handleColumnClick(column) {
   <div class="kanban-shell">
     <div class="board-toolbar">
       <button class="toolbar-btn" type="button" :class="{ active: createMode }" @click="createMode = !createMode">
-        <i class="fa-solid fa-plus-circle"></i> Create mode
+        <i class="fa-solid fa-plus-circle"></i> {{ t('workItems.kanban.createMode', 'Create mode') }}
       </button>
-      <span class="toolbar-copy">Click column header to quickly add work items.</span>
+      <span class="toolbar-copy">{{ t('workItems.kanban.createModeHint', 'Click column header to quickly add work items.') }}</span>
     </div>
 
     <div class="kanban-board">
@@ -183,12 +186,12 @@ function handleColumnClick(column) {
             v-model="draftTitles[column.key]"
             type="text"
             class="quick-create-input"
-            :placeholder="`New item in ${column.label}...`"
+            :placeholder="t('workItems.kanban.newItemInColumn', { column: column.label })"
             @keyup.enter="createTask(column.key)"
           />
           <button class="quick-create-btn" type="button" :disabled="creatingByStatus[column.key]" @click="createTask(column.key)">
             <i v-if="creatingByStatus[column.key]" class="fa-solid fa-spinner fa-spin"></i>
-            <span v-else>Add</span>
+            <span v-else>{{ t('workItems.kanban.add', 'Add') }}</span>
           </button>
         </div>
 
@@ -223,7 +226,7 @@ function handleColumnClick(column) {
                 </div>
 
                 <div class="card-meta-right">
-                  <div class="task-progress-ring" :style="progressStyle(element)" :title="`${getTaskProgress(element)}% progress`">
+                  <div class="task-progress-ring" :style="progressStyle(element)" :title="`${getTaskProgress(element)}% ${t('workItems.progress', 'progress')}`">
                     <span class="ring-value">{{ getTaskProgress(element) }}%</span>
                   </div>
 
@@ -243,7 +246,7 @@ function handleColumnClick(column) {
           <template #footer>
             <div v-if="column.tasks.length === 0" class="column-empty">
               <i class="fa-regular fa-square-check"></i>
-              <span>No tasks here</span>
+              <span>{{ t('workItems.kanban.noTasksHere', 'No tasks here') }}</span>
             </div>
           </template>
         </draggable>

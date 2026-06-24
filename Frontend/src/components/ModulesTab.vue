@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 import { useRouter } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -10,6 +11,7 @@ const props = defineProps({
 })
 
 const router = useRouter()
+const { t } = useI18n()
 
 const modules = ref([])
 const projectMembers = ref([])
@@ -49,6 +51,12 @@ const statusOptions = [
 ]
 
 const statusConfig = Object.fromEntries(statusOptions.map(option => [option.key, option]))
+
+const getStatusLabel = (key) => {
+  if (!key) return ''
+  const camelKey = key.toLowerCase().replace(/\s+(.)/g, (_, char) => char.toUpperCase()).trim()
+  return t(`modules.statuses.${camelKey}`, statusConfig[key]?.label || key)
+}
 
 const form = ref({
   name: '',
@@ -264,10 +272,10 @@ const updateModuleStatus = async (module, newStatusKey) => {
 
     module.statusKey = newStatusKey
     module.statusRaw = config.label
-    ElMessage.success(`Status updated to ${config.label}`)
+    ElMessage.success(t('modules.statusUpdated', { status: config.label }))
   } catch (error) {
     console.error('[ModulesTab] Failed to update status', error)
-    ElMessage.error('Failed to update status')
+    ElMessage.error(t('modules.statusUpdateFailed', 'Failed to update status'))
   }
 }
 
@@ -288,10 +296,10 @@ const updateModuleDateRange = async (module, value) => {
     module.startDate = startDate || null
     module.targetDate = targetDate || null
     rowCalendarModId.value = null
-    ElMessage.success('Date range updated')
+    ElMessage.success(t('modules.dateRangeUpdated', 'Date range updated'))
   } catch (error) {
     console.error('[ModulesTab] Failed to update date range', error)
-    ElMessage.error('Failed to update date range')
+    ElMessage.error(t('modules.dateRangeUpdateFailed', 'Failed to update date range'))
   }
 }
 
@@ -304,11 +312,11 @@ const deleteModule = async (module) => {
     )
     await axiosClient.delete(`/projects/${props.projectId}/modules/${module.id}`)
     await refreshModules()
-    ElMessage.success('Module disabled')
+    ElMessage.success(t('modules.disabledSuccess', 'Module disabled'))
   } catch (error) {
     if (error !== 'cancel') {
       console.error('[ModulesTab] Failed to delete module', error)
-      ElMessage.error('Failed to disable module')
+      ElMessage.error(t('modules.disabledFailed', 'Failed to disable module'))
     }
   }
 }
@@ -325,10 +333,10 @@ const restoreModule = async (module) => {
       targetDate: module.targetDate
     })
     await refreshModules()
-    ElMessage.success('Module restored')
+    ElMessage.success(t('modules.restoredSuccess', 'Module restored'))
   } catch (error) {
     console.error('[ModulesTab] Failed to restore module', error)
-    ElMessage.error('Failed to restore module')
+    ElMessage.error(t('modules.restoredFailed', 'Failed to restore module'))
   }
 }
 
@@ -366,7 +374,7 @@ const editModule = (module) => {
 
 const submitModule = async () => {
   if (!form.value.name.trim()) {
-    ElMessage.warning('Module name is required')
+    ElMessage.warning(t('modules.nameRequired', 'Module name is required'))
     return
   }
 
@@ -384,17 +392,17 @@ const submitModule = async () => {
   try {
     if (isEditing.value && editingModuleId.value) {
       await axiosClient.put(`/projects/${props.projectId}/modules/${editingModuleId.value}`, payload)
-      ElMessage.success('Module updated')
+      ElMessage.success(t('modules.updatedSuccess', 'Module updated'))
     } else {
       await axiosClient.post(`/projects/${props.projectId}/modules`, payload)
-      ElMessage.success('Module created')
+      ElMessage.success(t('modules.createdSuccess', 'Module created'))
     }
 
     showCreateModal.value = false
     await refreshModules()
   } catch (error) {
     console.error('[ModulesTab] Failed to save module', error)
-    ElMessage.error('Failed to save module')
+    ElMessage.error(t('modules.saveFailed', 'Failed to save module'))
   }
 }
 
@@ -440,24 +448,24 @@ onUnmounted(() => {
         <div class="project-icon" style="background: #3B82F6">
           <i class="fa-solid fa-cube"></i>
         </div>
-        <span class="view-name">Modules</span>
+        <span class="view-name">{{ t('shell.modules', 'Modules') }}</span>
       </div>
 
       <div class="nexus-controls-row">
         <!-- Unified clustering: Search -> Sort -> Filter -> Add Button -->
         <div class="flex items-center gap-2">
-           <input v-model="moduleSearch" class="nexus-search-input" type="text" placeholder="Search modules..." style="width: 200px" />
+           <input v-model="moduleSearch" class="nexus-search-input" type="text" :placeholder="t('modules.searchPlaceholder', 'Search modules...')" style="width: 200px" />
         </div>
 
         <el-dropdown trigger="click" @command="(value) => { sortBy = value.field; sortDirection = value.direction }">
           <button class="nexus-btn-outlined" type="button">
-            <i class="fa-solid fa-arrow-up-z-a"></i> Sort
+            <i class="fa-solid fa-arrow-up-z-a"></i> {{ t('modules.sort', 'Sort') }}
           </button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item :command="{ field: 'updatedAt', direction: 'desc' }">Recently updated</el-dropdown-item>
-              <el-dropdown-item :command="{ field: 'name', direction: 'asc' }">Name A-Z</el-dropdown-item>
-              <el-dropdown-item :command="{ field: 'name', direction: 'desc' }">Name Z-A</el-dropdown-item>
+              <el-dropdown-item :command="{ field: 'updatedAt', direction: 'desc' }">{{ t('modules.recentlyUpdated', 'Recently updated') }}</el-dropdown-item>
+              <el-dropdown-item :command="{ field: 'name', direction: 'asc' }">{{ t('modules.nameAZ', 'Name A-Z') }}</el-dropdown-item>
+              <el-dropdown-item :command="{ field: 'name', direction: 'desc' }">{{ t('modules.nameZA', 'Name Z-A') }}</el-dropdown-item>
               <el-dropdown-item :command="{ field: 'status', direction: 'asc' }">Status</el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -466,11 +474,11 @@ onUnmounted(() => {
         <el-dropdown trigger="click" @command="(value) => statusFilter = value">
           <button class="nexus-btn-outlined" type="button">
             <i class="fa-solid fa-filter"></i>
-            {{ statusFilter === 'all' ? 'All statuses' : statusConfig[statusFilter]?.label }}
+            {{ statusFilter === 'all' ? t('modules.allStatuses', 'All statuses') : getStatusLabel(statusFilter) }}
           </button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="all">All statuses</el-dropdown-item>
+              <el-dropdown-item command="all">{{ t('modules.allStatuses', 'All statuses') }}</el-dropdown-item>
               <el-dropdown-item v-for="status in statusOptions" :key="status.key" :command="status.key">
                 {{ status.label }}
               </el-dropdown-item>
@@ -490,21 +498,21 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <button class="nexus-btn-outlined" type="button" @click="showRestoreModal = true">Restore</button>
-        <button class="nexus-btn-primary" @click="openCreateModal"><i class="fa-solid fa-plus"></i> Add Module</button>
+        <button class="nexus-btn-outlined" type="button" @click="showRestoreModal = true">{{ t('modules.restore', 'Restore') }}</button>
+        <button class="nexus-btn-primary" @click="openCreateModal"><i class="fa-solid fa-plus"></i> {{ t('modules.addModule', 'Add Module') }}</button>
       </div>
     </header>
 
     <div class="modules-toolbar-meta">
-      <span>{{ totalLoaded }} / {{ modulePagination.totalCount }} loaded</span>
-      <span>{{ sortBy }} · {{ sortDirection }}</span>
+      <span>{{ t('modules.loadedCount', { loaded: totalLoaded, total: modulePagination.totalCount }) }}</span>
+      <span>{{ t('modules.sortBy.' + sortBy, sortBy) }} · {{ sortDirection === 'desc' ? t('modules.desc', 'desc') : t('modules.asc', 'asc') }}</span>
     </div>
 
     <div class="modules-body" v-loading="loadingModules">
       <div v-if="!loadingModules && filteredModules.length === 0" class="empty-state-wrapper">
         <div class="es-icon"><i class="fa-solid fa-cube"></i></div>
-        <h3 class="es-title">No modules found</h3>
-        <p class="es-desc">Create a module, adjust the status, then assign work items into it.</p>
+        <h3 class="es-title">{{ t('modules.noModulesFound', 'No modules found') }}</h3>
+        <p class="es-desc">{{ t('modules.noModulesFoundDesc', 'Create a module, adjust the status, then assign work items into it.') }}</p>
       </div>
 
       <!-- List View Mode -->
@@ -515,7 +523,7 @@ onUnmounted(() => {
             <div class="module-copy">
               <div class="m-title">{{ module.name }}</div>
               <div class="m-subtitle">
-                {{ module.doneIssueCount }} / {{ module.issueCount }} tasks completed
+                {{ t('modules.tasksCompletedCount', { done: module.doneIssueCount, total: module.issueCount }) }}
               </div>
             </div>
           </div>
@@ -525,15 +533,15 @@ onUnmounted(() => {
               <template #reference>
                 <button class="m-date" type="button">
                   <i class="fa-regular fa-calendar"></i>
-                  {{ formatDateRange(module.startDate, module.targetDate) }}
+                  {{ formatDateRange(module.startDate, module.targetDate) === 'Start date - End date' ? t('modules.dateRangePlaceholder', 'Start date - End date') : formatDateRange(module.startDate, module.targetDate) }}
                 </button>
               </template>
               <div class="date-editor">
                 <el-date-picker
                   :model-value="[module.startDate, module.targetDate]"
                   type="daterange"
-                  start-placeholder="Start date"
-                  end-placeholder="Target date"
+                  :start-placeholder="t('modules.startDate', 'Start date')"
+                  :end-placeholder="t('modules.targetDate', 'Target date')"
                   value-format="YYYY-MM-DDTHH:mm:ss.SSS[Z]"
                   @change="updateModuleDateRange(module, $event)"
                 />
@@ -547,7 +555,7 @@ onUnmounted(() => {
                 :style="{ background: statusConfig[module.statusKey]?.bg, color: statusConfig[module.statusKey]?.color }"
               >
                 <span class="status-dot" :style="{ backgroundColor: statusConfig[module.statusKey]?.color }"></span>
-                {{ statusConfig[module.statusKey]?.label }}
+                {{ getStatusLabel(module.statusKey) }}
               </button>
               <template #dropdown>
                 <el-dropdown-menu>
@@ -572,9 +580,9 @@ onUnmounted(() => {
               <button class="icon-action m-icon"><i class="fa-solid fa-ellipsis"></i></button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item @click="editModule(module)">Edit</el-dropdown-item>
-                  <el-dropdown-item @click="openModuleTaskView(module)">Open</el-dropdown-item>
-                  <el-dropdown-item @click="deleteModule(module)">Delete</el-dropdown-item>
+                  <el-dropdown-item @click="editModule(module)">{{ t('modules.edit', 'Edit') }}</el-dropdown-item>
+                  <el-dropdown-item @click="openModuleTaskView(module)">{{ t('common.open', 'Open') }}</el-dropdown-item>
+                  <el-dropdown-item @click="deleteModule(module)">{{ t('modules.delete', 'Delete') }}</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -590,7 +598,7 @@ onUnmounted(() => {
           <div class="grid-card-header">
             <div class="grid-card-title-wrap">
               <h3 class="grid-title" :title="module.name">{{ module.name }}</h3>
-              <p class="grid-desc">{{ module.description || 'No description yet.' }}</p>
+              <p class="grid-desc">{{ module.description || t('dashboard.noDescription') }}</p>
             </div>
             <button class="card-edit-btn" @click.stop="editModule(module)">
               <i class="fa-solid fa-pen-to-square"></i>
@@ -610,7 +618,7 @@ onUnmounted(() => {
             <div class="meta-row">
               <span class="meta-pill text-xs">
                 <i class="fa-regular fa-square-check text-green-400 mr-1.5"></i>
-                <strong>{{ module.doneIssueCount }}</strong>/{{ module.issueCount }} tasks done
+                <strong>{{ module.doneIssueCount }}</strong>/{{ module.issueCount }} {{ t('modules.tasksDone', 'tasks done') }}
               </span>
               <span class="meta-pill text-xs">
                 <i class="fa-regular fa-calendar text-sky-400 mr-1.5"></i>
@@ -637,7 +645,7 @@ onUnmounted(() => {
           <header class="status-group-header">
             <div class="status-group-title">
               <i :class="group.icon" :style="{ color: group.color }"></i>
-              <span>{{ group.label }}</span>
+              <span>{{ getStatusLabel(group.key) }}</span>
             </div>
             <span class="status-group-count">{{ group.items.length }}</span>
           </header>
@@ -646,7 +654,7 @@ onUnmounted(() => {
             <div class="status-row" v-for="module in group.items" :key="module.id" @click="openModuleTaskView(module)">
               <div class="status-row-info">
                 <div class="m-title">{{ module.name }}</div>
-                <div class="m-subtitle">{{ module.doneIssueCount }} / {{ module.issueCount }} tasks done</div>
+                <div class="m-subtitle">{{ module.doneIssueCount }} / {{ module.issueCount }} {{ t('modules.tasksDone', 'tasks done') }}</div>
               </div>
               <div class="status-row-actions" @click.stop>
                 <button class="card-edit-btn" @click="editModule(module)">
@@ -660,7 +668,7 @@ onUnmounted(() => {
 
       <div v-if="canLoadMore" class="load-more-wrap">
         <button class="load-more-btn" :disabled="loadingMoreModules" @click="loadMoreModules">
-          {{ loadingMoreModules ? 'Loading...' : 'Load more modules' }}
+          {{ loadingMoreModules ? t('common.loading') : t('modules.loadMore', 'Load more modules') }}
         </button>
       </div>
     </div>
@@ -669,32 +677,32 @@ onUnmounted(() => {
     <div class="modal-overlay" v-if="showCreateModal" @click.self="showCreateModal = false">
       <div class="create-module-modal">
         <div class="cm-header">
-          <h2 class="cm-title">{{ isEditing ? 'Edit module' : 'Create module' }}</h2>
+          <h2 class="cm-title">{{ isEditing ? t('modules.editModule') : t('modules.createModule') }}</h2>
         </div>
 
         <div class="cm-body">
-          <input v-model="form.name" class="cm-input" type="text" placeholder="Module name" />
-          <textarea v-model="form.description" class="cm-textarea" rows="4" placeholder="Description"></textarea>
+          <input v-model="form.name" class="cm-input" type="text" :placeholder="t('modules.moduleNamePlaceholder', 'Module name')" />
+          <textarea v-model="form.description" class="cm-textarea" rows="4" :placeholder="t('dashboard.description')"></textarea>
 
           <div class="cm-grid">
             <label class="field-block">
-              <span>Status</span>
+              <span>{{ t('common.status') }}</span>
               <select v-model="form.status" class="field-select">
-                <option v-for="status in statusOptions" :key="status.key" :value="status.label">{{ status.label }}</option>
+                <option v-for="status in statusOptions" :key="status.key" :value="status.label">{{ getStatusLabel(status.key) }}</option>
               </select>
             </label>
 
             <label class="field-block">
-              <span>Lead</span>
+              <span>{{ t('modules.lead', 'Lead') }}</span>
               <select v-model="form.leadId" class="field-select">
-                <option :value="null">No lead</option>
+                <option :value="null">{{ t('modules.noLead', 'No lead') }}</option>
                 <option v-for="member in projectMembers" :key="member.id" :value="member.id">{{ member.name }}</option>
               </select>
             </label>
           </div>
 
           <label class="field-block">
-            <span>Date range</span>
+            <span>{{ t('modules.dateRange', 'Date range') }}</span>
             <el-date-picker
               v-model="form.dateRange"
               type="daterange"
@@ -705,7 +713,7 @@ onUnmounted(() => {
           </label>
 
           <label class="field-block">
-            <span>Work items in module</span>
+            <span>{{ t('modules.workItemsInModule', 'Work items in module') }}</span>
             <div class="task-picker" v-loading="loadingTasks">
               <label v-for="task in projectTasks" :key="task.id" class="task-option">
                 <input v-model="form.taskIds" type="checkbox" :value="task.id" />
@@ -717,8 +725,8 @@ onUnmounted(() => {
         </div>
 
         <div class="cm-footer">
-          <button class="cm-btn-cancel" @click="showCreateModal = false">Cancel</button>
-          <button class="cm-btn-create" @click="submitModule">{{ isEditing ? 'Update Module' : 'Create Module' }}</button>
+          <button class="cm-btn-cancel" @click="showCreateModal = false">{{ t('common.cancel') }}</button>
+          <button class="cm-btn-create" @click="submitModule">{{ isEditing ? t('modules.updateModule', 'Update Module') : t('modules.createModuleBtn', 'Create Module') }}</button>
         </div>
       </div>
     </div>
@@ -727,29 +735,29 @@ onUnmounted(() => {
     <div class="modal-overlay" v-if="showRestoreModal" @click.self="showRestoreModal = false">
       <div class="create-module-modal restore-modal">
         <div class="cm-header">
-          <h2 class="cm-title">Restore modules</h2>
+          <h2 class="cm-title">{{ t('modules.restoreModules', 'Restore modules') }}</h2>
         </div>
 
         <div class="cm-body">
           <div v-if="!disabledModules.length" class="empty-state-wrapper compact-empty-state">
             <div class="es-icon"><i class="fa-solid fa-box-archive"></i></div>
-            <h3 class="es-title">No disabled modules</h3>
-            <p class="es-desc">Disabled modules will appear here and can only be restored from this screen.</p>
+            <h3 class="es-title">{{ t('modules.noDisabledModules', 'No disabled modules') }}</h3>
+            <p class="es-desc">{{ t('modules.noDisabledModulesDesc', 'Disabled modules will appear here and can only be restored from this screen.') }}</p>
           </div>
 
           <div v-else class="restore-modal-list">
             <div class="restore-modal-row" v-for="module in disabledModules" :key="`restore-modal-${module.id}`">
               <div class="restore-modal-copy">
                 <strong>{{ module.name }}</strong>
-                <span>{{ module.description || 'Disabled module ready to restore.' }}</span>
+                <span>{{ module.description || t('modules.disabledReadyToRestore', 'Disabled module ready to restore.') }}</span>
               </div>
-              <button class="cm-btn-create" type="button" @click="restoreModule(module)">Restore</button>
+              <button class="cm-btn-create" type="button" @click="restoreModule(module)">{{ t('modules.restore', 'Restore') }}</button>
             </div>
           </div>
         </div>
 
         <div class="cm-footer">
-          <button class="cm-btn-cancel" @click="showRestoreModal = false">Close</button>
+          <button class="cm-btn-cancel" @click="showRestoreModal = false">{{ t('common.cancel', 'Close') }}</button>
         </div>
       </div>
     </div>

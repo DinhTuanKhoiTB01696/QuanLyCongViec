@@ -4,7 +4,7 @@
       
       <!-- MODE: CREATE NEW WORK ITEM (Image 1) -->
       <div class="create-centered-modal" v-if="selectedTask?.isNew">
-        <h3 class="cm-title">Create new work item</h3>
+        <h3 class="cm-title">{{ tr('Create new work item', 'Tạo công việc mới') }}</h3>
         
         <div class="cm-badge-row">
            <div class="cm-badge">
@@ -13,31 +13,31 @@
         </div>
 
         <div class="cm-form-group">
-          <input type="text" class="cm-inputbox" placeholder="Title" v-model="selectedTask.title" />
-          <textarea class="cm-textareabox" placeholder="Click to add description" v-model="selectedTask.description"></textarea>
+          <input type="text" class="cm-inputbox" :placeholder="tr('Title', 'Tiêu đề')" v-model="selectedTask.title" />
+          <textarea class="cm-textareabox" :placeholder="tr('Add description...', 'Thêm mô tả...')" v-model="selectedTask.description"></textarea>
         </div>
         
         <div class="cm-toolbar-row">
            <!-- STATUS -->
            <el-dropdown trigger="click" @command="(cmd) => selectStatus(cmd)">
-             <div class="t-btn"><i :class="getStatusIcon(selectedTask?.statusName)"></i> <span>State</span> {{ selectedTask?.statusName || 'Todo' }}</div>
+             <div class="t-btn"><i :class="getStatusIcon(selectedTask?.statusName)"></i> <span>{{ tr('Status', 'Trạng thái') }}</span> {{ getStatusLabel(selectedTask?.statusName) }}</div>
              <template #dropdown>
                <el-dropdown-menu class="theme-dropdown">
-                 <el-dropdown-item v-for="status in projectStatuses" :key="status.id" :command="status.name"><i :class="getStatusIcon(status.name)" class="mr-2"></i> {{ status.displayName || status.name }}</el-dropdown-item>
+                 <el-dropdown-item v-for="status in projectStatuses" :key="status.id" :command="status.name"><i :class="getStatusIcon(status.name)" class="mr-2"></i> {{ getStatusLabel(status.name || status.displayName) }}</el-dropdown-item>
                </el-dropdown-menu>
              </template>
            </el-dropdown>
 
            <!-- PRIORITY -->
            <el-dropdown  trigger="click" @command="(cmd) => selectedTask.priority = cmd">
-             <div class="t-btn"><i :class="getPrioIcon(selectedTask?.priority)"></i> <span>Priority</span> {{ getPrioLabel(selectedTask?.priority) }}</div>
+             <div class="t-btn"><i :class="getPrioIcon(selectedTask?.priority)"></i> <span>{{ tr('Priority', 'Độ ưu tiên') }}</span> {{ getPrioLabel(selectedTask?.priority) }}</div>
              <template #dropdown>
                <el-dropdown-menu class="theme-dropdown">
-                 <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: #ef4444"></i> Urgent</el-dropdown-item>
-                 <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: #f59e0b"></i> High</el-dropdown-item>
-                 <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: #3b82f6"></i> Medium</el-dropdown-item>
-                 <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: var(--color-text-muted)"></i> Low</el-dropdown-item>
-                 <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-muted"></i> None</el-dropdown-item>
+                 <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: #ef4444"></i> {{ tr('Urgent', 'Khẩn cấp') }}</el-dropdown-item>
+                 <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: #f59e0b"></i> {{ tr('High', 'Cao') }}</el-dropdown-item>
+                 <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: #3b82f6"></i> {{ tr('Medium', 'Trung bình') }}</el-dropdown-item>
+                 <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: var(--color-text-muted)"></i> {{ tr('Low', 'Thấp') }}</el-dropdown-item>
+                 <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-muted"></i> {{ tr('None', 'Không có') }}</el-dropdown-item>
                </el-dropdown-menu>
              </template>
            </el-dropdown>
@@ -45,22 +45,22 @@
            <!-- ASSIGNEES -->
            <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover" :width="220" :disabled="!canManageTaskAssignees" @show="assigneeSearch = ''">
              <template #reference>
-               <div class="t-btn" :class="{ disabled: !canManageTaskAssignees }"><i class="fa-regular fa-user"></i> <span>Assignees</span> {{ getAssigneeSummary() }}</div>
+           <div class="t-btn" :class="{ disabled: !canManageTaskAssignees }"><i class="fa-regular fa-user"></i> <span>{{ tr('Assignee', 'Người thực hiện') }}</span> {{ getAssigneeSummary() }}</div>
              </template>
              <div class="popover-content">
-               <input type="text" v-model="assigneeSearch" class="popover-search" placeholder="Type to search..." />
+               <input type="text" v-model="assigneeSearch" class="popover-search" :placeholder="tr('Find assignee...', 'Tìm người thực hiện...')" />
                 <div class="popover-list">
                   <div class="popover-item" v-for="user in filteredMembers" :key="user.userId" @click="toggleAssignee(user.userId)">
                     <div class="avatar-xxs bg-accent-muted rounded-full w-5 h-5 flex-center text-white text-xs mr-2">{{ (user.fullName || user.email || 'U').charAt(0).toUpperCase() }}</div>
                     <span>{{ user.fullName || user.email }}</span>
                     <i v-if="getAssigneeIds().includes(user.userId)" class="fa-solid fa-check ms-auto"></i>
                   </div>
-                  <div v-if="!filteredMembers.length" class="text-xs text-center text-muted py-2">No assignees found.</div>
+                  <div v-if="!filteredMembers.length" class="text-xs text-center text-muted py-2">{{ tr('No assignees found.', 'Không tìm thấy người thực hiện.') }}</div>
                 </div>
                 <div class="assignee-progress-list" v-if="selectedAssigneeRows.length">
-                  <div class="assignee-progress-title">Progress by assignee</div>
+                  <div class="assignee-progress-title">{{ tr('Progress by assignee', 'Tiến độ theo người thực hiện') }}</div>
                   <div class="assignee-progress-row" v-for="assignee in selectedAssigneeRows" :key="assignee.userId">
-                    <span class="assignee-progress-name">{{ assignee.fullName || assignee.email || 'Member' }}</span>
+                    <span class="assignee-progress-name">{{ assignee.fullName || assignee.email || tr('Member', 'Thành viên') }}</span>
                     <input
                       class="assignee-progress-input"
                       type="number"
@@ -73,6 +73,7 @@
                     />
                     <span class="assignee-progress-suffix">%</span>
                     <input
+                      v-if="showEstimateFeatures"
                       class="assignee-progress-input"
                       type="number"
                       min="0"
@@ -81,7 +82,7 @@
                       :value="assignee.estimatedHours || 0"
                       @change="event => updateAssigneeEstimatedHours(assignee.userId, event.target.value)"
                     />
-                    <span class="assignee-progress-suffix">h</span>
+                    <span v-if="showEstimateFeatures" class="assignee-progress-suffix">h</span>
                     <input
                       class="assignee-progress-input"
                       type="number"
@@ -100,10 +101,10 @@
            <!-- LABELS -->
            <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover" :width="220" @show="labelSearch = ''">
              <template #reference>
-               <div class="t-btn"><i class="fa-solid fa-tag"></i> {{ selectedTask?.labelIds?.length ? selectedTask.labelIds.length + ' Labels' : 'Labels' }}</div>
+               <div class="t-btn"><i class="fa-solid fa-tag"></i> {{ selectedTask?.labelIds?.length ? selectedTask.labelIds.length + ' ' + tr('Labels', 'Nhãn') : tr('Labels', 'Nhãn') }}</div>
              </template>
              <div class="popover-content">
-               <input type="text" v-model="labelSearch" class="popover-search" placeholder="Search" />
+               <input type="text" v-model="labelSearch" class="popover-search" :placeholder="tr('Search labels...', 'Tìm nhãn...')" />
                <div class="popover-list">
                  <div class="popover-item" v-for="l in filteredLabels" :key="l.id" @click="toggleSelectedLabel(l.id)">
                    <div class="popover-c-circle mr-2 w-3 h-3 rounded-full" :style="{ backgroundColor: l.color || 'var(--color-accent)' }"></div>
@@ -111,7 +112,7 @@
                    <i v-if="selectedTask?.labelIds?.includes(l.id)" class="fa-solid fa-check ms-auto"></i>
                  </div>
                  <div class="popover-item pointer hover-bg-accent" v-if="filteredLabels.length === 0 && labelSearch" @click="createLabel(labelSearch)">
-                   <span>Add "{{ labelSearch }}"</span>
+                   <span>{{ tr('Add', 'Thêm') }} "{{ labelSearch }}"</span>
                  </div>
                </div>
              </div>
@@ -121,7 +122,7 @@
            <el-date-picker
              v-model="selectedTask.plannedStartDate"
              type="date"
-             placeholder="Start date"
+             placeholder="Ngày bắt đầu"
              class="t-btn-date"
              format="MMM DD"
              value-format="YYYY-MM-DD"
@@ -129,137 +130,137 @@
              style="width:130px; height:28px"
              @change="val => handleTaskDateChange('plannedStartDate', val)"
            />
-           <el-date-picker
-             v-model="selectedTask.dueDate"
-             type="date"
-             placeholder="Due date"
-             class="t-btn-date"
-             format="MMM DD"
-             value-format="YYYY-MM-DD"
-             :disabled-date="disableDueDates"
-             style="width:125px; height:28px"
-             @change="val => handleTaskDateChange('dueDate', val)"
-           />
-           <div class="t-btn t-btn-number">
-             <i class="fa-regular fa-hourglass-half"></i>
-             <span>Estimate</span>
-             <input
-               :value="getEstimatedHours(selectedTask)"
-               type="number"
-               min="0"
-               step="0.5"
-               class="estimate-inline-input"
-               @change="event => updateEstimatedHours(event.target.value, selectedTask)"
-             />
-             <small>h</small>
-           </div>
+            <el-date-picker
+              v-model="selectedTask.dueDate"
+              type="date"
+              :placeholder="tr('Due date', 'Hạn hoàn thành')"
+              class="t-btn-date"
+              format="MMM DD"
+              value-format="YYYY-MM-DD"
+              :disabled-date="disableDueDates"
+              style="width:125px; height:28px"
+              @change="val => handleTaskDateChange('dueDate', val)"
+            />
+            <div v-if="showEstimateFeatures" class="t-btn t-btn-number">
+              <i class="fa-regular fa-hourglass-half"></i>
+              <span>{{ tr('Estimate', 'Thời gian ước tính') }}</span>
+              <input
+                :value="getEstimatedHours(selectedTask)"
+                type="number"
+                min="0"
+                step="0.5"
+                class="estimate-inline-input"
+                @change="event => updateEstimatedHours(event.target.value, selectedTask)"
+              />
+              <small>h</small>
+            </div>
 
-           <el-dropdown v-if="isRoleVisibilityEnabled" trigger="click" @command="(cmd) => selectVisibilityMode(cmd, selectedTask)">
-             <div class="t-btn">
-               <i class="fa-solid fa-eye"></i>
-               <span>Visibility</span>
-               {{ getVisibilityLabel(selectedTask) }}
-             </div>
-             <template #dropdown>
-               <el-dropdown-menu class="theme-dropdown">
-                 <el-dropdown-item command="project">Project members</el-dropdown-item>
-                 <el-dropdown-item command="assigned">Assigned only</el-dropdown-item>
-                 <el-dropdown-item command="role">Role scoped</el-dropdown-item>
-               </el-dropdown-menu>
-             </template>
-           </el-dropdown>
+            <el-dropdown v-if="isRoleVisibilityEnabled" trigger="click" @command="(cmd) => selectVisibilityMode(cmd, selectedTask)">
+              <div class="t-btn">
+                <i class="fa-solid fa-eye"></i>
+                <span>{{ tr('Visibility', 'Quyền truy cập') }}</span>
+                {{ getVisibilityLabel(selectedTask) }}
+              </div>
+              <template #dropdown>
+                <el-dropdown-menu class="theme-dropdown">
+                  <el-dropdown-item command="project">{{ tr('Project members', 'Thành viên dự án') }}</el-dropdown-item>
+                  <el-dropdown-item command="assigned">{{ tr('Assigned only', 'Chỉ người được giao') }}</el-dropdown-item>
+                  <el-dropdown-item command="role">{{ tr('Role scoped', 'Theo vai trò') }}</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
 
-           <el-popover v-if="isRoleVisibilityEnabled && selectedTask?.visibilityMode === 'role'" placement="bottom-start" trigger="click" popper-class="plane-popover" :width="260" :disabled="!canEditTaskVisibility">
-             <template #reference>
-               <div class="t-btn" :class="{ disabled: !canEditTaskVisibility }">
-                 <i class="fa-solid fa-user-shield"></i>
-                 <span>Roles</span>
-                 {{ selectedTask?.visibleToRoles?.length ? selectedTask.visibleToRoles.join(', ') : 'Select roles' }}
-               </div>
-             </template>
-             <div class="popover-content">
-               <div class="popover-list">
-                 <div class="popover-item" v-for="role in availableVisibilityRoles" :key="role" @click="toggleVisibleRole(role, selectedTask)">
-                   <span>{{ role }}</span>
-                   <i v-if="selectedTask?.visibleToRoles?.includes(role)" class="fa-solid fa-check ms-auto"></i>
-                 </div>
-               </div>
-             </div>
-           </el-popover>
+            <el-popover v-if="isRoleVisibilityEnabled && selectedTask?.visibilityMode === 'role'" placement="bottom-start" trigger="click" popper-class="plane-popover" :width="260" :disabled="!canEditTaskVisibility">
+              <template #reference>
+                <div class="t-btn" :class="{ disabled: !canEditTaskVisibility }">
+                  <i class="fa-solid fa-user-shield"></i>
+                  <span>{{ tr('Roles', 'Vai trò') }}</span>
+                  {{ selectedTask?.visibleToRoles?.length ? selectedTask.visibleToRoles.join(', ') : tr('Select roles', 'Chọn vai trò') }}
+                </div>
+              </template>
+              <div class="popover-content">
+                <div class="popover-list">
+                  <div class="popover-item" v-for="role in availableVisibilityRoles" :key="role" @click="toggleVisibleRole(role, selectedTask)">
+                    <span>{{ role }}</span>
+                    <i v-if="selectedTask?.visibleToRoles?.includes(role)" class="fa-solid fa-check ms-auto"></i>
+                  </div>
+                </div>
+              </div>
+            </el-popover>
 
-           <!-- CYCLE -->
-           <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover" :width="280" @show="cycleSearch = ''">
-             <template #reference>
-               <div class="t-btn"><i class="fa-solid fa-circle-half-stroke"></i> {{ getCycleLabel(selectedTask?.sprintId) }}</div>
-             </template>
-             <div class="popover-content">
-               <input type="text" v-model="cycleSearch" class="popover-search" placeholder="Search" />
-               <div class="popover-list">
-                 <div class="popover-item" @click="selectedTask.sprintId = null">
-                   <i class="fa-solid fa-circle-half-stroke mr-2 w-4 text-center"></i> No cycle
-                   <i v-if="!selectedTask?.sprintId" class="fa-solid fa-check ms-auto"></i>
-                 </div>
-                 <div class="popover-item" v-for="c in filteredCycles" :key="c.id" @click="selectedTask.sprintId = c.id">
-                   <i class="fa-solid fa-certificate mr-2 w-4 text-center text-blue-500"></i>
-                   <span class="truncate flex-1">{{ c.name }}</span>
-                   <i v-if="selectedTask?.sprintId === c.id" class="fa-solid fa-check ms-auto"></i>
-                 </div>
-                 <div v-if="!filteredCycles.length" class="text-xs text-center text-muted py-2">No cycles setup.</div>
-               </div>
-             </div>
-           </el-popover>
+            <!-- CYCLE -->
+            <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover" :width="280" @show="cycleSearch = ''">
+              <template #reference>
+                <div class="t-btn"><i class="fa-solid fa-circle-half-stroke"></i> {{ getCycleLabel(selectedTask?.sprintId) }}</div>
+              </template>
+              <div class="popover-content">
+                <input type="text" v-model="cycleSearch" class="popover-search" :placeholder="tr('Search cycles...', 'Tìm chu kỳ...')" />
+                <div class="popover-list">
+                  <div class="popover-item" @click="selectedTask.sprintId = null">
+                    <i class="fa-solid fa-circle-half-stroke mr-2 w-4 text-center"></i> {{ tr('No cycle', 'Không có chu kỳ') }}
+                    <i v-if="!selectedTask?.sprintId" class="fa-solid fa-check ms-auto"></i>
+                  </div>
+                  <div class="popover-item" v-for="c in filteredCycles" :key="c.id" @click="selectedTask.sprintId = c.id">
+                    <i class="fa-solid fa-certificate mr-2 w-4 text-center text-blue-500"></i>
+                    <span class="truncate flex-1">{{ c.name }}</span>
+                    <i v-if="selectedTask?.sprintId === c.id" class="fa-solid fa-check ms-auto"></i>
+                  </div>
+                  <div v-if="!filteredCycles.length" class="text-xs text-center text-muted py-2">{{ tr('No cycles setup.', 'Chưa thiết lập chu kỳ.') }}</div>
+                </div>
+              </div>
+            </el-popover>
 
-           <!-- MODULES -->
-           <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover" :width="280" @show="moduleSearch = ''">
-             <template #reference>
-               <div class="t-btn"><i class="fa-solid fa-cube"></i> {{ getModuleLabel(selectedTask?.moduleId) }}</div>
-             </template>
-             <div class="popover-content">
-               <input type="text" v-model="moduleSearch" class="popover-search" placeholder="Search" />
-               <div class="popover-list">
-                 <div class="popover-item" @click="selectedTask.moduleId = null">
-                   <i class="fa-solid fa-cube mr-2"></i> No module
-                 </div>
-                 <div class="popover-item" v-for="m in filteredModules" :key="m.id" @click="selectedTask.moduleId = m.id">
-                   <i class="fa-solid fa-box mr-2 text-orange-500"></i>
-                   <span class="truncate flex-1">{{ m.name }}</span>
-                 </div>
-               </div>
-             </div>
-           </el-popover>
+            <!-- MODULES -->
+            <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover" :width="280" @show="moduleSearch = ''">
+              <template #reference>
+                <div class="t-btn"><i class="fa-solid fa-cube"></i> {{ getModuleLabel(selectedTask?.moduleId) }}</div>
+              </template>
+              <div class="popover-content">
+                <input type="text" v-model="moduleSearch" class="popover-search" :placeholder="tr('Search module...', 'Tìm module...')" />
+                <div class="popover-list">
+                  <div class="popover-item" @click="selectedTask.moduleId = null">
+                    <i class="fa-solid fa-cube mr-2"></i> {{ tr('No module', 'Không có phân hệ') }}
+                  </div>
+                  <div class="popover-item" v-for="m in filteredModules" :key="m.id" @click="selectedTask.moduleId = m.id">
+                    <i class="fa-solid fa-box mr-2 text-orange-500"></i>
+                    <span class="truncate flex-1">{{ m.name }}</span>
+                  </div>
+                </div>
+              </div>
+            </el-popover>
 
-           <!-- PARENT -->
-           <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover" :width="350" @show="parentSearch = ''">
-             <template #reference>
-               <div class="t-btn"><i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i> {{ getParentId(selectedTask) ? 'Parent selected' : 'Add parent' }}</div>
-             </template>
-             <div class="popover-content h-[250px] flex flex-col bg-surface-elevation">
-               <div class="p-2 border-b border-theme">
-                 <div class="relative flex items-center">
-                   <i class="fa-solid fa-magnifying-glass absolute left-2 text-muted"></i>
-                   <input type="text" v-model="parentSearch" class="w-full bg-transparent border-none text-primary pl-8 focus:outline-none" placeholder="Type to search..." />
-                 </div>
-               </div>
-               <div class="flex-1 overflow-y-auto no-scrollbar p-2">
-                 <div class="popover-item text-xs text-muted hover:text-primary cursor-pointer p-2 rounded hover:bg-surface-hover flex items-center" @click="setTaskParent(selectedTask, null)">
-                   <i class="fa-solid fa-ban mr-2"></i> Remove parent
-                 </div>
-                 <div class="popover-item text-xs text-secondary hover:text-primary cursor-pointer p-2 rounded hover:bg-surface-hover flex items-center" v-for="pt in filteredParents" :key="pt.id" @click="setTaskParent(selectedTask, pt.id)">
-                   <span class="text-muted mr-3 w-16 truncate font-mono">{{ pt.sequenceId || pt.id.substring(0,8) }}</span>
-                   <span class="truncate flex-1">{{ pt.title }}</span>
-                   <i v-if="getParentId(selectedTask) === pt.id" class="fa-solid fa-check ml-2 text-blue-500"></i>
-                 </div>
-               </div>
-             </div>
-           </el-popover>
+            <!-- PARENT -->
+            <el-popover  placement="bottom-start" trigger="click" popper-class="plane-popover" :width="350" @show="parentSearch = ''">
+              <template #reference>
+                <div class="t-btn"><i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i> {{ getParentId(selectedTask) ? tr('Parent selected', 'Đã chọn công việc cha') : tr('Add parent', 'Thêm công việc cha') }}</div>
+              </template>
+              <div class="popover-content h-[250px] flex flex-col bg-surface-elevation">
+                <div class="p-2 border-b border-theme">
+                  <div class="relative flex items-center">
+                    <i class="fa-solid fa-magnifying-glass absolute left-2 text-muted"></i>
+                    <input type="text" v-model="parentSearch" class="w-full bg-transparent border-none text-primary pl-8 focus:outline-none" :placeholder="tr('Search parent task...', 'Tìm công việc cha...')" />
+                  </div>
+                </div>
+                <div class="flex-1 overflow-y-auto no-scrollbar p-2">
+                  <div class="popover-item text-xs text-muted hover:text-primary cursor-pointer p-2 rounded hover:bg-surface-hover flex items-center" @click="setTaskParent(selectedTask, null)">
+                    <i class="fa-solid fa-ban mr-2"></i> {{ tr('Remove parent', 'Xóa công việc cha') }}
+                  </div>
+                  <div class="popover-item text-xs text-secondary hover:text-primary cursor-pointer p-2 rounded hover:bg-surface-hover flex items-center" v-for="pt in filteredParents" :key="pt.id" @click="setTaskParent(selectedTask, pt.id)">
+                    <span class="text-muted mr-3 w-16 truncate font-mono">{{ pt.sequenceId || pt.id.substring(0,8) }}</span>
+                    <span class="truncate flex-1">{{ pt.title }}</span>
+                    <i v-if="getParentId(selectedTask) === pt.id" class="fa-solid fa-check ml-2 text-blue-500"></i>
+                  </div>
+                </div>
+              </div>
+            </el-popover>
         </div>
         
         <div class="cm-footer-row">
            <div class="cm-t-more">
-              <el-switch v-model="createMore" size="small" style="--el-switch-on-color: #38bdf8;" /> <span>Create more</span>
+              <el-switch v-model="createMore" size="small" style="--el-switch-on-color: #38bdf8;" /> <span>{{ tr('Create more', 'Tạo liên tục') }}</span>
            </div>
-           <button class="btn-discard" @click="discardNewTask">Discard</button>
-           <button class="btn-save" @click="submitNewTask">Save</button>
+           <button class="btn-discard" @click="discardNewTask">{{ tr('Discard', 'Hủy') }}</button>
+           <button class="btn-save" @click="submitNewTask">{{ tr('Save', 'Lưu') }}</button>
         </div>
       </div>
       
@@ -275,21 +276,21 @@
              <div class="sph-right">
                 <button class="s-btn s-btn-outline" @click="toggleSubscription">
                    <i :class="isSubscribed ? 'fa-regular fa-bell-slash' : 'fa-regular fa-bell'"></i> 
-                   {{ isSubscribed ? 'Unsubscribe' : 'Subscribe' }}
+                   {{ isSubscribed ? tr('Unsubscribe', 'Bỏ theo dõi') : tr('Subscribe', 'Theo dõi') }}
                 </button>
                 <button class="s-btn" @click="copyTaskLink">
                    <i class="fa-solid fa-link"></i> 
-                   Copy link
+                   {{ tr('Copy link', 'Sao chép link') }}
                 </button>
                 <el-dropdown trigger="click" @command="handleTaskMenuCommand">
-                  <button class="s-btn s-btn-icon" title="More actions">
+                  <button class="s-btn s-btn-icon" :title="tr('More actions', 'Thao tác khác')">
                      <i class="fa-solid fa-ellipsis"></i>
                   </button>
                   <template #dropdown>
                     <el-dropdown-menu class="theme-dropdown">
-                      <el-dropdown-item command="copy"><i class="fa-solid fa-link mr-2"></i> Copy link</el-dropdown-item>
-                      <el-dropdown-item command="duplicate"><i class="fa-regular fa-clone mr-2"></i> Duplicate</el-dropdown-item>
-                      <el-dropdown-item command="archive"><i class="fa-solid fa-box-archive mr-2"></i> Archive soon</el-dropdown-item>
+                      <el-dropdown-item command="copy"><i class="fa-solid fa-link mr-2"></i> {{ tr('Copy link', 'Sao chép link') }}</el-dropdown-item>
+                      <el-dropdown-item command="duplicate"><i class="fa-regular fa-clone mr-2"></i> {{ tr('Duplicate', 'Nhân bản') }}</el-dropdown-item>
+                      <el-dropdown-item command="archive"><i class="fa-solid fa-box-archive mr-2"></i> {{ tr('Archive task', 'Lưu trữ sau') }}</el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
@@ -302,7 +303,7 @@
                {{ selectedTask?.sequenceId || selectedTask?.id.substring(0,8).toUpperCase() }}
             </div>
             <div v-if="currentParentId" class="parent-context-banner">
-              <span class="parent-context-label">Parent</span>
+              <span class="parent-context-label">{{ tr('Parent task', 'Công việc cha') }}</span>
               <button class="parent-context-link" type="button" @click="openParentTask">
                 {{ currentParentLabel }}
               </button>
@@ -312,14 +313,14 @@
             <div class="description-editor-shell">
               <div v-if="showFormatToolbar" class="description-toolbar floating-toolbar" :style="{ left: toolbarPosition.x + 'px', top: toolbarPosition.y + 'px' }">
                 <select class="format-select" @change="applyBlockFormat($event.target.value)">
-                  <option value="div">Text</option>
-                  <option value="h1">Heading 1</option>
-                  <option value="h2">Heading 2</option>
-                  <option value="h3">Heading 3</option>
-                  <option value="blockquote">Quote</option>
+                  <option value="div">{{ tr('Text', 'Văn bản') }}</option>
+                  <option value="h1">{{ tr('Heading 1', 'Tiêu đề 1') }}</option>
+                  <option value="h2">{{ tr('Heading 2', 'Tiêu đề 2') }}</option>
+                  <option value="h3">{{ tr('Heading 3', 'Tiêu đề 3') }}</option>
+                  <option value="blockquote">{{ tr('Quote', 'Trích dẫn') }}</option>
                 </select>
                 <div class="color-menu">
-                  <button class="color-trigger">Color</button>
+                  <button class="color-trigger">{{ tr('Color', 'Màu sắc') }}</button>
                   <div class="color-palette">
                     <button v-for="color in textColors" :key="'fg-' + color" :style="{ background: color }" @click="applyTextColor(color)"></button>
                     <button v-for="color in backgroundColors" :key="'bg-' + color" :style="{ background: color }" @click="applyBackgroundColor(color)"></button>
@@ -343,7 +344,7 @@
                 ref="descriptionEditor"
                 class="sp-desc rich-editor"
                 contenteditable
-                :data-placeholder="selectedTask?.description ? '' : 'Click to add description'"
+                :data-placeholder="selectedTask?.description ? '' : tr('Add description...', 'Thêm mô tả... ')"
                 @focus="activeEditor = 'description'"
                 @keydown="handleEditorKeydown($event, 'description')"
                 @mouseup="showSelectionToolbar"
@@ -360,30 +361,30 @@
             <div class="sp-sub-actions">
                <i class="fa-regular fa-face-smile icon-btn" style="font-size: 16px;"></i>
                <div class="sp-edit-info">
-                  <i class="fa-solid fa-clock-rotate-left"></i> Last edited by <b>{{ lastEditedBy }}</b> {{ lastEditedRelative }}
+                  <i class="fa-solid fa-clock-rotate-left"></i> {{ tr('Edited by', 'Chỉnh sửa bởi') }} <b>{{ lastEditedBy }}</b> {{ lastEditedRelative }}
                 </div>
             </div>
 
             <!-- Action Chips -->
              <div class="sp-toolbar">
-                <button class="s-btn" @click="startCreateSubtask"><i class="fa-solid fa-layer-group"></i> Add sub-work item</button>
+                <button class="s-btn" @click="startCreateSubtask"><i class="fa-solid fa-layer-group"></i> {{ tr('Add sub-work item', 'Thêm công việc con') }}</button>
                 <button class="s-btn s-btn-primary" :disabled="isAiBreakingDown" @click="createSubtasksWithAI">
                   <i class="fa-solid fa-wand-magic-sparkles"></i>
-                  {{ isAiBreakingDown ? 'AI is preparing...' : 'AI split into subtasks' }}
+                  {{ isAiBreakingDown ? tr('AI is preparing...', 'AI đang chuẩn bị...') : tr('AI breakdown subtasks', 'AI tách thành công việc con') }}
                 </button>
                 
-                <button class="s-btn" @click="triggerDescriptionFileUpload"><i class="fa-solid fa-paperclip"></i> Attach</button>
+                <button class="s-btn" @click="triggerDescriptionFileUpload"><i class="fa-solid fa-paperclip"></i> {{ tr('Attachment', 'Đính kèm') }}</button>
              </div>
             <div v-if="aiSubtaskPreview.length" class="ai-preview-panel">
               <div class="ai-preview-head">
                 <div>
-                  <strong>AI subtask preview</strong>
-                  <p>Review these suggested sub-work items before creating them.</p>
+                  <strong>{{ tr('AI subtask preview', 'Bản xem trước công việc con từ AI') }}</strong>
+                  <p>{{ tr('Review these suggested sub-work items before creating them.', 'Xem xét các công việc con được gợi ý này trước khi tạo.') }}</p>
                 </div>
                 <div class="ai-preview-actions">
-                  <button class="quick-subtask-cancel" @click="discardAiSubtaskPreview">Discard</button>
+                  <button class="quick-subtask-cancel" @click="discardAiSubtaskPreview">{{ tr('Discard', 'Hủy') }}</button>
                   <button class="quick-subtask-save" :disabled="isCreatingPreviewSubtasks" @click="confirmAiSubtaskPreview">
-                    {{ isCreatingPreviewSubtasks ? 'Creating...' : `Create ${aiSubtaskPreview.length} sub-work items` }}
+                    {{ isCreatingPreviewSubtasks ? tr('Creating...', 'Đang tạo...') : tr(`Create ${aiSubtaskPreview.length} sub-work items`, `Tạo ${aiSubtaskPreview.length} công việc con`) }}
                   </button>
                 </div>
               </div>
@@ -393,7 +394,7 @@
                     <strong>{{ subtask.title }}</strong>
                     <span>{{ Number(subtask.estHours || 0).toFixed(1) }}h · P{{ subtask.priority || 3 }}</span>
                   </div>
-                  <p>{{ subtask.description || 'No description' }}</p>
+                  <p>{{ subtask.description || tr('No description', 'Không có mô tả') }}</p>
                 </div>
               </div>
             </div>
@@ -403,19 +404,19 @@
                 v-model="newSubtaskTitle"
                 type="text"
                 class="quick-subtask-input"
-                placeholder="Create a linked sub-work item"
+                :placeholder="tr('Create a linked sub-work item', 'Tạo công việc con liên kết')"
                 @keyup.enter="submitSubtask"
                 @keyup.esc="isCreatingSubtask = false"
               />
               <div class="quick-subtask-actions">
-                <button class="quick-subtask-cancel" @click="isCreatingSubtask = false">Cancel</button>
-                <button class="quick-subtask-save" @click="submitSubtask">Create</button>
+                <button class="quick-subtask-cancel" @click="isCreatingSubtask = false">{{ tr('Cancel', 'Hủy') }}</button>
+                <button class="quick-subtask-save" @click="submitSubtask">{{ tr('Create', 'Tạo') }}</button>
               </div>
             </div>
              <div class="subtask-toggle-row" v-if="subtasksList.length">
                <button class="subtask-toggle-btn" @click="showSubtasks = !showSubtasks">
                  <i :class="showSubtasks ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash'"></i>
-                 {{ showSubtasks ? 'Hide sub-work items' : 'Show sub-work items' }}
+                 {{ showSubtasks ? tr('Hide sub-work items', 'Ẩn công việc con') : tr('Show sub-work items', 'Hiển thị công việc con') }}
                </button>
              </div>
              <div v-if="subtasksList.length && showSubtasks" class="subtask-list">
@@ -451,11 +452,11 @@
                     </button>
                     <template #dropdown>
                       <el-dropdown-menu class="theme-dropdown">
-                        <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: var(--color-danger)"></i> Urgent</el-dropdown-item>
-                        <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: var(--color-warning)"></i> High</el-dropdown-item>
-                        <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: var(--color-accent)"></i> Medium</el-dropdown-item>
-                        <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: var(--color-text-muted)"></i> Low</el-dropdown-item>
-                        <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-muted"></i> None</el-dropdown-item>
+                        <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: var(--color-danger)"></i> {{ tr('Urgent', 'Khẩn cấp') }}</el-dropdown-item>
+                        <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: var(--color-warning)"></i> {{ tr('High', 'Cao') }}</el-dropdown-item>
+                        <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: var(--color-accent)"></i> {{ tr('Medium', 'Trung bình') }}</el-dropdown-item>
+                        <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: var(--color-text-muted)"></i> {{ tr('Low', 'Thấp') }}</el-dropdown-item>
+                        <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-muted"></i> {{ tr('None', 'Không có') }}</el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
                   </el-dropdown>
@@ -468,7 +469,7 @@
                       </button>
                     </template>
                     <div class="popover-content">
-                      <input v-model="assigneeSearch" type="text" class="popover-search" placeholder="Search members..." />
+                      <input v-model="assigneeSearch" type="text" class="popover-search" :placeholder="tr('Search members...', 'Tìm thành viên... ')" />
                       <div class="popover-list">
                         <div class="popover-item" v-for="member in filteredMembers" :key="`${subtask.id}-${member.userId}`" @click="toggleInlineTaskAssignee(subtask, member.userId)">
                           <div class="avatar-xxs bg-gray-600 rounded-full w-5 h-5 flex-center text-white text-xs mr-2">{{ (member.fullName || member.email || 'U').charAt(0).toUpperCase() }}</div>
@@ -497,165 +498,165 @@
               </div>
             </div>
 
-            <h3 class="sp-section-title">Properties</h3>
-            <div class="props-grid">
+            <h3 class="sp-section-title">{{ tr('Properties', 'Thuộc tính') }}</h3>
+             <div class="props-grid">
+                 <div class="p-row">
+                   <div class="p-label"><i class="fa-regular fa-circle-dot"></i> {{ tr('Status', 'Trạng thái') }}</div>
+                   <div class="p-val">
+                     <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="260" @show="statusSearch = ''">
+                       <template #reference>
+                         <button class="property-trigger">
+                           <i :class="getStatusIcon(selectedTask?.statusName)"></i>
+                           <span>{{ tr('Status', 'Trạng thái') }}</span>
+                           <span class="property-value">{{ getStatusLabel(selectedTask?.statusName) }}</span>
+                         </button>
+                       </template>
+                       <div class="popover-content">
+                         <input v-model="statusSearch" type="text" class="popover-search" :placeholder="tr('Search status...', 'Tìm trạng thái... ')" />
+                         <div class="popover-list">
+                           <div class="popover-item" v-for="status in filteredStatuses" :key="status.id" @click="selectStatus(status)">
+                             <i :class="getStatusIcon(status.name)" class="mr-2"></i>
+                             <span>{{ getStatusLabel(status.name || status.displayName) }}</span>
+                             <i v-if="selectedTask?.statusName === status.name" class="fa-solid fa-check ms-auto"></i>
+                           </div>
+                         </div>
+                       </div>
+                     </el-popover>
+                   </div>
+                 </div>
+                 <div class="p-row">
+                   <div class="p-label"><i class="fa-solid fa-percent"></i> {{ tr('Progress', 'Tiến độ') }}</div>
+                   <div class="p-val">
+                     <div class="task-progress-editor">
+                       <input
+                         class="task-progress-input"
+                         type="number"
+                         min="0"
+                         max="100"
+                         step="1"
+                         :value="getTaskProgressPercent(selectedTask)"
+                         :disabled="!canEditTaskProgress(selectedTask)"
+                         @change="event => updateTaskProgress(selectedTask, event.target.value)"
+                       />
+                       <span class="task-progress-suffix">%</span>
+                       <span class="task-progress-hint">
+                         {{ tr('Progress is calculated from assignee completion levels and the Completed status.', 'Tiến độ được tính từ mức hoàn thành của người được giao và trạng thái Hoàn thành.') }}
+                       </span>
+                     </div>
+                   </div>
+                 </div>
+                 <div class="p-row">
+                   <div class="p-label"><i class="fa-regular fa-user"></i> {{ tr('Assignee', 'Người thực hiện') }}</div>
+                   <div class="p-val">
+                     <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="260" :disabled="!canManageTaskAssignees" @show="assigneeSearch = ''">
+                       <template #reference>
+                         <button class="property-trigger" :class="{ 'muted-val': !getAssigneeIds().length }" :disabled="!canManageTaskAssignees">
+                           <i class="fa-regular fa-user"></i>
+                           <span>{{ tr('Assignee', 'Người thực hiện') }}</span>
+                           <span class="property-value">{{ getAssigneeSummary() }}</span>
+                         </button>
+                       </template>
+                       <div class="popover-content">
+                         <input v-model="assigneeSearch" type="text" class="popover-search" :placeholder="tr('Search members...', 'Tìm thành viên... ')" />
+                         <div class="popover-list">
+                           <div class="popover-item" v-for="member in filteredMembers" :key="member.userId" @click="toggleAssignee(member.userId)">
+                             <div class="avatar-xxs bg-gray-600 rounded-full w-5 h-5 flex-center text-white text-xs mr-2">{{ (member.fullName || member.email || 'U').charAt(0).toUpperCase() }}</div>
+                             <span>{{ member.fullName || member.email }}</span>
+                             <i v-if="getAssigneeIds().includes(member.userId)" class="fa-solid fa-check ms-auto"></i>
+                           </div>
+                         </div>
+                       </div>
+                     </el-popover>
+                     <button v-if="canUseAiAssigneeSuggestion" class="property-trigger estimate-suggestion-btn ai-estimate-btn mt-2" :disabled="isAiSuggestingAssignees" @click="suggestAssigneesWithAI()">
+                       <i class="fa-solid fa-user-group"></i>
+                       <span>{{ isAiSuggestingAssignees ? tr('AI is suggesting...', 'AI đang gợi ý...') : tr('AI suggest assignees', 'AI gợi ý người thực hiện') }}</span>
+                     </button>
+                     <div v-if="canUseAiAssigneeSuggestion && aiAssigneeSuggestion" class="estimate-breakdown ai-suggestion-panel ai-assignee-panel">
+                       <div class="estimate-breakdown-row">
+                         <span>Recommended team size</span>
+                         <strong>{{ aiAssigneeSuggestion.recommendedAssigneeCount }}</strong>
+                       </div>
+                       <small class="estimate-helper-text">{{ aiAssigneeSuggestion.summary }}</small>
+                       <div class="ai-assignee-list">
+                         <div v-for="candidate in aiAssigneeSuggestion.suggestions" :key="candidate.userId" class="ai-assignee-item">
+                           <div class="ai-assignee-top">
+                             <strong>{{ candidate.fullName }}</strong>
+                             <span>{{ Math.round((candidate.fitScore || 0) * 100) }}% fit</span>
+                           </div>
+                           <div class="ai-assignee-metrics">
+                             <span>{{ candidate.projectRole || 'Member' }}</span>
+                             <span>{{ candidate.completedStoryPoints }} pts done</span>
+                             <span>{{ candidate.averageAccuracyPercent }}% accuracy</span>
+                             <span>{{ candidate.activeEstimatedHours }}h active</span>
+                             <span v-if="candidate.suggestedEstimatedHours">{{ candidate.suggestedEstimatedHours }}h suggested</span>
+                           </div>
+                           <small class="estimate-helper-text">{{ candidate.reasoning }}</small>
+                         </div>
+                       </div>
+                       <div class="ai-preview-actions">
+                         <button class="quick-subtask-cancel" type="button" @click="aiAssigneeSuggestion = null">Discard</button>
+                         <button class="quick-subtask-save" type="button" @click="applyAiAssigneeSuggestion('top')">Apply top suggestion</button>
+                         <button class="quick-subtask-save" type="button" @click="applyAiAssigneeSuggestion('team')">Apply suggested team</button>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+                 <div v-if="isRoleVisibilityEnabled" class="p-row">
+                   <div class="p-label"><i class="fa-solid fa-eye"></i> {{ tr('Visibility', 'Quyền truy cập') }}</div>
+                   <div class="p-val">
+                     <el-dropdown trigger="click" @command="(cmd) => selectVisibilityMode(cmd)">
+                       <div class="property-trigger" :class="{ 'muted-val': !selectedTask?.visibilityMode }">
+                         <i class="fa-solid fa-eye"></i>
+                         <span>{{ tr('Visibility', 'Quyền truy cập') }}</span>
+                         <span class="property-value">{{ getVisibilityLabel(selectedTask) }}</span>
+                       </div>
+                       <template #dropdown>
+                         <el-dropdown-menu class="theme-dropdown">
+                           <el-dropdown-item command="project">{{ tr('Project members', 'Thành viên dự án') }}</el-dropdown-item>
+                           <el-dropdown-item command="assigned">{{ tr('Assigned only', 'Chỉ người được giao') }}</el-dropdown-item>
+                           <el-dropdown-item command="role">{{ tr('Role scoped', 'Theo vai trò') }}</el-dropdown-item>
+                         </el-dropdown-menu>
+                       </template>
+                     </el-dropdown>
+                     <div v-if="selectedTask?.visibilityMode === 'role'" class="estimate-breakdown mt-2">
+                       <div class="estimate-breakdown-row">
+                         <span>{{ tr('Visible roles', 'Vai trò được xem') }}</span>
+                         <strong>{{ selectedTask?.visibleToRoles?.length ? selectedTask.visibleToRoles.join(', ') : tr('None', 'Không có') }}</strong>
+                       </div>
+                       <div class="ai-assignee-metrics">
+                         <button
+                           v-for="role in availableVisibilityRoles"
+                           :key="`visibility-role-${role}`"
+                           class="secondary-mini-btn"
+                           type="button"
+                           :disabled="!canEditTaskVisibility"
+                           @click="toggleVisibleRole(role)"
+                         >
+                           {{ selectedTask?.visibleToRoles?.includes(role) ? tr('Unselect', 'Bỏ chọn') : tr('Select', 'Chọn') }} {{ role }}
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
                 <div class="p-row">
-                  <div class="p-label"><i class="fa-regular fa-circle-dot"></i> State</div>
+                  <div class="p-label"><i class="fa-solid fa-chart-simple"></i> {{ tr('Priority', 'Độ ưu tiên') }}</div>
                   <div class="p-val">
-                    <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="260" @show="statusSearch = ''">
-                      <template #reference>
-                        <button class="property-trigger">
-                          <i :class="getStatusIcon(selectedTask?.statusName)"></i>
-                          <span>State</span>
-                          <span class="property-value">{{ getStatusLabel(selectedTask?.statusName) }}</span>
-                        </button>
-                      </template>
-                      <div class="popover-content">
-                        <input v-model="statusSearch" type="text" class="popover-search" placeholder="Search states..." />
-                        <div class="popover-list">
-                          <div class="popover-item" v-for="status in filteredStatuses" :key="status.id" @click="selectStatus(status)">
-                            <i :class="getStatusIcon(status.name)" class="mr-2"></i>
-                            <span>{{ status.displayName || status.name }}</span>
-                            <i v-if="selectedTask?.statusName === status.name" class="fa-solid fa-check ms-auto"></i>
-                          </div>
-                        </div>
-                      </div>
-                    </el-popover>
-                  </div>
-                </div>
-                <div class="p-row">
-                  <div class="p-label"><i class="fa-solid fa-percent"></i> Progress</div>
-                  <div class="p-val">
-                    <div class="task-progress-editor">
-                      <input
-                        class="task-progress-input"
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="1"
-                        :value="getTaskProgressPercent(selectedTask)"
-                        :disabled="!canEditTaskProgress(selectedTask)"
-                        @change="event => updateTaskProgress(selectedTask, event.target.value)"
-                      />
-                      <span class="task-progress-suffix">%</span>
-                      <span class="task-progress-hint">
-                        Progress is calculated from assignee completion and Done state.
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div class="p-row">
-                  <div class="p-label"><i class="fa-regular fa-user"></i> Assignees</div>
-                  <div class="p-val">
-                    <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="260" :disabled="!canManageTaskAssignees" @show="assigneeSearch = ''">
-                      <template #reference>
-                        <button class="property-trigger" :class="{ 'muted-val': !getAssigneeIds().length }" :disabled="!canManageTaskAssignees">
-                          <i class="fa-regular fa-user"></i>
-                          <span>Assignees</span>
-                          <span class="property-value">{{ getAssigneeSummary() }}</span>
-                        </button>
-                      </template>
-                      <div class="popover-content">
-                        <input v-model="assigneeSearch" type="text" class="popover-search" placeholder="Search members..." />
-                        <div class="popover-list">
-                          <div class="popover-item" v-for="member in filteredMembers" :key="member.userId" @click="toggleAssignee(member.userId)">
-                            <div class="avatar-xxs bg-gray-600 rounded-full w-5 h-5 flex-center text-white text-xs mr-2">{{ (member.fullName || member.email || 'U').charAt(0).toUpperCase() }}</div>
-                            <span>{{ member.fullName || member.email }}</span>
-                            <i v-if="getAssigneeIds().includes(member.userId)" class="fa-solid fa-check ms-auto"></i>
-                          </div>
-                        </div>
-                      </div>
-                    </el-popover>
-                    <button v-if="canUseAiAssigneeSuggestion" class="property-trigger estimate-suggestion-btn ai-estimate-btn mt-2" :disabled="isAiSuggestingAssignees" @click="suggestAssigneesWithAI()">
-                      <i class="fa-solid fa-user-group"></i>
-                      <span>{{ isAiSuggestingAssignees ? 'AI is matching...' : 'AI suggest assignees' }}</span>
-                    </button>
-                    <div v-if="canUseAiAssigneeSuggestion && aiAssigneeSuggestion" class="estimate-breakdown ai-suggestion-panel ai-assignee-panel">
-                      <div class="estimate-breakdown-row">
-                        <span>Recommended team size</span>
-                        <strong>{{ aiAssigneeSuggestion.recommendedAssigneeCount }}</strong>
-                      </div>
-                      <small class="estimate-helper-text">{{ aiAssigneeSuggestion.summary }}</small>
-                      <div class="ai-assignee-list">
-                        <div v-for="candidate in aiAssigneeSuggestion.suggestions" :key="candidate.userId" class="ai-assignee-item">
-                          <div class="ai-assignee-top">
-                            <strong>{{ candidate.fullName }}</strong>
-                            <span>{{ Math.round((candidate.fitScore || 0) * 100) }}% fit</span>
-                          </div>
-                          <div class="ai-assignee-metrics">
-                            <span>{{ candidate.projectRole || 'Member' }}</span>
-                            <span>{{ candidate.completedStoryPoints }} pts done</span>
-                            <span>{{ candidate.averageAccuracyPercent }}% accuracy</span>
-                            <span>{{ candidate.activeEstimatedHours }}h active</span>
-                            <span v-if="candidate.suggestedEstimatedHours">{{ candidate.suggestedEstimatedHours }}h suggested</span>
-                          </div>
-                          <small class="estimate-helper-text">{{ candidate.reasoning }}</small>
-                        </div>
-                      </div>
-                      <div class="ai-preview-actions">
-                        <button class="quick-subtask-cancel" type="button" @click="aiAssigneeSuggestion = null">Discard</button>
-                        <button class="quick-subtask-save" type="button" @click="applyAiAssigneeSuggestion('top')">Apply top suggestion</button>
-                        <button class="quick-subtask-save" type="button" @click="applyAiAssigneeSuggestion('team')">Apply suggested team</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div v-if="isRoleVisibilityEnabled" class="p-row">
-                  <div class="p-label"><i class="fa-solid fa-eye"></i> Visibility</div>
-                  <div class="p-val">
-                    <el-dropdown trigger="click" @command="(cmd) => selectVisibilityMode(cmd)">
-                      <div class="property-trigger" :class="{ 'muted-val': !selectedTask?.visibilityMode }">
-                        <i class="fa-solid fa-eye"></i>
-                        <span>Visibility</span>
-                        <span class="property-value">{{ getVisibilityLabel(selectedTask) }}</span>
-                      </div>
+                    <el-dropdown  trigger="click" @command="(cmd) => selectPriority(cmd)">
+                      <div class="property-trigger" :class="{ 'muted-val': !selectedTask?.priority }"><i :class="getPrioIcon(selectedTask?.priority)"></i><span>{{ tr('Priority', 'Độ ưu tiên') }}</span><span class="property-value">{{ getPrioLabel(selectedTask?.priority) }}</span></div>
                       <template #dropdown>
                         <el-dropdown-menu class="theme-dropdown">
-                          <el-dropdown-item command="project">Project members</el-dropdown-item>
-                          <el-dropdown-item command="assigned">Assigned only</el-dropdown-item>
-                          <el-dropdown-item command="role">Role scoped</el-dropdown-item>
+                          <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: var(--color-danger)"></i> {{ tr('Urgent', 'Khẩn cấp') }}</el-dropdown-item>
+                          <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: var(--color-warning)"></i> {{ tr('High', 'Cao') }}</el-dropdown-item>
+                          <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: var(--color-accent)"></i> {{ tr('Medium', 'Trung bình') }}</el-dropdown-item>
+                          <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: var(--color-text-muted)"></i> {{ tr('Low', 'Thấp') }}</el-dropdown-item>
+                          <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-muted"></i> {{ tr('None', 'Không có') }}</el-dropdown-item>
                         </el-dropdown-menu>
                       </template>
                     </el-dropdown>
-                    <div v-if="selectedTask?.visibilityMode === 'role'" class="estimate-breakdown mt-2">
-                      <div class="estimate-breakdown-row">
-                        <span>Visible roles</span>
-                        <strong>{{ selectedTask?.visibleToRoles?.length ? selectedTask.visibleToRoles.join(', ') : 'None' }}</strong>
-                      </div>
-                      <div class="ai-assignee-metrics">
-                        <button
-                          v-for="role in availableVisibilityRoles"
-                          :key="`visibility-role-${role}`"
-                          class="secondary-mini-btn"
-                          type="button"
-                          :disabled="!canEditTaskVisibility"
-                          @click="toggleVisibleRole(role)"
-                        >
-                          {{ selectedTask?.visibleToRoles?.includes(role) ? 'Unselect' : 'Select' }} {{ role }}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-               <div class="p-row">
-                 <div class="p-label"><i class="fa-solid fa-chart-simple"></i> Priority</div>
-                 <div class="p-val">
-                   <el-dropdown  trigger="click" @command="(cmd) => selectPriority(cmd)">
-                     <div class="property-trigger" :class="{ 'muted-val': !selectedTask?.priority }"><i :class="getPrioIcon(selectedTask?.priority)"></i><span>Priority</span><span class="property-value">{{ getPrioLabel(selectedTask?.priority) }}</span></div>
-                     <template #dropdown>
-                       <el-dropdown-menu class="theme-dropdown">
-                         <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: var(--color-danger)"></i> Urgent</el-dropdown-item>
-                         <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: var(--color-warning)"></i> High</el-dropdown-item>
-                         <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: var(--color-accent)"></i> Medium</el-dropdown-item>
-                         <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: var(--color-text-muted)"></i> Low</el-dropdown-item>
-                         <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-muted"></i> None</el-dropdown-item>
-                       </el-dropdown-menu>
-                     </template>
-                   </el-dropdown>
                  </div>
                </div>
                <div class="p-row">
-                 <div class="p-label"><i class="fa-solid fa-signal"></i> Story points</div>
+                 <div class="p-label"><i class="fa-solid fa-signal"></i> {{ tr('Story Points', 'Điểm công việc') }}</div>
                  <div class="p-val">
                    <div class="estimate-editor">
                      <input
@@ -672,20 +673,20 @@
                  </div>
                </div>
                <div class="p-row">
-                 <div class="p-label"><i class="fa-regular fa-circle-user"></i> Created by</div>
+                 <div class="p-label"><i class="fa-regular fa-circle-user"></i> {{ tr('Creator', 'Người tạo') }}</div>
                  <div class="p-val flex items-center gap-2">
                     <div class="avatar-xxs bg-green-700 rounded-full w-5 h-5 flex-center text-white text-[10px]">{{ getCreatorName(selectedTask)[0]?.toUpperCase() || 'U' }}</div>
                     <span class="text-[13px] font-medium">{{ getCreatorName(selectedTask) }}</span>
                  </div>
                </div>
                <div class="p-row">
-                 <div class="p-label"><i class="fa-regular fa-calendar"></i> Start date</div>
+                 <div class="p-label"><i class="fa-regular fa-calendar"></i> {{ tr('Start Date', 'Ngày bắt đầu') }}</div>
                  <div class="p-val">
                    <div style="position: relative; display: inline-flex;">
                      <button class="property-trigger" :class="{ 'muted-val': !selectedTask?.plannedStartDate }" @click="openPicker('detail_start')">
                        <i class="fa-regular fa-calendar"></i>
-                       <span>Start date</span>
-                       <span class="property-value">{{ selectedTask?.plannedStartDate || 'Add start date' }}</span>
+                       <span>{{ tr('Start Date', 'Ngày bắt đầu') }}</span>
+                       <span class="property-value">{{ selectedTask?.plannedStartDate || tr('Add start date', 'Thêm ngày bắt đầu') }}</span>
                      </button>
                      <el-date-picker
                        :ref="el => setPickerRef('detail_start', el)"
@@ -701,13 +702,13 @@
                  </div>
                </div>
                <div class="p-row">
-                 <div class="p-label"><i class="fa-regular fa-calendar-check"></i> Due date</div>
+                 <div class="p-label"><i class="fa-regular fa-calendar-check"></i> {{ tr('Due Date', 'Ngày đến hạn') }}</div>
                  <div class="p-val">
                    <div style="position: relative; display: inline-flex;">
                      <button class="property-trigger" :class="{ 'muted-val': !selectedTask?.dueDate }" @click="openPicker('detail_due')">
                        <i class="fa-regular fa-calendar-check"></i>
-                       <span>Due date</span>
-                       <span class="property-value">{{ selectedTask?.dueDate || 'Add due date' }}</span>
+                       <span>{{ tr('Due Date', 'Ngày đến hạn') }}</span>
+                       <span class="property-value">{{ selectedTask?.dueDate || tr('Add due date', 'Thêm ngày đến hạn') }}</span>
                      </button>
                      <el-date-picker
                        :ref="el => setPickerRef('detail_due', el)"
@@ -722,7 +723,7 @@
                    </div>
                  </div>
                </div>
-               <div class="p-row">
+               <div v-if="showEstimateFeatures" class="p-row">
                  <div class="p-label"><i class="fa-regular fa-hourglass-half"></i> Estimate</div>
                  <div class="p-val estimate-property">
                    <div class="estimate-editor">
@@ -851,7 +852,7 @@
                    <small class="estimate-helper-text">Suggested from priority, story points, and task title keywords.</small>
                    <button class="property-trigger estimate-suggestion-btn ai-estimate-btn" :disabled="isAiSuggestingEstimate" @click="suggestEstimateWithAI()">
                      <i class="fa-solid fa-robot"></i>
-                     <span>{{ isAiSuggestingEstimate ? 'AI is thinking...' : 'AI suggest' }}</span>
+                     <span>{{ isAiSuggestingEstimate ? 'AI đang suy nghĩ...' : 'AI gợi ý' }}</span>
                      <span class="property-value">{{ aiEstimateSuggestion?.suggestedHours ? `${aiEstimateSuggestion.suggestedHours}h` : 'Gemini' }}</span>
                    </button>
                    <div v-if="aiEstimateSuggestion" class="estimate-breakdown ai-suggestion-panel">
@@ -870,13 +871,13 @@
                      </div>
                      <small class="estimate-helper-text">{{ aiEstimateSuggestion.reasoning }}</small>
                      <div class="estimate-inline-actions">
-                       <button class="secondary-mini-btn" type="button" @click="applyAiEstimateSuggestion()">Apply AI suggestion</button>
+                       <button class="secondary-mini-btn" type="button" @click="applyAiEstimateSuggestion()">Áp dụng gợi ý AI</button>
                      </div>
                    </div>
                  </div>
                </div>
                <div class="p-row">
-                 <div class="p-label"><i class="fa-solid fa-cube"></i> Modules</div>
+                  <div class="p-label"><i class="fa-solid fa-cube"></i> Module</div>
                  <div class="p-val">
                    <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="280" @show="moduleSearch = ''">
                      <template #reference>
@@ -887,7 +888,7 @@
                        </button>
                      </template>
                      <div class="popover-content">
-                       <input v-model="moduleSearch" type="text" class="popover-search" placeholder="Search modules..." />
+                       <input v-model="moduleSearch" type="text" class="popover-search" placeholder="Tìm module..." />
                        <div class="popover-list">
                          <div class="popover-item" @click="updateTaskField(selectedTask, 'moduleId', null); selectedTask.moduleId = null">
                            <i class="fa-solid fa-cube mr-2"></i>
@@ -905,7 +906,7 @@
                  </div>
                </div>
                <div class="p-row">
-                  <div class="p-label"><i class="fa-solid fa-circle-half-stroke"></i> Cycle</div>
+                  <div class="p-label"><i class="fa-solid fa-circle-half-stroke"></i> Chu kỳ</div>
                   <div class="p-val">
                     <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="280" @show="cycleSearch = ''">
                       <template #reference>
@@ -916,7 +917,7 @@
                         </button>
                       </template>
                       <div class="popover-content">
-                        <input v-model="cycleSearch" type="text" class="popover-search" placeholder="Search cycles..." />
+                        <input v-model="cycleSearch" type="text" class="popover-search" placeholder="Tìm chu kỳ..." />
                         <div class="popover-list">
                           <div class="popover-item" @click="updateTaskField(selectedTask, 'sprintId', null); selectedTask.sprintId = null">
                             <i class="fa-solid fa-circle-half-stroke mr-2"></i>
@@ -934,7 +935,7 @@
                   </div>
                </div>
                <div class="p-row">
-                  <div class="p-label"><i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i> Parent</div>
+                  <div class="p-label"><i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i> Công việc cha</div>
                   <div class="p-val">
                     <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="340" @show="parentSearch = ''">
                       <template #reference>
@@ -945,7 +946,7 @@
                         </button>
                       </template>
                       <div class="popover-content">
-                        <input v-model="parentSearch" type="text" class="popover-search" placeholder="Search parent task..." />
+                        <input v-model="parentSearch" type="text" class="popover-search" placeholder="Tìm công việc cha..." />
                         <div class="popover-list">
                           <div class="popover-item" @click="setTaskParent(selectedTask, null)">
                             <i class="fa-solid fa-ban mr-2"></i>
@@ -963,7 +964,7 @@
                   </div>
                </div>
                <div class="p-row">
-                  <div class="p-label"><i class="fa-solid fa-tags"></i> Labels</div>
+                  <div class="p-label"><i class="fa-solid fa-tags"></i> Nhãn</div>
                   <div class="p-val flex flex-wrap gap-2 items-center">
                      <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="280" @show="labelSearch = ''">
                        <template #reference>
@@ -974,7 +975,7 @@
                          </button>
                        </template>
                        <div class="popover-content">
-                         <input v-model="labelSearch" type="text" class="popover-search" placeholder="Search labels..." />
+                         <input v-model="labelSearch" type="text" class="popover-search" placeholder="Tìm nhãn..." />
                          <div class="popover-list">
                            <div class="popover-item" v-for="label in filteredLabels" :key="label.id" @click="toggleLabelDetail(label.id)">
                              <span class="w-3 h-3 rounded-full mr-2" :style="{ backgroundColor: label.colorCode || label.color || '#3b82f6' }"></span>
@@ -983,7 +984,7 @@
                            </div>
                            <div class="popover-item" v-if="filteredLabels.length === 0 && labelSearch" @click="createLabelDetail(labelSearch)">
                              <i class="fa-solid fa-plus mr-2"></i>
-                             <span>Add "{{ labelSearch }}"</span>
+                             <span>Thêm "{{ labelSearch }}"</span>
                            </div>
                          </div>
                        </div>
@@ -993,25 +994,24 @@
             </div>
 
             <div class="flex-between mb-6" style="margin-top: 56px;">
-               <h3 class="sp-section-title mb-0">Activity</h3>
+               <h3 class="sp-section-title mb-0">Hoạt động</h3>
                <div class="flex-center gap-2">
-                  <button class="icon-filter-btn" @click="toggleActivitySort" :title="activitySortNewestFirst ? 'Newest first' : 'Oldest first'"><i class="fa-solid fa-arrow-down-short-wide"></i></button>
+                  <button class="icon-filter-btn" @click="toggleActivitySort" :title="activitySortNewestFirst ? 'Mới nhất trước' : 'Cũ nhất trước'"><i class="fa-solid fa-arrow-down-short-wide"></i></button>
                   <button class="icon-filter-btn" @click="showActivityFilterInfo"><i class="fa-solid fa-bars-staggered"></i></button>
                </div>
             </div>
 
             <div v-if="activityEntries.length" class="activity-feed">
-               <div class="feed-item">
-                  <div class="feed-icon"><i class="fa-solid fa-clone"></i></div>
-                  <div class="feed-text"><b>{{ getCreatorName(selectedTask) }}</b> created the work item. <span class="muted-val">{{ formatRelativeTime(selectedTask?.createdAt) }}</span></div>
-               </div>
-
                <div v-for="entry in activityEntries" :key="entry.id" class="feed-item group">
-                 <template v-if="entry.type === 'audit'">
+                 <template v-if="entry.type === 'created'">
+                   <div class="feed-icon"><i class="fa-solid fa-clone"></i></div>
+                   <div class="feed-text"><b>{{ entry.user }}</b> đã tạo công việc. <span class="muted-val">{{ formatRelativeTime(entry.timestamp) }}</span></div>
+                 </template>
+                 <template v-else-if="entry.type === 'audit'">
                    <div class="feed-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
                    <div class="feed-content w-full">
                      <div class="feed-text">
-                       <b>{{ entry.user || 'System' }}</b> {{ entry.summary }}
+                       <b>{{ entry.user || 'Hệ thống' }}</b> {{ entry.summary }}
                        <span class="muted-val">{{ formatRelativeTime(entry.timestamp) }}</span>
                      </div>
                    </div>
@@ -1022,7 +1022,7 @@
                     <div class="flex items-center justify-between">
                        <div>
                           <span class="font-bold text-[var(--color-text-primary)] text-[13px]">{{ entry.comment.fullName || 'User' }}</span> 
-                          <span class="text-[var(--color-text-muted)] text-xs ml-2">commented {{ formatDate(entry.comment.createdAt) }} <span v-if="entry.comment.isEdited" class="italic">(edited)</span></span>
+                          <span class="text-[var(--color-text-muted)] text-xs ml-2">đã bình luận {{ formatRelativeTime(entry.comment.createdAt) }} <span v-if="entry.comment.isEdited" class="italic">(đã sửa)</span></span>
                        </div>
                        
                        <!-- Hover Actions -->
@@ -1034,9 +1034,9 @@
                              <div class="popover-content bg-[var(--bg-secondary)]">
                                 <div class="p-2 border-b border-[var(--border-color)] relative">
                                   <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
-                                  <input type="text" v-model="emojiSearch" class="w-full bg-[var(--color-surface)] border border-[var(--border-color)] rounded text-[var(--color-text-primary)] py-1.5 pl-8 pr-2 text-xs focus:outline-none focus:border-blue-500" placeholder="Search..." />
+                                  <input type="text" v-model="emojiSearch" class="w-full bg-[var(--color-surface)] border border-[var(--border-color)] rounded text-[var(--color-text-primary)] py-1.5 pl-8 pr-2 text-xs focus:outline-none focus:border-blue-500" placeholder="Tìm..." />
                                 </div>
-                                <div class="p-2 text-xs font-semibold text-gray-400">Smileys & emotion</div>
+                                <div class="p-2 text-xs font-semibold text-gray-400">Biểu cảm</div>
                                 <div class="grid grid-cols-8 gap-1 p-2 max-h-[160px] overflow-y-auto no-scrollbar">
                                   <div v-for="emoji in filteredEmojis" :key="emoji" @click="addReaction(entry.comment, emoji)" class="cursor-pointer text-lg text-center hover:bg-[var(--color-surface-hover)] rounded p-1">{{ emoji }}</div>
                                 </div>
@@ -1047,9 +1047,9 @@
                              <i class="fa-solid fa-ellipsis text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] cursor-pointer px-1.5 py-1 rounded hover:bg-[var(--color-surface-hover)]"></i>
                              <template #dropdown>
                                <el-dropdown-menu class="dark-dropdown" style="width: 150px;">
-                                 <el-dropdown-item @click="startEditingComment(entry.comment)"><i class="fa-solid fa-pen mr-2"></i> Edit</el-dropdown-item>
-                                 <el-dropdown-item @click="copyCommentLink(entry.comment.id)"><i class="fa-solid fa-link mr-2"></i> Copy link</el-dropdown-item>
-                                 <el-dropdown-item @click="deleteComment(entry.comment.id)" style="color: #f87171 !important;"><i class="fa-regular fa-trash-can mr-2"></i> Delete</el-dropdown-item>
+                                 <el-dropdown-item @click="startEditingComment(entry.comment)"><i class="fa-solid fa-pen mr-2"></i> Sửa</el-dropdown-item>
+                                 <el-dropdown-item @click="copyCommentLink(entry.comment.id)"><i class="fa-solid fa-link mr-2"></i> Sao chép link</el-dropdown-item>
+                                 <el-dropdown-item @click="deleteComment(entry.comment.id)" style="color: #f87171 !important;"><i class="fa-regular fa-trash-can mr-2"></i> Xóa</el-dropdown-item>
                                </el-dropdown-menu>
                              </template>
                           </el-dropdown>
@@ -1061,8 +1061,8 @@
                        <div class="editor-wrap !bg-[var(--color-surface)]">
                           <textarea class="c-input bg-transparent border-none !h-[60px]" v-model="editingContent" autofocus></textarea>
                           <div class="c-toolbar flex justify-end gap-2 p-2">
-                             <button class="px-3 py-1.5 text-xs rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition" @click="cancelEditingComment">Cancel</button>
-                             <button class="px-3 py-1.5 text-xs rounded bg-blue-600 text-white hover:bg-blue-700 transition" @click="saveEditedComment(entry.comment.id, entry.comment)">Update</button>
+                             <button class="px-3 py-1.5 text-xs rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition" @click="cancelEditingComment">Hủy</button>
+                             <button class="px-3 py-1.5 text-xs rounded bg-blue-600 text-white hover:bg-blue-700 transition" @click="saveEditedComment(entry.comment.id, entry.comment)">Cập nhật</button>
                           </div>
                        </div>
                     </div>
@@ -1095,10 +1095,10 @@
                  </template>
                </div>
             </div>
-            <div v-else class="activity-empty-state">No activity yet.</div>
+            <div v-else class="activity-empty-state">Chưa có hoạt động.</div>
 
             <div class="comment-box">
-               <p class="text-[13px] font-semibold mb-2 text-[var(--color-text-muted)]">Add comment</p>
+              <p class="text-[13px] font-semibold mb-2 text-[var(--color-text-muted)]">Thêm bình luận</p>
                <div class="editor-wrap !pt-2">
                   <div v-if="pendingAttachments.length > 0" class="px-3 pb-2 flex flex-wrap gap-2">
                      <div v-for="(file, idx) in pendingAttachments" :key="idx" class="flex items-center gap-1.5 bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded px-2 py-1 text-xs text-[var(--color-text-secondary)]">
@@ -1111,7 +1111,7 @@
                     ref="commentEditor"
                     class="c-input rich-editor comment-editor !pt-0"
                     contenteditable
-                    data-placeholder="Click to add comment..."
+                    data-placeholder="Nhập bình luận..."
                     @focus="activeEditor = 'comment'"
                     @keydown="handleEditorKeydown($event, 'comment')"
                     @input="handleCommentEditorInput"
@@ -1144,7 +1144,9 @@
                        <i class="fa-regular fa-image icon-hover" @mousedown.prevent="triggerCommentImageUpload"></i> 
                        <i class="fa-solid fa-paperclip icon-hover" @mousedown.prevent="triggerCommentFileUpload"></i>
                      </div>
-                     <button class="c-submit" :disabled="!commentHasContent" @click="submitComment">Comment</button>
+                     <button class="c-submit" :disabled="!commentHasContent || isSubmittingComment" @click="submitComment">
+                       {{ isSubmittingComment ? 'Đang gửi...' : 'Gửi' }}
+                     </button>
                   </div>
                </div>
             </div>
@@ -1165,7 +1167,7 @@
             <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
             <input v-model="previewZoom" type="range" min="1" max="3" step="0.1" />
           </label>
-          <button class="lightbox-delete" @click="removePreviewAttachment"><i class="fa-regular fa-trash-can"></i> Delete</button>
+          <button class="lightbox-delete" @click="removePreviewAttachment"><i class="fa-regular fa-trash-can"></i> Xóa</button>
           <a :href="previewImage.url" :download="previewImage.fileName" class="download-btn">
             <i class="fa-solid fa-download"></i> Download
           </a>
@@ -1184,6 +1186,7 @@ import DOMPurify from 'dompurify';
 import { subscribeAdminRealtime } from '@/utils/adminRealtime';
 import { getStoredUser, hasSystemAdminAccess, normalizeProjectRole } from '@/utils/permissions';
 import { useProjectStore } from '@/store/useProjectStore';
+import { useI18nStore } from '@/store/useI18nStore';
 import {
   buildFreshWorkSession,
   calculateWorkSessionHours,
@@ -1205,10 +1208,15 @@ const props = defineProps({
 
 const emit = defineEmits(['updateTask', 'close', 'back', 'open-task', 'create-subtask', 'refresh-tasks']);
 const projectStore = useProjectStore();
+const i18nStore = useI18nStore();
+const tr = (en, vi) => i18nStore.locale === 'vi' ? vi : en;
+const showEstimateFeatures = false;
 
 const showTaskModal = ref(true);
 const isSubscribed = ref(false);
 const activitySortNewestFirst = ref(true);
+const localActivityEntries = ref([]);
+const localActivityByTaskId = ref({});
 const showSubtasks = ref(true);
 const WORK_SESSION_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
 const workSession = ref(null);
@@ -1484,11 +1492,11 @@ const filteredStatuses = computed(() => {
 });
 
 const getPrioLabel = (p) => {
-    if (p===1) return 'Urgent';
-    if (p===2) return 'High';
-    if (p===3) return 'Medium';
-    if (p===4) return 'Low';
-    return 'None';
+    if (p===1) return tr('Urgent', 'Khẩn cấp');
+    if (p===2) return tr('High', 'Cao');
+    if (p===3) return tr('Medium', 'Trung bình');
+    if (p===4) return tr('Low', 'Thấp');
+    return tr('None', 'Không có');
 };
 
 const getPrioIcon = (p) => {
@@ -1509,7 +1517,17 @@ const getStatusIcon = (s) => {
     return 'fa-solid fa-circle-dashed';
 };
 
-const getStatusLabel = (statusName) => statusName || 'State';
+const getStatusLabel = (statusName) => {
+    const status = `${statusName || ''}`.toUpperCase().trim();
+    if (!status) return tr('Status', 'Trạng thái');
+    if (status.includes('CANCEL')) return tr('Cancelled', 'Đã hủy');
+    if (status.includes('DONE') || status.includes('COMPLETE')) return tr('Done', 'Hoàn thành');
+    if (status.includes('REVIEW')) return tr('In Review', 'Đang đánh giá');
+    if (status.includes('PROGRESS') || status.includes('ACTIVE')) return tr('In Progress', 'Đang thực hiện');
+    if (status.includes('TODO') || status.includes('TO DO')) return tr('To Do', 'Cần làm');
+    if (status.includes('BACKLOG')) return tr('Backlog', 'Chờ xử lý');
+    return statusName || tr('Status', 'Trạng thái');
+};
 const normalizeStatusName = (statusName) => {
     const upper = (statusName || '').toUpperCase().replace(/\s+/g, '');
     if (upper.includes('CANCEL')) return 'CANCELLED';
@@ -1520,9 +1538,9 @@ const normalizeStatusName = (statusName) => {
 };
 
 const getAssigneeLabel = (id) => {
-   if (!id) return 'Assignees';
+   if (!id) return tr('Assignee', 'Người thực hiện');
    const user = projectMemberOptions.value.find(m => m.userId === id);
-   return user ? (user.fullName || user.name || user.email || 'Assignees') : 'Assignees';
+   return user ? (user.fullName || user.name || user.email || tr('Assignee', 'Người thực hiện')) : tr('Assignee', 'Người thực hiện');
 };
 
 const getAssigneeIds = (task = props.selectedTask) => {
@@ -1592,9 +1610,9 @@ const visibleEstimateAssigneeRows = computed(() => {
 
 const getAssigneeSummary = (task = props.selectedTask) => {
    const members = buildTaskAssigneeRows(task);
-   if (!members.length) return 'Assignees';
-   if (members.length === 1) return members[0].fullName || members[0].email || 'Assignee';
-   return `${members.length} assignees`;
+   if (!members.length) return tr('Assignee', 'Người thực hiện');
+   if (members.length === 1) return members[0].fullName || members[0].email || tr('Assignee', 'Người thực hiện');
+   return tr(`${members.length} assignees`, `${members.length} người thực hiện`);
 };
 
 const getTaskProgressPercent = (task = props.selectedTask) => {
@@ -1630,19 +1648,19 @@ const openParentTask = () => {
 };
 
 const getCycleLabel = (id) => {
-   if (!id) return 'Cycle';
+   if (!id) return tr('Cycle', 'Chu kỳ');
    const c = projectCycles.value.find(c => c.id === id);
-   return c ? c.name : 'Cycle';
+   return c ? c.name : tr('Cycle', 'Chu kỳ');
 };
 
 const getModuleLabel = (id) => {
-   if (!id) return 'Modules';
+   if (!id) return tr('Modules', 'Phân hệ');
    const m = projectModules.value.find(m => m.id === id);
-   return m ? m.name : 'Modules';
+   return m ? m.name : tr('Modules', 'Phân hệ');
 };
 
 const getParentLabel = (id) => {
-   if (!id) return 'Add parent work item';
+   if (!id) return tr('Add parent work item', 'Thêm công việc cha');
    const parent = cachedProjectTasks.value.find(task => task.id === id);
    if (parent) {
       return `${parent.sequenceId || parent.id?.substring(0, 8)} ${parent.title}`;
@@ -2277,30 +2295,30 @@ const fetchAuditTimeline = async () => {
 };
 
 const formatRelativeTime = (dateStr) => {
-  if (!dateStr) return 'just now';
+  if (!dateStr) return 'vừa xong';
   const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return 'just now';
+  if (Number.isNaN(date.getTime())) return 'vừa xong';
 
   const diffMs = Date.now() - date.getTime();
   const diffMinutes = Math.max(0, Math.floor(diffMs / 60000));
 
-  if (diffMinutes < 1) return 'just now';
-  if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+  if (diffMinutes < 1) return 'vừa xong';
+  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
 
   const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  if (diffHours < 24) return `${diffHours} giờ trước`;
 
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  if (diffDays < 7) return `${diffDays} ngày trước`;
 
   const diffWeeks = Math.floor(diffDays / 7);
-  if (diffWeeks < 5) return `${diffWeeks} week${diffWeeks === 1 ? '' : 's'} ago`;
+  if (diffWeeks < 5) return `${diffWeeks} tuần trước`;
 
   const diffMonths = Math.floor(diffDays / 30);
-  if (diffMonths < 12) return `${diffMonths} month${diffMonths === 1 ? '' : 's'} ago`;
+  if (diffMonths < 12) return `${diffMonths} tháng trước`;
 
   const diffYears = Math.floor(diffDays / 365);
-  return `${diffYears} year${diffYears === 1 ? '' : 's'} ago`;
+  return `${diffYears} năm trước`;
 };
 
 const resolveFileUrl = (url) => {
@@ -2336,6 +2354,76 @@ const getCreatorName = (task) => {
   return task.reporterName || task.createdByName || task.creatorName || task.createdBy?.fullName || task.reporter?.fullName || 'Creator';
 };
 
+const getActivityActorName = () => {
+  const storedUser = getStoredUser();
+  return props.currentUser?.fullName
+    || props.currentUser?.name
+    || storedUser?.fullName
+    || storedUser?.name
+    || props.selectedTask?.updatedByName
+    || 'Bạn';
+};
+
+const activityFieldLabels = {
+  title: 'tiêu đề',
+  description: 'mô tả',
+  statusName: 'trạng thái',
+  priority: 'độ ưu tiên',
+  storyPoints: 'story points',
+  plannedStartDate: 'ngày bắt đầu',
+  dueDate: 'ngày đến hạn',
+  assigneeIds: 'người được giao',
+  assigneeProgress: 'tiến độ',
+  labelIds: 'nhãn',
+  moduleId: 'module',
+  sprintId: 'cycle',
+  parentId: 'công việc cha',
+  parentTaskId: 'công việc cha'
+};
+
+const getActivityFieldLabel = (field) => activityFieldLabels[field] || field;
+
+const recordLocalActivity = (summary) => {
+  if (!summary) return;
+  const timestamp = new Date().toISOString();
+  const entry = {
+    id: `local-${timestamp}-${Math.random().toString(36).slice(2)}`,
+    type: 'audit',
+    user: getActivityActorName(),
+    summary,
+    timestamp,
+    isLocal: true
+  };
+  localActivityEntries.value.unshift(entry);
+
+  const taskId = props.selectedTask?.id;
+  if (taskId) {
+    const current = localActivityByTaskId.value[taskId] || [];
+    localActivityByTaskId.value = {
+      ...localActivityByTaskId.value,
+      [taskId]: [entry, ...current].slice(0, 12)
+    };
+  }
+
+  if (props.selectedTask) {
+    props.selectedTask.updatedAt = timestamp;
+    props.selectedTask.updatedByName = getActivityActorName();
+  }
+};
+
+const recordTaskFieldActivity = (field, value) => {
+  if (!field) return;
+  if (field === 'assigneeProgress') {
+    recordLocalActivity('đã cập nhật tiến độ');
+    return;
+  }
+  const label = getActivityFieldLabel(field);
+  const valueText = Array.isArray(value) || value === null || value === undefined || value === ''
+    ? ''
+    : ` thành "${value}"`;
+  recordLocalActivity(`đã cập nhật ${label}${valueText}`);
+};
+
 const removePreviewAttachment = async () => {
   if (!previewImage.value?.commentId || !previewImage.value?.id) {
     ElMessage.info('Delete attachment requires a dedicated backend endpoint.');
@@ -2363,11 +2451,20 @@ const lastEditedBy = computed(() => {
 const lastEditedRelative = computed(() => formatRelativeTime(props.selectedTask?.updatedAt || props.selectedTask?.createdAt));
 
 const updateTaskField = (task, field, value) => {
+  recordTaskFieldActivity(field, value);
   emit('updateTask', task, field, value);
+  window.setTimeout(fetchAuditTimeline, 700);
 };
 
 const updateTaskFields = (task, payload) => {
+  const fields = Object.keys(payload || {});
+  if (fields.length === 1) {
+    recordTaskFieldActivity(fields[0], payload[fields[0]]);
+  } else if (fields.length > 1) {
+    recordLocalActivity(`đã cập nhật ${fields.map(getActivityFieldLabel).join(', ')}`);
+  }
   emit('updateTask', task, payload);
+  window.setTimeout(fetchAuditTimeline, 700);
 };
 
 const persistTaskPatch = async (task, payload) => {
@@ -2376,7 +2473,14 @@ const persistTaskPatch = async (task, payload) => {
   const normalized = normalizeTaskSnapshot({ ...(response.data?.data || {}) });
   Object.assign(task, normalized);
   mergeCachedTask(normalized);
+  const fields = Object.keys(payload || {});
+  if (fields.length === 1) {
+    recordTaskFieldActivity(fields[0], payload[fields[0]]);
+  } else if (fields.length > 1) {
+    recordLocalActivity(`đã cập nhật ${fields.map(getActivityFieldLabel).join(', ')}`);
+  }
   emit('refresh-tasks');
+  await fetchAuditTimeline();
   return normalized;
 };
 
@@ -2947,7 +3051,7 @@ const handleTaskDateChange = (field, rawValue, task = props.selectedTask) => {
   if (field === 'dueDate') {
     const startDate = formatDateOnly(task.plannedStartDate);
     if (normalizedValue && startDate && normalizedValue < startDate) {
-      ElMessage.warning('Due date cannot be before start date.');
+      ElMessage.warning('Hạn hoàn thành không được trước ngày bắt đầu.');
       task.dueDate = startDate;
       if (!task.isNew) {
         updateTaskField(task, 'dueDate', startDate);
@@ -3489,6 +3593,7 @@ const comments = ref([]);
 const replyingToCommentId = ref(null);
 const newComment = ref('');
 const pendingAttachments = ref([]);
+const isSubmittingComment = ref(false);
 const stripHtml = (value) => (value || '').replace(/<[^>]+>/g, ' ');
 const commentHasContent = computed(() => stripHtml(newComment.value).replace(/\s+/g, '').length > 0 || pendingAttachments.value.length > 0);
 
@@ -3497,7 +3602,10 @@ async function fetchComments() {
   try {
     const res = await axiosClient.get(`/projects/${props.projectId}/WorkTasks/${props.selectedTask.id}/comments`);
     comments.value = res.data?.data || [];
-  } catch (err) { }
+  } catch (err) {
+    comments.value = [];
+    ElMessage.error(err.response?.data?.message || 'Không tải được bình luận từ server');
+  }
 }
 
 
@@ -3624,6 +3732,13 @@ const topLevelComments = computed(() => {
 });
 
 const activityEntries = computed(() => {
+  const createdEntry = props.selectedTask?.createdAt ? [{
+    id: `created-${props.selectedTask?.id || 'task'}`,
+    type: 'created',
+    timestamp: props.selectedTask.createdAt,
+    user: getCreatorName(props.selectedTask)
+  }] : [];
+
   const commentEntries = topLevelComments.value.map(comment => ({
     id: `comment-${comment.id}`,
     type: 'comment',
@@ -3633,10 +3748,12 @@ const activityEntries = computed(() => {
 
   const auditTimelineEntries = (auditEntries.value || []).map(entry => ({
     ...entry,
-    type: 'audit'
+    type: 'audit',
+    timestamp: entry.timestamp || entry.createdAt || entry.occurredAt || entry.createdOn || entry.date
   }));
 
-  const items = [...auditTimelineEntries, ...commentEntries];
+  const items = [...localActivityEntries.value, ...auditTimelineEntries, ...commentEntries, ...createdEntry]
+    .filter(entry => entry.timestamp);
   const sorted = items.sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
   return activitySortNewestFirst.value ? sorted : [...sorted].reverse();
 });
@@ -3659,8 +3776,10 @@ const startReply = (c) => { replyingToCommentId.value = c.id; newComment.value =
 const cancelReply = () => { replyingToCommentId.value = null; newComment.value = ''; pendingAttachments.value = []; };
 
 const submitComment = async () => {
-    if (!commentHasContent.value) return;
+    if (!commentHasContent.value || !props.selectedTask?.id || isSubmittingComment.value) return;
+    isSubmittingComment.value = true;
     try {
+        syncEditorModel('comment');
         const sanitizedContent = sanitizeRichText(newComment.value || '');
         const formData = new FormData();
         formData.append('content', sanitizedContent);
@@ -3671,9 +3790,13 @@ const submitComment = async () => {
             formData.append('files', file);
         });
 
-        await axiosClient.post(`/projects/${props.projectId}/WorkTasks/${props.selectedTask.id}/comments`, formData, {
+        const response = await axiosClient.post(`/projects/${props.projectId}/WorkTasks/${props.selectedTask.id}/comments`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
+        const createdComment = response.data?.data;
+        if (createdComment?.id && !comments.value.some(item => item.id === createdComment.id)) {
+            comments.value = [...comments.value, createdComment];
+        }
         
         newComment.value = '';
         if (commentEditor.value) commentEditor.value.innerHTML = '';
@@ -3681,9 +3804,12 @@ const submitComment = async () => {
         replyingToCommentId.value = null;
         if (commentFileInput.value) commentFileInput.value.value = '';
         if (commentImageInput.value) commentImageInput.value.value = '';
-        fetchComments();
+        await fetchComments();
         fetchAuditTimeline();
+        ElMessage.success('Đã thêm bình luận');
+        isSubmittingComment.value = false;
     } catch(e) {
+        isSubmittingComment.value = false;
         ElMessage.error(e.response?.data?.message || "Lỗi khi gửi bình luận");
     }
 };
@@ -3691,6 +3817,7 @@ const submitComment = async () => {
 watch(() => props.selectedTask, (newTask) => {
   if (newTask) {
     normalizeTaskSnapshot(newTask);
+    localActivityEntries.value = localActivityByTaskId.value[newTask.id] || [];
     taskViewStartedAt.value = Date.now();
     timeLogHours.value = '';
     timeLogNote.value = '';
@@ -3880,20 +4007,26 @@ watch(() => props.selectedTask, (newTask) => {
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(800px, 90vw);
-  background: var(--color-bg);
-  border-left: 1px solid var(--color-border);
+  width: min(620px, 92vw);
+  background:
+    linear-gradient(180deg, rgba(14, 165, 233, 0.12), transparent 260px),
+    color-mix(in srgb, var(--color-bg) 90%, #0f172a 10%);
+  border-left: 1px solid rgba(148, 163, 184, 0.18);
   display: flex;
   flex-direction: column;
+  box-shadow: -26px 0 70px rgba(0, 0, 0, 0.34);
 }
 
 .sp-header {
-  height: 54px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 18px;
   border-bottom: 1px solid var(--color-border);
+  background:
+    linear-gradient(90deg, rgba(56, 189, 248, 0.16), transparent 58%),
+    color-mix(in srgb, var(--color-surface) 82%, transparent);
 }
 
 .sph-right {
@@ -3905,7 +4038,7 @@ watch(() => props.selectedTask, (newTask) => {
 .sp-body {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 32px;
+  padding: 22px 26px 32px;
 }
 
 .sp-breadcrumb {
@@ -3916,9 +4049,9 @@ watch(() => props.selectedTask, (newTask) => {
 }
 
 .sp-title {
-  font-size: 22px;
-  font-weight: 800;
-  margin-bottom: 20px;
+  font-size: 24px;
+  font-weight: 850;
+  margin: 0 0 14px;
   outline: none;
   color: var(--color-text-primary);
   line-height: 1.3;
@@ -3928,8 +4061,9 @@ watch(() => props.selectedTask, (newTask) => {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 24px;
-  margin-bottom: 24px;
+  margin-top: 18px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
 /* ACTION BUTTONS */
@@ -3991,11 +4125,20 @@ watch(() => props.selectedTask, (newTask) => {
 }
 
 .rich-editor {
-  min-height: 60px;
+  min-height: 74px;
   font-size: 14px;
   line-height: 1.6;
   color: var(--color-text-secondary);
   outline: none;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-surface) 56%, transparent);
+}
+
+.rich-editor:focus {
+  border-color: color-mix(in srgb, var(--color-accent) 58%, transparent);
+  background: var(--color-surface);
 }
 
 .rich-editor[data-placeholder]:empty:before {
@@ -4005,41 +4148,51 @@ watch(() => props.selectedTask, (newTask) => {
 
 .props-grid {
   display: grid;
-  gap: 16px;
-  margin-top: 20px;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.035), transparent),
+    color-mix(in srgb, var(--color-surface) 78%, transparent);
 }
 
 .p-row {
   display: grid;
-  grid-template-columns: 140px 1fr;
+  grid-template-columns: 128px 1fr;
   align-items: center;
+  min-height: 34px;
+  gap: 12px;
 }
 
 .p-label {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--color-text-secondary);
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .property-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 12px;
-  background: var(--color-bg-secondary);
-  border: 1px solid transparent;
-  border-radius: 2px;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(15, 23, 42, 0.22);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 6px;
   color: var(--color-text-primary);
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
+  max-width: 100%;
 }
 
 .property-trigger:hover {
-  background: var(--color-bg);
-  border-color: var(--color-border);
+  background: color-mix(in srgb, var(--color-bg) 82%, #38bdf8 18%);
+  border-color: rgba(56, 189, 248, 0.36);
 }
 
 .property-value {
@@ -4134,10 +4287,10 @@ watch(() => props.selectedTask, (newTask) => {
 
 .icon-filter-btn {
   background: var(--color-bg-secondary);
-  border: none;
+  border: 1px solid var(--color-border);
   color: #A1A1AA;
-  padding: 6px 10px;
-  border-radius: 4px;
+  padding: 6px 9px;
+  border-radius: 6px;
   cursor: pointer;
 }
 
@@ -4232,23 +4385,64 @@ watch(() => props.selectedTask, (newTask) => {
 .activity-feed {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-top: 16px;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(56, 189, 248, 0.055), transparent),
+    color-mix(in srgb, var(--color-surface) 74%, transparent);
 }
 
 .feed-item {
+  position: relative;
   display: flex;
-  gap: 12px;
+  gap: 10px;
   font-size: 13px;
+  padding: 9px;
+  border-radius: 8px;
+}
+
+.feed-item:hover {
+  background: color-mix(in srgb, var(--color-bg-secondary) 80%, #38bdf8 6%);
 }
 
 .feed-icon {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 999px;
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
+}
+
+.feed-avatar {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  color: var(--color-text-primary);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.feed-text {
   color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.feed-text b {
+  color: var(--color-text-primary);
 }
 
 .muted-val {
@@ -4263,14 +4457,19 @@ watch(() => props.selectedTask, (newTask) => {
 }
 
 .comment-box {
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid var(--color-border);
+  margin-top: 22px;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.10), transparent 36%),
+    color-mix(in srgb, var(--color-surface) 78%, transparent);
 }
 
 .comment-editor {
-  min-height: 80px;
-  padding: 12px 16px !important;
+  min-height: 76px;
+  padding: 12px 14px !important;
+  background: rgba(15, 23, 42, 0.22);
 }
 
 .c-toolbar {
@@ -4316,20 +4515,22 @@ watch(() => props.selectedTask, (newTask) => {
 }
 
 .c-submit {
-  height: 28px;
-  padding: 0 12px;
-  background: var(--color-accent);
+  height: 32px;
+  padding: 0 16px;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
   color: #ffffff;
   border: none;
-  border-radius: 4px;
+  border-radius: 7px;
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.26);
 }
 
 .c-submit:hover:not(:disabled) {
-  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.34);
 }
 
 .c-submit:disabled {

@@ -1,72 +1,20 @@
 <template>
   <NexusLayout>
-    <div class="space-dashboard-page p-6">
-      <header class="mb-6 flex justify-between items-center">
-        <div>
-          <h1 class="text-2xl font-bold text-[var(--color-text-primary)]">{{ t('Dashboard') }}</h1>
-          <p class="text-[var(--color-text-muted)] text-sm mt-1">{{ t('Project overview and quick insights') }}</p>
-        </div>
     <div class="space-dashboard-page">
       <header class="dashboard-header">
         <span class="project-key-badge">
-          {{ project?.key || 'PROJECT' }}
+          {{ project?.key || t('Project') }}
         </span>
         <h1 class="project-title">
-          {{ project?.name || 'Dashboard' }}
+          {{ project?.name || t('Dashboard') }}
         </h1>
-        <p class="project-subtitle">Project overview and quick insights</p>
+        <p class="project-subtitle">{{ t('Project overview and quick insights') }}</p>
       </header>
-      
+
       <div v-if="loading" class="dashboard-loading-container">
         <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-[var(--color-accent)]"></i>
-        <p class="text-sm font-medium">Fetching dashboard insights...</p>
+        <p class="text-sm font-medium">{{ t('Fetching dashboard insights...') }}</p>
       </div>
-      <div v-else class="dashboard-grid">
-        <div class="stat-card">
-          <div class="stat-icon bg-blue-500/10 text-blue-500"><i class="fa-solid fa-list-check"></i></div>
-          <div class="stat-info">
-            <span class="stat-value">12</span>
-            <span class="stat-label">{{ t('Open Tasks') }}</span>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon bg-green-500/10 text-green-500"><i class="fa-solid fa-check-double"></i></div>
-          <div class="stat-info">
-            <span class="stat-value">45</span>
-            <span class="stat-label">{{ t('Completed') }}</span>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon bg-yellow-500/10 text-yellow-500"><i class="fa-solid fa-clock-rotate-left"></i></div>
-          <div class="stat-info">
-            <span class="stat-value">3</span>
-            <span class="stat-label">{{ t('In Progress') }}</span>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon bg-red-500/10 text-red-500"><i class="fa-solid fa-triangle-exclamation"></i></div>
-          <div class="stat-info">
-            <span class="stat-value">2</span>
-            <span class="stat-label">{{ t('Blocked') }}</span>
-          </div>
-        </div>
-        
-        <div class="dashboard-panel col-span-2">
-          <h3 class="font-semibold text-lg mb-4">{{ t('Recent Tasks') }}</h3>
-          <div class="empty-state">
-            <i class="fa-solid fa-inbox text-3xl mb-3 text-[var(--color-text-muted)]"></i>
-            <h4 class="text-[var(--color-text-primary)] font-medium">{{ t('No recent tasks') }}</h4>
-            <p class="text-[var(--color-text-secondary)] text-sm mt-1">{{ t('Get started by creating a new task in your board or backlog.') }}</p>
-          </div>
-        </div>
-
-        <div class="dashboard-panel col-span-2">
-          <h3 class="font-semibold text-lg mb-4">{{ t('Team Workload') }}</h3>
-          <div class="empty-state">
-            <i class="fa-solid fa-users text-3xl mb-3 text-[var(--color-text-muted)]"></i>
-            <h4 class="text-[var(--color-text-primary)] font-medium">{{ t('Workload distribution') }}</h4>
-            <p class="text-[var(--color-text-secondary)] text-sm mt-1">{{ t('Assign tasks to your team members to see their workload here.') }}</p>
-
       <div v-else class="dashboard-content">
         <!-- Stats Cards Grid -->
         <div class="stats-grid">
@@ -76,91 +24,87 @@
             </div>
             <div class="stat-info">
               <span class="stat-value">{{ openTasks.length }}</span>
-              <span class="stat-label">Open Tasks</span>
+              <span class="stat-label">{{ t('Open Tasks') }}</span>
             </div>
           </div>
-          
+
           <div class="stat-card completed-tasks-card">
             <div class="stat-icon">
               <i class="fa-solid fa-check-double"></i>
             </div>
             <div class="stat-info">
               <span class="stat-value">{{ completedTasks.length }}</span>
-              <span class="stat-label">Completed</span>
+              <span class="stat-label">{{ t('Completed') }}</span>
             </div>
           </div>
-          
+
           <div class="stat-card inprogress-tasks-card">
             <div class="stat-icon">
               <i class="fa-solid fa-clock-rotate-left"></i>
             </div>
             <div class="stat-info">
               <span class="stat-value">{{ inProgressTasks.length }}</span>
-              <span class="stat-label">In Progress</span>
+              <span class="stat-label">{{ t('In Progress') }}</span>
             </div>
           </div>
-          
+
           <div class="stat-card blocked-tasks-card">
             <div class="stat-icon">
               <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
             <div class="stat-info">
               <span class="stat-value">{{ blockedTasks.length }}</span>
-              <span class="stat-label">Blocked</span>
+              <span class="stat-label">{{ t('Blocked') }}</span>
             </div>
           </div>
         </div>
-        
+
         <!-- Dashboard panels -->
         <div class="panels-grid">
           <!-- Recent Tasks Panel -->
           <div class="dashboard-panel">
             <div class="panel-header">
               <h3 class="panel-title">
-                <i class="fa-solid fa-bolt text-yellow-500"></i> Recent Tasks
+                <i class="fa-solid fa-bolt text-yellow-500"></i> {{ t('Recent Tasks') }}
               </h3>
-              <router-link 
-                :to="{ name: 'SpaceSummary', params: { id: projectId } }" 
+              <router-link
+                :to="{ name: 'SpaceSummary', params: { id: projectId } }"
                 class="panel-link"
               >
-                View all tasks <i class="fa-solid fa-arrow-right"></i>
+                {{ t('View all tasks') }} <i class="fa-solid fa-arrow-right"></i>
               </router-link>
             </div>
-            
+
             <div v-if="recentTasks.length === 0" class="empty-state">
               <i class="fa-solid fa-inbox"></i>
-              <h4>No recent tasks</h4>
-              <p>Get started by creating a new task in your board or backlog.</p>
+              <h4>{{ t('No recent tasks') }}</h4>
+              <p>{{ t('Get started by creating a new task in your board or backlog.') }}</p>
             </div>
 
             <div v-else class="task-list">
-              <div 
-                v-for="task in recentTasks" 
-                :key="task.id" 
+              <div
+                v-for="task in recentTasks"
+                :key="task.id"
                 class="task-row"
               >
                 <div class="task-info-left">
                   <span class="task-seq-id">
-                    {{ task.sequenceId || 'TASK' }}
+                    {{ task.sequenceId || t('Task') }}
                   </span>
-                  <button 
+                  <button
                     @click="navigateToTask(task.id)"
                     class="task-title-btn"
                   >
                     {{ task.title }}
                   </button>
                 </div>
-                
+
                 <div class="task-meta-right">
-                  <span 
-                    v-if="task.priority"
-                    class="text-[10px] px-2 py-0.5 rounded-full border"
-                    :class="getPriorityClass(task.priority)"
-                  >
+                  <span class="priority-badge" :class="getPriorityClass(task.priority)">
                     {{ getPriorityLabel(task.priority) }}
                   </span>
-                  <span class="task-status-tag">
-                    {{ task.statusName || 'No status' }}
+                  <span class="task-status-tag" :class="getStatusClass(task.statusName)">
+                    {{ normalizeStatusLabel(task.statusName) }}
                   </span>
                 </div>
               </div>
@@ -171,20 +115,20 @@
           <div class="dashboard-panel">
             <div class="panel-header">
               <h3 class="panel-title">
-                <i class="fa-solid fa-users text-blue-500"></i> Team Workload
+                <i class="fa-solid fa-users text-blue-500"></i> {{ t('Team Workload') }}
               </h3>
             </div>
-            
+
             <div v-if="teamWorkload.length === 0" class="empty-state">
               <i class="fa-solid fa-users"></i>
-              <h4>Workload distribution</h4>
-              <p>Assign tasks to team members to track their workload here.</p>
+              <h4>{{ t('Workload distribution') }}</h4>
+              <p>{{ t('Assign tasks to your team members to see their workload here.') }}</p>
             </div>
 
             <div v-else class="workload-list">
-              <div 
-                v-for="member in teamWorkload" 
-                :key="member.userId" 
+              <div
+                v-for="member in teamWorkload"
+                :key="member.userId"
                 class="workload-item"
               >
                 <div class="workload-item-header">
@@ -196,13 +140,13 @@
                     <span class="user-name">{{ member.fullName }}</span>
                   </div>
                   <span class="workload-count">
-                    {{ member.count }} {{ member.count === 1 ? 'task' : 'tasks' }}
+                    {{ member.count }} {{ t(member.count === 1 ? 'task' : 'tasks') }}
                   </span>
                 </div>
-                
+
                 <div class="workload-progress-track">
-                  <div 
-                    class="workload-progress-bar" 
+                  <div
+                    class="workload-progress-bar"
                     :style="{ width: `${member.percentage}%` }"
                   ></div>
                 </div>
@@ -217,7 +161,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 
@@ -236,6 +180,7 @@ const workTaskStore = useWorkTaskStore()
 const projectStore = useProjectStore()
 
 const loading = ref(true)
+let loadRequestId = 0
 
 const project = computed(() => projectStore.currentProject)
 const allTasks = computed(() => workTaskStore.tasks || [])
@@ -289,7 +234,7 @@ const teamWorkload = computed(() => {
       if (!membersMap['unassigned']) {
         membersMap['unassigned'] = {
           userId: 'unassigned',
-          fullName: 'Unassigned',
+          fullName: t('Unassigned'),
           avatar: null,
           count: 0
         }
@@ -300,7 +245,7 @@ const teamWorkload = computed(() => {
         const uid = assignee.userId || assignee.id
         if (!uid) return
         if (!membersMap[uid]) {
-          const name = assignee.fullName || assignee.name || 'Unknown'
+          const name = assignee.fullName || assignee.name || t('Unknown')
           membersMap[uid] = {
             userId: uid,
             fullName: name,
@@ -326,23 +271,40 @@ const teamWorkload = computed(() => {
 })
 
 const getPriorityLabel = (priority) => {
-  switch (priority) {
-    case 1: return 'Urgent'
-    case 2: return 'High'
-    case 3: return 'Medium'
-    case 4: return 'Low'
-    default: return 'None'
+  switch (Number(priority)) {
+    case 1: return t('Urgent')
+    case 2: return t('High')
+    case 3: return t('Medium')
+    case 4: return t('Low')
+    default: return t('None')
   }
 }
 
+const normalizeStatusLabel = (statusName = '') => {
+  const normalized = `${statusName || ''}`.trim().toUpperCase()
+  if (!normalized) return t('No status')
+  return t(normalized)
+}
+
 const getPriorityClass = (priority) => {
-  switch (priority) {
-    case 1: return 'bg-red-500/10 text-red-500 border-red-500/20'
-    case 2: return 'bg-orange-500/10 text-orange-500 border-orange-500/20'
-    case 3: return 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-    case 4: return 'bg-gray-500/10 text-gray-500 border-gray-500/20'
-    default: return 'bg-gray-500/10 text-gray-400 border-gray-500/10'
+  switch (Number(priority)) {
+    case 1: return 'priority-urgent'
+    case 2: return 'priority-high'
+    case 3: return 'priority-medium'
+    case 4: return 'priority-low'
+    default: return 'priority-none'
   }
+}
+
+const getStatusClass = (statusName = '') => {
+  const status = `${statusName}`.toLowerCase().trim()
+  if (status.includes('done') || status.includes('complete')) return 'status-done'
+  if (status.includes('progress')) return 'status-progress'
+  if (status.includes('review')) return 'status-review'
+  if (status.includes('block')) return 'status-blocked'
+  if (status.includes('backlog')) return 'status-backlog'
+  if (status.includes('todo') || status.includes('to do')) return 'status-todo'
+  return 'status-default'
 }
 
 const navigateToTask = (taskId) => {
@@ -353,32 +315,45 @@ const navigateToTask = (taskId) => {
   })
 }
 
-onMounted(async () => {
+const loadDashboard = async () => {
+  const id = projectId.value
+  const requestId = ++loadRequestId
   loading.value = true
+
+  projectStore.clearProjectContext(id)
+  projectStore.fetchProjectDetails(id, { background: true, reset: false }).catch(error => {
+    console.error('Failed to load project summary', error)
+  })
+
   try {
-    await Promise.all([
-      workTaskStore.fetchTasks(projectId.value),
-      projectStore.fetchProjectDetails(projectId.value)
-    ])
+    await workTaskStore.fetchTasks(id)
   } catch (error) {
     console.error('Failed to load dashboard data', error)
   } finally {
-    loading.value = false
+    if (requestId === loadRequestId) {
+      loading.value = false
+    }
   }
+}
+
+onMounted(loadDashboard)
+
+watch(projectId, () => {
+  loadDashboard()
 })
 </script>
 
 <style scoped>
 .space-dashboard-page {
   width: 100%;
-  max-width: 1300px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 28px 24px;
+  padding: 30px 24px 48px;
   min-height: calc(100vh - 64px);
   color: var(--color-text-primary);
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 26px;
 }
 
 .dashboard-header {
@@ -414,11 +389,12 @@ onMounted(async () => {
 }
 
 .dashboard-loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 0;
+  min-height: 420px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-surface) 82%, #020617);
   color: var(--color-text-muted);
 }
 
@@ -431,8 +407,8 @@ onMounted(async () => {
 /* Stats Cards Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
   width: 100%;
 }
 
@@ -449,13 +425,14 @@ onMounted(async () => {
 }
 
 .stat-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 24px;
+  min-height: 84px;
+  background: color-mix(in srgb, var(--color-surface) 88%, #020617);
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, transparent);
+  border-radius: 8px;
+  padding: 18px 18px 18px 20px;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 14px;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -473,9 +450,9 @@ onMounted(async () => {
 }
 
 .stat-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-1px);
   border-color: var(--color-border-hover);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 16px 36px color-mix(in srgb, #020617 22%, transparent);
 }
 
 .stat-card.open-tasks-card::before { background: #3b82f6; }
@@ -484,13 +461,13 @@ onMounted(async () => {
 .stat-card.blocked-tasks-card::before { background: #ef4444; }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 16px;
   flex-shrink: 0;
 }
 
@@ -505,7 +482,7 @@ onMounted(async () => {
 }
 
 .stat-value {
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 800;
   line-height: 1;
   color: var(--color-text-primary);
@@ -513,7 +490,7 @@ onMounted(async () => {
 }
 
 .stat-label {
-  font-size: 13px;
+  font-size: 11px;
   color: var(--color-text-secondary);
   margin-top: 6px;
   font-weight: 600;
@@ -525,7 +502,8 @@ onMounted(async () => {
 .panels-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
+  gap: 14px;
+  align-items: stretch;
 }
 
 @media (max-width: 1024px) {
@@ -535,11 +513,11 @@ onMounted(async () => {
 }
 
 .dashboard-panel {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 24px;
-  min-height: 360px;
+  background: color-mix(in srgb, var(--color-surface) 88%, #020617);
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, transparent);
+  border-radius: 8px;
+  padding: 18px;
+  min-height: 340px;
   display: flex;
   flex-direction: column;
   transition: box-shadow 0.25s ease;
@@ -553,13 +531,13 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
 }
 
 .panel-title {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 750;
   color: var(--color-text-primary);
   margin: 0;
@@ -629,13 +607,15 @@ onMounted(async () => {
 }
 
 .task-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 94px 92px;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border: 1px solid var(--color-border);
-  background: rgba(0, 0, 0, 0.02);
-  border-radius: 8px;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  background: color-mix(in srgb, var(--color-bg) 42%, transparent);
+  border-radius: 7px;
   transition: all 0.2s;
 }
 
@@ -646,24 +626,26 @@ onMounted(async () => {
 .task-row:hover {
   border-color: var(--color-border-hover);
   background: var(--color-surface-hover);
-  transform: translateX(2px);
+  transform: translateY(-1px);
 }
 
 .task-info-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   overflow: hidden;
-  margin-right: 12px;
+  min-width: 0;
 }
 
 .task-seq-id {
   font-size: 11px;
   font-family: monospace;
   font-weight: 700;
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-surface) 88%, #020617);
   color: var(--color-text-muted);
-  padding: 4px 8px;
+  min-width: 62px;
+  text-align: center;
+  padding: 4px 6px;
   border-radius: 4px;
   border: 1px solid var(--color-border);
   flex-shrink: 0;
@@ -673,7 +655,8 @@ onMounted(async () => {
   background: none;
   border: none;
   text-align: left;
-  font-size: 14px;
+  min-width: 0;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
   cursor: pointer;
@@ -690,37 +673,52 @@ onMounted(async () => {
 }
 
 .task-meta-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
+  display: contents;
 }
 
+.priority-badge,
 .task-status-tag {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  background: rgba(0, 0, 0, 0.05);
-  padding: 3px 8px;
-  border-radius: 4px;
-  text-transform: capitalize;
+  justify-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
-[data-theme='dark'] .task-status-tag {
-  background: rgba(255, 255, 255, 0.08);
-}
+.priority-urgent { background: rgba(239, 68, 68, 0.16); border-color: rgba(239, 68, 68, 0.46); color: #f87171; }
+.priority-high { background: rgba(249, 115, 22, 0.16); border-color: rgba(249, 115, 22, 0.46); color: #fb923c; }
+.priority-medium { background: rgba(59, 130, 246, 0.16); border-color: rgba(59, 130, 246, 0.46); color: #60a5fa; }
+.priority-low { background: rgba(148, 163, 184, 0.14); border-color: rgba(148, 163, 184, 0.34); color: #cbd5e1; }
+.priority-none { background: rgba(148, 163, 184, 0.1); border-color: rgba(148, 163, 184, 0.24); color: #94a3b8; }
+
+.status-blocked { background: rgba(239, 68, 68, 0.14); border-color: rgba(239, 68, 68, 0.36); color: #f87171; }
+.status-progress { background: rgba(245, 158, 11, 0.14); border-color: rgba(245, 158, 11, 0.36); color: #fbbf24; }
+.status-review { background: rgba(168, 85, 247, 0.14); border-color: rgba(168, 85, 247, 0.36); color: #c084fc; }
+.status-done { background: rgba(16, 185, 129, 0.14); border-color: rgba(16, 185, 129, 0.36); color: #34d399; }
+.status-backlog { background: rgba(148, 163, 184, 0.12); border-color: rgba(148, 163, 184, 0.28); color: #cbd5e1; }
+.status-todo { background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.30); color: #93c5fd; }
+.status-default { background: rgba(148, 163, 184, 0.10); border-color: rgba(148, 163, 184, 0.24); color: #cbd5e1; }
 
 /* Team Workload list styles */
 .workload-list {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
 .workload-item {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
+  padding: 10px 0;
 }
 
 .workload-item-header {
@@ -736,9 +734,9 @@ onMounted(async () => {
 }
 
 .user-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
   background: var(--color-accent);
   color: #ffffff;
   display: flex;
@@ -764,7 +762,7 @@ onMounted(async () => {
 .workload-progress-track {
   width: 100%;
   background: var(--color-border);
-  height: 8px;
+  height: 7px;
   border-radius: 999px;
   overflow: hidden;
 }
@@ -776,5 +774,3 @@ onMounted(async () => {
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>
-
-

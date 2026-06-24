@@ -242,7 +242,7 @@ const getPrioIcon = (pr) => {
                    <div class="st-sect">
                      <div class="st-sect-header"><span>Display Properties</span><i class="fa-solid fa-chevron-up"></i></div>
                      <div class="st-chips">
-                       <span v-for="p in ['ID', 'Assignee', 'Start date', 'Due date', 'Labels', 'Priority', 'State', 'Estimate', 'Module', 'Cycle']"
+                       <span v-for="p in ['ID', 'Assignee', 'Start date', 'Due date', 'Labels', 'Priority', 'State', 'Module', 'Cycle']"
                              :key="p" class="p-chip-st" :class="{ selected: displayProps.includes(p) }" @click.stop="toggleDisplayProp(p)">{{ p }}</span>
                      </div>
                    </div>
@@ -302,7 +302,6 @@ const getPrioIcon = (pr) => {
               <th v-if="showColumn('Cycle')"><i class="fa-solid fa-arrows-spin"></i> Cycle <i class="fa-solid fa-chevron-down f-10"></i></th>
               <th v-if="showColumn('Start date')"><i class="fa-regular fa-calendar"></i> Start date <i class="fa-solid fa-chevron-down f-10"></i></th>
               <th v-if="showColumn('Due date')"><i class="fa-solid fa-calendar-day"></i> Due date <i class="fa-solid fa-chevron-down f-10"></i></th>
-              <th v-if="showColumn('Estimate')"><i class="fa-solid fa-triangle-exclamation"></i> Estimate <i class="fa-solid fa-chevron-down f-10"></i></th>
             </tr>
           </thead>
           <tbody>
@@ -350,7 +349,6 @@ const getPrioIcon = (pr) => {
               </td>
               <td v-if="showColumn('Start date')" class="text-muted"><i class="fa-regular fa-calendar"></i> {{ t.plannedStartDate || t.startDate || 'Start date' }}</td>
               <td v-if="showColumn('Due date')" class="text-muted"><i class="fa-solid fa-calendar-day"></i> {{ t.dueDate || t.plannedEndDate || 'Due date' }}</td>
-              <td v-if="showColumn('Estimate')" class="text-muted"><i class="fa-solid fa-caret-up"></i> {{ t.totalEstimatedHours || t.estimatedHours || 'Estimate' }}</td>
             </tr>
           </tbody>
         </table>

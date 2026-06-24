@@ -3,14 +3,14 @@
     <div class="project-settings-page" v-loading="loading">
       <header class="settings-header">
         <div>
-          <div class="breadcrumb">Project Settings</div>
-          <h1>{{ project.name || 'Project settings' }}</h1>
-          <p>Project-scoped administration for members, workflow, labels, modules, cycles, and project lifecycle.</p>
+          <div class="breadcrumb">Cài đặt dự án</div>
+          <h1>{{ project.name || 'Cài đặt dự án' }}</h1>
+          <p>Quản trị thành viên, quy trình, nhãn, module, chu kỳ và vòng đời dự án.</p>
         </div>
         <div class="header-actions">
-          <button class="secondary-btn" type="button" @click="goBack">Back to project</button>
+          <button class="secondary-btn" type="button" @click="goBack">Quay lại dự án</button>
           <button class="primary-btn" type="button" :disabled="savingGeneral" @click="saveGeneral">
-            {{ savingGeneral ? 'Saving...' : 'Save general' }}
+            {{ savingGeneral ? 'Đang lưu...' : 'Lưu chung' }}
           </button>
         </div>
       </header>
@@ -34,78 +34,78 @@
           <div v-if="activeTab === 'general'" class="settings-card">
             <div class="card-head">
               <div>
-                <h2>General</h2>
-                <p>Core project metadata and planning dates.</p>
+                <h2>Tổng quan</h2>
+                <p>Thông tin dự án và ngày lập kế hoạch chính.</p>
               </div>
             </div>
 
             <div class="form-grid">
               <label>
-                <span>Name</span>
-                <input v-model="generalForm.name" type="text" placeholder="Project name" />
+                <span>Tên dự án</span>
+                <input v-model="generalForm.name" type="text" placeholder="Tên dự án" />
               </label>
 
               <label>
-                <span>Key</span>
+                <span>Mã</span>
                 <input :value="project.key || ''" type="text" disabled />
               </label>
 
               <label class="wide">
-                <span>Description</span>
-                <textarea v-model="generalForm.description" rows="4" placeholder="Describe the project"></textarea>
+                <span>Mô tả</span>
+                <textarea v-model="generalForm.description" rows="4" placeholder="Mô tả dự án"></textarea>
               </label>
 
               <label>
-                <span>Start date</span>
+                <span>Ngày bắt đầu</span>
                 <input v-model="generalForm.startDate" type="date" />
               </label>
 
               <label>
-                <span>End date</span>
+                <span>Ngày kết thúc</span>
                 <input v-model="generalForm.endDate" type="date" />
               </label>
             </div>
 
             <div class="meta-strip">
-              <span>Visibility: {{ project.networkType || 'Public' }}</span>
-              <span>Lead: {{ project.leadName || 'Not assigned' }}</span>
-              <span>Members: {{ members.length }}</span>
-              <span>Archived: {{ project.isArchived ? 'Yes' : 'No' }}</span>
+              <span>Hiển thị: {{ project.networkType || 'Công khai' }}</span>
+              <span>Phụ trách: {{ project.leadName || 'Chưa giao' }}</span>
+              <span>Thành viên: {{ members.length }}</span>
+              <span>Lưu trữ: {{ project.isArchived ? 'Có' : 'Không' }}</span>
             </div>
           </div>
 
           <div v-else-if="activeTab === 'execution'" class="settings-card">
             <div class="card-head">
               <div>
-                <h2>Execution Rules</h2>
-                <p>Configure task visibility by role and baseline estimate defaults for new work items.</p>
+                <h2>Quy tắc thực thi</h2>
+                <p>Cấu hình quyền xem công việc theo vai trò cho dự án.</p>
               </div>
               <button class="primary-btn" type="button" :disabled="savingExecutionRules" @click="saveExecutionRules">
-                {{ savingExecutionRules ? 'Saving...' : 'Save execution rules' }}
+                {{ savingExecutionRules ? 'Đang lưu...' : 'Lưu quy tắc' }}
               </button>
             </div>
 
             <div class="form-grid">
               <label class="wide switch-row">
-                <span>Enable role-based task visibility</span>
+                <span>Bật quyền xem công việc theo vai trò</span>
                 <input v-model="executionRulesForm.enableRoleBasedTaskVisibility" type="checkbox" />
               </label>
 
               <label class="wide switch-row">
-                <span>Managers always see all tasks</span>
+                <span>Quản lý luôn thấy toàn bộ công việc</span>
                 <input v-model="executionRulesForm.managerAlwaysSeeAllTasks" type="checkbox" />
               </label>
 
               <label>
-                <span>Default task visibility</span>
+                <span>Phạm vi xem mặc định</span>
                 <select v-model="executionRulesForm.defaultTaskVisibilityMode">
-                  <option value="project">Project members</option>
-                  <option value="assigned">Assigned only</option>
-                  <option value="role">Role scoped</option>
+                  <option value="project">Thành viên dự án</option>
+                  <option value="assigned">Chỉ người được giao</option>
+                  <option value="role">Theo vai trò</option>
                 </select>
               </label>
 
-              <label>
+              <label v-if="false">
                 <span>Estimate baseline mode</span>
                 <select v-model="executionRulesForm.estimateBaselineMode">
                   <option value="role_then_project">Role then project</option>
@@ -113,18 +113,18 @@
                 </select>
               </label>
 
-              <label>
+              <label v-if="false">
                 <span>Default base hours</span>
                 <input v-model.number="executionRulesForm.defaultBaseHours" type="number" min="1" step="0.5" />
               </label>
 
-              <label>
+              <label v-if="false">
                 <span>Hours per story point</span>
                 <input v-model.number="executionRulesForm.hoursPerStoryPoint" type="number" min="0.5" step="0.5" />
               </label>
             </div>
 
-            <div class="stack-list">
+            <div v-if="false" class="stack-list">
               <div class="stack-row">
                 <div class="row-main">
                   <strong>Role multipliers</strong>
@@ -638,26 +638,26 @@
           <div v-else-if="activeTab === 'states'" class="settings-card">
             <div class="card-head">
               <div>
-                <h2>States</h2>
-                <p>Project-specific workflow states used by work items.</p>
+                <h2>Trạng thái</h2>
+                <p>Các trạng thái quy trình dùng riêng cho công việc trong dự án.</p>
               </div>
             </div>
 
             <div class="inline-form state-grid">
               <label>
-                <span>Name</span>
-                <input v-model="newState.name" type="text" placeholder="Blocked" />
+                <span>Tên</span>
+                <input v-model="newState.name" type="text" placeholder="Bị chặn" />
               </label>
               <label>
-                <span>Color</span>
+                <span>Màu</span>
                 <input v-model="newState.colorCode" type="color" />
               </label>
               <label>
-                <span>Position</span>
+                <span>Thứ tự</span>
                 <input v-model.number="newState.position" type="number" min="0" />
               </label>
               <button class="secondary-btn" type="button" :disabled="savingState" @click="createState">
-                {{ savingState ? 'Adding...' : 'Add state' }}
+                {{ savingState ? 'Đang thêm...' : 'Thêm trạng thái' }}
               </button>
             </div>
 
@@ -669,8 +669,8 @@
                   <input v-model.number="status.position" type="number" min="0" />
                 </div>
                 <div class="row-actions">
-                  <button class="secondary-btn" type="button" @click="saveState(status)">Save</button>
-                  <button class="danger-outline-btn" type="button" @click="deleteState(status)">Delete</button>
+                  <button class="secondary-btn" type="button" @click="saveState(status)">Lưu</button>
+                  <button class="danger-outline-btn" type="button" @click="deleteState(status)">Xóa</button>
                 </div>
               </div>
             </div>
@@ -1127,21 +1127,20 @@ const router = useRouter()
 const projectId = route.params.id
 
 const tabs = [
-  { key: 'general', label: 'General', caption: 'metadata' },
-  { key: 'execution', label: 'Execution Rules', caption: 'visibility + estimate' },
-  { key: 'points', label: 'Project Points', caption: 'score + manual adjust' },
-  { key: 'rewardRules', label: 'Reward Rules', caption: 'bonus + penalty' },
-  { key: 'milestones', label: 'Milestones', caption: 'release tracking' },
-  { key: 'capacity', label: 'Capacity', caption: 'workload threshold' },
-  { key: 'baseline', label: 'Estimate Baseline', caption: 'first-time estimate' },
-  { key: 'dashboard', label: 'Ops Dashboard', caption: 'execution health' },
-  { key: 'members', label: 'Members & Roles', caption: 'access' },
-  { key: 'states', label: 'States', caption: 'workflow' },
-  { key: 'labels', label: 'Labels', caption: 'classification' },
-  { key: 'modules', label: 'Modules', caption: 'planning' },
-  { key: 'cycles', label: 'Cycles', caption: 'iteration planning' },
-  { key: 'integrations', label: 'Integrations', caption: 'project providers' },
-  { key: 'danger', label: 'Danger Zone', caption: 'destructive actions' }
+  { key: 'general', label: 'Tổng quan', caption: 'thông tin' },
+  { key: 'execution', label: 'Quy tắc thực thi', caption: 'quyền xem' },
+  { key: 'points', label: 'Điểm dự án', caption: 'điểm + chỉnh tay' },
+  { key: 'rewardRules', label: 'Thưởng / phạt', caption: 'bonus + phạt' },
+  { key: 'milestones', label: 'Cột mốc', caption: 'theo dõi phát hành' },
+  { key: 'capacity', label: 'Tải công việc', caption: 'ngưỡng workload' },
+  { key: 'dashboard', label: 'Bảng vận hành', caption: 'sức khoẻ dự án' },
+  { key: 'members', label: 'Thành viên & vai trò', caption: 'quyền truy cập' },
+  { key: 'states', label: 'Trạng thái', caption: 'quy trình' },
+  { key: 'labels', label: 'Nhãn', caption: 'phân loại' },
+  { key: 'modules', label: 'Module', caption: 'lập kế hoạch' },
+  { key: 'cycles', label: 'Chu kỳ', caption: 'vòng lặp' },
+  { key: 'integrations', label: 'Tích hợp', caption: 'kết nối dự án' },
+  { key: 'danger', label: 'Vùng nguy hiểm', caption: 'thao tác nhạy cảm' }
 ]
 
 const projectRoleOptions = ref([])
