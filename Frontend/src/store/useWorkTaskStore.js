@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import axiosClient from '@/api/axiosClient'
 import { useSiteStore } from './useSiteStore'
-import { useProjectStore } from './useProjectStore'
 
 const normalizeDateOnly = (value) => {
   if (!value) return null
@@ -167,7 +166,6 @@ export const useWorkTaskStore = defineStore('workTask', {
 
         this.tasks = (res.data?.data || [])
           .map(task => normalizeTaskRecord(task, projectId))
-        this.fetchStarredTasks().catch(() => {})
         return this.tasks
       } catch (err) {
         if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
@@ -254,70 +252,23 @@ export const useWorkTaskStore = defineStore('workTask', {
         throw err;
       }
     },
-    resolveWorkspaceId(projectId = null, taskProjectId = null) {
-      const siteStore = useSiteStore()
-      const projectStore = useProjectStore()
-      const searchId = projectId || this.currentProjectId
-
-      let project = projectStore.currentProject
-      if (project && project.id === searchId) {
-        const workspaceId = project.workspaceId || project.WorkspaceId
-        if (workspaceId && workspaceId.length >= 36) return workspaceId
-      }
-
-      if (searchId) {
-        project = projectStore.projectDetailsById[searchId]
-        const workspaceId = project?.workspaceId || project?.WorkspaceId
-        if (workspaceId && workspaceId.length >= 36) return workspaceId
-      }
-
-      if (searchId) {
-        project = projectStore.allProjects.find(item => item.id === searchId)
-        const workspaceId = project?.workspaceId || project?.WorkspaceId || project?.originalRow?.workspaceId || project?.originalRow?.WorkspaceId
-        if (workspaceId && workspaceId.length >= 36) return workspaceId
-      }
-
-      const taskProject = taskProjectId || projectId
-      if (taskProject) {
-        project = projectStore.allProjects.find(item => item.id === taskProject)
-        const workspaceId = project?.workspaceId || project?.WorkspaceId || project?.originalRow?.workspaceId || project?.originalRow?.WorkspaceId
-        if (workspaceId && workspaceId.length >= 36) return workspaceId
-      }
-
-      const localId = localStorage.getItem('sprinta_recent_site_id') || localStorage.getItem('recent_site_id')
-      if (localId && localId.length >= 36 && localId !== '00000000-0000-0000-0000-000000000000') return localId
-
-      const siteId = siteStore.activeSite?.id || siteStore.recentSite?.id || siteStore.recentSite?.Id
-      if (siteId && siteId.length >= 36) return siteId
-
-      return null
-    },
     async fetchStarredTasks() {
-      let workspaceId = this.resolveWorkspaceId()
-      if (!workspaceId) {
-        workspaceId = '00000000-0000-0000-0000-000000000000'
-      }
+      const siteStore = useSiteStore()
+      const workspaceId = siteStore.activeSite?.id
+      if (!workspaceId) return
       try {
         const response = await axiosClient.get(`/workspaces/${workspaceId}/StarredItems`)
-        const data = response.data
-        this.starredTasks = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.data)
-            ? data.data
-            : []
+        this.starredTasks = response.data?.data || []
       } catch (error) {
         console.error('Failed to fetch starred tasks:', error)
       }
     },
     async toggleTaskStar(taskOrId) {
-      if (!taskOrId) return
+      const siteStore = useSiteStore()
+      const workspaceId = siteStore.activeSite?.id
+      if (!taskOrId || !workspaceId) return
       const taskId = typeof taskOrId === 'object' ? taskOrId.id : taskOrId
       const fullTask = typeof taskOrId === 'object' ? taskOrId : this.tasks.find(t => t.id === taskId)
-      const workspaceId = this.resolveWorkspaceId(null, fullTask?.projectId)
-      if (!workspaceId) {
-        console.error('Cannot toggle star: workspace ID is empty')
-        return
-      }
       
       const index = this.starredTasks.findIndex(t => t.itemId === taskId)
       const isStarred = index >= 0

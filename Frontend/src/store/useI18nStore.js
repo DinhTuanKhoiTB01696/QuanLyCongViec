@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { getLanguage, setLanguage } from '@/i18n'
+import { setLanguage } from '@/i18n'
 
 const dictionary = {
   en: {
@@ -241,43 +241,15 @@ const dictionary = {
     'Make private': 'Make private',
     'Archive': 'Archive',
     "Press '/' for commands...": "Press '/' for commands...",
-    'Project': 'Project',
-    'Task': 'Task',
-    'task': 'task',
-    'No status': 'No status',
-    'Unknown': 'Unknown',
     'Project overview and quick insights': 'Project overview and quick insights',
-    'Fetching dashboard insights...': 'Fetching dashboard insights...',
     'Open Tasks': 'Open Tasks',
     'Blocked': 'Blocked',
     'Recent Tasks': 'Recent Tasks',
-    'View all tasks': 'View all tasks',
     'No recent tasks': 'No recent tasks',
     'Get started by creating a new task in your board or backlog.': 'Get started by creating a new task in your board or backlog.',
     'Team Workload': 'Team Workload',
     'Workload distribution': 'Workload distribution',
-    'Assign tasks to your team members to see their workload here.': 'Assign tasks to your team members to see their workload here.',
-    'Global views': 'Global views',
-    'Global view': 'Global view',
-    'Saved views': 'Saved views',
-    'views': 'views',
-    'Create a filtered view to keep important work easy to find.': 'Create a filtered view to keep important work easy to find.',
-    'Active view': 'Active view',
-    'filters': 'filters',
-    'columns': 'columns',
-    '{count} filters applied': '{count} filters applied',
-    'Saved work item view': 'Saved work item view',
-    'View created successfully': 'View created successfully',
-    'Failed to create view': 'Failed to create view',
-    'Work item created': 'Work item created',
-    'Failed to create work item': 'Failed to create work item',
-    'Failed to update work item': 'Failed to update work item',
-    'Are you sure you want to delete this view?': 'Are you sure you want to delete this view?',
-    'Warning': 'Warning',
-    'View deleted': 'View deleted',
-    'Failed to delete view': 'Failed to delete view',
-    'Failed to toggle favorite': 'Failed to toggle favorite',
-    'Owner': 'Owner'
+    'Assign tasks to your team members to see their workload here.': 'Assign tasks to your team members to see their workload here.'
   },
   vi: {
     'Teams': 'Nhóm',
@@ -518,57 +490,26 @@ const dictionary = {
     'Make private': 'Chuyển sang riêng tư',
     'Archive': 'Lưu trữ',
     "Press '/' for commands...": "Nhấn '/' để hiển thị lệnh...",
-    'Project': 'Dự án',
-    'Task': 'Công việc',
-    'task': 'công việc',
-    'No status': 'Chưa có trạng thái',
-    'Unknown': 'Không rõ',
     'Project overview and quick insights': 'Tổng quan dự án và thông tin nhanh',
-    'Fetching dashboard insights...': 'Đang tải thông tin tổng quan...',
     'Open Tasks': 'Công việc đang mở',
     'Blocked': 'Bị chặn',
     'Recent Tasks': 'Công việc gần đây',
-    'View all tasks': 'Xem tất cả công việc',
     'No recent tasks': 'Không có công việc gần đây',
     'Get started by creating a new task in your board or backlog.': 'Bắt đầu bằng cách tạo một công việc mới trong bảng hoặc danh sách công việc của bạn.',
     'Team Workload': 'Khối lượng công việc của nhóm',
     'Workload distribution': 'Phân bổ công việc',
-    'Assign tasks to your team members to see their workload here.': 'Giao công việc cho các thành viên trong nhóm để xem khối lượng công việc của họ tại đây.',
-    'Global views': 'Chế độ xem chung',
-    'Global view': 'Chế độ xem chung',
-    'Saved views': 'Chế độ xem đã lưu',
-    'views': 'chế độ xem',
-    'Create a filtered view to keep important work easy to find.': 'Tạo chế độ xem có bộ lọc để dễ tìm các công việc quan trọng.',
-    'Active view': 'Chế độ xem đang mở',
-    'filters': 'bộ lọc',
-    'columns': 'cột',
-    '{count} filters applied': 'Đã áp dụng {count} bộ lọc',
-    'Saved work item view': 'Chế độ xem công việc đã lưu',
-    'View created successfully': 'Đã tạo chế độ xem',
-    'Failed to create view': 'Không thể tạo chế độ xem',
-    'Work item created': 'Đã tạo công việc',
-    'Failed to create work item': 'Không thể tạo công việc',
-    'Failed to update work item': 'Không thể cập nhật công việc',
-    'Are you sure you want to delete this view?': 'Bạn có chắc muốn xóa chế độ xem này?',
-    'Warning': 'Cảnh báo',
-    'View deleted': 'Đã xóa chế độ xem',
-    'Failed to delete view': 'Không thể xóa chế độ xem',
-    'Failed to toggle favorite': 'Không thể cập nhật yêu thích',
-    'Owner': 'Chủ sở hữu'
+    'Assign tasks to your team members to see their workload here.': 'Giao công việc cho các thành viên trong nhóm để xem khối lượng công việc của họ tại đây.'
   }
 }
 
 export const useI18nStore = defineStore('i18n', {
   state: () => ({
-    locale: localStorage.getItem('app_language') || localStorage.getItem('sprinta_locale') || localStorage.getItem('admin_locale') || getLanguage() || 'vi'
+    locale: localStorage.getItem('app_language') || localStorage.getItem('sprinta_locale') || localStorage.getItem('admin_locale') || 'vi'
   }),
   getters: {
-    t: (state) => (key, fallback) => {
+    t: (state) => (key) => {
       const texts = dictionary[state.locale]
       if (texts && texts[key]) return texts[key]
-      if (typeof fallback === 'string') {
-        return state.locale === 'vi' ? fallback : key
-      }
       return key
     }
   },
@@ -577,8 +518,9 @@ export const useI18nStore = defineStore('i18n', {
       if (dictionary[newLocale]) {
         this.locale = newLocale
         setLanguage(newLocale)
-        localStorage.setItem('sprinta_locale', newLocale)
+        localStorage.setItem('app_language', newLocale)
         localStorage.setItem('admin_locale', newLocale)
+        localStorage.setItem('sprinta_locale', newLocale)
       }
     }
   }
