@@ -57,24 +57,19 @@
           </svg>
         </button>
         <button class="flag-btn" :class="{ active: i18nStore.locale === 'en' }" @click="i18nStore.setLocale('en')" title="English">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" class="flag-svg">
-            <clipPath id="australia-jack">
-              <path d="M0 0h300v150H0z"/>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 30" class="flag-svg">
+            <clipPath id="s">
+              <path d="M0,0 v30 h60 v-30 z"/>
             </clipPath>
-            <rect width="600" height="300" fill="#00008b"/>
-            <g clip-path="url(#australia-jack)">
-              <path d="M0 0l300 150M300 0L0 150" stroke="#fff" stroke-width="30"/>
-              <path d="M0 0l300 150M300 0L0 150" stroke="#ff0000" stroke-width="20"/>
-              <path d="M150 0v150M0 75h300" stroke="#fff" stroke-width="50"/>
-              <path d="M150 0v150M0 75h300" stroke="#ff0000" stroke-width="30"/>
-            </g>
-            <g fill="#fff">
-              <path d="M150 205l5 15 15-5-10 13 13 10-16 1-3 16-3-16-16-1 13-10-10-13 15 5z"/>
-              <path d="M450 225l2.5 7.5 7.5-2.5-5 6.5 6.5 5-8 0.5-1.5 8-1.5-8-8-0.5 6.5-5-5-6.5 7.5 2.5z"/>
-              <path d="M380 125l2.5 7.5 7.5-2.5-5 6.5 6.5 5-8 0.5-1.5 8-1.5-8-8-0.5 6.5-5-5-6.5 7.5 2.5z"/>
-              <path d="M450 55l2.5 7.5 7.5-2.5-5 6.5 6.5 5-8 0.5-1.5 8-1.5-8-8-0.5 6.5-5-5-6.5 7.5 2.5z"/>
-              <path d="M510 115l2.5 7.5 7.5-2.5-5 6.5 6.5 5-8 0.5-1.5 8-1.5-8-8-0.5 6.5-5-5-6.5 7.5 2.5z"/>
-              <polygon points="475,145 477,151 483,151 478,155 480,161 475,157 470,161 472,155 467,151 473,151"/>
+            <clipPath id="t">
+              <path d="M0,0 L30,15 L0,30 L60,30 L30,15 L60,0 z"/>
+            </clipPath>
+            <g clip-path="url(#s)">
+              <rect width="60" height="30" fill="#012169"/>
+              <path d="M0,0 L60,30 M0,30 L60,0" stroke="#fff" stroke-width="6"/>
+              <path d="M0,0 L60,30 M0,30 L60,0" stroke="#c8102e" stroke-width="4" clip-path="url(#t)"/>
+              <path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/>
+              <path d="M30,0 v30 M0,15 h60" stroke="#c8102e" stroke-width="6"/>
             </g>
           </svg>
         </button>
