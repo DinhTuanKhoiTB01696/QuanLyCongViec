@@ -37,7 +37,7 @@
           @submit.prevent="handleSendOtp"
         >
           <el-form-item :label="t('auth.register.emailLabel')" prop="email">
-            <el-input v-model="form.email" :placeholder="t('auth.register.emailPlaceholder')" size="large" />
+            <el-input v-model.trim="form.email" :placeholder="t('auth.register.emailPlaceholder')" size="large" />
           </el-form-item>
           
           <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">

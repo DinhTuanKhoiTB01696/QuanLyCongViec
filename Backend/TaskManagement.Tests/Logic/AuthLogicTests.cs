@@ -171,6 +171,45 @@ namespace TaskManagement.Tests.Logic
             await Assert.ThrowsAsync<ArgumentException>(() => _authService.ResetPasswordAsync(request));
         }
 
+        [Fact]
+        public async Task Register_ValidOtp_Succeeds()
+        {
+            var email = "register@example.com";
+            var otp = _otpService.GenerateOtp();
+            _otpService.StoreOtp(email, otp);
+
+            var request = new RegisterRequestDto
+            {
+                Email = email,
+                FullName = "Register User",
+                Password = "Password123!",
+                OtpCode = otp
+            };
+
+            await _authService.RegisterAsync(request);
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            user.Should().NotBeNull();
+            user!.FullName.Should().Be("Register User");
+            BCrypt.Net.BCrypt.Verify("Password123!", user.PasswordHash).Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task Register_InvalidOtp_ThrowsInvalidOperationException()
+        {
+            var email = "register@example.com";
+
+            var request = new RegisterRequestDto
+            {
+                Email = email,
+                FullName = "Register User",
+                Password = "Password123!",
+                OtpCode = "INVALID"
+            };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => _authService.RegisterAsync(request));
+        }
+
         public void Dispose()
         {
             _context.Database.EnsureDeleted();

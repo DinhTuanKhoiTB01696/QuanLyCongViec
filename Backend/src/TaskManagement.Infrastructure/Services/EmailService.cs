@@ -34,7 +34,21 @@ namespace TaskManagement.Infrastructure.Services
                     <p style='color: #94a3b8; font-size: 13px; text-align: center;'>Ma nay co hieu luc trong 5 phut. Khong chia se ma nay voi bat ky ai.</p>
                 </div>";
 
-            await SendResendEmailAsync(toEmail, subject, html);
+            try
+            {
+                // Giới hạn thời gian gửi qua API Resend tối đa 10 giây để tránh bị treo lâu khi mạng có sự cố
+                using (var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(10)))
+                {
+                    await SendResendEmailAsync(toEmail, subject, html, cts.Token);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"=========================================");
+                Console.WriteLine($"[ERROR RESEND] Không thể gửi email thực tế qua Resend: {ex.Message}");
+                Console.WriteLine($"[DEBUG OTP] Sử dụng mã OTP hiển thị bên trên để tiếp tục đăng ký/xác thực.");
+                Console.WriteLine($"=========================================");
+            }
         }
 
         public async Task SendInviteEmailAsync(
@@ -155,7 +169,7 @@ namespace TaskManagement.Infrastructure.Services
             await SendResendEmailAsync(toEmail, subject, html);
         }
 
-        private async Task SendResendEmailAsync(string toEmail, string subject, string html)
+        private async Task SendResendEmailAsync(string toEmail, string subject, string html, System.Threading.CancellationToken cancellationToken = default)
         {
             var apiKey = _configuration["Resend:ApiKey"]
                 ?? throw new InvalidOperationException("Resend API key is missing.");
@@ -175,10 +189,10 @@ namespace TaskManagement.Infrastructure.Services
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
 
-            var response = await _httpClient.PostAsync("https://api.resend.com/emails", content);
+            var response = await _httpClient.PostAsync("https://api.resend.com/emails", content, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
                 Console.WriteLine($"Resend API error: {errorContent}");
                 throw new InvalidOperationException($"Cannot send email. Resend returned: {errorContent}");
             }

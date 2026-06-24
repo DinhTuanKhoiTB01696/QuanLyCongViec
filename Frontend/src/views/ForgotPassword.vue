@@ -37,7 +37,7 @@
           @submit.prevent="handleSendOtp"
         >
           <el-form-item :label="t('Email Address', 'Địa chỉ Email')" prop="email">
-            <el-input v-model="form.email" placeholder="name@company.com" size="large" />
+            <el-input v-model.trim="form.email" placeholder="name@company.com" size="large" />
           </el-form-item>
 
           <el-button type="primary" native-type="submit" class="auth-btn" size="large" :loading="isLoading">
