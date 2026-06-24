@@ -12,7 +12,7 @@ using TaskManagement.Infrastructure.Data;
 namespace TaskManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260624065103_PlaneRenovation")]
+    [Migration("20260624135439_PlaneRenovation")]
     partial class PlaneRenovation
     {
         /// <inheritdoc />
@@ -426,10 +426,6 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Property<Guid>("GoalId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Summary")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -458,10 +454,6 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Property<Guid>("GoalId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Summary")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -473,40 +465,6 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.HasIndex("GoalId");
 
                     b.ToTable("GoalLessons");
-                });
-
-            modelBuilder.Entity("TaskManagement.Domain.Entities.GoalLink", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("CreatorId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("GoalId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("LinkedEntityId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("LinkedEntityName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LinkedType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatorId");
-
-                    b.HasIndex("GoalId");
-
-                    b.ToTable("GoalLinks");
                 });
 
             modelBuilder.Entity("TaskManagement.Domain.Entities.GoalRisk", b =>
@@ -525,10 +483,6 @@ namespace TaskManagement.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Severity")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Summary")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -681,10 +635,6 @@ namespace TaskManagement.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ReactionsJson")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -2256,25 +2206,6 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("Goal");
                 });
 
-            modelBuilder.Entity("TaskManagement.Domain.Entities.GoalLink", b =>
-                {
-                    b.HasOne("TaskManagement.Domain.Entities.User", "Creator")
-                        .WithMany()
-                        .HasForeignKey("CreatorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TaskManagement.Domain.Entities.Goal", "Goal")
-                        .WithMany("Links")
-                        .HasForeignKey("GoalId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Creator");
-
-                    b.Navigation("Goal");
-                });
-
             modelBuilder.Entity("TaskManagement.Domain.Entities.GoalRisk", b =>
                 {
                     b.HasOne("TaskManagement.Domain.Entities.User", "Creator")
@@ -2984,8 +2915,6 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("Decisions");
 
                     b.Navigation("Lessons");
-
-                    b.Navigation("Links");
 
                     b.Navigation("Risks");
 

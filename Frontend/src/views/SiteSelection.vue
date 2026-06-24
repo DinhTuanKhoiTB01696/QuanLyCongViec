@@ -13,7 +13,7 @@
         </div>
       </div>
       <div class="header-right">
-        <button class="pill-btn blue" @click="goToSpaceProject(recentSite?.id)" :disabled="!recentSite">{{ t('siteSelection.goToSprintA') }}</button>
+        <button class="pill-btn blue" @click="router.push('/')">{{ t('siteSelection.goToSprintA') }}</button>
         <div class="user-profile" v-if="userName">
           <div class="user-avatar-circle">{{ userInitials }}</div>
           <span class="user-name-text">{{ userName }}</span>
@@ -76,12 +76,12 @@
             </div>
           </div>
           <div class="site-card-right">
-            <button class="pill-btn orange" @click="goToSpaceProject(recentSite.id)">{{ t('siteSelection.goToSprintA') }}</button>
+            <button class="pill-btn orange" @click="goToSpaceProject(recentSite.id)">{{ t('siteSelection.goToSpace') }}</button>
           </div>
         </div>
 
         <div class="card-footer-row">
-          <a href="#" class="different-site-link" @click.prevent="switchToJoinModal">{{ t('siteSelection.lookingForDifferent') }} &rarr;</a>
+          <a href="#" class="different-site-link" @click.prevent="router.push('/home')">{{ t('siteSelection.lookingForDifferent') }} &rarr;</a>
 
           <div class="decorative-stars">
             <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">

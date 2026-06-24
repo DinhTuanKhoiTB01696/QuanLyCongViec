@@ -503,6 +503,7 @@ export default {
     pickUpShort: 'Pick up where you left off',
     createNewSite: 'Create new site',
     goToSprintA: 'Go to SprintA',
+    goToSpace: 'Go to Space',
     lookingForDifferent: 'Looking for a different site',
     exploreQuestion: 'Want to explore more features?',
     exploreFeatures: 'Explore features',
