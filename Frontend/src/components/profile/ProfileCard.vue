@@ -23,7 +23,7 @@
               <i class="fa-solid fa-cloud-arrow-up mr-2"></i> {{ t('Upload photo', 'Tải ảnh lên') }}
             </el-button>
             <el-button v-if="profileData.avatarUrl" type="danger" plain size="default" @click="removeAvatar">
-              <i class="fa-solid fa-trash-can mr-2"></i> {{ t('Remove [FLOW REQUIRED]', 'Gỡ bỏ [CẦN FLOW]') }}
+              <i class="fa-solid fa-trash-can mr-2"></i> {{ t('Remove', 'Gỡ bỏ') }}
             </el-button>
           </div>
           <p class="photo-hint">{{ t('Accepts JPEG, PNG, GIF or WebP. Max 5MB.', 'Chấp nhận định dạng JPEG, PNG, GIF hoặc WebP. Tối đa 5MB.') }}</p>
@@ -357,7 +357,7 @@ const onAvatarFileChange = (event) => {
 
 const removeAvatar = () => {
   // TODO: Implement actual avatar removal API
-  ElMessage.warning(t('Avatar removal pending backend API implementation. [FLOW REQUIRED]', 'Tính năng gỡ ảnh đại diện đang chờ tích hợp API backend. [CẦN FLOW]'))
+  ElMessage.warning(t('Avatar removal pending backend API implementation.', 'Tính năng gỡ ảnh đại diện đang chờ tích hợp API backend.'))
 }
 
 const onSubmit = () => {
