@@ -18,6 +18,13 @@ namespace TaskManagement.Domain.Entities
 
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
+        
+        // Overview Info
+        public string? Why { get; set; }
+        public string? SuccessCriteria { get; set; }
+        public DateTime? CloseDate { get; set; }
+        public string? TrackedLinkUrl { get; set; }
+
         public bool Status { get; set; } = true;
         public Guid CreatorId { get; set; }
         public User Creator { get; set; } = null!;

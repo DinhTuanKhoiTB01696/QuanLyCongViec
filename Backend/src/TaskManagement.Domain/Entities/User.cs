@@ -11,6 +11,13 @@ namespace TaskManagement.Domain.Entities
         public string FullName { get; set; } = string.Empty;
         public string? AvatarUrl { get; set; }
         public string? CoverUrl { get; set; }
+        
+        // Profile Info
+        public string? Bio { get; set; }
+        public string? JobTitle { get; set; }
+        public string? Location { get; set; }
+        public string? Timezone { get; set; }
+
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }

@@ -49,9 +49,11 @@ namespace TaskManagement.Infrastructure.Data
 
         // Group 4: Collaboration & Tracking
         public DbSet<Comment> Comments { get; set; }
+        public DbSet<CommentMention> CommentMentions { get; set; }
         public DbSet<CommentAttachment> CommentAttachments { get; set; }
         public DbSet<Attachment> Attachments { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<SiteAuditLog> SiteAuditLogs { get; set; }
         public DbSet<Notification> Notifications { get; set; }
 
         // Group 5: Gamification & Recognition
@@ -59,6 +61,7 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<UserWallet> UserWallets { get; set; }
         public DbSet<PointTransaction> PointTransactions { get; set; }
         public DbSet<Kudo> Kudos { get; set; }
+        public DbSet<KudoReaction> KudoReactions { get; set; }
 
         // Group 6: AI Integration
         public DbSet<AIPromptTemplate> AIPromptTemplates { get; set; }
@@ -322,10 +325,7 @@ namespace TaskManagement.Infrastructure.Data
             // 6. Relationships - Group 4: Collaboration & Tracking
             // =============================================
             modelBuilder.Entity<Comment>()
-                .HasOne(c => c.WorkTask)
-                .WithMany(wt => wt.Comments)
-                .HasForeignKey(c => c.WorkTaskId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasIndex(c => new { c.EntityType, c.EntityId });
 
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.User)
@@ -429,6 +429,33 @@ namespace TaskManagement.Infrastructure.Data
 
             modelBuilder.Entity<PointTransaction>()
                 .HasIndex(pt => new { pt.UserWalletUserId, pt.WorkTaskId, pt.TransactionType });
+
+            modelBuilder.Entity<CommentMention>()
+                .HasOne(cm => cm.Comment)
+                .WithMany()
+                .HasForeignKey(cm => cm.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SiteAuditLog>()
+                .HasOne(sal => sal.User)
+                .WithMany()
+                .HasForeignKey(sal => sal.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SiteAuditLog>()
+                .HasIndex(sal => new { sal.EntityType, sal.EntityId });
+
+            modelBuilder.Entity<KudoReaction>()
+                .HasOne(kr => kr.Kudo)
+                .WithMany()
+                .HasForeignKey(kr => kr.KudoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<KudoReaction>()
+                .HasOne(kr => kr.User)
+                .WithMany()
+                .HasForeignKey(kr => kr.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // =============================================
             // 8. Relationships - Group 6: AI Integration
@@ -817,7 +844,7 @@ namespace TaskManagement.Infrastructure.Data
                             pendingLogsActions.Add(list => list.Add(new AuditLog
                             {
                                 Id = Guid.NewGuid(),
-                                WorkTaskId = entry.Entity.WorkTaskId,
+                                WorkTaskId = entry.Entity.EntityId,
                                 UserId = parsedUserId,
                                 FieldChanged = "ADD_COMMENT",
                                 OldValue = "{}",

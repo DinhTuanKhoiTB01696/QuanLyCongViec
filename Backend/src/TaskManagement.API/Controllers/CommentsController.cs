@@ -188,7 +188,7 @@ namespace TaskManagement.API.Controllers
             }
 
             var comments = await _context.Comments
-                .Where(c => c.WorkTaskId == taskId && !c.IsDeleted)
+                .Where(c => c.EntityType == "WorkTask" && c.EntityId == taskId && !c.IsDeleted)
                 .Include(c => c.User)
                 .Include(c => c.CommentAttachments)
                 .OrderBy(c => c.CreatedAt)
@@ -218,7 +218,8 @@ namespace TaskManagement.API.Controllers
             var comment = new Comment
             {
                 Id = Guid.NewGuid(),
-                WorkTaskId = taskId,
+                EntityId = taskId,
+                EntityType = "WorkTask",
                 UserId = userId.Value,
                 Content = SanitizeRichHtml(content),
                 ParentCommentId = parentCommentId,
@@ -318,7 +319,7 @@ namespace TaskManagement.API.Controllers
             var comment = await _context.Comments
                 .Include(c => c.User)
                 .Include(c => c.CommentAttachments)
-                .FirstOrDefaultAsync(c => c.Id == commentId && c.WorkTaskId == taskId && !c.IsDeleted);
+                .FirstOrDefaultAsync(c => c.Id == commentId && c.EntityType == "WorkTask" && c.EntityId == taskId && !c.IsDeleted);
 
             if (comment == null)
             {
@@ -362,7 +363,7 @@ namespace TaskManagement.API.Controllers
             }
 
             var comment = await _context.Comments
-                .FirstOrDefaultAsync(c => c.Id == commentId && c.WorkTaskId == taskId && !c.IsDeleted);
+                .FirstOrDefaultAsync(c => c.Id == commentId && c.EntityType == "WorkTask" && c.EntityId == taskId && !c.IsDeleted);
 
             if (comment == null) return NotFound(new { message = "Comment khong ton tai." });
             if (comment.UserId != userId.Value) return Forbid();
@@ -400,7 +401,7 @@ namespace TaskManagement.API.Controllers
             }
 
             var comment = await _context.Comments
-                .FirstOrDefaultAsync(c => c.Id == commentId && c.WorkTaskId == taskId && !c.IsDeleted);
+                .FirstOrDefaultAsync(c => c.Id == commentId && c.EntityType == "WorkTask" && c.EntityId == taskId && !c.IsDeleted);
             if (comment == null) return NotFound(new { message = "Comment khong ton tai." });
             if (comment.UserId != userId.Value) return Forbid();
 

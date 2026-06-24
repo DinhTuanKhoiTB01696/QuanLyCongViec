@@ -12,7 +12,7 @@ using TaskManagement.Infrastructure.Data;
 namespace TaskManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260624135439_PlaneRenovation")]
+    [Migration("20260618142352_PlaneRenovation")]
     partial class PlaneRenovation
     {
         /// <inheritdoc />
@@ -381,6 +381,9 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Property<int>("Progress")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -515,9 +518,24 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Property<Guid>("GoalId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int?>("NewProgress")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NewStatus")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("PreviousProgress")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PreviousStatus")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("TargetDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");

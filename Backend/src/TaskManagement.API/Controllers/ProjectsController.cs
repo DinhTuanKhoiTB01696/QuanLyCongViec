@@ -650,7 +650,8 @@ namespace TaskManagement.API.Controllers
             var comment = new TaskManagement.Domain.Entities.Comment
             {
                 Id = Guid.NewGuid(),
-                WorkTaskId = request.WorkTaskId,
+                EntityId = request.WorkTaskId,
+                EntityType = "WorkTask",
                 Content = request.Content,
                 ParentCommentId = request.ParentCommentId,
                 UserId = userId,
