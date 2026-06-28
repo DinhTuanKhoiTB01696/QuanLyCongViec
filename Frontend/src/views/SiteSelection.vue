@@ -81,7 +81,7 @@
         </div>
 
         <div class="card-footer-row">
-          <a href="#" class="different-site-link" @click.prevent="router.push('/home')">{{ t('siteSelection.lookingForDifferent') }} &rarr;</a>
+          <a href="#" class="different-site-link" @click.prevent="router.push('/home/for-you')">{{ t('siteSelection.lookingForDifferent') }} &rarr;</a>
 
           <div class="decorative-stars">
             <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">

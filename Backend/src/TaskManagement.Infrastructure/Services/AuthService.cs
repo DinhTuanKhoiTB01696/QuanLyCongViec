@@ -118,6 +118,7 @@ namespace TaskManagement.Infrastructure.Services
                 Id = user.Id,
                 Email = user.Email,
                 FullName = user.FullName,
+                AvatarUrl = user.AvatarUrl,
                 SystemRoles = roles.ToArray()
             };
 
@@ -240,6 +241,7 @@ namespace TaskManagement.Infrastructure.Services
                 Id = user.Id,
                 Email = user.Email,
                 FullName = user.FullName,
+                AvatarUrl = user.AvatarUrl,
                 SystemRoles = roles.ToArray()
             };
 
@@ -390,6 +392,7 @@ namespace TaskManagement.Infrastructure.Services
                 Id = user.Id,
                 Email = user.Email,
                 FullName = user.FullName,
+                AvatarUrl = user.AvatarUrl,
                 SystemRoles = roles.ToArray()
             };
 

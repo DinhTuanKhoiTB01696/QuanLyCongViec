@@ -29,8 +29,19 @@ namespace TaskManagement.API.Controllers
         public async Task<IActionResult> Create(Guid workspaceId, Guid projectId, [FromBody] object dto)
         {
             var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
-            var result = await _projectLinkService.CreateLinkAsync(userId, projectId, dto);
-            return Ok(result);
+            try
+            {
+                var result = await _projectLinkService.CreateLinkAsync(userId, projectId, dto);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]

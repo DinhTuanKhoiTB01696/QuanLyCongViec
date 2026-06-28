@@ -9,9 +9,7 @@
       </div>
       <div class="header-main">
         <div class="identity-block">
-          <div class="profile-avatar" :class="{ inactive: isInactive }">
-            {{ user.avatar }}
-          </div>
+          <UserAvatar :user="{ id: user.id, avatarUrl: user.avatarUrl, avatarColor: user.avatarColor, initials: user.initials, fullName: user.fullName, email: user.email }" :size="96" :fontSize="36" class="profile-avatar" :class="{ inactive: isInactive }" />
           <div class="title-block">
             <div class="title-row">
               <h1>{{ user.fullName }}</h1>
@@ -58,9 +56,28 @@
       <!-- Overview -->
       <div v-if="currentTab === 'overview'" class="tab-pane layout-grid">
         <div class="main-column">
-          <section class="info-section">
+                    <section class="info-section">
             <h3>Bio</h3>
-            <p>{{ user.bio || 'No bio provided.' }}</p>
+            <div class="bio-content-wrapper" :class="{ 'is-editing': editingBio }">
+              <RichTextEditor 
+                v-if="editingBio"
+                v-model="tempBio"
+                @save="saveBio"
+                @cancel="editingBio = false"
+                placeholder="Thêm giới thiệu về bạn..."
+              />
+              <div 
+                v-else 
+                class="bio-display tiptap-content" 
+                @click="startEditingBio"
+                style="min-height: 40px; padding: 8px; border: 1px solid transparent; border-radius: 4px; cursor: pointer;"
+                onmouseover="this.style.backgroundColor='#FAFBFC'"
+                onmouseout="this.style.backgroundColor='transparent'"
+              >
+                <div v-if="user.bio && user.bio !== '<p></p>'" v-html="user.bio"></div>
+                <div v-else style="color: #5E6C84;">Thêm giới thiệu về bạn...</div>
+              </div>
+            </div>
           </section>
           <section class="info-section">
             <h3>Teams & Departments</h3>
@@ -74,9 +91,28 @@
               </div>
             </div>
           </section>
-          <section class="info-section">
+                    <section class="info-section">
             <h3>Hobbies & Interests</h3>
-            <p>{{ user.hobbies || 'Has not shared any hobbies yet.' }}</p>
+            <div class="bio-content-wrapper" :class="{ 'is-editing': editingHobbies }">
+              <RichTextEditor 
+                v-if="editingHobbies"
+                v-model="tempHobbies"
+                @save="saveHobbies"
+                @cancel="editingHobbies = false"
+                placeholder="Chia sẻ sở thích của bạn..."
+              />
+              <div 
+                v-else 
+                class="bio-display tiptap-content" 
+                @click="startEditingHobbies"
+                style="min-height: 40px; padding: 8px; border: 1px solid transparent; border-radius: 4px; cursor: pointer;"
+                onmouseover="this.style.backgroundColor='#FAFBFC'"
+                onmouseout="this.style.backgroundColor='transparent'"
+              >
+                <div v-if="user.hobbies && user.hobbies !== '<p></p>'" v-html="user.hobbies"></div>
+                <div v-else style="color: #5E6C84;">Has not shared any hobbies yet.</div>
+              </div>
+            </div>
           </section>
         </div>
         <div class="side-column">
@@ -143,7 +179,7 @@
           <tbody>
             <tr v-for="goal in linkedGoals" :key="goal.id" @click="goToGoal(goal.id)">
               <td class="link-text"><i class="fa-solid fa-bullseye"></i> {{ goal.title }}</td>
-              <td><span class="status-badge" :class="goal.status.toLowerCase().replace(' ', '-')">{{ goal.status }}</span></td>
+              <td><span class="status-badge" :class="statusClass(goal.status)">{{ goal.status }}</span></td>
             </tr>
           </tbody>
         </table>
@@ -175,7 +211,7 @@
         </div>
         <div class="kudos-grid mt-16">
           <div class="kudos-card" v-for="k in kudos" :key="k.id">
-            <div class="kudos-icon"><i class="fa-solid fa-star" style="color: #FFAB00;"></i></div>
+            <div class="kudos-icon">{{ k.icon || 'Star' }}</div>
             <div class="kudos-content">
               <p class="kudos-msg">"{{ k.message }}"</p>
               <div class="kudos-meta">
@@ -246,12 +282,48 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { getStoredUser } from '@/utils/permissions'
 import { useRoute, useRouter } from 'vue-router'
 import { usePeopleStore } from '@/store/usePeopleStore'
+import UserAvatar from '@/components/common/UserAvatar.vue'
+import RichTextEditor from '@/components/common/RichTextEditor.vue'
+import { useGoalStore } from '@/store/useGoalStore'
+import { useHomeProjectStore as useProjectStore } from '@/store/useHomeProjectStore'
 
 const route = useRoute()
 const router = useRouter()
 const peopleStore = usePeopleStore()
+const goalStore = useGoalStore()
+const projectStore = useProjectStore()
+
+
+const editingBio = ref(false)
+const tempBio = ref('')
+const startEditingBio = () => {
+  tempBio.value = user.value.bio || ''
+  editingBio.value = true
+}
+const saveBio = async () => {
+  try {
+    await peopleStore.updateProfile({ bio: tempBio.value })
+    editingBio.value = false
+    await peopleStore.fetchProfileDetail(route.params.id)
+  } catch(e) { console.error('Save bio failed', e) }
+}
+
+const editingHobbies = ref(false)
+const tempHobbies = ref('')
+const startEditingHobbies = () => {
+  tempHobbies.value = user.value.hobbies || ''
+  editingHobbies.value = true
+}
+const saveHobbies = async () => {
+  try {
+    await peopleStore.updateProfile({ hobbies: tempHobbies.value })
+    editingHobbies.value = false
+    await peopleStore.fetchProfileDetail(route.params.id)
+  } catch(e) { console.error('Save hobbies failed', e) }
+}
 
 const currentTab = ref('overview')
 const isMenuOpen = ref(false)
@@ -266,12 +338,12 @@ const editForm = ref({
 })
 
 const user = computed(() => {
-  const u = peopleStore.currentUser
-  if (!u) return null
+  const u = peopleStore.currentUser || getStoredUser() || {}
   return {
     ...u,
-    teamsList: u.department && u.department !== 'N/A' ? [{ id: 'dept-1', name: u.department }] : [],
-    hobbies: u.hobbies || ''
+    teamsList: u.departments || [],
+    hobbies: u.hobbies || '',
+    avatarColor: u.avatarColor
   }
 })
 
@@ -283,7 +355,12 @@ const history = computed(() => peopleStore.history)
 
 const isInactive = computed(() => user.value?.status === 'Inactive')
 
+const userGoals = computed(() => goalStore.goals.filter(g => g.ownerId === user.value.id || g.owner === user.value.fullName))
+const userProjects = computed(() => projectStore.projects.filter(p => p.ownerId === user.value.id || p.owner === user.value.fullName))
+
 onMounted(async () => {
+  goalStore.fetchGoals();
+  projectStore.fetchProjects();
   await peopleStore.fetchProfileDetail(route.params.id)
   document.addEventListener('click', closeMenuOnOutsideClick)
 })
@@ -305,6 +382,8 @@ const goToGoal = (id) => {
 const goToProject = (id) => {
   router.push(`/home/projects/${id}`)
 }
+
+const statusClass = (status) => `${status || ''}`.toLowerCase().replace(/\s+/g, '-')
 
 const openEditProfile = () => {
   isMenuOpen.value = false
@@ -403,7 +482,6 @@ const goToTask = (task) => {
 .profile-avatar {
   width: 96px;
   height: 96px;
-  background-color: #0052cc;
   color: white;
   border-radius: 50%;
   display: flex;

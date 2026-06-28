@@ -96,6 +96,7 @@ namespace TaskManagement.API.Controllers
                     bio = user.Bio,
                     location = user.Location,
                     timezone = user.Timezone,
+                    hobbies = extra.Hobbies,
                     departmentName = activeDepartment?.Name ?? extra.DepartmentName,
                     organizationName = extra.OrganizationName,
                     collaborationRules = extra.CollaborationRules,
@@ -129,6 +130,7 @@ namespace TaskManagement.API.Controllers
             public string CollaborationRules { get; set; } = string.Empty;
             
             public int CoverPositionY { get; set; } = 50;
+            public string Hobbies { get; set; } = string.Empty;
             
             [MaxLength(500, ErrorMessage = "Tiểu sử không được vượt quá 500 ký tự.")]
             public string Bio { get; set; } = string.Empty;
@@ -141,12 +143,24 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetUsers([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        public async Task<IActionResult> GetUsers(
+            [FromQuery] string? search,
+            [FromQuery] Guid? projectId,
+            [FromQuery] Guid? goalId,
+            [FromQuery] Guid? teamId,
+            [FromQuery] Guid? managerId,
+            [FromQuery] string? jobTitle,
+            [FromQuery] string? department,
+            [FromQuery] string? location,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
         {
             var query = _context.Users
                 .AsNoTracking()
                 .Include(u => u.DepartmentMemberships)
                 .ThenInclude(dm => dm.Department)
+                .Include(u => u.ProjectMemberships)
+                .ThenInclude(pm => pm.Project)
                 .Where(u => !u.IsDeleted && u.IsActive)
                 .AsQueryable();
 
@@ -157,6 +171,48 @@ namespace TaskManagement.API.Controllers
                     u.FullName.ToLower().Contains(lowerSearch) || 
                     u.Email.ToLower().Contains(lowerSearch) ||
                     (u.JobTitle != null && u.JobTitle.ToLower().Contains(lowerSearch)));
+            }
+
+            if (projectId.HasValue)
+            {
+                query = query.Where(u =>
+                    u.ProjectMemberships.Any(pm => pm.ProjectId == projectId.Value) ||
+                    _context.Projects.Any(p => p.Id == projectId.Value && p.CreatorId == u.Id));
+            }
+
+            if (goalId.HasValue)
+            {
+                query = query.Where(u => _context.Goals.Any(g => g.Id == goalId.Value && g.OwnerId == u.Id));
+            }
+
+            if (teamId.HasValue)
+            {
+                query = query.Where(u => u.DepartmentMemberships.Any(dm => dm.DepartmentId == teamId.Value));
+            }
+
+            if (managerId.HasValue)
+            {
+                query = query.Where(u => u.DepartmentMemberships.Any(dm =>
+                    dm.Department != null && dm.Department.ManagerId == managerId.Value));
+            }
+
+            if (!string.IsNullOrWhiteSpace(jobTitle))
+            {
+                var normalizedJobTitle = jobTitle.ToLower();
+                query = query.Where(u => u.JobTitle != null && u.JobTitle.ToLower().Contains(normalizedJobTitle));
+            }
+
+            if (!string.IsNullOrWhiteSpace(department))
+            {
+                var normalizedDepartment = department.ToLower();
+                query = query.Where(u => u.DepartmentMemberships.Any(dm =>
+                    dm.Department != null && dm.Department.Name.ToLower().Contains(normalizedDepartment)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(location))
+            {
+                var normalizedLocation = location.ToLower();
+                query = query.Where(u => u.Location != null && u.Location.ToLower().Contains(normalizedLocation));
             }
 
             var totalCount = await query.CountAsync();
@@ -176,7 +232,32 @@ namespace TaskManagement.API.Controllers
                 jobTitle = u.JobTitle,
                 location = u.Location,
                 timezone = u.Timezone,
-                departmentName = u.DepartmentMemberships.FirstOrDefault(dm => dm.Department != null && dm.Department.IsActive && !dm.Department.IsDeleted)?.Department?.Name
+                departmentName = u.DepartmentMemberships.FirstOrDefault(dm => dm.Department != null && dm.Department.IsActive && !dm.Department.IsDeleted)?.Department?.Name,
+                departments = u.DepartmentMemberships
+                    .Where(dm => dm.Department != null && dm.Department.IsActive && !dm.Department.IsDeleted)
+                    .Select(dm => new
+                    {
+                        id = dm.DepartmentId,
+                        name = dm.Department!.Name,
+                        managerId = dm.Department.ManagerId
+                    })
+                    .ToList(),
+                projects = u.ProjectMemberships
+                    .Where(pm => pm.Project != null && !pm.Project.IsDeleted)
+                    .Select(pm => new
+                    {
+                        id = pm.ProjectId,
+                        name = pm.Project.Name
+                    })
+                    .ToList(),
+                ownedProjectIds = _context.Projects
+                    .Where(p => p.CreatorId == u.Id && !p.IsDeleted)
+                    .Select(p => p.Id)
+                    .ToList(),
+                ownedGoalIds = _context.Goals
+                    .Where(g => g.OwnerId == u.Id && !g.IsArchived)
+                    .Select(g => g.Id)
+                    .ToList()
             }).ToList();
 
             return Ok(new { statusCode = 200, data = result, total = totalCount, page, pageSize });
@@ -207,6 +288,83 @@ namespace TaskManagement.API.Controllers
                 .Select(dm => dm.Department)
                 .FirstOrDefault(department => department != null && department.IsActive && !department.IsDeleted);
 
+            var teamIds = user.DepartmentMemberships.Select(dm => dm.DepartmentId).ToList();
+            var linkedGoals = await _context.Goals
+                .AsNoTracking()
+                .Where(g =>
+                    !g.IsArchived
+                    && (g.OwnerId == id
+                        || (g.DepartmentId.HasValue && teamIds.Contains(g.DepartmentId.Value))
+                        || g.TeamGoals.Any(tg => teamIds.Contains(tg.DepartmentId))))
+                .OrderByDescending(g => g.UpdatedAt)
+                .Select(g => new
+                {
+                    id = g.Id,
+                    title = g.Title,
+                    status = g.Status,
+                    progress = g.Progress,
+                    updatedAt = g.UpdatedAt
+                })
+                .ToListAsync();
+
+            var linkedProjects = await _context.Projects
+                .AsNoTracking()
+                .Where(p =>
+                    !p.IsDeleted
+                    && (p.CreatorId == id
+                        || p.ProjectMembers.Any(pm => pm.UserId == id)
+                        || (p.DepartmentId.HasValue && teamIds.Contains(p.DepartmentId.Value))))
+                .OrderByDescending(p => p.UpdatedAt)
+                .Select(p => new
+                {
+                    id = p.Id,
+                    title = p.Name,
+                    name = p.Name,
+                    status = p.IsArchived ? "Archived" : (p.Status ? "Active" : "Inactive"),
+                    updatedAt = p.UpdatedAt
+                })
+                .ToListAsync();
+
+            var kudos = await _context.Kudos
+                .AsNoTracking()
+                .Include(k => k.Sender)
+                .Include(k => k.Department)
+                .Where(k => k.ReceiverId == id || (k.DepartmentId.HasValue && teamIds.Contains(k.DepartmentId.Value)))
+                .OrderByDescending(k => k.CreatedAt)
+                .Select(k => new
+                {
+                    id = k.Id,
+                    message = k.Message,
+                    sender = k.Sender.FullName ?? k.Sender.Email,
+                    senderName = k.Sender.FullName ?? k.Sender.Email,
+                    senderEmail = k.Sender.Email,
+                    senderAvatarUrl = k.Sender.AvatarUrl,
+                    department = k.Department == null ? null : k.Department.Name,
+                    departmentId = k.DepartmentId,
+                    icon = k.Icon ?? "Star",
+                    createdAt = k.CreatedAt
+                })
+                .ToListAsync();
+
+            var history = await _context.SiteAuditLogs
+                .AsNoTracking()
+                .Include(log => log.User)
+                .Where(log => log.UserId == id)
+                .OrderByDescending(log => log.CreatedAt)
+                .Take(100)
+                .Select(log => new
+                {
+                    id = log.Id,
+                    time = log.CreatedAt,
+                    action = log.Action,
+                    entityType = log.EntityType,
+                    entityId = log.EntityId,
+                    oldValue = log.OldValue,
+                    newValue = log.NewValue,
+                    actorName = log.User.FullName ?? log.User.Email
+                })
+                .ToListAsync();
+
             return Ok(new
             {
                 statusCode = 200,
@@ -223,9 +381,22 @@ namespace TaskManagement.API.Controllers
                     location = user.Location,
                     timezone = user.Timezone,
                     departmentName = activeDepartment?.Name ?? extra.DepartmentName,
+                    departments = user.DepartmentMemberships
+                        .Where(dm => dm.Department != null && dm.Department.IsActive && !dm.Department.IsDeleted)
+                        .Select(dm => new
+                        {
+                            id = dm.DepartmentId,
+                            name = dm.Department!.Name,
+                            managerId = dm.Department.ManagerId
+                        })
+                        .ToList(),
                     organizationName = extra.OrganizationName,
                     collaborationRules = extra.CollaborationRules,
-                    coverPositionY = extra.CoverPositionY
+                    coverPositionY = extra.CoverPositionY,
+                    linkedGoals,
+                    linkedProjects,
+                    kudos,
+                    history
                 }
             });
         }

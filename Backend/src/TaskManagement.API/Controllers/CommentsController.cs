@@ -179,9 +179,16 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpGet("{entityType}/{entityId}")]
+        [HttpGet("comments/{entityType}/{entityId}")]
         public async Task<IActionResult> GetCommentsPolymorphic(string entityType, Guid entityId)
         {
-            var allowedEntityTypes = new[] { "WorkTask", "Project", "Goal", "Risk", "Lesson", "Decision" };
+            var allowedEntityTypes = new[]
+            {
+                "WorkTask", "Project", "Goal", "Risk", "Lesson", "Decision",
+                "GoalUpdate", "ProjectUpdate",
+                "GoalLesson", "GoalRisk", "GoalDecision",
+                "ProjectLesson", "ProjectRisk", "ProjectDecision"
+            };
             if (!allowedEntityTypes.Contains(entityType))
             {
                 return BadRequest(new { message = "Loại Entity không hợp lệ." });
@@ -217,9 +224,16 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPost("{entityType}/{entityId}")]
+        [HttpPost("comments/{entityType}/{entityId}")]
         public async Task<IActionResult> CreateCommentPolymorphic(string entityType, Guid entityId, [FromForm] string content, [FromForm] Guid? parentCommentId, [FromForm] List<IFormFile>? files)
         {
-            var allowedEntityTypes = new[] { "WorkTask", "Project", "Goal", "Risk", "Lesson", "Decision" };
+            var allowedEntityTypes = new[]
+            {
+                "WorkTask", "Project", "Goal", "Risk", "Lesson", "Decision",
+                "GoalUpdate", "ProjectUpdate",
+                "GoalLesson", "GoalRisk", "GoalDecision",
+                "ProjectLesson", "ProjectRisk", "ProjectDecision"
+            };
             if (!allowedEntityTypes.Contains(entityType))
             {
                 return BadRequest(new { message = "Loại Entity không hợp lệ." });
@@ -274,6 +288,37 @@ namespace TaskManagement.API.Controllers
                         CreatedAt = DateTime.UtcNow
                     });
                 }
+            }
+
+            _context.SiteAuditLogs.Add(new SiteAuditLog
+            {
+                EntityId = entityId,
+                EntityType = entityType,
+                Action = "AddComment",
+                NewValue = SanitizeRichHtml(content),
+                UserId = userId.Value,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            var followerIds = await _context.EntityFollowers
+                .Where(f => f.EntityType == entityType && f.EntityId == entityId && f.UserId != userId.Value)
+                .Select(f => f.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            foreach (var followerId in followerIds)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = followerId,
+                    Title = "Co binh luan moi",
+                    Content = SanitizeRichHtml(content),
+                    LinkUrl = entityType == "Goal" ? $"/home/goals/{entityId}" : entityType == "Project" ? $"/home/projects/{entityId}" : null,
+                    CreatedAt = DateTime.UtcNow,
+                    NotificationType = "COMMENT_ADDED",
+                    TriggeredByUserId = userId.Value
+                });
             }
 
             await _context.SaveChangesAsync();
@@ -359,6 +404,16 @@ namespace TaskManagement.API.Controllers
                     });
                 }
             }
+
+            _context.SiteAuditLogs.Add(new SiteAuditLog
+            {
+                EntityId = taskId,
+                EntityType = "WorkTask",
+                Action = "AddComment",
+                NewValue = SanitizeRichHtml(content),
+                UserId = userId.Value,
+                CreatedAt = DateTime.UtcNow
+            });
 
             await _context.SaveChangesAsync();
 

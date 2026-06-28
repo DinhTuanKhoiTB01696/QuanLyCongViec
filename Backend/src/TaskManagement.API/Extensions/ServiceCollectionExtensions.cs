@@ -68,6 +68,7 @@ namespace TaskManagement.API.Extensions
             services.AddScoped<IGoalService, GoalService>();
             services.AddScoped<IProjectLinkService, ProjectLinkService>();
             services.AddScoped<IStarredItemService, StarredItemService>();
+            services.AddScoped<IFollowerService, FollowerService>();
             
             return services;
         }

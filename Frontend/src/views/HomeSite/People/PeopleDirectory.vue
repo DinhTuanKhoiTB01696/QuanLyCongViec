@@ -23,7 +23,7 @@
           <input type="text" v-model="searchQuery" placeholder="Tìm kiếm người" class="search-input" />
         </div>
         
-        <div class="filter-chips" style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <div v-if="false" class="filter-chips" style="display: flex; flex-wrap: wrap; gap: 8px;">
           <button class="filter-chip"><i class="fa-solid fa-rocket"></i> Lọc theo Dự án</button>
           <button class="filter-chip"><i class="fa-solid fa-bullseye"></i> Mục tiêu</button>
           <button class="filter-chip"><i class="fa-solid fa-users"></i> Nhóm</button>
@@ -31,6 +31,16 @@
           <button class="filter-chip"><i class="fa-regular fa-user"></i> Người quản lý</button>
           <button class="filter-chip"><i class="fa-solid fa-building"></i> Phòng ban</button>
           <button class="filter-chip"><i class="fa-solid fa-location-dot"></i> Vị trí</button>
+        </div>
+        <div class="filter-chips" style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <DropdownFilter label="Dự án" :options="projectOptions" v-model="filters.projectId" />
+          <DropdownFilter label="Mục tiêu" :options="goalOptions" v-model="filters.goalId" />
+          <DropdownFilter label="Nhóm" :options="teamOptions" v-model="filters.teamId" />
+          <DropdownFilter label="Người quản lý" :options="managerOptions" v-model="filters.managerId" />
+          <DropdownFilter label="Chức danh" :options="jobTitleOptions" v-model="filters.jobTitle" />
+          <DropdownFilter label="Phòng ban" :options="departmentOptions" v-model="filters.department" />
+          <DropdownFilter label="Vị trí" :options="locationOptions" v-model="filters.location" />
+          <button v-if="hasActiveFilters" class="filter-chip" @click="clearFilters">Xóa lọc</button>
         </div>
       </div>
 
@@ -49,7 +59,8 @@
       <div class="table-container" v-if="!isLoading">
         <!-- Grid View -->
         <div v-if="viewMode === 'grid' && filteredUsers.length > 0" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
-          <div class="people-card" v-for="user in filteredUsers" :key="user.id" @click="goToProfile(user.id)" style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 16px; text-align: center; cursor: pointer; transition: background 0.2s, box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 8px rgba(9, 30, 66, 0.15)'" onmouseout="this.style.boxShadow='none'">
+          <div class="people-card" v-for="user in filteredUsers" :key="user.id" @click="goToProfile(user.id)" style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 16px; text-align: center; cursor: pointer; transition: background 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; align-items: center;" onmouseover="this.style.boxShadow='0 4px 8px rgba(9, 30, 66, 0.15)'" onmouseout="this.style.boxShadow='none'">
+            <UserAvatar :user="user" :size="48" :fontSize="18" style="margin-bottom: 12px" />
             <div style="font-size: 14px; font-weight: 500; color: #172B4D; margin-bottom: 4px;">{{ user.fullName }}</div>
             <div v-if="user.email && user.email.includes('@')" style="font-size: 12px; color: #6B778C;">{{ user.email }}</div>
             <div v-if="!user.email || !user.email.includes('@')" style="font-size: 12px; color: #6B778C;">
@@ -74,7 +85,7 @@
             <tr v-for="user in filteredUsers" :key="user.id" @click="goToProfile(user.id)">
               <td>
                 <div class="user-cell">
-                  <div class="user-avatar">{{ user.avatar }}</div>
+                  <UserAvatar :user="user" :size="24" :fontSize="11" class="user-avatar" />
                   <div class="user-info-stack">
                     <span class="user-name">{{ user.fullName }}</span>
                   </div>
@@ -156,13 +167,31 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePeopleStore } from '@/store/usePeopleStore'
+import { useGoalStore } from '@/store/useGoalStore'
+import { useHomeProjectStore } from '@/store/useHomeProjectStore'
+import { useTeamStore } from '@/store/useTeamStore'
 import debounce from 'lodash/debounce'
+import UserAvatar from '@/components/common/UserAvatar.vue'
+import DropdownFilter from '@/components/common/DropdownFilter.vue'
+import axiosClient from '@/api/axiosClient'
 
 const router = useRouter()
 const peopleStore = usePeopleStore()
+const goalStore = useGoalStore()
+const projectStore = useHomeProjectStore()
+const teamStore = useTeamStore()
 
 const searchQuery = ref('')
 const viewMode = ref('grid')
+const filters = ref({
+  projectId: '',
+  goalId: '',
+  teamId: '',
+  managerId: '',
+  jobTitle: '',
+  department: '',
+  location: ''
+})
 
 // Invite Modal State
 const isInviteModalOpen = ref(false)
@@ -211,8 +240,12 @@ const sendInvites = async () => {
   inviteSuccess.value = false
   
   try {
-    // Simulate API call to send invites
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await Promise.all(inviteEmails.value.map(email => axiosClient.post('/admin/users', {
+      email,
+      role: 'Developer',
+      projectRole: 'DEV',
+      inviteMessage: ''
+    })))
     inviteSuccess.value = true
     
     // Auto close after 2 seconds
@@ -228,27 +261,84 @@ const sendInvites = async () => {
   }
 }
 
+const cleanFilters = () => Object.fromEntries(
+  Object.entries(filters.value).filter(([, value]) => value)
+)
+
+const hasActiveFilters = computed(() => Object.values(filters.value).some(Boolean))
+
+const fetchPeople = async () => {
+  await peopleStore.fetchPeople(searchQuery.value, 1, 20, cleanFilters())
+}
+
 onMounted(async () => {
-  await peopleStore.fetchPeople()
+  await Promise.all([
+    fetchPeople(),
+    goalStore.fetchGoals(),
+    projectStore.fetchProjects(),
+    teamStore.fetchAllTeams()
+  ])
 })
 
 const isLoading = computed(() => peopleStore.isLoading)
 const error = computed(() => peopleStore.error)
+const goalOptions = computed(() => goalStore.goals || [])
+const projectOptions = computed(() => projectStore.projects || [])
+const teamOptions = computed(() => teamStore.allTeams || [])
+const managerOptions = computed(() => (peopleStore.users || []).filter(user =>
+  (peopleStore.users || []).some(member =>
+    (member.departments || []).some(department => department.managerId === user.id)
+  )
+))
+
+const uniqueValues = (selector) => Array.from(new Set(
+  (peopleStore.users || [])
+    .map(selector)
+    .filter(value => value && value !== 'N/A')
+)).sort()
+
+const jobTitleOptions = computed(() => uniqueValues(user => user.position))
+const departmentOptions = computed(() => uniqueValues(user => user.department))
+const locationOptions = computed(() => uniqueValues(user => user.location))
 
 const filteredUsers = computed(() => {
-  return (peopleStore.users || []).map(u => ({
-    ...u,
-    avatar: u.avatar || (u.fullName ? u.fullName.substring(0, 2).toUpperCase() : 'U')
-  }))
+  return (peopleStore.users || []).map(u => {
+    let initial = 'U';
+    if (u.email) {
+      initial = u.email.charAt(0).toUpperCase();
+    } else if (u.fullName) {
+      initial = u.fullName.charAt(0).toUpperCase();
+    }
+    return {
+      ...u,
+      avatar: u.avatar || initial
+    }
+  })
 })
 
 const handleSearch = debounce(async () => {
-  await peopleStore.fetchPeople(searchQuery.value)
+  await fetchPeople()
 }, 500)
 
 watch(searchQuery, () => {
   handleSearch()
 })
+
+watch(filters, () => {
+  fetchPeople()
+}, { deep: true })
+
+const clearFilters = () => {
+  filters.value = {
+    projectId: '',
+    goalId: '',
+    teamId: '',
+    managerId: '',
+    jobTitle: '',
+    department: '',
+    location: ''
+  }
+}
 
 const goToProfile = (id) => {
   router.push(`/home/profile/${id}`)

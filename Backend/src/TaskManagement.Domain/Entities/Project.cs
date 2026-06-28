@@ -58,5 +58,10 @@ namespace TaskManagement.Domain.Entities
         public ICollection<Module> Modules { get; set; } = new List<Module>();
         public ICollection<Intake> Intakes { get; set; } = new List<Intake>();
         public ICollection<Page> Pages { get; set; } = new List<Page>();
+        public ICollection<ProjectUpdate> Updates { get; set; } = new List<ProjectUpdate>();
+        public ICollection<ProjectLesson> Lessons { get; set; } = new List<ProjectLesson>();
+        public ICollection<ProjectRisk> Risks { get; set; } = new List<ProjectRisk>();
+        public ICollection<ProjectDecision> Decisions { get; set; } = new List<ProjectDecision>();
+
     }
 }

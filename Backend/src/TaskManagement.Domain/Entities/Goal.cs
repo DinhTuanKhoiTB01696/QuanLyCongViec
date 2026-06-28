@@ -34,6 +34,7 @@ namespace TaskManagement.Domain.Entities
         public ICollection<GoalLesson> Lessons { get; set; } = new List<GoalLesson>();
         public ICollection<GoalRisk> Risks { get; set; } = new List<GoalRisk>();
         public ICollection<GoalDecision> Decisions { get; set; } = new List<GoalDecision>();
+        public ICollection<TeamGoal> TeamGoals { get; set; } = new List<TeamGoal>();
         
         // Link to Projects will be handled by ProjectLink entity to support polymorphic links
     }

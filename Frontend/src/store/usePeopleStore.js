@@ -18,14 +18,14 @@ export const usePeopleStore = defineStore('people', {
     pageSize: 20
   }),
   actions: {
-    async fetchPeople(search = '', page = 1, pageSize = 20) {
+    async fetchPeople(search = '', page = 1, pageSize = 20, filters = {}) {
       this.isLoading = true
       this.error = null
       this.isEmpty = false
       this.isSuccess = false
       try {
         const response = await axiosClient.get('/users', {
-          params: { search, page, pageSize }
+          params: { search, page, pageSize, ...filters }
         })
         const data = response.data?.data || response.data || []
         
@@ -34,9 +34,15 @@ export const usePeopleStore = defineStore('people', {
           fullName: u.fullName || u.email,
           email: u.email,
           location: u.location || '',
-          avatar: u.avatarUrl || (u.fullName ? u.fullName.substring(0, 2).toUpperCase() : u.email.substring(0, 2).toUpperCase()),
+          avatarUrl: u.avatarUrl,
+          avatarColor: u.avatarColor,
+          initials: u.initials,
           department: u.departmentName || 'N/A',
+          departments: u.departments || [],
           position: u.jobTitle || 'Member',
+          projects: u.projects || [],
+          ownedProjectIds: u.ownedProjectIds || [],
+          ownedGoalIds: u.ownedGoalIds || [],
           team: u.projects && u.projects.length > 0 ? u.projects[0] : 'N/A',
           timezone: u.timezone || '',
           status: u.status,
@@ -69,8 +75,11 @@ export const usePeopleStore = defineStore('people', {
           id: data.id,
           fullName: data.fullName,
           email: data.email,
-          avatar: data.avatarUrl || (data.fullName ? data.fullName.substring(0, 2).toUpperCase() : data.email.substring(0, 2).toUpperCase()),
+          avatarUrl: data.avatarUrl,
+          avatarColor: data.avatarColor,
+          initials: data.initials,
           coverUrl: data.coverUrl,
+          departments: data.departments || [],
           department: data.departmentName || 'N/A',
           position: data.jobTitle,
           team: data.team,
@@ -82,8 +91,16 @@ export const usePeopleStore = defineStore('people', {
         
         this.linkedGoals = data.linkedGoals || []
         this.linkedProjects = data.linkedProjects || []
-        this.kudos = data.kudos || []
-        this.history = data.history || []
+        this.kudos = (data.kudos || []).map(k => ({
+          ...k,
+          sender: k.senderName || k.sender,
+          date: new Date(k.createdAt).toLocaleDateString('vi-VN')
+        }))
+        this.history = (data.history || []).map(log => ({
+          ...log,
+          time: new Date(log.time || log.createdAt).toLocaleString('vi-VN'),
+          action: [log.actorName, log.action, log.entityType].filter(Boolean).join(' - ')
+        }))
         
         this.isSuccess = true
       } catch (err) {

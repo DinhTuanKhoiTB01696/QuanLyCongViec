@@ -10,6 +10,10 @@ namespace TaskManagement.Domain.Entities
         
         public string Content { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty; // Status at the time of update
+        public string? OldStatus { get; set; }
+        public string? NewStatus { get; set; }
+        public int? OldProgress { get; set; }
+        public int? NewProgress { get; set; }
         
         public Guid UserId { get; set; }
         public User User { get; set; } = null!;

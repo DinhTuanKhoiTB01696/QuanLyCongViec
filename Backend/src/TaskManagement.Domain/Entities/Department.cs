@@ -26,5 +26,6 @@ namespace TaskManagement.Domain.Entities
         public ICollection<DepartmentMember> DepartmentMembers { get; set; } = new List<DepartmentMember>();
         public ICollection<Project> Projects { get; set; } = new List<Project>();
         public ICollection<ProjectDepartmentRole> ProjectDepartmentRoles { get; set; } = new List<ProjectDepartmentRole>();
+        public ICollection<TeamGoal> TeamGoals { get; set; } = new List<TeamGoal>();
     }
 }

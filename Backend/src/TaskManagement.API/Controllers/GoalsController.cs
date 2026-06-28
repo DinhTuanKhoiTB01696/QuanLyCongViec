@@ -70,6 +70,34 @@ namespace TaskManagement.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("{id}/updates")]
+        public async Task<IActionResult> GetUpdates(Guid workspaceId, Guid id)
+        {
+            var result = await _goalService.GetUpdatesAsync(id);
+            return Ok(result);
+        }
+
+        [HttpPut("{id}/updates/{updateId}")]
+        public async Task<IActionResult> UpdateUpdate(Guid workspaceId, Guid id, Guid updateId, [FromBody] object dto)
+        {
+            var result = await _goalService.UpdateUpdateAsync(id, updateId, dto);
+            return Ok(result);
+        }
+
+        [HttpDelete("{id}/updates/{updateId}")]
+        public async Task<IActionResult> DeleteUpdate(Guid workspaceId, Guid id, Guid updateId)
+        {
+            await _goalService.DeleteUpdateAsync(id, updateId);
+            return NoContent();
+        }
+
+        [HttpGet("{id}/lessons")]
+        public async Task<IActionResult> GetLessons(Guid workspaceId, Guid id)
+        {
+            var result = await _goalService.GetLessonsAsync(id);
+            return Ok(result);
+        }
+
         [HttpPost("{id}/lessons")]
         public async Task<IActionResult> AddLesson(Guid workspaceId, Guid id, [FromBody] object dto)
         {
@@ -78,11 +106,25 @@ namespace TaskManagement.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("{id}/risks")]
+        public async Task<IActionResult> GetRisks(Guid workspaceId, Guid id)
+        {
+            var result = await _goalService.GetRisksAsync(id);
+            return Ok(result);
+        }
+
         [HttpPost("{id}/risks")]
         public async Task<IActionResult> AddRisk(Guid workspaceId, Guid id, [FromBody] object dto)
         {
             var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
             var result = await _goalService.AddRiskAsync(id, userId, dto);
+            return Ok(result);
+        }
+
+        [HttpGet("{id}/decisions")]
+        public async Task<IActionResult> GetDecisions(Guid workspaceId, Guid id)
+        {
+            var result = await _goalService.GetDecisionsAsync(id);
             return Ok(result);
         }
 

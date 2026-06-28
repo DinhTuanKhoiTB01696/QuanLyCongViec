@@ -197,6 +197,7 @@ const fetchProfile = async () => {
       email: data.email || '',
       collaboration: data.collaborationRules || '',
       avatarUrl: data.avatarUrl || '',
+      avatarColor: data.avatarColor || '',
       coverUrl: data.coverUrl || '',
       lastPasswordChangedAt: data.lastPasswordChangedAt || '',
       canChangePasswordAt: data.canChangePasswordAt || '',

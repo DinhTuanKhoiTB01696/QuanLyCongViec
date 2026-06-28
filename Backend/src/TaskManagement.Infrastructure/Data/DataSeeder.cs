@@ -44,6 +44,16 @@ namespace TaskManagement.Infrastructure.Data
                 await context.SaveChangesAsync();
             }
 
+            // Homesite must run on real user-entered data. Keep only system roles by default;
+            // demo users, workspaces, projects, tasks, and kudos require an explicit opt-in.
+            if (!string.Equals(
+                Environment.GetEnvironmentVariable("SPRINTA_SEED_DEMO_DATA"),
+                "true",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
             var owner = await context.Users.FirstOrDefaultAsync(u => u.Id == preferredOwnerId)
                 ?? await context.Users.FirstOrDefaultAsync(u => u.Email == "admin@example.com");
 

@@ -1,6 +1,5 @@
 <template>
-  <HomeSiteLayout>
-    <div class="jira-for-you-page">
+  <div class="jira-for-you-page">
       <!-- Top banner -->
       <div class="welcome-banner">
         <div class="banner-content">
@@ -43,14 +42,13 @@
             <h2>{{ t('Frequently accessed') }}</h2>
           </div>
           <div class="recent-access-container">
-            <!-- Mock recent access -->
-            <div class="recent-access-card" v-for="i in 1" :key="i">
+            <div class="recent-access-card" v-for="project in recentProjects" :key="project.id" @click="router.push(`/home/projects/${project.id}`)">
               <div class="recent-icon purple">
-                <i class="fa-solid fa-rotate"></i>
+                <i class="fa-solid fa-rocket"></i>
               </div>
               <div class="recent-info">
-                <div class="recent-title">(Example) Billing System...</div>
-                <div class="recent-subtitle">Không gian • SprintA</div>
+                <div class="recent-title">{{ project.name || project.title }}</div>
+                <div class="recent-subtitle">Dự án • {{ project.owner || 'Homesite' }}</div>
               </div>
             </div>
           </div>
@@ -66,58 +64,21 @@
             </div>
           </div>
 
-          <div class="audit-list">
+          <div class="audit-list" v-if="miniActivities.length > 0">
             <div class="time-group">
               <h3 class="time-label">{{ t('Today') }}</h3>
-              <div class="audit-item">
-                <div class="item-icon yellow-bg">😎</div>
+              <div class="audit-item" v-for="activity in miniActivities" :key="activity.id">
+                <div class="item-icon light-blue square"><i :class="activity.icon"></i></div>
                 <div class="item-details">
-                  <div class="item-title">e</div>
-                  <div class="item-path">Dự án • Dự án • TUA46-8</div>
+                  <div class="item-title">{{ activity.bold || activity.text }}</div>
+                  <div class="item-path">{{ activity.text }}</div>
                 </div>
                 <div class="item-meta">
-                  <span class="status-badge pending">PENDING</span>
-                  <span class="time-ago">8 phút trước</span>
+                  <span class="status-badge pending">{{ activity.raw?.status || 'ACTIVITY' }}</span>
+                  <span class="time-ago">{{ activity.time }}</span>
                 </div>
               </div>
             </div>
-
-            <div class="time-group">
-              <h3 class="time-label">{{ t('This week') }}</h3>
-              <div class="audit-item">
-                <div class="item-icon light-blue"><i class="fa-solid fa-file-lines"></i></div>
-                <div class="item-details">
-                  <div class="item-title">Chưa có tiêu đề</div>
-                  <div class="item-path">Content • Confluence • Dự Án Tốt Nghiệp</div>
-                </div>
-                <div class="item-meta">
-                  <span class="status-badge draft">BẢN NHÁP</span>
-                  <span class="time-ago">2 ngày trước</span>
-                </div>
-              </div>
-              <div class="audit-item">
-                <div class="item-icon light-blue"><i class="fa-solid fa-file-lines"></i></div>
-                <div class="item-details">
-                  <div class="item-title">Dự Án Tốt Nghiệp Home</div>
-                  <div class="item-path">Trang • Confluence • Dự Án Tốt Nghiệp</div>
-                </div>
-                <div class="item-meta">
-                  <span class="time-ago">2 ngày trước</span>
-                </div>
-              </div>
-              <div class="audit-item">
-                <div class="item-icon light-blue square"><i class="fa-solid fa-check"></i></div>
-                <div class="item-details">
-                  <div class="item-title">fw</div>
-                  <div class="item-path">Task • SprintA • DTN-12 • Dự Án Tốt Nghiệp</div>
-                </div>
-                <div class="item-meta">
-                  <span class="status-badge todo">TO DO</span>
-                  <span class="time-ago">3 ngày trước</span>
-                </div>
-              </div>
-            </div>
-
             <button class="view-all-btn" @click="router.push('/home/recent')">{{ t('View all') }}</button>
           </div>
         </section>
@@ -148,25 +109,28 @@
         </div>
       </div>
 
-    </div>
-  </HomeSiteLayout>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import HomeSiteLayout from '@/views/HomeSite/HomeSiteLayout.vue'
 import { useSiteStore } from '@/store/useSiteStore'
 import { useI18nStore } from '@/store/useI18nStore'
+import { useHomeProjectStore } from '@/store/useHomeProjectStore'
+import { useActivityStore } from '@/store/useActivityStore'
 import { getStoredUser } from '@/utils/permissions'
+import axiosClient from '@/api/axiosClient'
 
 const router = useRouter()
 const siteStore = useSiteStore()
 const i18nStore = useI18nStore()
+const projectStore = useHomeProjectStore()
+const activityStore = useActivityStore()
 const t = (key) => i18nStore.t(key)
 
 const currentUser = getStoredUser()
-const userName = currentUser?.username || 'Tua20000'
+const userName = currentUser?.fullName || currentUser?.username || currentUser?.email || 'bạn'
 
 // Format current date in Vietnamese
 const currentDate = computed(() => {
@@ -178,6 +142,7 @@ const currentDate = computed(() => {
 })
 
 const loading = ref(false)
+const recentViews = ref([])
 
 const isCreateModalVisible = ref(false)
 const newSiteName = ref('')
@@ -197,11 +162,43 @@ const loadSites = async () => {
 
 onMounted(() => {
   loadSites()
+  projectStore.fetchProjects()
+  activityStore.fetchRecentActivities({ limit: 5 })
+  fetchRecentViews()
 })
 
 const filteredSites = computed(() => {
   return siteStore.sites
 })
+
+const fetchRecentViews = async () => {
+  try {
+    const response = await axiosClient.get('/recentviews', { params: { limit: 8 } })
+    recentViews.value = response.data?.data || []
+  } catch (error) {
+    console.error('Fetch recent views error:', error)
+  }
+}
+
+const recentProjects = computed(() => {
+  const viewedProjects = recentViews.value
+    .filter(item => item.entityType === 'Project')
+    .map(item => ({
+      id: item.entityId,
+      name: item.title,
+      title: item.title,
+      owner: item.subtitle || 'Homesite',
+      updatedAt: item.viewedAt
+    }))
+
+  if (viewedProjects.length > 0) return viewedProjects.slice(0, 4)
+
+  return [...(projectStore.projects || [])]
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0))
+    .slice(0, 4)
+})
+
+const miniActivities = computed(() => (activityStore.activities || []).slice(0, 5))
 
 const goToSite = (id) => {
   siteStore.setRecentSite(siteStore.sites.find(s => s.id === id) || { id })

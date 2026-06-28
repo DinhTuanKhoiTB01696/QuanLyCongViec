@@ -55,6 +55,7 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<SiteAuditLog> SiteAuditLogs { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<RecentView> RecentViews { get; set; }
 
         // Group 5: Gamification & Recognition
         public DbSet<PerformanceReview> PerformanceReviews { get; set; }
@@ -93,10 +94,17 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<GoalLesson> GoalLessons { get; set; }
         public DbSet<GoalRisk> GoalRisks { get; set; }
         public DbSet<GoalDecision> GoalDecisions { get; set; }
+        public DbSet<TeamGoal> TeamGoals { get; set; }
 
         // Group 9: Links & Favorites
         public DbSet<StarredItem> StarredItems { get; set; }
         public DbSet<ProjectLink> ProjectLinks { get; set; }
+        public DbSet<ProjectUpdate> ProjectUpdates { get; set; }
+        public DbSet<ProjectLesson> ProjectLessons { get; set; }
+        public DbSet<ProjectRisk> ProjectRisks { get; set; }
+        public DbSet<ProjectDecision> ProjectDecisions { get; set; }
+        public DbSet<EntityFollower> EntityFollowers { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -445,6 +453,22 @@ namespace TaskManagement.Infrastructure.Data
             modelBuilder.Entity<SiteAuditLog>()
                 .HasIndex(sal => new { sal.EntityType, sal.EntityId });
 
+            modelBuilder.Entity<RecentView>()
+                .HasOne(rv => rv.User)
+                .WithMany()
+                .HasForeignKey(rv => rv.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RecentView>().Property(rv => rv.EntityType).HasMaxLength(64);
+            modelBuilder.Entity<RecentView>().Property(rv => rv.Title).HasMaxLength(512);
+            modelBuilder.Entity<RecentView>().Property(rv => rv.Subtitle).HasMaxLength(512);
+            modelBuilder.Entity<RecentView>().Property(rv => rv.Url).HasMaxLength(1024);
+            modelBuilder.Entity<RecentView>().Property(rv => rv.Icon).HasMaxLength(128);
+
+            modelBuilder.Entity<RecentView>()
+                .HasIndex(rv => new { rv.UserId, rv.EntityType, rv.EntityId })
+                .IsUnique();
+
             modelBuilder.Entity<KudoReaction>()
                 .HasOne(kr => kr.Kudo)
                 .WithMany()
@@ -677,6 +701,28 @@ namespace TaskManagement.Infrastructure.Data
                 .WithMany(g => g.Updates)
                 .HasForeignKey(gu => gu.GoalId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TeamGoal>()
+                .HasOne(tg => tg.Department)
+                .WithMany(d => d.TeamGoals)
+                .HasForeignKey(tg => tg.DepartmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TeamGoal>()
+                .HasOne(tg => tg.Goal)
+                .WithMany(g => g.TeamGoals)
+                .HasForeignKey(tg => tg.GoalId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TeamGoal>()
+                .HasOne(tg => tg.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(tg => tg.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TeamGoal>()
+                .HasIndex(tg => new { tg.DepartmentId, tg.GoalId })
+                .IsUnique();
 
             modelBuilder.Entity<GoalLesson>()
                 .HasOne(gl => gl.Goal)
