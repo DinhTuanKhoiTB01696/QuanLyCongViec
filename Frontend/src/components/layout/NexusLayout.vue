@@ -207,10 +207,12 @@ const handleProjectCreated = (newProject) => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: var(--color-bg);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--sa-primary) 8%, transparent), transparent 34%),
+    var(--sa-bg);
   color: var(--color-text-primary);
   overflow: hidden;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Be Vietnam Pro', 'Inter', system-ui, sans-serif;
 }
 
 .main-body {
@@ -218,11 +220,12 @@ const handleProjectCreated = (newProject) => {
   flex: 1;
   overflow: hidden;
   position: relative;
+  background: var(--sa-bg);
 }
 
 .sidebar-overlay {
   position: fixed;
-  top: 64px;
+  top: var(--sa-topbar-height, 52px);
   left: 0;
   right: 0;
   bottom: 0;
@@ -233,13 +236,15 @@ const handleProjectCreated = (newProject) => {
 
 .content-area {
   flex: 1;
-  background: var(--color-bg);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--sa-bg) 82%, var(--sa-surface) 18%), var(--sa-bg));
   padding: 0;
   overflow-y: auto;
   transition: all 0.3s;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  border-left: 1px solid color-mix(in srgb, var(--sa-border) 62%, transparent);
 }
 
 .dark .content-area {
@@ -252,6 +257,7 @@ const handleProjectCreated = (newProject) => {
   margin: 0;
   display: flex;
   flex-direction: column;
+  background: transparent;
 }
 
 @media (max-width: 1024px) {
@@ -265,7 +271,7 @@ const handleProjectCreated = (newProject) => {
   right: 0;
   top: 0;
   bottom: 0;
-  width: 360px;
+  width: 320px;
   background: var(--color-surface);
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
   z-index: 2000;
@@ -284,7 +290,7 @@ const handleProjectCreated = (newProject) => {
 }
 
 .ai-header {
-  padding: 20px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--color-border);
   display: flex;
   justify-content: space-between;
@@ -297,7 +303,7 @@ const handleProjectCreated = (newProject) => {
   align-items: center;
   gap: 8px;
   color: #3b82f6;
-  font-size: 18px;
+  font-size: 15px;
 }
 
 .close-ai {
@@ -310,14 +316,14 @@ const handleProjectCreated = (newProject) => {
 
 .ai-content {
   flex: 1;
-  padding: 20px;
+  padding: 14px;
   overflow-y: auto;
 }
 
 .quick-actions {
   display: flex;
   gap: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
   flex-wrap: wrap;
 }
 
@@ -333,10 +339,10 @@ const handleProjectCreated = (newProject) => {
 .message-bubble {
   max-width: 88%;
   background: var(--color-bg);
-  padding: 12px 16px;
-  border-radius: 16px;
+  padding: 9px 12px;
+  border-radius: 10px;
   border-top-left-radius: 4px;
-  font-size: 14px;
+  font-size: 12.5px;
   line-height: 1.5;
   white-space: pre-wrap;
 }
@@ -348,15 +354,15 @@ const handleProjectCreated = (newProject) => {
 }
 
 .ai-input-area {
-  padding: 20px;
+  padding: 14px;
   border-top: 1px solid var(--color-border);
 }
 
 .ai-input-wrapper {
   display: flex;
   background: var(--color-bg);
-  border-radius: 20px;
-  padding: 8px 16px;
+  border-radius: 10px;
+  padding: 6px 10px;
   align-items: center;
   gap: 10px;
 }
@@ -373,8 +379,8 @@ const handleProjectCreated = (newProject) => {
   background: #3b82f6;
   color: white;
   border: none;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
@@ -395,5 +401,19 @@ const handleProjectCreated = (newProject) => {
 .slide-right-enter-from,
 .slide-right-leave-to {
   transform: translateX(100%);
+}
+
+@media (max-width: 760px) {
+  .content-area {
+    border-left: 0;
+  }
+
+  .main-body {
+    min-width: 0;
+  }
+
+  .ai-sidebar {
+    width: 100%;
+  }
 }
 </style>

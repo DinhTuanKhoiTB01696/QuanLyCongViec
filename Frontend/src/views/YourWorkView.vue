@@ -153,19 +153,20 @@ const prioritySeries = computed(() => [
 
 const priorityChartOptions = computed(() => ({
   chart: { type: 'pie', toolbar: { show: false }, background: 'transparent' },
-  theme: { mode: 'dark' },
+  theme: { mode: 'light' },
   labels: ['Urgent', 'High', 'Medium', 'Low'],
   dataLabels: {
     enabled: true,
-    style: { fontSize: '11px', fontWeight: 600 }
+    style: { fontSize: '11px', fontWeight: 800, colors: ['#ffffff'] },
+    dropShadow: { enabled: false }
   },
   legend: {
     position: 'bottom',
-    labels: { colors: '#A1A1AA' }
+    labels: { colors: '#64748b' }
   },
-  colors: ['#ef4444', '#f97316', '#3b82f6', '#94a3b8'],
-  stroke: { colors: ['#111315'] },
-  tooltip: { theme: 'dark' }
+  colors: ['#f43f5e', '#f97316', '#38bdf8', '#94a3b8'],
+  stroke: { colors: ['#ffffff'], width: 3 },
+  tooltip: { theme: 'light' }
 }))
 
 const stateSeries = computed(() => [{
@@ -180,20 +181,22 @@ const stateSeries = computed(() => [{
 
 const stateChartOptions = computed(() => ({
   chart: { type: 'bar', toolbar: { show: false }, background: 'transparent' },
-  theme: { mode: 'dark' },
+  theme: { mode: 'light' },
   plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: '48%', distributed: true } },
   dataLabels: { enabled: false },
   legend: { show: false },
-  colors: ['#71717A', '#3B82F6', '#F59E0B', '#10B981'],
-  grid: { borderColor: '#27272A', strokeDashArray: 3 },
+  colors: ['#94a3b8', '#a78bfa', '#38bdf8', '#22c55e'],
+  grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
   xaxis: {
     categories: ['Backlog', 'Not Started', 'In Progress', 'Completed'],
-    labels: { style: { colors: '#A1A1AA' } }
+    labels: { style: { colors: '#64748b' } },
+    axisBorder: { show: false },
+    axisTicks: { show: false }
   },
   yaxis: {
-    labels: { style: { colors: '#E4E4E7' } }
+    labels: { style: { colors: '#94a3b8' } }
   },
-  tooltip: { theme: 'dark' }
+  tooltip: { theme: 'light' }
 }))
 
 const recentActivity = computed(() => {
@@ -803,6 +806,430 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 .workspace-row { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; padding-top: 16px; border-top: 1px solid var(--color-border); cursor: pointer; }
 .ws-icon { color: #F59E0B; }
 .ms-auto { margin-left: auto; }
+
+/* SprintA your-work refresh */
+.yw-container {
+  height: calc(100vh - 56px);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.16), transparent 34%),
+    radial-gradient(circle at 86% 4%, rgba(34, 197, 94, 0.1), transparent 30%),
+    linear-gradient(180deg, #f8fbff, #eef5fb 52%, #f8fafc);
+  font-family: inherit;
+}
+
+.yw-main {
+  padding: 0 clamp(22px, 3vw, 44px);
+}
+
+.yw-header {
+  padding-top: 30px;
+}
+
+.yw-title {
+  font-size: clamp(24px, 2vw, 34px);
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.yw-title i {
+  color: #0284c7;
+}
+
+.yw-tabs {
+  gap: 8px;
+  width: fit-content;
+  padding: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.tab-btn {
+  margin: 0;
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 13px;
+  color: #64748b;
+  font-weight: 800;
+}
+
+.tab-btn.active {
+  border: 0;
+  color: #0369a1;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.16), rgba(14, 165, 233, 0.08));
+}
+
+.section-title {
+  color: #0f172a;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.yw-card,
+.wl-card,
+.chart-col,
+.list-body,
+.yw-sidebar {
+  border-color: rgba(148, 163, 184, 0.24);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.78)),
+    #ffffff;
+  box-shadow:
+    0 18px 42px rgba(15, 23, 42, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.yw-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+.yw-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, #38bdf8, #22c55e);
+}
+
+.yw-card:hover,
+.wl-card:hover,
+.chart-col:hover {
+  transform: translateY(-3px);
+  border-color: rgba(14, 165, 233, 0.34);
+  box-shadow: 0 24px 58px rgba(15, 23, 42, 0.1);
+}
+
+.card-icon {
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(14, 165, 233, 0.08));
+  color: #0284c7;
+}
+
+.card-lbl,
+.wl-lbl {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.card-val,
+.wl-val {
+  color: #0f172a;
+  font-weight: 900;
+}
+
+.wl-card {
+  border-radius: 16px;
+  height: auto;
+  min-height: 78px;
+}
+
+.dbox {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+}
+
+.chart-col {
+  border-radius: 20px;
+  padding: 26px;
+}
+
+.list-body {
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 18px;
+}
+
+.list-row {
+  border-color: rgba(148, 163, 184, 0.16);
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.list-row:hover {
+  background: rgba(14, 165, 233, 0.06);
+  transform: translateX(2px);
+}
+
+.lr-id {
+  color: #0284c7;
+  font-weight: 900;
+}
+
+.lr-title {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.lr-badge {
+  border-color: rgba(148, 163, 184, 0.24);
+  border-radius: 10px;
+  background: rgba(241, 245, 249, 0.82);
+  color: #475569;
+  font-weight: 800;
+}
+
+.yw-sidebar {
+  border-left: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.cover-image {
+  height: 132px;
+  background:
+    radial-gradient(circle at 25% 16%, rgba(250, 204, 21, 0.45), transparent 18%),
+    linear-gradient(135deg, #dbeafe, #e0f2fe 42%, #dcfce7);
+}
+
+.edit-cover {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.64);
+}
+
+.avatar-lg {
+  border-color: #ffffff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+}
+
+.user-name {
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.user-handle,
+.info-lbl {
+  color: #64748b;
+}
+
+.info-val {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.workspace-row {
+  border-top-color: rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  padding: 14px 10px;
+  background: rgba(248, 250, 252, 0.78);
+}
+
+@media (max-width: 1100px) {
+  .yw-container {
+    height: auto;
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .yw-sidebar {
+    width: auto;
+    margin: 0 22px 22px;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+}
+
+[data-theme='dark'] .yw-container {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.16), transparent 34%),
+    radial-gradient(circle at 86% 4%, rgba(34, 197, 94, 0.1), transparent 30%),
+    linear-gradient(180deg, #07111f, #0f172a 52%, #101827);
+  color: #e2e8f0;
+}
+
+[data-theme='dark'] .yw-title,
+[data-theme='dark'] .section-title,
+[data-theme='dark'] .card-val,
+[data-theme='dark'] .wl-val,
+[data-theme='dark'] .lr-title,
+[data-theme='dark'] .user-name,
+[data-theme='dark'] .info-val {
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .yw-tabs,
+[data-theme='dark'] .yw-card,
+[data-theme='dark'] .wl-card,
+[data-theme='dark'] .chart-col,
+[data-theme='dark'] .list-body,
+[data-theme='dark'] .yw-sidebar {
+  border-color: rgba(148, 163, 184, 0.2);
+  background:
+    linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.86)),
+    #0f172a;
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .tab-btn {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .tab-btn.active {
+  color: #7dd3fc;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(14, 165, 233, 0.08));
+}
+
+[data-theme='dark'] .card-lbl,
+[data-theme='dark'] .wl-lbl,
+[data-theme='dark'] .user-handle,
+[data-theme='dark'] .info-lbl {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .list-row {
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+[data-theme='dark'] .list-row:hover {
+  background: rgba(56, 189, 248, 0.08);
+}
+
+[data-theme='dark'] .lr-badge,
+[data-theme='dark'] .workspace-row {
+  border-color: rgba(148, 163, 184, 0.2);
+  background: rgba(15, 23, 42, 0.7);
+  color: #cbd5e1;
+}
+
+[data-theme='dark'] .cover-image {
+  background:
+    radial-gradient(circle at 25% 16%, rgba(250, 204, 21, 0.28), transparent 18%),
+    linear-gradient(135deg, #0f172a, #164e63 42%, #064e3b);
+}
+
+/* Compact density */
+.yw-container {
+  min-height: calc(100vh - var(--sa-topbar-height, 52px)) !important;
+}
+
+.yw-main {
+  padding: 0 var(--sa-page-x, 24px) 24px !important;
+}
+
+.yw-header {
+  padding-top: 18px !important;
+}
+
+.yw-title {
+  font-size: clamp(22px, 2vw, 30px) !important;
+  line-height: 1.12 !important;
+}
+
+.yw-tabs {
+  border-radius: 10px !important;
+  padding: 4px !important;
+  margin: 18px 0 24px !important;
+}
+
+.tab-btn {
+  min-height: 32px !important;
+  padding: 6px 10px !important;
+  border-radius: 8px !important;
+  font-size: 12.5px !important;
+}
+
+.section-title {
+  font-size: 15px !important;
+  margin-bottom: 12px !important;
+}
+
+.overview-grid,
+.workload-grid,
+.charts-grid {
+  gap: 14px !important;
+  margin-bottom: 24px !important;
+}
+
+.yw-card,
+.wl-card,
+.chart-col,
+.list-body,
+.yw-sidebar {
+  border-radius: 10px !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+.yw-card {
+  min-height: 92px !important;
+  padding: 16px !important;
+  gap: 14px !important;
+}
+
+.card-icon {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 9px !important;
+  font-size: 18px !important;
+}
+
+.card-val,
+.wl-val {
+  font-size: 24px !important;
+}
+
+.wl-card {
+  min-height: 66px !important;
+  padding: 14px 16px !important;
+}
+
+.chart-col {
+  padding: 18px !important;
+}
+
+.list-row {
+  padding: 10px 12px !important;
+  min-height: 52px !important;
+}
+
+.yw-sidebar {
+  width: 280px !important;
+}
+
+.cover-image {
+  height: 98px !important;
+}
+
+.profile-block,
+.user-meta,
+.workspace-row {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+
+@media (max-width: 1100px) {
+  .yw-main {
+    padding: 0 14px 18px !important;
+  }
+
+  .yw-sidebar {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .yw-container {
+    display: block !important;
+  }
+
+  .yw-main {
+    padding: 0 12px 16px !important;
+  }
+
+  .overview-grid,
+  .workload-grid,
+  .charts-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .yw-tabs {
+    overflow-x: auto !important;
+  }
+}
 </style>
 
 

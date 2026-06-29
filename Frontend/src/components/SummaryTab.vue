@@ -404,8 +404,10 @@ function endOfDay(value) {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 16px 24px 40px;
-  background: var(--color-bg);
+  padding: 18px 24px 42px;
+  background:
+    radial-gradient(circle at 14% 0%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 30%),
+    var(--color-bg);
   color: var(--color-text-primary);
 }
 
@@ -442,23 +444,25 @@ function endOfDay(value) {
 
 .metric-card,
 .summary-card {
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  border-radius: 14px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
 }
 
 .metric-card {
-  min-height: 58px;
+  min-height: 66px;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 12px 14px;
+  min-width: 0;
 }
 
 .metric-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -476,6 +480,10 @@ function endOfDay(value) {
   display: block;
   font-size: 14px;
   color: var(--color-text-primary);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .metric-card span:last-child {
@@ -489,13 +497,14 @@ function endOfDay(value) {
   display: grid;
   grid-template-columns: repeat(2, minmax(280px, 1fr));
   gap: 14px;
-  max-width: 980px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
 .summary-card {
   min-height: 204px;
-  padding: 14px 16px;
+  padding: 16px 18px;
+  overflow: hidden;
 }
 
 .summary-card h3 {
@@ -643,7 +652,7 @@ function endOfDay(value) {
   position: absolute;
   width: 38px;
   height: 18px;
-  background: #dfe1e6;
+  background: var(--color-border);
 }
 
 .empty-illustration span:first-child {
@@ -683,8 +692,8 @@ function endOfDay(value) {
   align-items: end;
   gap: 12px;
   margin-top: 20px;
-  border-left: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
+  border-left: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
   padding: 0 8px 0 12px;
 }
 
@@ -708,7 +717,8 @@ function endOfDay(value) {
   width: min(42px, 75%);
   min-height: 8px;
   display: block;
-  background: #8c939f;
+  background: linear-gradient(180deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 70%, #22c55e));
+  border-radius: 999px 999px 4px 4px;
 }
 
 .vertical-bar.empty {
@@ -723,6 +733,8 @@ function endOfDay(value) {
   color: var(--color-text-secondary);
   font-size: 11px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .distribution-row,
@@ -751,14 +763,15 @@ function endOfDay(value) {
   height: 18px;
   position: relative;
   overflow: hidden;
-  background: #dfe1e6;
+  background: color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: 999px;
 }
 
 .distribution-track span,
 .workload-track span {
   display: block;
   height: 100%;
-  background: #8c939f;
+  border-radius: inherit;
 }
 
 .distribution-track strong,
@@ -769,6 +782,7 @@ function endOfDay(value) {
   transform: translateY(-50%);
   color: #ffffff;
   font-size: 11px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
 }
 
 .workload-list {
@@ -813,6 +827,17 @@ function endOfDay(value) {
   margin-bottom: 12px;
 }
 
+[data-theme='dark'] .metric-card,
+[data-theme='dark'] .summary-card {
+  background: rgba(15, 23, 42, 0.78);
+  border-color: rgba(148, 163, 184, 0.18);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+}
+
+[data-theme='dark'] .metric-icon {
+  background: rgba(255, 255, 255, 0.04);
+}
+
 @media (max-width: 900px) {
   .metric-grid,
   .summary-grid {
@@ -821,6 +846,204 @@ function endOfDay(value) {
 
   .summary-grid {
     max-width: none;
+  }
+}
+
+/* Compact density */
+.summary-dashboard {
+  padding: 16px var(--sa-page-x, 24px) 28px !important;
+}
+
+.metric-grid,
+.summary-grid {
+  gap: 14px !important;
+}
+
+.metric-card,
+.summary-card {
+  border-radius: 10px !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+.metric-card {
+  min-height: 78px !important;
+  padding: 10px 12px !important;
+}
+
+.metric-icon {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 8px !important;
+}
+
+.metric-card strong {
+  font-size: 22px !important;
+}
+
+.summary-card {
+  padding: 14px 16px !important;
+}
+
+.summary-card h3 {
+  font-size: 13.5px !important;
+}
+
+.summary-card p {
+  font-size: 12px !important;
+}
+
+.recent-task-row {
+  min-height: 42px !important;
+}
+
+@media (max-width: 760px) {
+  .summary-dashboard {
+    padding: 12px !important;
+  }
+}
+
+/* Premium overview polish */
+@keyframes summary-float-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.summary-tab {
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, #38bdf8 16%, transparent), transparent 30%),
+    radial-gradient(circle at 84% 10%, color-mix(in srgb, #22c55e 10%, transparent), transparent 28%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg) 84%, #f8fafc), var(--color-bg)) !important;
+}
+
+.metric-card,
+.summary-card {
+  position: relative;
+  overflow: hidden;
+  animation: summary-float-in 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transition:
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 220ms ease,
+    border-color 220ms ease !important;
+}
+
+.metric-card:nth-child(2) { animation-delay: 55ms; }
+.metric-card:nth-child(3) { animation-delay: 110ms; }
+.metric-card:nth-child(4) { animation-delay: 165ms; }
+.summary-card:nth-child(1) { animation-delay: 120ms; }
+.summary-card:nth-child(2) { animation-delay: 170ms; }
+.summary-card:nth-child(3) { animation-delay: 220ms; }
+.summary-card:nth-child(4) { animation-delay: 270ms; }
+.summary-card:nth-child(5) { animation-delay: 320ms; }
+.summary-card:nth-child(6) { animation-delay: 370ms; }
+
+.metric-card::before,
+.summary-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, #38bdf8, #2dd4bf, #facc15);
+  opacity: 0.88;
+}
+
+.metric-card::after,
+.summary-card::after {
+  content: "";
+  position: absolute;
+  inset: -40% auto auto -24%;
+  width: 46%;
+  height: 180%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.36), transparent);
+  transform: rotate(14deg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease, transform 680ms ease;
+}
+
+.metric-card:hover,
+.summary-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--color-accent) 28%, var(--color-border)) !important;
+  box-shadow: 0 26px 70px rgba(15, 23, 42, 0.12) !important;
+}
+
+.metric-card:hover::after,
+.summary-card:hover::after {
+  opacity: 1;
+  transform: translateX(220%) rotate(14deg);
+}
+
+.metric-card:nth-child(1) { --metric-tone: #38bdf8; }
+.metric-card:nth-child(2) { --metric-tone: #22c55e; }
+.metric-card:nth-child(3) { --metric-tone: #8b5cf6; }
+.metric-card:nth-child(4) { --metric-tone: #f43f5e; }
+
+.metric-card {
+  border-left: 3px solid var(--metric-tone, var(--color-accent)) !important;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--metric-tone, var(--color-accent)) 10%, transparent), transparent 68%),
+    color-mix(in srgb, var(--color-surface) 94%, transparent) !important;
+}
+
+.metric-icon {
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255,255,255,0.65), transparent 32%),
+    color-mix(in srgb, var(--metric-tone, var(--color-accent)) 14%, var(--color-surface-hover)) !important;
+  color: var(--metric-tone, var(--color-accent)) !important;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--metric-tone, var(--color-accent)) 18%, transparent);
+}
+
+.summary-card h3 {
+  letter-spacing: -0.005em;
+}
+
+.donut-chart {
+  box-shadow:
+    0 18px 42px rgba(15, 23, 42, 0.10),
+    inset 0 0 0 1px rgba(255,255,255,0.42);
+}
+
+.vertical-bar,
+.distribution-track span,
+.workload-track span {
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+
+.distribution-row,
+.workload-row,
+.epic-row,
+.legend-row {
+  border-radius: 9px;
+  padding: 6px 8px;
+  transition: background 180ms ease, transform 180ms ease;
+}
+
+.distribution-row:hover,
+.workload-row:hover,
+.epic-row:hover,
+.legend-row:hover {
+  background: color-mix(in srgb, var(--color-accent) 7%, var(--color-surface));
+  transform: translateX(3px);
+}
+
+[data-theme='dark'] .metric-card,
+[data-theme='dark'] .summary-card {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--metric-tone, #38bdf8) 10%, transparent), transparent 68%),
+    rgba(15, 23, 42, 0.82) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metric-card,
+  .summary-card {
+    animation: none !important;
+    transition: none !important;
   }
 }
 </style>

@@ -376,6 +376,38 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.admin-page {
+  min-height: 100vh;
+  max-width: 1180px;
+  padding: 34px clamp(20px, 4vw, 48px) 56px;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(56, 189, 248, 0.12), transparent 32%),
+    radial-gradient(circle at 92% 8%, rgba(34, 197, 94, 0.08), transparent 26%),
+    linear-gradient(180deg, #f8fbff, #eef5fb 54%, #f8fafc);
+}
+
+.page-header {
+  padding: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 22px 58px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+.text-hero {
+  color: #0f172a;
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.text-desc,
+.section-head p {
+  color: #64748b;
+  font-weight: 600;
+}
+
 .breadcrumb {
   display: inline-flex;
   align-items: center;
@@ -388,6 +420,19 @@ onUnmounted(() => {
 .config-grid {
   display: grid;
   gap: 24px;
+}
+
+.settings-card {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+}
+
+.section-head h2,
+.section-head .text-section {
+  color: #0f172a;
+  font-weight: 900;
 }
 
 .section-actions {
@@ -407,24 +452,27 @@ onUnmounted(() => {
   grid-template-columns: minmax(0, 1fr) 56px 120px 80px;
   gap: 16px;
   align-items: center;
-  padding: 8px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 2px;
-  background: var(--color-surface-hover);
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.86);
 }
 
 .status-input {
-  background: transparent !important;
-  border: none !important;
-  padding: 0 !important;
-  font-weight: 600;
+  background: #ffffff !important;
+  border: 1px solid rgba(148, 163, 184, 0.24) !important;
+  border-radius: 10px !important;
+  color: #0f172a !important;
+  padding: 8px 10px !important;
+  font-weight: 800;
 }
 
 .color-input {
   width: 100%;
   height: 32px;
-  padding: 0;
-  border: none;
+  padding: 2px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 10px;
   background: transparent;
   cursor: pointer;
 }
@@ -467,7 +515,7 @@ onUnmounted(() => {
 
 .btn-ghost {
   padding: 8px 16px;
-  border-radius: 2px;
+  border-radius: 12px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -488,6 +536,57 @@ onUnmounted(() => {
   border: none;
   font-weight: 600;
   cursor: pointer;
+}
+
+.primary-btn,
+.secondary-btn {
+  min-height: 36px;
+  border-radius: 12px;
+  font-weight: 900;
+}
+
+.chart-container {
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 16px;
+  background: rgba(248, 250, 252, 0.7);
+}
+
+[data-theme='dark'] .admin-page {
+  background:
+    radial-gradient(circle at 14% 0%, rgba(56, 189, 248, 0.13), transparent 32%),
+    radial-gradient(circle at 92% 8%, rgba(34, 197, 94, 0.07), transparent 26%),
+    linear-gradient(180deg, #07111f, #0f172a 54%, #101827);
+}
+
+[data-theme='dark'] .page-header,
+[data-theme='dark'] .settings-card {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.78);
+  box-shadow: 0 22px 58px rgba(0, 0, 0, 0.24);
+}
+
+[data-theme='dark'] .text-hero,
+[data-theme='dark'] .section-head h2,
+[data-theme='dark'] .section-head .text-section {
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .text-desc,
+[data-theme='dark'] .section-head p {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .status-row,
+[data-theme='dark'] .chart-container {
+  border-color: rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.58);
+}
+
+[data-theme='dark'] .status-input {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: rgba(15, 23, 42, 0.82) !important;
+  color: #e2e8f0 !important;
 }
 </style>
 

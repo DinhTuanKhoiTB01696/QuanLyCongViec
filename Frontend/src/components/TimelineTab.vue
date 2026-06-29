@@ -74,7 +74,7 @@ const timeBuckets = computed(() => buildBuckets(timelineRange.value.start, timel
 const cellWidth = computed(() => activeView.value.cellWidth)
 const totalWidth = computed(() => timeBuckets.value.length * cellWidth.value)
 const canvasWidth = computed(() => Math.max(totalWidth.value, viewportWidth.value || 0))
-const rowHeight = 52
+const rowHeight = 44
 const rowsCanvasHeight = computed(() => Math.max((visibleTasks.value.length + 1) * rowHeight, rowHeight * 8))
 
 const headerGroups = computed(() => {
@@ -592,6 +592,7 @@ function isWeekend(date) {
             v-for="task in visibleTasks"
             :key="task.id"
             class="tl-task-row"
+            :style="{ '--task-color': getStatusColor(task.statusName) }"
             @click="emit('open-task', task)"
           >
             <div class="tl-col-workitems">
@@ -672,7 +673,7 @@ function isWeekend(date) {
                 :style="{
                   left: getTaskBar(task).left,
                   width: getTaskBar(task).width,
-                  background: getStatusColor(task.statusName)
+                  '--task-color': getStatusColor(task.statusName)
                 }"
                 :title="`${task.title} (${taskDurationLabel(task)})`"
                 @click.stop="handleBarClick(task)"
@@ -1054,6 +1055,112 @@ function isWeekend(date) {
   color: #ffffff;
   font-size: 11px;
   text-align: center;
+}
+
+/* Polished Gantt view */
+.plane-timeline {
+  background:
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 32%),
+    var(--color-bg) !important;
+}
+
+.tl-header {
+  min-height: 46px;
+  padding: 8px 14px !important;
+  background: color-mix(in srgb, var(--color-surface) 84%, transparent) !important;
+}
+
+.tl-btn,
+.mode-btn {
+  min-height: 30px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+.mode-btn.active {
+  background: color-mix(in srgb, var(--color-accent) 15%, var(--color-surface-hover)) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.tl-left-panel,
+.tl-right-panel {
+  background: color-mix(in srgb, var(--color-bg) 92%, var(--color-surface)) !important;
+}
+
+.tl-left-header,
+.tl-group-row,
+.tl-day-row {
+  background: color-mix(in srgb, var(--color-surface-hover) 58%, var(--color-surface)) !important;
+}
+
+.tl-task-row {
+  height: 44px !important;
+  border-bottom-color: color-mix(in srgb, var(--color-border) 76%, transparent) !important;
+  box-shadow: inset 0 0 0 0 transparent;
+}
+
+.tl-task-row:hover {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--task-color, var(--color-accent)) 12%, transparent), transparent 70%),
+    color-mix(in srgb, var(--color-surface-hover) 70%, transparent) !important;
+  box-shadow: inset 3px 0 0 var(--task-color, var(--color-accent));
+}
+
+.task-key {
+  color: color-mix(in srgb, var(--task-color, var(--color-accent)) 62%, var(--color-text-primary)) !important;
+  font-weight: 850;
+  opacity: 1 !important;
+}
+
+.task-title-text {
+  font-weight: 650;
+}
+
+.tl-day-cell {
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.tl-day-cell.is-today,
+.tl-grid-line.is-today {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent) !important;
+}
+
+.tl-day-cell.weekend,
+.tl-grid-line.weekend {
+  background: color-mix(in srgb, var(--color-text-muted) 8%, transparent) !important;
+}
+
+.tl-bar-row {
+  height: 44px !important;
+  border-bottom-color: color-mix(in srgb, var(--color-border) 76%, transparent) !important;
+}
+
+.tl-task-bar {
+  top: 9px !important;
+  height: 26px !important;
+  border-radius: 7px !important;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--task-color, var(--color-accent)) 92%, #ffffff 8%), color-mix(in srgb, var(--task-color, var(--color-accent)) 76%, #111827 24%)) !important;
+  border: 1px solid color-mix(in srgb, var(--task-color, var(--color-accent)) 72%, #ffffff 18%) !important;
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--task-color, var(--color-accent)) 24%, transparent);
+  font-weight: 850 !important;
+}
+
+.tl-task-bar:hover {
+  filter: none !important;
+  transform: translateY(-1px);
+}
+
+.today-line {
+  width: 3px !important;
+  background: linear-gradient(180deg, transparent, var(--color-accent), transparent) !important;
+}
+
+.canvas-add-label {
+  color: var(--color-text-muted) !important;
+  font-style: normal !important;
 }
 </style>
 

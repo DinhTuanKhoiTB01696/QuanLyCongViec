@@ -10,24 +10,41 @@
   Standardized tokens for consistent Light/Dark UI
 */
 :root {
+  --sa-bg: #f4f7fb;
+  --sa-surface: #ffffff;
+  --sa-surface-soft: #eef4fb;
+  --sa-border: #d7e1ee;
+  --sa-text: #102033;
+  --sa-text-muted: #637083;
+  --sa-primary: #0ea5e9;
+  --sa-primary-soft: #dff3ff;
+  --sa-sidebar: #f6f9fc;
+  --sa-topbar: #10284a;
+  --sa-radius-md: 10px;
+  --sa-shadow-sm: 0 8px 24px rgb(15 35 60 / 0.08);
+
   /* LIGHT THEME TOKENS */
-  --color-bg: #f8fafc;           /* Main background (Slate-50) */
-  --color-surface: #ffffff;      /* Card/Panel surface */
-  --color-surface-hover: #f1f5f9;/* Slate-100 */
+  --color-bg: var(--sa-bg);           /* Main background (Slate-50) */
+  --color-surface: var(--sa-surface);      /* Card/Panel surface */
+  --color-surface-hover: var(--sa-surface-soft);/* Slate-100 */
+  --color-surface-elevated: var(--sa-surface);
   
-  --color-text-primary: #0f172a;   /* Headings (Slate-900) */
+  --color-text-primary: var(--sa-text);   /* Headings (Slate-900) */
   --color-text-secondary: color-mix(in srgb, var(--color-text-primary) 70%, transparent); /* Labels */
   --color-text-muted: color-mix(in srgb, var(--color-text-primary) 50%, transparent);    /* Placeholders */
   --color-text-disabled: color-mix(in srgb, var(--color-text-primary) 30%, transparent);
   --color-text-inverse: #ffffff;  
   
-  --color-border: #e2e8f0;       /* Slate-200 */
+  --color-border: var(--sa-border);       /* Slate-200 */
   --color-border-hover: #cbd5e1;
   
   --color-input-bg: #ffffff;
   --color-input-border: #cbd5e1;
+  --color-table-header: #f8fafc;
+  --color-table-row-hover: #f1f5f9;
+  --color-modal-overlay: rgba(15, 23, 42, 0.38);
   
-  --color-accent: #0ea5e9;       /* Sky-500 */
+  --color-accent: var(--sa-primary);       /* Sky-500 */
   --color-accent-hover: #0284c7;
   
   --color-success: #10b981;      /* Emerald-500 */
@@ -50,6 +67,9 @@
   --bg-primary: var(--color-bg);
   --bg-secondary: var(--color-surface);
   --bg-tertiary: var(--color-surface-hover);
+  --color-bg-secondary: var(--color-surface);
+  --color-bg-tertiary: var(--color-surface-hover);
+  --surface-elevated: var(--color-surface-elevated);
   --text-primary: var(--color-text-primary);
   --text-secondary: var(--color-text-secondary);
   --border-color: var(--color-border);
@@ -61,7 +81,12 @@
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+  --shadow-popover: 0 18px 44px rgb(15 23 42 / 0.14);
+  --shadow-drawer: -18px 0 48px rgb(15 23 42 / 0.18);
+  --shadow-sticky-column: 10px 0 20px rgb(15 23 42 / 0.08);
   --transition-speed: 0.25s;
+  --z-modal: 2000;
+  --z-popover: 4200;
 
   /* RADIUS SYSTEM (ATLASSIAN STRICT) */
   --radius-button: 3px;
@@ -81,21 +106,37 @@
 
 
 [data-theme='dark'] {
+  --sa-bg: #0f172a;
+  --sa-surface: #1d2a3d;
+  --sa-surface-soft: #26364d;
+  --sa-border: #2d405a;
+  --sa-text: #e8eef7;
+  --sa-text-muted: #9fb0c8;
+  --sa-primary: #38bdf8;
+  --sa-primary-soft: rgba(56, 189, 248, 0.16);
+  --sa-sidebar: #111c2d;
+  --sa-topbar: #0b1d36;
+  --sa-shadow-sm: 0 10px 30px rgb(0 0 0 / 0.26);
+
   /* DARK THEME TOKENS - OPTIMIZED FOR DEPTH & CONTRAST */
-  --color-bg: #0f172a;           /* Standardized Dark Background */
-  --color-surface: #1e293b;      /* Standardized Surface */
-  --color-surface-hover: #334155;/* Standardized Hover */
+  --color-bg: var(--sa-bg);           /* Standardized Dark Background */
+  --color-surface: var(--sa-surface);      /* Standardized Surface */
+  --color-surface-hover: var(--sa-surface-soft);/* Standardized Hover */
+  --color-surface-elevated: #263244;
   
   --color-text-primary: #e2e8f0;   /* Light Slate */
   --color-text-inverse: #ffffff;
   
-  --color-border: #1e293b;       
-  --color-border-hover: #334155;
+  --color-border: var(--sa-border);       
+  --color-border-hover: #3a5272;
   
   --color-input-bg: #0f172a;      
   --color-input-border: #334155;
+  --color-table-header: #182235;
+  --color-table-row-hover: #263244;
+  --color-modal-overlay: rgba(2, 6, 23, 0.62);
   
-  --color-accent: #38bdf8;       /* Sky-400 */
+  --color-accent: var(--sa-primary);       /* Sky-400 */
   --color-accent-hover: #7dd3fc;
 
   --color-success: #34d399;      /* Emerald-400 */
@@ -117,6 +158,9 @@
   --shadow-md: 0 10px 15px -3px rgba(0,0,0,0.6);
   --shadow-lg: 0 20px 25px -5px rgba(0,0,0,0.7);
   --shadow-xl: 0 25px 50px -12px rgba(0,0,0,0.8);
+  --shadow-popover: 0 18px 44px rgba(0, 0, 0, 0.42);
+  --shadow-drawer: -18px 0 48px rgba(0, 0, 0, 0.34);
+  --shadow-sticky-column: 10px 0 22px rgba(0, 0, 0, 0.22);
 
   --accent-color: var(--color-accent);
 }
@@ -265,17 +309,81 @@ label, .el-form-item__label, .field-label {
 
 /* Element Plus Specific Overrides */
 .el-dropdown-menu, .el-select-dropdown {
-  background-color: var(--color-surface) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 96%, var(--color-accent) 4%), var(--color-surface)) !important;
   border: 1px solid var(--color-border) !important;
-  border-radius: 8px !important;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-popover) !important;
 }
 
 .el-dropdown-menu__item, .el-select-dropdown__item {
   color: var(--color-text-primary) !important;
+  font-weight: 700 !important;
 }
 
 .el-dropdown-menu__item:hover, .el-select-dropdown__item.hover {
   background-color: var(--color-surface-hover) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.el-popper,
+.el-popover,
+.el-dropdown__popper {
+  color: var(--color-text-primary) !important;
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+}
+
+.el-popper .el-popper__arrow::before {
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+}
+
+.sidebar-quick-popover.el-popover.el-popper {
+  border: 1px solid color-mix(in srgb, var(--color-accent) 18%, var(--color-border)) !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  background: var(--color-surface) !important;
+  box-shadow: 0 22px 58px rgba(15, 23, 42, 0.18) !important;
+}
+
+[data-theme='dark'] .sidebar-quick-popover.el-popover.el-popper {
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.42) !important;
+}
+
+.app-topbar .icon-btn,
+.app-topbar .icon-btn i,
+.app-topbar .icon-btn svg,
+.app-topbar .app-launcher-icon,
+.app-topbar .workspace-switcher,
+.app-topbar .workspace-switcher i {
+  color: rgba(226, 239, 255, 0.94) !important;
+}
+
+.app-topbar .icon-btn:hover,
+.app-topbar .icon-btn:hover i,
+.app-topbar .icon-btn:hover svg {
+  color: #ffffff !important;
+}
+
+.app-topbar .theme-toggle-btn.active,
+.app-topbar .theme-toggle-btn.active i {
+  color: #f8fafc !important;
+}
+
+.app-topbar input,
+.app-topbar input::placeholder,
+.app-topbar .search-icon {
+  color: rgba(226, 239, 255, 0.88) !important;
+}
+
+.app-topbar .search-input-wrapper:focus-within input {
+  color: #172b4d !important;
+}
+
+.app-topbar .search-input-wrapper:focus-within input::placeholder,
+.app-topbar .search-input-wrapper:focus-within .search-icon {
+  color: #64748b !important;
 }
 
 .el-table {
@@ -630,10 +738,65 @@ i.fa-regular.fa-calendar {
 .el-date-picker,
 .el-date-range-picker,
 .el-popper.is-light.el-picker__popper {
-  background-color: var(--bg-secondary) !important;
-  border: 1px solid var(--border-color) !important;
-  color: var(--text-primary) !important;
-  box-shadow: var(--shadow-lg) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 96%, var(--color-accent) 4%), var(--color-surface)) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+  box-shadow: var(--shadow-popover) !important;
+  z-index: var(--z-popover) !important;
+}
+
+.el-picker-panel *,
+.el-date-picker *,
+.el-date-range-picker *,
+.el-select-dropdown *,
+.el-dropdown-menu * {
+  color: inherit;
+}
+
+.el-date-table th,
+.el-picker-panel__icon-btn,
+.el-picker-panel__shortcut,
+.el-date-table td.next-month,
+.el-date-table td.prev-month {
+  color: var(--color-text-muted) !important;
+}
+
+.el-date-table td.available,
+.el-date-table td.today .el-date-table-cell__text,
+.el-picker-panel__body,
+.el-picker-panel__footer,
+.el-date-picker__header-label {
+  color: var(--color-text-primary) !important;
+}
+
+.el-picker-panel__footer {
+  background: var(--color-surface) !important;
+  border-top-color: var(--color-border) !important;
+}
+
+.el-date-table td.current:not(.disabled) .el-date-table-cell__text {
+  background: linear-gradient(135deg, #38bdf8, #2563eb) !important;
+  color: #ffffff !important;
+}
+
+.el-select-dropdown__item.selected,
+.el-dropdown-menu__item:not(.is-disabled):focus,
+.el-dropdown-menu__item:not(.is-disabled):hover,
+.el-select-dropdown__item.hover,
+.el-select-dropdown__item:hover {
+  background: color-mix(in srgb, var(--color-accent) 13%, var(--color-surface-hover)) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.el-popper,
+.el-popover,
+.el-dropdown__popper {
+  z-index: var(--z-popover) !important;
+}
+
+.el-overlay {
+  background-color: var(--color-modal-overlay) !important;
 }
 
 .el-date-table th {
@@ -793,4 +956,120 @@ i.fa-regular.fa-calendar {
 .status-done {
   background: #EAE6FF;
   color: #403294;
+}
+
+/* SprintA compact density pass */
+:root {
+  --sa-topbar-height: 52px;
+  --sa-sidebar-width: 224px;
+  --sa-page-x: clamp(14px, 2vw, 24px);
+  --sa-page-y: 16px;
+  --sa-card-radius: 10px;
+  --sa-control-height: 32px;
+  --sa-gap: 12px;
+}
+
+html {
+  font-size: 14px;
+}
+
+body {
+  font-size: 14px;
+}
+
+.content-area {
+  font-size: 13px;
+}
+
+.text-hero {
+  font-size: clamp(22px, 2vw, 30px) !important;
+  line-height: 1.15 !important;
+}
+
+.page-title,
+.project-title,
+.reports-title,
+.section-title,
+.card-title {
+  letter-spacing: 0 !important;
+}
+
+button,
+input,
+select,
+textarea {
+  font-size: 13px;
+}
+
+.el-button,
+.btn,
+.btn-primary,
+.btn-secondary,
+.action-btn,
+.primary-action,
+.filter-action,
+.refresh-btn {
+  min-height: var(--sa-control-height) !important;
+  padding: 6px 10px !important;
+  border-radius: 8px !important;
+  font-size: 12.5px !important;
+}
+
+.el-input__wrapper,
+.el-select__wrapper,
+.nexus-search-input,
+.search-input,
+.filter-select {
+  min-height: var(--sa-control-height) !important;
+  border-radius: 8px !important;
+}
+
+.el-dialog {
+  border-radius: 10px !important;
+}
+
+.el-dialog__header {
+  padding: 14px 18px 12px !important;
+}
+
+.el-dialog__title {
+  font-size: 15px !important;
+}
+
+.el-dialog__body {
+  padding: 16px 18px !important;
+}
+
+.el-dialog__footer {
+  padding: 12px 18px 14px !important;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --sa-topbar-height: 48px;
+    --sa-page-x: 12px;
+    --sa-page-y: 12px;
+  }
+
+  html,
+  body {
+    font-size: 13px;
+  }
+
+  .content-area {
+    font-size: 12.5px;
+  }
+
+  .text-hero,
+  .page-title,
+  .project-title,
+  .reports-title {
+    font-size: clamp(20px, 6vw, 26px) !important;
+  }
+
+  .nexus-controls-row,
+  .toolbar-actions,
+  .reports-actions {
+    gap: 6px !important;
+  }
 }

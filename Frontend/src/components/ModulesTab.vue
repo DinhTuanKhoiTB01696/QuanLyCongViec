@@ -1561,4 +1561,257 @@ onUnmounted(() => {
     flex-wrap: wrap;
   }
 }
+
+/* Compact density */
+.modules-page {
+  min-height: calc(100vh - var(--sa-topbar-height, 52px)) !important;
+}
+
+.nexus-project-header {
+  min-height: 52px !important;
+  padding: 10px 16px !important;
+}
+
+.nexus-controls-row {
+  gap: 8px !important;
+}
+
+.nexus-search-input,
+.nexus-btn-primary,
+.nexus-btn-secondary,
+.view-btn {
+  min-height: 32px !important;
+  border-radius: 8px !important;
+  padding: 6px 10px !important;
+  font-size: 12.5px !important;
+}
+
+.modules-content {
+  padding: 16px var(--sa-page-x, 24px) 26px !important;
+}
+
+.module-row {
+  padding: 12px 14px !important;
+  border-radius: 8px !important;
+  min-height: 68px !important;
+}
+
+.module-title {
+  font-size: 13.5px !important;
+}
+
+.module-meta,
+.module-subtitle {
+  font-size: 11.5px !important;
+}
+
+.module-progress-ring {
+  width: 38px !important;
+  height: 38px !important;
+}
+
+/* Polished module modal */
+.modal-overlay {
+  padding: 20px !important;
+  background: rgba(2, 6, 23, 0.68) !important;
+  backdrop-filter: blur(10px) saturate(120%) !important;
+  z-index: 2000 !important;
+}
+
+.create-module-modal {
+  width: min(760px, calc(100vw - 28px)) !important;
+  max-height: min(820px, calc(100vh - 28px)) !important;
+  overflow: hidden !important;
+  border-radius: 12px !important;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-surface) 94%, var(--color-accent) 6%), var(--color-surface)) !important;
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, var(--color-accent) 16%) !important;
+  box-shadow: 0 24px 70px rgba(2, 8, 23, 0.38) !important;
+}
+
+.cm-header {
+  position: relative;
+  padding: 16px 22px 14px !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  background: color-mix(in srgb, var(--color-surface-hover) 72%, transparent) !important;
+}
+
+.cm-header::before {
+  content: "";
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  top: 0;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-accent), #22c55e, #facc15);
+}
+
+.cm-title {
+  font-size: 17px !important;
+  line-height: 1.25 !important;
+  color: var(--color-text-primary) !important;
+}
+
+.cm-body {
+  padding: 18px 22px !important;
+  gap: 14px !important;
+  overflow: auto !important;
+}
+
+.cm-input,
+.cm-textarea,
+.field-select {
+  min-height: 38px !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 8px !important;
+  background: var(--color-input-bg) !important;
+  color: var(--color-text-primary) !important;
+  font-size: 13px !important;
+}
+
+.cm-input::placeholder,
+.cm-textarea::placeholder {
+  color: var(--color-text-muted) !important;
+}
+
+.cm-input:focus,
+.cm-textarea:focus,
+.field-select:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent) !important;
+}
+
+.cm-textarea {
+  min-height: 82px !important;
+}
+
+.field-block {
+  gap: 7px !important;
+  color: var(--color-text-secondary) !important;
+  letter-spacing: 0.045em !important;
+}
+
+.field-block :deep(.el-date-editor) {
+  width: 100% !important;
+  height: 40px !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 8px !important;
+  background: var(--color-input-bg) !important;
+  box-shadow: none !important;
+}
+
+.field-block :deep(.el-date-editor:hover),
+.field-block :deep(.el-date-editor.is-active) {
+  border-color: var(--color-accent) !important;
+}
+
+.field-block :deep(.el-range-input) {
+  background: transparent !important;
+  color: var(--color-text-primary) !important;
+  font-size: 13px !important;
+}
+
+.field-block :deep(.el-range-input::placeholder),
+.field-block :deep(.el-range-separator),
+.field-block :deep(.el-range__icon) {
+  color: var(--color-text-muted) !important;
+}
+
+.task-picker {
+  max-height: 224px !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 10px !important;
+  background: color-mix(in srgb, var(--color-bg) 88%, var(--color-surface) 12%) !important;
+  padding: 8px !important;
+}
+
+.task-option {
+  min-height: 44px !important;
+  padding: 8px 10px !important;
+  margin-bottom: 6px !important;
+  border: 1px solid transparent !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+}
+
+.task-option:hover {
+  background: var(--color-surface-hover) !important;
+  border-color: var(--color-border) !important;
+}
+
+.task-title-text {
+  min-width: 0 !important;
+  font-size: 13px !important;
+  color: var(--color-text-primary) !important;
+}
+
+.task-status-text {
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface-hover) 86%) !important;
+  color: var(--color-text-secondary) !important;
+  padding: 3px 9px !important;
+  white-space: nowrap !important;
+}
+
+.cm-footer {
+  padding: 14px 22px !important;
+  border-top: 1px solid var(--color-border) !important;
+  background: color-mix(in srgb, var(--color-surface-hover) 76%, var(--color-surface) 24%) !important;
+  border-bottom-left-radius: 12px !important;
+  border-bottom-right-radius: 12px !important;
+}
+
+.cm-btn-cancel,
+.cm-btn-create {
+  min-height: 38px !important;
+  border-radius: 8px !important;
+  padding: 8px 16px !important;
+  font-size: 13px !important;
+}
+
+@media (max-width: 760px) {
+  .nexus-project-header {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    padding: 10px 12px !important;
+  }
+
+  .modules-content {
+    padding: 12px !important;
+  }
+
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 10px !important;
+  }
+
+  .create-module-modal {
+    width: 100% !important;
+    max-height: calc(100vh - 20px) !important;
+  }
+
+  .cm-body {
+    padding: 14px !important;
+  }
+
+  .cm-header,
+  .cm-footer {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  .cm-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .task-option {
+    grid-template-columns: auto 1fr !important;
+  }
+
+  .task-status-text {
+    grid-column: 2;
+    justify-self: flex-start;
+  }
+}
 </style>

@@ -230,4 +230,37 @@ const { t } = useI18n()
     gap: 8px;
   }
 }
+
+/* Compact density */
+.docs-page,
+.docs-tab {
+  padding: 14px var(--sa-page-x, 24px) 28px !important;
+}
+
+.docs-connect-banner {
+  border-radius: 8px !important;
+  padding: 14px 16px !important;
+}
+
+.docs-copy h2 {
+  font-size: 15px !important;
+}
+
+.docs-copy p {
+  font-size: 12.5px !important;
+}
+
+.docs-primary,
+.docs-link {
+  height: 28px !important;
+  border-radius: 7px !important;
+  font-size: 12px !important;
+}
+
+@media (max-width: 720px) {
+  .docs-page,
+  .docs-tab {
+    padding: 12px !important;
+  }
+}
 </style>

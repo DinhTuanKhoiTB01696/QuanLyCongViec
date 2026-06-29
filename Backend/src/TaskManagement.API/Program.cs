@@ -221,6 +221,216 @@ IF COL_LENGTH('dbo.Users', 'CoverUrl') IS NULL
 BEGIN
     ALTER TABLE dbo.Users ADD CoverUrl nvarchar(max) NULL;
 END;
+IF COL_LENGTH('dbo.Users', 'Bio') IS NULL
+BEGIN
+    ALTER TABLE dbo.Users ADD Bio nvarchar(max) NULL;
+END;
+IF COL_LENGTH('dbo.Users', 'JobTitle') IS NULL
+BEGIN
+    ALTER TABLE dbo.Users ADD JobTitle nvarchar(max) NULL;
+END;
+IF COL_LENGTH('dbo.Users', 'Location') IS NULL
+BEGIN
+    ALTER TABLE dbo.Users ADD Location nvarchar(max) NULL;
+END;
+IF COL_LENGTH('dbo.Users', 'Timezone') IS NULL
+BEGIN
+    ALTER TABLE dbo.Users ADD Timezone nvarchar(max) NULL;
+END;
+IF COL_LENGTH('dbo.Projects', 'Why') IS NULL
+BEGIN
+    ALTER TABLE dbo.Projects ADD Why nvarchar(max) NULL;
+END;
+IF COL_LENGTH('dbo.Projects', 'SuccessCriteria') IS NULL
+BEGIN
+    ALTER TABLE dbo.Projects ADD SuccessCriteria nvarchar(max) NULL;
+END;
+IF COL_LENGTH('dbo.Projects', 'CloseDate') IS NULL
+BEGIN
+    ALTER TABLE dbo.Projects ADD CloseDate datetime2 NULL;
+END;
+IF COL_LENGTH('dbo.Projects', 'TrackedLinkUrl') IS NULL
+BEGIN
+    ALTER TABLE dbo.Projects ADD TrackedLinkUrl nvarchar(max) NULL;
+END;
+IF OBJECT_ID('dbo.SiteAuditLogs', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.SiteAuditLogs (
+        Id uniqueidentifier NOT NULL,
+        EntityId uniqueidentifier NOT NULL,
+        EntityType nvarchar(128) NOT NULL,
+        Action nvarchar(max) NOT NULL,
+        OldValue nvarchar(max) NULL,
+        NewValue nvarchar(max) NULL,
+        UserId uniqueidentifier NOT NULL,
+        CreatedAt datetime2 NOT NULL,
+        CONSTRAINT PK_SiteAuditLogs PRIMARY KEY (Id),
+        CONSTRAINT FK_SiteAuditLogs_Users_UserId FOREIGN KEY (UserId) REFERENCES dbo.Users(Id)
+    );
+END;
+IF OBJECT_ID('dbo.SiteAuditLogs', 'U') IS NOT NULL
+   AND EXISTS (
+       SELECT 1
+       FROM sys.columns
+       WHERE object_id = OBJECT_ID('dbo.SiteAuditLogs')
+         AND name = 'EntityType'
+         AND max_length = -1
+   )
+BEGIN
+    UPDATE dbo.SiteAuditLogs SET EntityType = LEFT(EntityType, 128) WHERE LEN(EntityType) > 128;
+    ALTER TABLE dbo.SiteAuditLogs ALTER COLUMN EntityType nvarchar(128) NOT NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_SiteAuditLogs_EntityType_EntityId' AND object_id = OBJECT_ID('dbo.SiteAuditLogs'))
+BEGIN
+    CREATE INDEX IX_SiteAuditLogs_EntityType_EntityId ON dbo.SiteAuditLogs(EntityType, EntityId);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_SiteAuditLogs_UserId' AND object_id = OBJECT_ID('dbo.SiteAuditLogs'))
+BEGIN
+    CREATE INDEX IX_SiteAuditLogs_UserId ON dbo.SiteAuditLogs(UserId);
+END;
+IF OBJECT_ID('dbo.ProjectUpdates', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ProjectUpdates (
+        Id uniqueidentifier NOT NULL,
+        ProjectId uniqueidentifier NOT NULL,
+        Content nvarchar(max) NOT NULL,
+        Status nvarchar(max) NOT NULL,
+        OldStatus nvarchar(max) NULL,
+        NewStatus nvarchar(max) NULL,
+        CreatorId uniqueidentifier NOT NULL,
+        CreatedAt datetime2 NOT NULL CONSTRAINT DF_ProjectUpdates_CreatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_ProjectUpdates PRIMARY KEY (Id),
+        CONSTRAINT FK_ProjectUpdates_Projects_ProjectId FOREIGN KEY (ProjectId) REFERENCES dbo.Projects(Id) ON DELETE CASCADE,
+        CONSTRAINT FK_ProjectUpdates_Users_CreatorId FOREIGN KEY (CreatorId) REFERENCES dbo.Users(Id) ON DELETE CASCADE
+    );
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ProjectUpdates_ProjectId' AND object_id = OBJECT_ID('dbo.ProjectUpdates'))
+BEGIN
+    CREATE INDEX IX_ProjectUpdates_ProjectId ON dbo.ProjectUpdates(ProjectId);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ProjectUpdates_CreatorId' AND object_id = OBJECT_ID('dbo.ProjectUpdates'))
+BEGIN
+    CREATE INDEX IX_ProjectUpdates_CreatorId ON dbo.ProjectUpdates(CreatorId);
+END;
+IF OBJECT_ID('dbo.StarredItems', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.StarredItems (
+        Id uniqueidentifier NOT NULL,
+        UserId uniqueidentifier NOT NULL,
+        WorkspaceId uniqueidentifier NOT NULL,
+        ItemType nvarchar(64) NOT NULL,
+        ItemId uniqueidentifier NOT NULL,
+        CreatedAt datetime2 NOT NULL,
+        CONSTRAINT PK_StarredItems PRIMARY KEY (Id),
+        CONSTRAINT FK_StarredItems_Users_UserId FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+        CONSTRAINT FK_StarredItems_Workspaces_WorkspaceId FOREIGN KEY (WorkspaceId) REFERENCES dbo.Workspaces(Id)
+    );
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_StarredItems_UserId_WorkspaceId_ItemType_ItemId' AND object_id = OBJECT_ID('dbo.StarredItems'))
+BEGIN
+    CREATE UNIQUE INDEX IX_StarredItems_UserId_WorkspaceId_ItemType_ItemId ON dbo.StarredItems(UserId, WorkspaceId, ItemType, ItemId);
+END;
+IF OBJECT_ID('dbo.Comments', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Comments (
+        Id uniqueidentifier NOT NULL,
+        EntityId uniqueidentifier NOT NULL,
+        EntityType nvarchar(128) NOT NULL,
+        UserId uniqueidentifier NOT NULL,
+        Content nvarchar(max) NOT NULL,
+        ParentCommentId uniqueidentifier NULL,
+        CreatedAt datetime2 NOT NULL,
+        UpdatedAt datetime2 NOT NULL,
+        IsDeleted bit NOT NULL CONSTRAINT DF_Comments_IsDeleted DEFAULT CAST(0 AS bit),
+        CONSTRAINT PK_Comments PRIMARY KEY (Id),
+        CONSTRAINT FK_Comments_Comments_ParentCommentId FOREIGN KEY (ParentCommentId) REFERENCES dbo.Comments(Id),
+        CONSTRAINT FK_Comments_Users_UserId FOREIGN KEY (UserId) REFERENCES dbo.Users(Id)
+    );
+END;
+IF OBJECT_ID('dbo.Comments', 'U') IS NOT NULL AND COL_LENGTH('dbo.Comments', 'EntityId') IS NULL
+BEGIN
+    ALTER TABLE dbo.Comments ADD EntityId uniqueidentifier NOT NULL CONSTRAINT DF_Comments_EntityId DEFAULT '00000000-0000-0000-0000-000000000000';
+END;
+IF OBJECT_ID('dbo.Comments', 'U') IS NOT NULL AND COL_LENGTH('dbo.Comments', 'EntityType') IS NULL
+BEGIN
+    ALTER TABLE dbo.Comments ADD EntityType nvarchar(128) NOT NULL CONSTRAINT DF_Comments_EntityType DEFAULT N'WorkTask';
+END;
+IF OBJECT_ID('dbo.Comments', 'U') IS NOT NULL AND COL_LENGTH('dbo.Comments', 'ParentCommentId') IS NULL
+BEGIN
+    ALTER TABLE dbo.Comments ADD ParentCommentId uniqueidentifier NULL;
+END;
+IF OBJECT_ID('dbo.Comments', 'U') IS NOT NULL AND COL_LENGTH('dbo.Comments', 'IsDeleted') IS NULL
+BEGIN
+    ALTER TABLE dbo.Comments ADD IsDeleted bit NOT NULL CONSTRAINT DF_Comments_IsDeleted DEFAULT CAST(0 AS bit);
+END;
+IF OBJECT_ID('dbo.Comments', 'U') IS NOT NULL
+   AND EXISTS (
+       SELECT 1
+       FROM sys.columns
+       WHERE object_id = OBJECT_ID('dbo.Comments')
+         AND name = 'EntityType'
+         AND max_length = -1
+   )
+BEGIN
+    EXEC('UPDATE dbo.Comments SET EntityType = LEFT(EntityType, 128) WHERE LEN(EntityType) > 128;');
+    EXEC('ALTER TABLE dbo.Comments ALTER COLUMN EntityType nvarchar(128) NOT NULL;');
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Comments_EntityType_EntityId' AND object_id = OBJECT_ID('dbo.Comments'))
+BEGIN
+    CREATE INDEX IX_Comments_EntityType_EntityId ON dbo.Comments(EntityType, EntityId);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Comments_UserId' AND object_id = OBJECT_ID('dbo.Comments'))
+BEGIN
+    CREATE INDEX IX_Comments_UserId ON dbo.Comments(UserId);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Comments_ParentCommentId' AND object_id = OBJECT_ID('dbo.Comments'))
+BEGIN
+    CREATE INDEX IX_Comments_ParentCommentId ON dbo.Comments(ParentCommentId);
+END;
+IF OBJECT_ID('dbo.CommentAttachments', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.CommentAttachments (
+        Id uniqueidentifier NOT NULL,
+        CommentId uniqueidentifier NOT NULL,
+        UploadedByUserId uniqueidentifier NOT NULL,
+        FileName nvarchar(max) NOT NULL,
+        FileUrl nvarchar(max) NOT NULL,
+        ContentType nvarchar(max) NOT NULL,
+        FileSize bigint NOT NULL,
+        CreatedAt datetime2 NOT NULL,
+        CONSTRAINT PK_CommentAttachments PRIMARY KEY (Id),
+        CONSTRAINT FK_CommentAttachments_Comments_CommentId FOREIGN KEY (CommentId) REFERENCES dbo.Comments(Id) ON DELETE CASCADE,
+        CONSTRAINT FK_CommentAttachments_Users_UploadedByUserId FOREIGN KEY (UploadedByUserId) REFERENCES dbo.Users(Id)
+    );
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_CommentAttachments_CommentId' AND object_id = OBJECT_ID('dbo.CommentAttachments'))
+BEGIN
+    CREATE INDEX IX_CommentAttachments_CommentId ON dbo.CommentAttachments(CommentId);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_CommentAttachments_UploadedByUserId' AND object_id = OBJECT_ID('dbo.CommentAttachments'))
+BEGIN
+    CREATE INDEX IX_CommentAttachments_UploadedByUserId ON dbo.CommentAttachments(UploadedByUserId);
+END;
+IF OBJECT_ID('dbo.CommentMentions', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.CommentMentions (
+        Id uniqueidentifier NOT NULL,
+        CommentId uniqueidentifier NOT NULL,
+        MentionedUserId uniqueidentifier NOT NULL,
+        CreatedAt datetime2 NOT NULL,
+        CONSTRAINT PK_CommentMentions PRIMARY KEY (Id),
+        CONSTRAINT FK_CommentMentions_Comments_CommentId FOREIGN KEY (CommentId) REFERENCES dbo.Comments(Id) ON DELETE CASCADE,
+        CONSTRAINT FK_CommentMentions_Users_MentionedUserId FOREIGN KEY (MentionedUserId) REFERENCES dbo.Users(Id)
+    );
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_CommentMentions_CommentId' AND object_id = OBJECT_ID('dbo.CommentMentions'))
+BEGIN
+    CREATE INDEX IX_CommentMentions_CommentId ON dbo.CommentMentions(CommentId);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_CommentMentions_MentionedUserId' AND object_id = OBJECT_ID('dbo.CommentMentions'))
+BEGIN
+    CREATE INDEX IX_CommentMentions_MentionedUserId ON dbo.CommentMentions(MentionedUserId);
+END;
 IF COL_LENGTH('dbo.SystemSettings', 'Description') IS NULL
 BEGIN
     ALTER TABLE dbo.SystemSettings ADD Description nvarchar(max) NULL;
