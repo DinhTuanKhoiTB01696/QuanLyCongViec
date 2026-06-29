@@ -633,6 +633,46 @@ namespace TaskManagement.API.Controllers
             public Guid? ParentCommentId { get; set; }
         }
 
+        [HttpGet("{id:guid}/comments")]
+        public async Task<IActionResult> GetProjectComments(Guid id, [FromServices] ApplicationDbContext context)
+        {
+            var projectExists = await context.Projects.AnyAsync(p => p.Id == id && !p.IsDeleted);
+            if (!projectExists)
+                return NotFound(ApiResponse<object>.Error("Project not found.", 404));
+
+            var comments = await context.Comments
+                .AsNoTracking()
+                .Include(c => c.User)
+                .Include(c => c.CommentAttachments)
+                .Where(c => c.EntityType == "Project" && c.EntityId == id && !c.IsDeleted)
+                .OrderBy(c => c.CreatedAt)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.EntityId,
+                    c.EntityType,
+                    c.Content,
+                    c.ParentCommentId,
+                    c.CreatedAt,
+                    c.UpdatedAt,
+                    UserId = c.UserId,
+                    FullName = c.User.FullName ?? c.User.Email,
+                    AvatarUrl = c.User.AvatarUrl,
+                    Attachments = c.CommentAttachments.Select(a => new
+                    {
+                        a.Id,
+                        a.FileName,
+                        a.FileUrl,
+                        a.ContentType,
+                        a.FileSize,
+                        a.CreatedAt
+                    }).ToList()
+                })
+                .ToListAsync();
+
+            return Ok(new { statusCode = 200, message = "Success", data = comments });
+        }
+
         [HttpPost("{id:guid}/Comments")]
         public async Task<IActionResult> CreateComment(Guid id, [FromBody] CreateCommentRequest request, [FromServices] TaskManagement.Infrastructure.Data.ApplicationDbContext context)
         {

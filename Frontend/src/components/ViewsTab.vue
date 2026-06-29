@@ -1733,6 +1733,65 @@ const getInitials = (name) => {
 .f-opt i { font-size: 12px; width: 16px; text-align: center; color: var(--color-text-muted); }
 
 :deep(.filter-modal-popper) { background: transparent !important; border: none !important; box-shadow: none !important; z-index: 10000 !important; }
+
+/* Compact density */
+.views-page {
+  min-height: calc(100vh - var(--sa-topbar-height, 52px)) !important;
+}
+
+.nexus-project-header {
+  min-height: 52px !important;
+  padding: 10px 16px !important;
+}
+
+.nexus-controls-row {
+  gap: 8px !important;
+}
+
+.nexus-search-input,
+.nexus-btn-primary,
+.nexus-btn-secondary,
+.view-btn,
+.views-filter-btn {
+  min-height: 32px !important;
+  border-radius: 8px !important;
+  padding: 6px 10px !important;
+  font-size: 12.5px !important;
+}
+
+.views-content {
+  padding: 16px var(--sa-page-x, 24px) 26px !important;
+}
+
+.views-list-head h2 {
+  font-size: 17px !important;
+}
+
+.views-list-row,
+.view-row {
+  min-height: 54px !important;
+  padding: 10px 12px !important;
+  border-radius: 8px !important;
+}
+
+.view-title {
+  font-size: 13.5px !important;
+}
+
+.empty-state {
+  min-height: 180px !important;
+  padding: 22px !important;
+}
+
+@media (max-width: 760px) {
+  .nexus-project-header {
+    padding: 10px 12px !important;
+  }
+
+  .views-content {
+    padding: 12px !important;
+  }
+}
 </style>
 
 

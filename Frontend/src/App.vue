@@ -1,7 +1,11 @@
 <template>
   <ErrorBoundary>
     <Suspense>
-      <router-view />
+      <router-view v-slot="{ Component }">
+        <Transition name="route-soft" mode="out-in">
+          <component :is="Component" />
+        </Transition>
+      </router-view>
       <template #fallback>
         <div class="app-loading-screen">
           <div class="loader-spinner"></div>
@@ -88,5 +92,29 @@ onMounted(async () => {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.route-soft-enter-active,
+.route-soft-leave-active {
+  transition: opacity 180ms ease, transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 180ms ease;
+}
+
+.route-soft-enter-from {
+  opacity: 0;
+  transform: translateY(8px) scale(0.995);
+  filter: blur(2px);
+}
+
+.route-soft-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.998);
+  filter: blur(1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-soft-enter-active,
+  .route-soft-leave-active {
+    transition: none;
+  }
 }
 </style>

@@ -413,75 +413,91 @@
                 <button class="quick-subtask-save" @click="submitSubtask">{{ tr('Create', 'Tạo') }}</button>
               </div>
             </div>
-             <div class="subtask-toggle-row" v-if="subtasksList.length">
-               <button class="subtask-toggle-btn" @click="showSubtasks = !showSubtasks">
-                 <i :class="showSubtasks ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash'"></i>
-                 {{ showSubtasks ? tr('Hide sub-work items', 'Ẩn công việc con') : tr('Show sub-work items', 'Hiển thị công việc con') }}
-               </button>
-             </div>
+             <section class="subtask-section" v-if="subtasksList.length">
+               <div class="subtask-section-head">
+                 <div>
+                   <span class="subtask-kicker">{{ tr('Sub-work items', 'Công việc con') }}</span>
+                   <strong>{{ subtasksList.length }} {{ tr('linked items', 'việc liên kết') }}</strong>
+                 </div>
+                 <button class="subtask-toggle-btn" @click="showSubtasks = !showSubtasks">
+                   <i :class="showSubtasks ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash'"></i>
+                   {{ showSubtasks ? tr('Hide', 'Ẩn') : tr('Show', 'Hiện') }}
+                 </button>
+               </div>
+             </section>
              <div v-if="subtasksList.length && showSubtasks" class="subtask-list">
                <div
                  v-for="subtask in subtasksList"
                  :key="subtask.id"
                  class="subtask-item"
                >
-                <button class="subtask-open" type="button" @click="openTaskDetail(subtask)">
-                  <span class="subtask-seq">{{ subtask.sequenceId || subtask.id?.substring(0, 8) }}</span>
-                  <span class="subtask-title">{{ subtask.title }}</span>
-                </button>
-                <div class="subtask-controls" @click.stop>
-                  <el-dropdown trigger="click" @command="(cmd) => selectStatus({ name: cmd }, subtask)">
-                    <button class="subtask-chip" type="button">
-                      <i :class="getStatusIcon(subtask.statusName)"></i>
-                      <span>{{ getStatusLabel(subtask.statusName) }}</span>
-                    </button>
-                    <template #dropdown>
-                      <el-dropdown-menu class="theme-dropdown">
-                        <el-dropdown-item v-for="status in projectStatuses" :key="`${subtask.id}-${status.id}`" :command="status.name">
-                          <i :class="getStatusIcon(status.name)" class="mr-2"></i>
-                          {{ status.displayName || status.name }}
-                        </el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
-
-                  <el-dropdown trigger="click" @command="(cmd) => selectPriority(cmd, subtask)">
-                    <button class="subtask-chip" type="button">
-                      <i :class="getPrioIcon(subtask.priority)"></i>
-                      <span>{{ getPrioLabel(subtask.priority) }}</span>
-                    </button>
-                    <template #dropdown>
-                      <el-dropdown-menu class="theme-dropdown">
-                        <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: var(--color-danger)"></i> {{ tr('Urgent', 'Khẩn cấp') }}</el-dropdown-item>
-                        <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: var(--color-warning)"></i> {{ tr('High', 'Cao') }}</el-dropdown-item>
-                        <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: var(--color-accent)"></i> {{ tr('Medium', 'Trung bình') }}</el-dropdown-item>
-                        <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: var(--color-text-muted)"></i> {{ tr('Low', 'Thấp') }}</el-dropdown-item>
-                        <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-muted"></i> {{ tr('None', 'Không có') }}</el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
-
-                  <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="240" @show="assigneeSearch = ''">
-                    <template #reference>
+                <div class="subtask-main">
+                  <button class="subtask-open" type="button" @click="openTaskDetail(subtask)">
+                    <span class="subtask-seq">{{ subtask.sequenceId || subtask.id?.substring(0, 8) }}</span>
+                    <span class="subtask-title">{{ subtask.title }}</span>
+                  </button>
+                  <div class="subtask-controls" @click.stop>
+                    <el-dropdown trigger="click" @command="(cmd) => selectStatus({ name: cmd }, subtask)">
                       <button class="subtask-chip" type="button">
-                        <i class="fa-regular fa-user"></i>
-                        <span>{{ getAssigneeSummary(subtask) }}</span>
+                        <i :class="getStatusIcon(subtask.statusName)"></i>
+                        <span>{{ getStatusLabel(subtask.statusName) }}</span>
                       </button>
-                    </template>
-                    <div class="popover-content">
-                      <input v-model="assigneeSearch" type="text" class="popover-search" :placeholder="tr('Search members...', 'Tìm thành viên... ')" />
-                      <div class="popover-list">
-                        <div class="popover-item" v-for="member in filteredMembers" :key="`${subtask.id}-${member.userId}`" @click="toggleInlineTaskAssignee(subtask, member.userId)">
-                          <div class="avatar-xxs bg-gray-600 rounded-full w-5 h-5 flex-center text-white text-xs mr-2">{{ (member.fullName || member.email || 'U').charAt(0).toUpperCase() }}</div>
-                          <span>{{ member.fullName || member.email }}</span>
-                          <i v-if="getAssigneeIds(subtask).includes(member.userId)" class="fa-solid fa-check ms-auto"></i>
+                      <template #dropdown>
+                        <el-dropdown-menu class="theme-dropdown">
+                          <el-dropdown-item v-for="status in projectStatuses" :key="`${subtask.id}-${status.id}`" :command="status.name">
+                            <i :class="getStatusIcon(status.name)" class="mr-2"></i>
+                            {{ status.displayName || status.name }}
+                          </el-dropdown-item>
+                        </el-dropdown-menu>
+                      </template>
+                    </el-dropdown>
+
+                    <el-dropdown trigger="click" @command="(cmd) => selectPriority(cmd, subtask)">
+                      <button class="subtask-chip" type="button">
+                        <i :class="getPrioIcon(subtask.priority)"></i>
+                        <span>{{ getPrioLabel(subtask.priority) }}</span>
+                      </button>
+                      <template #dropdown>
+                        <el-dropdown-menu class="theme-dropdown">
+                          <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: var(--color-danger)"></i> {{ tr('Urgent', 'Khẩn cấp') }}</el-dropdown-item>
+                          <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: var(--color-warning)"></i> {{ tr('High', 'Cao') }}</el-dropdown-item>
+                          <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: var(--color-accent)"></i> {{ tr('Medium', 'Trung bình') }}</el-dropdown-item>
+                          <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: var(--color-text-muted)"></i> {{ tr('Low', 'Thấp') }}</el-dropdown-item>
+                          <el-dropdown-item :command="0"><i class="fa-solid fa-ban mr-2 text-muted"></i> {{ tr('None', 'Không có') }}</el-dropdown-item>
+                        </el-dropdown-menu>
+                      </template>
+                    </el-dropdown>
+
+                    <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="240" @show="assigneeSearch = ''">
+                      <template #reference>
+                        <button class="subtask-chip" type="button">
+                          <i class="fa-regular fa-user"></i>
+                          <span>{{ getAssigneeSummary(subtask) }}</span>
+                        </button>
+                      </template>
+                      <div class="popover-content">
+                        <input v-model="assigneeSearch" type="text" class="popover-search" :placeholder="tr('Search members...', 'Tìm thành viên... ')" />
+                        <div class="popover-list">
+                          <div class="popover-item" v-for="member in filteredMembers" :key="`${subtask.id}-${member.userId}`" @click="toggleInlineTaskAssignee(subtask, member.userId)">
+                            <div class="avatar-xxs bg-gray-600 rounded-full w-5 h-5 flex-center text-white text-xs mr-2">{{ (member.fullName || member.email || 'U').charAt(0).toUpperCase() }}</div>
+                            <span>{{ member.fullName || member.email }}</span>
+                            <i v-if="getAssigneeIds(subtask).includes(member.userId)" class="fa-solid fa-check ms-auto"></i>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </el-popover>
+                    </el-popover>
+                  </div>
+                </div>
 
+                <div class="subtask-progress-wrap" @click.stop>
+                  <div class="subtask-progress-top">
+                    <span>{{ tr('Progress', 'Tiến độ') }}</span>
+                    <strong>{{ getTaskProgressPercent(subtask) }}%</strong>
+                  </div>
+                  <div class="subtask-progress-track" aria-hidden="true">
+                    <span :style="{ width: `${getTaskProgressPercent(subtask)}%` }"></span>
+                  </div>
                   <label class="subtask-progress">
-                    <span>Progress</span>
                     <input
                       type="number"
                       min="0"
@@ -505,7 +521,7 @@
                    <div class="p-val">
                      <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="260" @show="statusSearch = ''">
                        <template #reference>
-                         <button class="property-trigger">
+                         <button class="property-trigger status-property-trigger" :style="{ '--status-color': getStatusColor(selectedTask?.statusName) }">
                            <i :class="getStatusIcon(selectedTask?.statusName)"></i>
                            <span>{{ tr('Status', 'Trạng thái') }}</span>
                            <span class="property-value">{{ getStatusLabel(selectedTask?.statusName) }}</span>
@@ -514,7 +530,7 @@
                        <div class="popover-content">
                          <input v-model="statusSearch" type="text" class="popover-search" :placeholder="tr('Search status...', 'Tìm trạng thái... ')" />
                          <div class="popover-list">
-                           <div class="popover-item" v-for="status in filteredStatuses" :key="status.id" @click="selectStatus(status)">
+                           <div class="popover-item status-popover-item" v-for="status in filteredStatuses" :key="status.id" :style="{ '--status-color': getStatusColor(status.name) }" @click="selectStatus(status)">
                              <i :class="getStatusIcon(status.name)" class="mr-2"></i>
                              <span>{{ getStatusLabel(status.name || status.displayName) }}</span>
                              <i v-if="selectedTask?.statusName === status.name" class="fa-solid fa-check ms-auto"></i>
@@ -527,7 +543,12 @@
                  <div class="p-row">
                    <div class="p-label"><i class="fa-solid fa-percent"></i> {{ tr('Progress', 'Tiến độ') }}</div>
                    <div class="p-val">
-                     <div class="task-progress-editor">
+                     <div class="task-progress-editor" :style="{ '--progress-color': getStatusColor(selectedTask?.statusName), '--progress-width': `${getTaskProgressPercent(selectedTask)}%` }">
+                       <div class="task-progress-readout">
+                         <span>{{ getStatusLabel(selectedTask?.statusName) }}</span>
+                         <strong>{{ getTaskProgressPercent(selectedTask) }}%</strong>
+                       </div>
+                       <div class="task-progress-bar" aria-hidden="true"><span></span></div>
                        <input
                          class="task-progress-input"
                          type="number"
@@ -540,7 +561,7 @@
                        />
                        <span class="task-progress-suffix">%</span>
                        <span class="task-progress-hint">
-                         {{ tr('Progress is calculated from assignee completion levels and the Completed status.', 'Tiến độ được tính từ mức hoàn thành của người được giao và trạng thái Hoàn thành.') }}
+                         {{ tr('Progress follows the current status and assignee completion levels.', 'Tiến độ tự cập nhật theo trạng thái hiện tại và mức hoàn thành của người được giao.') }}
                        </span>
                      </div>
                    </div>
@@ -682,44 +703,78 @@
                <div class="p-row">
                  <div class="p-label"><i class="fa-regular fa-calendar"></i> {{ tr('Start Date', 'Ngày bắt đầu') }}</div>
                  <div class="p-val">
-                   <div style="position: relative; display: inline-flex;">
-                     <button class="property-trigger" :class="{ 'muted-val': !selectedTask?.plannedStartDate }" @click="openPicker('detail_start')">
+                   <div class="date-trigger-wrap" @click.stop>
+                     <button class="property-trigger" :class="{ 'muted-val': !selectedTask?.plannedStartDate, active: activeDatePicker === 'detail_start' }" @click.stop="openPicker('detail_start')">
                        <i class="fa-regular fa-calendar"></i>
                        <span>{{ tr('Start Date', 'Ngày bắt đầu') }}</span>
                        <span class="property-value">{{ selectedTask?.plannedStartDate || tr('Add start date', 'Thêm ngày bắt đầu') }}</span>
                      </button>
-                     <el-date-picker
-                       :ref="el => setPickerRef('detail_start', el)"
-                       v-model="selectedTask.plannedStartDate"
-                       type="date"
-                       format="YYYY-MM-DD"
-                       value-format="YYYY-MM-DD"
-                       :disabled-date="disablePastDates"
-                       style="position:absolute; bottom:0; left:0; width:0; height:0; opacity:0; padding:0; border:0; display:none;"
-                       @change="val => handleTaskDateChange('plannedStartDate', val)"
-                     />
+                     <div v-if="activeDatePicker === 'detail_start'" class="task-calendar-popover" @click.stop>
+                       <div class="calendar-head">
+                         <button type="button" class="calendar-nav" @click="shiftCalendarMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                         <strong>{{ getCalendarMonthLabel() }}</strong>
+                         <button type="button" class="calendar-nav" @click="shiftCalendarMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                       </div>
+                       <div class="calendar-weekdays">
+                         <span v-for="day in calendarWeekdays" :key="day">{{ day }}</span>
+                       </div>
+                       <div class="calendar-grid">
+                         <button
+                           v-for="day in getCalendarCells('detail_start')"
+                           :key="day.key"
+                           type="button"
+                           class="calendar-day"
+                           :class="{ muted: !day.currentMonth, selected: day.value === formatDateOnly(selectedTask?.plannedStartDate), today: day.value === getTodayDateString() }"
+                           :disabled="day.disabled"
+                           @click="selectCalendarDate('detail_start', day.value)"
+                         >
+                           {{ day.date.getDate() }}
+                         </button>
+                       </div>
+                       <div class="calendar-actions">
+                         <button type="button" @click="selectCalendarDate('detail_start', null)">{{ tr('Clear', 'Xóa') }}</button>
+                         <button type="button" @click="selectCalendarDate('detail_start', getTodayDateString())">{{ tr('Today', 'Hôm nay') }}</button>
+                       </div>
+                     </div>
                    </div>
                  </div>
                </div>
                <div class="p-row">
                  <div class="p-label"><i class="fa-regular fa-calendar-check"></i> {{ tr('Due Date', 'Ngày đến hạn') }}</div>
                  <div class="p-val">
-                   <div style="position: relative; display: inline-flex;">
-                     <button class="property-trigger" :class="{ 'muted-val': !selectedTask?.dueDate }" @click="openPicker('detail_due')">
+                   <div class="date-trigger-wrap" @click.stop>
+                     <button class="property-trigger" :class="{ 'muted-val': !selectedTask?.dueDate, active: activeDatePicker === 'detail_due' }" @click.stop="openPicker('detail_due')">
                        <i class="fa-regular fa-calendar-check"></i>
                        <span>{{ tr('Due Date', 'Ngày đến hạn') }}</span>
                        <span class="property-value">{{ selectedTask?.dueDate || tr('Add due date', 'Thêm ngày đến hạn') }}</span>
                      </button>
-                     <el-date-picker
-                       :ref="el => setPickerRef('detail_due', el)"
-                       v-model="selectedTask.dueDate"
-                       type="date"
-                       format="YYYY-MM-DD"
-                       value-format="YYYY-MM-DD"
-                       :disabled-date="disableDueDates"
-                       style="position:absolute; bottom:0; left:0; width:0; height:0; opacity:0; padding:0; border:0; display:none;"
-                       @change="val => handleTaskDateChange('dueDate', val)"
-                     />
+                     <div v-if="activeDatePicker === 'detail_due'" class="task-calendar-popover" @click.stop>
+                       <div class="calendar-head">
+                         <button type="button" class="calendar-nav" @click="shiftCalendarMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                         <strong>{{ getCalendarMonthLabel() }}</strong>
+                         <button type="button" class="calendar-nav" @click="shiftCalendarMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                       </div>
+                       <div class="calendar-weekdays">
+                         <span v-for="day in calendarWeekdays" :key="day">{{ day }}</span>
+                       </div>
+                       <div class="calendar-grid">
+                         <button
+                           v-for="day in getCalendarCells('detail_due')"
+                           :key="day.key"
+                           type="button"
+                           class="calendar-day"
+                           :class="{ muted: !day.currentMonth, selected: day.value === formatDateOnly(selectedTask?.dueDate), today: day.value === getTodayDateString() }"
+                           :disabled="day.disabled"
+                           @click="selectCalendarDate('detail_due', day.value)"
+                         >
+                           {{ day.date.getDate() }}
+                         </button>
+                       </div>
+                       <div class="calendar-actions">
+                         <button type="button" @click="selectCalendarDate('detail_due', null)">{{ tr('Clear', 'Xóa') }}</button>
+                         <button type="button" @click="selectCalendarDate('detail_due', getTodayDateString())">{{ tr('Today', 'Hôm nay') }}</button>
+                       </div>
+                     </div>
                    </div>
                  </div>
                </div>
@@ -1114,7 +1169,10 @@
                     data-placeholder="Nhập bình luận..."
                     @focus="activeEditor = 'comment'"
                     @keydown="handleEditorKeydown($event, 'comment')"
+                    @mouseup="saveEditorSelection('comment')"
+                    @keyup="saveEditorSelection('comment')"
                     @input="handleCommentEditorInput"
+                    @blur="saveEditorSelection('comment')"
                   ></div>
                   <input ref="commentImageInput" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/*" style="display:none" multiple @change="handleCommentFileChange($event, true)" />
                   <input ref="commentFileInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip,.rar,.ppt,.pptx" style="display:none" multiple @change="handleCommentFileChange($event, false)" />
@@ -1517,6 +1575,16 @@ const getStatusIcon = (s) => {
     return 'fa-solid fa-circle-dashed';
 };
 
+const getStatusColor = (statusName) => {
+    const status = normalizeStatusName(statusName);
+    if (status === 'DONE') return '#22C55E';
+    if (status === 'IN REVIEW') return '#F59E0B';
+    if (status === 'IN PROGRESS') return '#38BDF8';
+    if (status === 'TO DO') return '#A78BFA';
+    if (status === 'CANCELLED') return '#F43F5E';
+    return '#94A3B8';
+};
+
 const getStatusLabel = (statusName) => {
     const status = `${statusName || ''}`.toUpperCase().trim();
     if (!status) return tr('Status', 'Trạng thái');
@@ -1529,12 +1597,27 @@ const getStatusLabel = (statusName) => {
     return statusName || tr('Status', 'Trạng thái');
 };
 const normalizeStatusName = (statusName) => {
-    const upper = (statusName || '').toUpperCase().replace(/\s+/g, '');
+    const upper = (statusName || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .replace(/\s+/g, '');
     if (upper.includes('CANCEL')) return 'CANCELLED';
-    if (upper.includes('DONE') || upper.includes('COMPLETE')) return 'DONE';
-    if (upper.includes('PROGRESS') || upper.includes('ACTIVE')) return 'IN PROGRESS';
-    if (upper.includes('TODO')) return 'TO DO';
+    if (upper.includes('HUY')) return 'CANCELLED';
+    if (upper.includes('DONE') || upper.includes('COMPLETE') || upper.includes('HOANTHANH')) return 'DONE';
+    if (upper.includes('REVIEW') || upper.includes('TEST') || upper.includes('DANHGIA')) return 'IN REVIEW';
+    if (upper.includes('PROGRESS') || upper.includes('ACTIVE') || upper.includes('DANGTHUCHIEN')) return 'IN PROGRESS';
+    if (upper.includes('TODO') || upper.includes('CANLAM')) return 'TO DO';
     return 'BACKLOG';
+};
+
+const getStatusProgressPercent = (statusName) => {
+   const status = normalizeStatusName(statusName);
+   if (status === 'DONE') return 100;
+   if (status === 'IN REVIEW') return 75;
+   if (status === 'IN PROGRESS') return 45;
+   if (status === 'TO DO') return 15;
+   return 0;
 };
 
 const getAssigneeLabel = (id) => {
@@ -1616,13 +1699,14 @@ const getAssigneeSummary = (task = props.selectedTask) => {
 };
 
 const getTaskProgressPercent = (task = props.selectedTask) => {
+   const statusProgress = getStatusProgressPercent(task?.statusName);
    const rows = buildTaskAssigneeRows(task);
    if (!rows.length) {
-      return normalizeStatusName(task?.statusName) === 'DONE' ? 100 : 0;
+      return statusProgress;
    }
 
    const total = rows.reduce((sum, assignee) => sum + (Number(assignee.progressPercent) || 0), 0);
-   return Math.round(total / rows.length);
+   return Math.max(statusProgress, Math.round(total / rows.length));
 };
 
 const canEditTaskProgress = () => false;
@@ -1728,7 +1812,6 @@ const createLabelDetail = async (name) => {
 };
 
 // ====================== RICH EDITOR REFS ======================
-const pickerRefs = ref({});
 const commentEditor = ref(null);
 const descriptionEditor = ref(null);
 const commentImageInput = ref(null);
@@ -1746,15 +1829,66 @@ const showFormatToolbar = ref(false);
 const toolbarPosition = ref({ x: 260, y: 120 });
 const textColors = ['#F8FAFC', '#EF4444', '#F97316', '#22C55E', '#06B6D4', '#3B82F6', '#8B5CF6', '#F472B6'];
 const backgroundColors = ['#27272A', '#7F1D1D', '#78350F', '#064E3B', '#164E63', '#1E3A8A', '#4C1D95', '#831843'];
+const activeDatePicker = ref(null);
+const calendarMonth = ref(new Date());
+const calendarWeekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
-const setPickerRef = (key, el) => {
-  if (el) pickerRefs.value[key] = el;
+const parseDateOnly = (value) => {
+  const formatted = formatDateOnly(value);
+  if (!formatted) return null;
+  const [year, month, day] = formatted.split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
 };
 
 const openPicker = (key) => {
-  const picker = pickerRefs.value[key];
-  if (picker?.handleOpen) picker.handleOpen();
-  else if (picker?.focus) picker.focus();
+  activeDatePicker.value = activeDatePicker.value === key ? null : key;
+  const sourceValue = key === 'detail_due' ? props.selectedTask?.dueDate : props.selectedTask?.plannedStartDate;
+  const minValue = key === 'detail_due' ? props.selectedTask?.plannedStartDate : getTodayDateString();
+  calendarMonth.value = parseDateOnly(sourceValue) || parseDateOnly(minValue) || new Date();
+};
+
+const getCalendarMonthLabel = () => calendarMonth.value.toLocaleDateString('en-US', {
+  month: 'long',
+  year: 'numeric'
+});
+
+const shiftCalendarMonth = (amount) => {
+  calendarMonth.value = new Date(calendarMonth.value.getFullYear(), calendarMonth.value.getMonth() + amount, 1);
+};
+
+const getCalendarMinDate = (key) => parseDateOnly(key === 'detail_due'
+  ? props.selectedTask?.plannedStartDate
+  : getTodayDateString());
+
+const getCalendarCells = (key) => {
+  const monthStart = new Date(calendarMonth.value.getFullYear(), calendarMonth.value.getMonth(), 1);
+  const gridStart = new Date(monthStart);
+  gridStart.setDate(monthStart.getDate() - monthStart.getDay());
+  const minDate = getCalendarMinDate(key);
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(gridStart);
+    date.setDate(gridStart.getDate() + index);
+    const value = formatDateOnly(date);
+    return {
+      key: `${key}-${value}`,
+      date,
+      value,
+      currentMonth: date.getMonth() === calendarMonth.value.getMonth(),
+      disabled: Boolean(minDate && date < minDate)
+    };
+  });
+};
+
+const selectCalendarDate = (key, value) => {
+  const field = key === 'detail_due' ? 'dueDate' : 'plannedStartDate';
+  handleTaskDateChange(field, value);
+  activeDatePicker.value = null;
+};
+
+const closeFloatingPickers = () => {
+  activeDatePicker.value = null;
 };
 
 const saveEditorSelection = (editorName = activeEditor.value) => {
@@ -1782,6 +1916,41 @@ const restoreEditorSelection = (editorName = activeEditor.value) => {
   selection.addRange(range);
 };
 
+const placeCaretAtEnd = (target) => {
+  if (!target) return;
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(target);
+  range.collapse(false);
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+};
+
+const ensureEditorSelection = (editorName = activeEditor.value) => {
+  const target = editorName === 'description' ? descriptionEditor.value : commentEditor.value;
+  if (!target) return;
+
+  activeEditor.value = editorName;
+  target.focus();
+
+  const selection = window.getSelection();
+  const currentRange = selection?.rangeCount ? selection.getRangeAt(0) : null;
+  if (currentRange && target.contains(currentRange.commonAncestorContainer)) {
+    savedSelection.value[editorName] = currentRange.cloneRange();
+    return;
+  }
+
+  const savedRange = savedSelection.value[editorName];
+  if (savedRange && target.contains(savedRange.commonAncestorContainer)) {
+    selection?.removeAllRanges();
+    selection?.addRange(savedRange);
+    return;
+  }
+
+  placeCaretAtEnd(target);
+  saveEditorSelection(editorName);
+};
+
 const focusEditor = (editorName) => {
   activeEditor.value = editorName;
   const target = editorName === 'description' ? descriptionEditor.value : commentEditor.value;
@@ -1800,7 +1969,7 @@ const unwrapFormattingNode = (node) => {
 };
 
 const toggleInlineFormat = (editorName, tagName) => {
-  restoreEditorSelection(editorName);
+  ensureEditorSelection(editorName);
   const selection = window.getSelection();
   if (!selection || !selection.rangeCount) return;
 
@@ -1834,6 +2003,7 @@ const execEditorCommand = (command, value = null, editorName = activeEditor.valu
   const editor = editorName === 'description' ? descriptionEditor.value : commentEditor.value;
   if (!editor) return;
   activeEditor.value = editorName;
+  ensureEditorSelection(editorName);
   const inlineCommandMap = {
     bold: 'strong',
     italic: 'em',
@@ -1842,11 +2012,18 @@ const execEditorCommand = (command, value = null, editorName = activeEditor.valu
   };
 
   if (inlineCommandMap[command]) {
+    const selection = window.getSelection();
+    const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+    if (range?.collapsed) {
+      document.execCommand(command, false, value);
+      syncEditorModel(editorName);
+      saveEditorSelection(editorName);
+      return;
+    }
     toggleInlineFormat(editorName, inlineCommandMap[command]);
     return;
   }
 
-  restoreEditorSelection(editorName);
   document.execCommand(command, false, value);
   saveEditorSelection(editorName);
   syncEditorModel(editorName);
@@ -1897,7 +2074,8 @@ const insertNodeAtSelection = (node) => {
 };
 
 const wrapSelectionWithInlineCode = (editorName = activeEditor.value) => {
-  restoreEditorSelection(editorName);
+  activeEditor.value = editorName;
+  ensureEditorSelection(editorName);
   const code = document.createElement('code');
   code.className = 'comment-inline-code';
   code.textContent = window.getSelection()?.toString() || 'code';
@@ -1906,7 +2084,8 @@ const wrapSelectionWithInlineCode = (editorName = activeEditor.value) => {
 };
 
 const wrapSelectionWithBlock = (tagName, editorName = activeEditor.value) => {
-  restoreEditorSelection(editorName);
+  activeEditor.value = editorName;
+  ensureEditorSelection(editorName);
   const block = document.createElement(tagName);
   if (tagName === 'pre') {
     const code = document.createElement('code');
@@ -1922,7 +2101,7 @@ const wrapSelectionWithBlock = (tagName, editorName = activeEditor.value) => {
 
 const toggleCodeBlockMode = (editorName) => {
   activeEditor.value = editorName;
-  restoreEditorSelection(editorName);
+  ensureEditorSelection(editorName);
   const selection = window.getSelection();
   const anchor = selection?.anchorNode;
   const container = anchor?.nodeType === Node.ELEMENT_NODE ? anchor : anchor?.parentElement;
@@ -2247,6 +2426,7 @@ onMounted(() => {
   window.addEventListener('keydown', touchWorkSessionActivity, { passive: true });
   window.addEventListener('scroll', touchWorkSessionActivity, { passive: true });
   window.addEventListener('click', touchWorkSessionActivity, { passive: true });
+  document.addEventListener('click', closeFloatingPickers);
   document.addEventListener('visibilitychange', syncWorkSessionOnVisibility);
   unsubscribeExecutionRulesRealtime = subscribeAdminRealtime(async ({ type, payload }) => {
     if (!props.projectId) return;
@@ -2264,6 +2444,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', touchWorkSessionActivity);
   window.removeEventListener('scroll', touchWorkSessionActivity);
   window.removeEventListener('click', touchWorkSessionActivity);
+  document.removeEventListener('click', closeFloatingPickers);
   document.removeEventListener('visibilitychange', syncWorkSessionOnVisibility);
   unsubscribeExecutionRulesRealtime?.();
 });
@@ -2294,10 +2475,30 @@ const fetchAuditTimeline = async () => {
     }
 };
 
+const parseTimelineDate = (dateStr) => {
+  if (!dateStr) return null;
+  const raw = String(dateStr).trim();
+  if (!raw || raw.startsWith('0001-01-01')) return null;
+
+  const normalized = raw.replace(' ', 'T');
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(normalized);
+  const localIso = normalized.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,7}))?)?/);
+
+  if (!hasTimezone && localIso) {
+    const [, year, month, day, hour, minute, second = '0', fraction = '0'] = localIso;
+    const ms = Number(fraction.padEnd(3, '0').slice(0, 3));
+    const localDate = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second), ms);
+    return Number.isNaN(localDate.getTime()) ? null : localDate;
+  }
+
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const formatRelativeTime = (dateStr) => {
   if (!dateStr) return 'vừa xong';
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return 'vừa xong';
+  const date = parseTimelineDate(dateStr);
+  if (!date) return 'vừa xong';
 
   const diffMs = Date.now() - date.getTime();
   const diffMinutes = Math.max(0, Math.floor(diffMs / 60000));
@@ -3081,10 +3282,9 @@ const handleTaskDateChange = (field, rawValue, task = props.selectedTask) => {
 const selectStatus = (status, task = props.selectedTask) => {
   if (!task) return;
   const nextStatus = typeof status === 'string' ? status : status.name;
+  task.statusName = nextStatus;
   if (!task.isNew) {
     updateTaskField(task, 'statusName', nextStatus);
-  } else {
-    task.statusName = nextStatus;
   }
 };
 
@@ -3742,7 +3942,7 @@ const activityEntries = computed(() => {
   const commentEntries = topLevelComments.value.map(comment => ({
     id: `comment-${comment.id}`,
     type: 'comment',
-    timestamp: comment.updatedAt || comment.createdAt,
+    timestamp: comment.createdAt || comment.updatedAt,
     comment
   }));
 
@@ -3754,7 +3954,11 @@ const activityEntries = computed(() => {
 
   const items = [...localActivityEntries.value, ...auditTimelineEntries, ...commentEntries, ...createdEntry]
     .filter(entry => entry.timestamp);
-  const sorted = items.sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
+  const sorted = items.sort((left, right) => {
+    const rightTime = parseTimelineDate(right.timestamp)?.getTime() || 0;
+    const leftTime = parseTimelineDate(left.timestamp)?.getTime() || 0;
+    return rightTime - leftTime;
+  });
   return activitySortNewestFirst.value ? sorted : [...sorted].reverse();
 });
 
@@ -3863,12 +4067,12 @@ watch(() => props.selectedTask, (newTask) => {
 .task-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 2000;
-  background: color-mix(in srgb, black 50%, transparent);
+  z-index: var(--z-modal);
+  background: var(--color-modal-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(3px);
 }
 
 /* UTILITIES */
@@ -3902,46 +4106,75 @@ watch(() => props.selectedTask, (newTask) => {
 }
 
 [data-theme='dark'] .task-modal-overlay {
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--color-modal-overlay);
 }
 
 [data-theme='light'] .task-modal-overlay {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--color-modal-overlay);
 }
 
 /* CREATE MODAL */
 .create-centered-modal {
-  width: min(600px, 95vw);
-  background: var(--color-surface);
+  width: min(680px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow: visible;
+  background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  border-radius: 2px; /* Sharp UI */
-  padding: 24px;
-  box-shadow: var(--shadow-xl);
+  border-radius: 14px;
+  padding: 0;
+  box-shadow: var(--shadow-popover);
 }
 
 .cm-title {
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 20px;
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0;
+  padding: 22px 28px 8px;
   color: var(--color-text-primary);
+}
+
+.cm-badge-row {
+  padding: 0 28px 14px;
+}
+
+.cm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-surface-hover) 70%, transparent);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .cm-form-group {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-bottom: 24px;
+  margin: 0;
+  padding: 18px 28px;
+  border-top: 1px solid var(--color-border);
 }
 
 .cm-inputbox, .cm-textareabox {
   width: 100%;
   background: var(--color-input-bg);
   border: 1px solid var(--color-input-border);
-  border-radius: 2px;
+  border-radius: 10px;
   padding: 12px 14px;
   color: var(--color-text-primary);
   outline: none;
   font-size: 14px;
+  line-height: 1.5;
+}
+
+.cm-textareabox {
+  min-height: 96px;
+  resize: vertical;
 }
 
 .cm-inputbox:focus, .cm-textareabox:focus {
@@ -3952,20 +4185,23 @@ watch(() => props.selectedTask, (newTask) => {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 24px;
+  margin: 0;
+  padding: 0 28px 22px;
 }
 
 .t-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
+  min-height: 34px;
+  padding: 7px 12px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 2px;
+  border-radius: 999px;
   color: var(--color-text-secondary);
   font-size: 13px;
   cursor: pointer;
+  max-width: 100%;
 }
 
 .t-btn:hover {
@@ -3978,27 +4214,45 @@ watch(() => props.selectedTask, (newTask) => {
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
-  padding-top: 20px;
+  padding: 16px 28px 20px;
   border-top: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 88%, var(--color-bg));
+  border-radius: 0 0 14px 14px;
+}
+
+.cm-t-more {
+  margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
 }
 
 .btn-save {
   background: var(--color-accent);
   color: #fff;
   border: none;
-  padding: 8px 20px;
-  border-radius: 2px;
+  min-width: 82px;
+  padding: 9px 18px;
+  border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .btn-discard {
-  background: transparent;
+  background: var(--color-surface);
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
-  padding: 8px 20px;
-  border-radius: 2px;
+  min-width: 74px;
+  padding: 9px 18px;
+  border-radius: 10px;
   cursor: pointer;
+}
+
+.btn-discard:hover {
+  color: var(--color-text-primary);
+  background: var(--color-surface-hover);
 }
 
 /* SIDE PANEL */
@@ -4009,12 +4263,12 @@ watch(() => props.selectedTask, (newTask) => {
   bottom: 0;
   width: min(620px, 92vw);
   background:
-    linear-gradient(180deg, rgba(14, 165, 233, 0.12), transparent 260px),
-    color-mix(in srgb, var(--color-bg) 90%, #0f172a 10%);
-  border-left: 1px solid rgba(148, 163, 184, 0.18);
+    linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 260px),
+    var(--color-surface);
+  border-left: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  box-shadow: -26px 0 70px rgba(0, 0, 0, 0.34);
+  box-shadow: var(--shadow-drawer);
 }
 
 .sp-header {
@@ -4025,8 +4279,8 @@ watch(() => props.selectedTask, (newTask) => {
   padding: 0 18px;
   border-bottom: 1px solid var(--color-border);
   background:
-    linear-gradient(90deg, rgba(56, 189, 248, 0.16), transparent 58%),
-    color-mix(in srgb, var(--color-surface) 82%, transparent);
+    linear-gradient(90deg, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 58%),
+    color-mix(in srgb, var(--color-surface-elevated) 92%, transparent);
 }
 
 .sph-right {
@@ -4133,7 +4387,7 @@ watch(() => props.selectedTask, (newTask) => {
   padding: 10px 12px;
   border: 1px solid transparent;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--color-surface) 56%, transparent);
+  background: color-mix(in srgb, var(--color-surface-hover) 56%, transparent);
 }
 
 .rich-editor:focus {
@@ -4148,22 +4402,34 @@ watch(() => props.selectedTask, (newTask) => {
 
 .props-grid {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   margin-top: 18px;
-  padding: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 10px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: 14px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.035), transparent),
-    color-mix(in srgb, var(--color-surface) 78%, transparent);
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, #38bdf8 14%, transparent), transparent 34%),
+    radial-gradient(circle at 90% 12%, color-mix(in srgb, #a78bfa 12%, transparent), transparent 30%),
+    linear-gradient(180deg, rgba(255,255,255,0.045), transparent),
+    color-mix(in srgb, var(--color-surface-elevated) 82%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 48px color-mix(in srgb, var(--color-bg) 58%, transparent);
 }
 
 .p-row {
   display: grid;
-  grid-template-columns: 128px 1fr;
+  grid-template-columns: minmax(132px, 0.46fr) minmax(0, 1fr);
   align-items: center;
-  min-height: 34px;
-  gap: 12px;
+  min-height: 42px;
+  gap: 16px;
+  padding: 7px 8px;
+  border-radius: 10px;
+  transition: background 160ms ease;
+}
+
+.p-row:hover {
+  background: color-mix(in srgb, var(--color-bg) 28%, transparent);
 }
 
 .p-label {
@@ -4173,32 +4439,757 @@ watch(() => props.selectedTask, (newTask) => {
   align-items: center;
   gap: 8px;
   min-width: 0;
+  font-weight: 700;
 }
 
 .property-trigger {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
-  background: rgba(15, 23, 42, 0.22);
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 6px;
+  min-height: 34px;
+  padding: 7px 11px;
+  background: color-mix(in srgb, var(--color-bg) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent);
+  border-radius: 9px;
   color: var(--color-text-primary);
   font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1), background 160ms ease, border-color 160ms ease;
   max-width: 100%;
 }
 
 .property-trigger:hover {
-  background: color-mix(in srgb, var(--color-bg) 82%, #38bdf8 18%);
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--color-bg) 72%, #38bdf8 12%);
   border-color: rgba(56, 189, 248, 0.36);
+}
+
+.property-trigger:active {
+  transform: none;
+}
+
+.property-trigger.status-property-trigger {
+  border-color: color-mix(in srgb, var(--status-color) 50%, var(--color-border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--status-color) 22%, transparent), transparent),
+    color-mix(in srgb, var(--color-bg) 64%, transparent);
+  color: color-mix(in srgb, var(--status-color) 24%, var(--color-text-primary));
+}
+
+.property-trigger.status-property-trigger i {
+  color: var(--status-color);
 }
 
 .property-value {
   color: var(--color-text-primary);
-  font-weight: 500;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+.status-property-trigger .property-value {
+  color: var(--color-text-primary);
+}
+
+[data-theme='dark'] .property-trigger.status-property-trigger {
+  color: color-mix(in srgb, var(--status-color) 26%, #f8fafc);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--status-color) 18%, transparent), transparent),
+    color-mix(in srgb, var(--color-surface) 72%, transparent);
+}
+
+[data-theme='light'] .props-grid {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.12), transparent 34%),
+    radial-gradient(circle at 90% 12%, rgba(167, 139, 250, 0.10), transparent 30%),
+    rgba(255, 255, 255, 0.82);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme='light'] .p-label {
+  color: #475569;
+}
+
+[data-theme='light'] .property-trigger {
+  background: rgba(255, 255, 255, 0.88);
+  color: #0f172a;
+}
+
+.p-val {
+  min-width: 0;
+}
+
+.status-popover-item {
+  border: 1px solid transparent;
+}
+
+.status-popover-item i:first-child {
+  color: var(--status-color);
+}
+
+.status-popover-item:hover {
+  border-color: color-mix(in srgb, var(--status-color) 40%, transparent);
+  background: color-mix(in srgb, var(--status-color) 13%, var(--color-surface-hover));
+}
+
+.popover-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  color: var(--color-text-primary);
+}
+
+.popover-search {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  padding: 7px 10px;
+  font-size: 13px;
+  outline: none;
+}
+
+.popover-search:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent);
+}
+
+.popover-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.popover-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.popover-item:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.popover-item .fa-check {
+  color: var(--color-accent);
+}
+
+.quick-subtask-box {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 18px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface-elevated);
+}
+
+.quick-subtask-input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+}
+
+.quick-subtask-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent);
+}
+
+.quick-subtask-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.quick-subtask-cancel,
+.quick-subtask-save {
+  min-height: 34px;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.quick-subtask-cancel {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+}
+
+.quick-subtask-cancel:hover {
+  border-color: var(--color-border-hover);
+  color: var(--color-text-primary);
+}
+
+.quick-subtask-save {
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: #ffffff;
+}
+
+.quick-subtask-save:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.subtask-section {
+  margin-top: 16px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 9%, transparent), transparent 46%),
+    color-mix(in srgb, var(--color-surface) 88%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.subtask-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.subtask-section-head > div {
+  display: grid;
+  gap: 3px;
+}
+
+.subtask-section-head strong {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.subtask-kicker {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.subtask-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 32px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 84%, transparent);
+  color: var(--color-text-secondary);
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 180ms ease, color 180ms ease, background 180ms ease;
+}
+
+.subtask-toggle-btn:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 13%, var(--color-bg-secondary));
+  color: var(--color-text-primary);
+}
+
+.subtask-toggle-btn:active {
+  transform: none;
+}
+
+.subtask-list {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 18px;
+  padding-left: 14px;
+}
+
+.subtask-list::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 4px;
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-accent) 55%, transparent),
+    color-mix(in srgb, var(--color-border) 75%, transparent)
+  );
+}
+
+.subtask-item {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+    color-mix(in srgb, var(--color-bg-secondary) 88%, var(--color-surface));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 10px 26px color-mix(in srgb, var(--color-bg) 62%, transparent);
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 180ms ease, background 180ms ease;
+}
+
+.subtask-item::before {
+  content: "";
+  position: absolute;
+  top: 20px;
+  left: -16px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid color-mix(in srgb, var(--color-accent) 68%, var(--color-border));
+  border-radius: 999px;
+  background: var(--color-bg);
+}
+
+.subtask-item:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 6%, transparent), transparent),
+    color-mix(in srgb, var(--color-bg-secondary) 92%, var(--color-surface));
+}
+
+.subtask-main {
+  display: grid;
+  gap: 10px;
+}
+
+.subtask-open {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.subtask-open:focus-visible,
+.subtask-chip:focus-visible,
+.subtask-toggle-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 70%, white);
+  outline-offset: 2px;
+}
+
+.subtask-seq {
+  min-width: 56px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg));
+  color: color-mix(in srgb, var(--color-accent) 82%, #ffffff);
+  padding: 4px 7px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.subtask-title {
+  min-width: 0;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.subtask-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.subtask-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 28px;
+  max-width: 180px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 74%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-bg) 72%, transparent);
+  color: var(--color-text-secondary);
+  padding: 0 9px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.subtask-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtask-chip:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-bg));
+  color: var(--color-text-primary);
+}
+
+.subtask-chip:active {
+  transform: none;
+}
+
+.subtask-progress-wrap {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 62%, transparent);
+  padding-top: 10px;
+}
+
+.subtask-progress-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  grid-column: 1 / -1;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.subtask-progress-top strong {
+  color: var(--color-text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.subtask-progress-track {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-bg) 78%, var(--color-border));
+}
+
+.subtask-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 58%, #ffffff));
+  transition: width 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.subtask-progress {
+  display: inline-flex;
+  align-items: center;
+  justify-self: end;
+  gap: 4px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-bg) 76%, transparent);
+  color: var(--color-text-secondary);
+  padding: 3px 7px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.subtask-progress input {
+  width: 54px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  outline: none;
+  text-align: right;
+}
+
+.task-progress-editor {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 520px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--progress-color) 32%, var(--color-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--progress-color) 16%, transparent), transparent 52%),
+    color-mix(in srgb, var(--color-bg) 60%, transparent);
+}
+
+.task-progress-readout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  grid-column: 1 / -1;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.task-progress-readout strong {
+  color: var(--progress-color);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.task-progress-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-bg) 78%, var(--color-border));
+}
+
+.task-progress-bar span {
+  display: block;
+  width: var(--progress-width);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--progress-color), color-mix(in srgb, var(--progress-color) 58%, #ffffff));
+  transition: width 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.task-progress-input {
+  width: 64px;
+  min-height: 32px;
+  border: 1px solid color-mix(in srgb, var(--progress-color) 36%, var(--color-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 84%, transparent);
+  color: var(--color-text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
+  padding: 0 8px;
+}
+
+.task-progress-input:disabled {
+  opacity: 1;
+  color: var(--progress-color);
+  cursor: default;
+}
+
+.task-progress-suffix {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.task-progress-hint {
+  grid-column: 1 / -1;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.date-trigger-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.property-trigger.active {
+  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 13%, var(--color-surface-hover));
+  color: var(--color-text-primary);
+}
+
+.task-calendar-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: var(--z-popover);
+  width: 304px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 24%, var(--color-border));
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 96%, var(--color-accent) 4%), var(--color-surface));
+  color: var(--color-text-primary);
+  box-shadow: 0 24px 64px rgba(2, 8, 23, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.calendar-head,
+.calendar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.calendar-head strong {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.calendar-nav,
+.calendar-actions button {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.calendar-nav {
+  width: 32px;
+  height: 32px;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.calendar-weekdays {
+  margin-top: 14px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.calendar-grid {
+  margin-top: 8px;
+}
+
+.calendar-day {
+  width: 34px;
+  height: 34px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.calendar-day:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-accent) 13%, var(--color-surface-hover));
+  border-color: color-mix(in srgb, var(--color-accent) 26%, transparent);
+}
+
+.calendar-day.muted {
+  color: var(--color-text-muted);
+  opacity: 0.55;
+}
+
+.calendar-day.today {
+  border-color: color-mix(in srgb, var(--color-accent) 42%, transparent);
+}
+
+.calendar-day.selected {
+  background: linear-gradient(135deg, #38bdf8, #2563eb);
+  color: #ffffff;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.26);
+}
+
+.calendar-day:disabled {
+  cursor: not-allowed;
+  opacity: 0.28;
+}
+
+.calendar-actions {
+  margin-top: 12px;
+}
+
+.calendar-actions button {
+  padding: 7px 10px;
+  font-size: 12px;
+}
+
+:global(.el-picker__popper),
+:global(.el-select__popper) {
+  border-color: color-mix(in srgb, var(--color-accent) 22%, var(--color-border)) !important;
+  border-radius: 14px !important;
+  overflow: hidden;
+  background: var(--color-surface) !important;
+  box-shadow: 0 22px 56px rgba(2, 8, 23, 0.28) !important;
+}
+
+:global(.el-date-picker),
+:global(.el-picker-panel),
+:global(.el-select-dropdown) {
+  background: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
+}
+
+:global(.el-date-table td.current:not(.disabled) .el-date-table-cell__text) {
+  background: linear-gradient(135deg, #38bdf8, #2563eb) !important;
+}
+
+.subtask-progress input:disabled {
+  opacity: 0.68;
+  cursor: not-allowed;
+}
+
+@media (min-width: 720px) {
+  .subtask-main {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .subtask-controls {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 560px) {
+  .subtask-section-head,
+  .subtask-progress-wrap {
+    grid-template-columns: 1fr;
+  }
+
+  .subtask-section-head {
+    align-items: stretch;
+  }
+
+  .subtask-toggle-btn,
+  .subtask-progress {
+    justify-self: stretch;
+  }
+}
+
 .t-btn-number {
   gap: 6px;
 }
@@ -4451,8 +5442,8 @@ watch(() => props.selectedTask, (newTask) => {
 
 .editor-wrap {
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-bg-secondary);
+  border-radius: 10px;
+  background: var(--color-surface);
   overflow: hidden;
 }
 
@@ -4469,7 +5460,13 @@ watch(() => props.selectedTask, (newTask) => {
 .comment-editor {
   min-height: 76px;
   padding: 12px 14px !important;
-  background: rgba(15, 23, 42, 0.22);
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.comment-editor:focus {
+  box-shadow: inset 0 0 0 1px var(--color-accent);
 }
 
 .c-toolbar {
@@ -4477,7 +5474,7 @@ watch(() => props.selectedTask, (newTask) => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: var(--color-bg-secondary);
+  background: color-mix(in srgb, var(--color-surface) 86%, var(--color-bg) 14%);
   border-top: 1px solid var(--color-border);
 }
 
@@ -4501,12 +5498,14 @@ watch(() => props.selectedTask, (newTask) => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 7px;
+  color: var(--color-text-secondary);
   transition: all 0.2s;
 }
 
 .icon-hover:hover {
-  background: var(--color-bg);
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
 }
 
 .icon-hover.is-active {
@@ -4552,12 +5551,27 @@ watch(() => props.selectedTask, (newTask) => {
 }
 
 :global(.plane-popover) {
+  z-index: var(--z-popover) !important;
+  background: var(--color-surface-elevated) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 10px !important;
+  box-shadow: var(--shadow-popover) !important;
+  color: var(--color-text-primary) !important;
+  padding: 8px !important;
 }
 
 .t-btn-date:deep(.el-input__wrapper) {
-  background-color: transparent !important;
+  min-height: 34px !important;
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 999px !important;
   box-shadow: none !important;
-  padding: 0 !important;
+  padding: 0 10px !important;
+}
+
+.t-btn-date:deep(.el-input__wrapper:hover) {
+  background-color: var(--color-surface-hover) !important;
+  border-color: var(--color-border-hover) !important;
 }
 
 .t-btn-date:deep(.el-input__inner) {

@@ -546,4 +546,122 @@ function handleColumnClick(column) {
   opacity: 0.9;
   transform: scale(1.05) rotate(2deg);
 }
+
+/* Compact density */
+.kanban-shell {
+  gap: 10px !important;
+}
+
+.board-toolbar {
+  gap: 8px !important;
+}
+
+.toolbar-btn {
+  min-height: 30px !important;
+  padding: 6px 10px !important;
+  border-radius: 8px !important;
+  font-size: 12.5px !important;
+}
+
+.kanban-board {
+  gap: 14px !important;
+  height: calc(100vh - 178px) !important;
+  padding: 0 0 10px !important;
+}
+
+.kanban-column {
+  flex-basis: 284px !important;
+  min-width: 284px !important;
+  border-radius: 10px !important;
+}
+
+.column-header {
+  min-height: 48px !important;
+  padding: 10px 12px !important;
+}
+
+.column-header-left {
+  gap: 8px !important;
+}
+
+.column-title {
+  font-size: 12.5px !important;
+}
+
+.column-count {
+  padding: 1px 7px !important;
+  border-radius: 999px !important;
+}
+
+.column-add-btn {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 7px !important;
+}
+
+.quick-create {
+  padding: 8px !important;
+}
+
+.quick-create-input {
+  min-height: 30px !important;
+  padding: 6px 8px !important;
+  border-radius: 7px !important;
+  font-size: 12px !important;
+}
+
+.quick-create-btn {
+  border-radius: 7px !important;
+  font-size: 12px !important;
+}
+
+.column-body {
+  gap: 10px !important;
+  padding: 10px !important;
+}
+
+.kanban-card {
+  border-radius: 8px !important;
+  padding: 12px !important;
+}
+
+.card-top {
+  margin-bottom: 8px !important;
+}
+
+.card-title {
+  margin-bottom: 10px !important;
+  font-size: 13px !important;
+  line-height: 1.3 !important;
+  overflow-wrap: anywhere !important;
+}
+
+.card-meta-left {
+  gap: 8px !important;
+  font-size: 11px !important;
+}
+
+.task-progress-ring,
+.card-avatar {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.column-empty {
+  padding: 22px 12px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+}
+
+@media (max-width: 720px) {
+  .kanban-board {
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  .kanban-column {
+    flex-basis: min(82vw, 284px) !important;
+    min-width: min(82vw, 284px) !important;
+  }
+}
 </style>

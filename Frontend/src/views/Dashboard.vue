@@ -558,6 +558,107 @@ watch(language, updateTime)
     align-items: flex-start;
   }
 }
+
+/* SprintA dashboard polish */
+@keyframes dashboard-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dashboard-ambient {
+  0% { transform: translate3d(-1%, -1%, 0) scale(1); opacity: 0.62; }
+  50% { transform: translate3d(1.5%, 1%, 0) scale(1.02); opacity: 0.88; }
+  100% { transform: translate3d(0.5%, -0.5%, 0) scale(1.01); opacity: 0.70; }
+}
+
+.plane-dashboard {
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--color-accent) 14%, transparent), transparent 30%),
+    radial-gradient(circle at 82% 8%, color-mix(in srgb, var(--color-success) 10%, transparent), transparent 26%),
+    var(--color-bg) !important;
+}
+
+.nexus-feature-header,
+.hero-panel,
+.search-panel,
+.projects-panel {
+  animation: dashboard-rise-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.hero-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px !important;
+  border-color: color-mix(in srgb, var(--color-accent) 22%, var(--color-border)) !important;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-surface) 92%, transparent), color-mix(in srgb, var(--color-surface-hover) 72%, transparent)),
+    var(--color-surface) !important;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.10) !important;
+}
+
+.hero-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 14% 28%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 24%),
+    radial-gradient(circle at 78% 18%, color-mix(in srgb, var(--color-success) 12%, transparent), transparent 22%);
+  pointer-events: none;
+  animation: dashboard-ambient 8s ease-in-out infinite alternate;
+}
+
+.hero-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.stat-box,
+.project-card,
+.search-shell,
+.empty-state {
+  border-radius: 8px !important;
+  border-color: color-mix(in srgb, var(--color-border) 82%, transparent) !important;
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent) !important;
+}
+
+.project-card {
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+}
+
+.project-card:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border)) !important;
+  box-shadow: 0 24px 58px rgba(15, 23, 42, 0.12) !important;
+}
+
+[data-theme='light'] .hero-copy h2,
+[data-theme='light'] .section-head h2,
+[data-theme='light'] .project-heading h3,
+[data-theme='light'] .stat-box strong {
+  color: #0f172a !important;
+}
+
+[data-theme='dark'] .hero-copy h2,
+[data-theme='dark'] .section-head h2,
+[data-theme='dark'] .project-heading h3,
+[data-theme='dark'] .stat-box strong {
+  color: #f8fafc !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexus-feature-header,
+  .hero-panel,
+  .hero-panel::before,
+  .search-panel,
+  .projects-panel {
+    animation: none !important;
+  }
+}
 </style>
 
 

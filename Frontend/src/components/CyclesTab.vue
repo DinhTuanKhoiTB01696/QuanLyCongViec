@@ -5,6 +5,7 @@ import { useSprintStore } from '@/store/useSprintStore'
 import { useI18n } from '@/composables/useI18n'
 import axiosClient from '@/api/axiosClient'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
+import { currentTheme } from '@/utils/theme'
 
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
@@ -23,7 +24,8 @@ const route = useRoute()
 const sprintStore = useSprintStore()
 const { t } = useI18n()
 
-provide(THEME_KEY, 'dark')
+const chartTheme = computed(() => currentTheme.value === 'dark' ? 'dark' : 'light')
+provide(THEME_KEY, chartTheme)
 
 const showCreateModal = ref(false)
 const burndownCharts = ref({})
@@ -311,19 +313,38 @@ const moveCarryOverTasks = async (cycleId, targetSprintId = null) => {
   }
 }
 
+const getBurndownPalette = () => {
+  const dark = currentTheme.value === 'dark'
+  return {
+    text: dark ? '#cbd5e1' : '#475569',
+    grid: dark ? 'rgba(203, 213, 225, 0.10)' : 'rgba(71, 85, 105, 0.16)',
+    current: dark ? '#60a5fa' : '#2563eb',
+    currentArea: dark ? 'rgba(96, 165, 250, 0.18)' : 'rgba(37, 99, 235, 0.12)',
+    ideal: dark ? '#f8fafc' : '#0f172a',
+    tooltipBg: dark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255, 255, 255, 0.98)',
+    tooltipBorder: dark ? 'rgba(148, 163, 184, 0.24)' : 'rgba(148, 163, 184, 0.36)'
+  }
+}
+
 const fetchBurndowns = async () => {
   const chartEntries = {}
+  const palette = getBurndownPalette()
   await Promise.all(activeSprints.value.map(async (sprint) => {
     try {
       const res = await axiosClient.get(`/projects/${props.projectId}/sprints/${sprint.id}/burndown`)
       const burndown = res.data?.data || []
       chartEntries[sprint.id] = {
         backgroundColor: 'transparent',
-        tooltip: { trigger: 'axis' },
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: palette.tooltipBg,
+          borderColor: palette.tooltipBorder,
+          textStyle: { color: palette.ideal }
+        },
         legend: {
           data: [t('cyclesTab.currentWorkItems', 'Current work items'), t('cyclesTab.idealWorkItems', 'Ideal work items')],
           bottom: 0,
-          textStyle: { color: 'var(--color-text-muted)', fontSize: 10 }
+          textStyle: { color: palette.text, fontSize: 10, fontWeight: 700 }
         },
         grid: { top: 10, left: 30, right: 10, bottom: 40 },
         xAxis: {
@@ -331,21 +352,21 @@ const fetchBurndowns = async () => {
           data: burndown.map(item => item.date),
           axisLine: { show: false },
           axisTick: { show: false },
-          axisLabel: { color: 'var(--color-text-muted)', fontSize: 9 }
+          axisLabel: { color: palette.text, fontSize: 9, fontWeight: 700 }
         },
         yAxis: {
           type: 'value',
-          splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } },
-          axisLabel: { color: 'var(--color-text-muted)', fontSize: 10 }
+          splitLine: { lineStyle: { color: palette.grid } },
+          axisLabel: { color: palette.text, fontSize: 10, fontWeight: 700 }
         },
         series: [
           {
             name: t('cyclesTab.currentWorkItems', 'Current work items'),
             type: 'line',
             data: burndown.map(item => item.actualRemaining ?? item.remainingPoints ?? 0),
-            itemStyle: { color: '#3B82F6' },
+            itemStyle: { color: palette.current },
             lineStyle: { width: 2 },
-            areaStyle: { color: 'rgba(59,130,246,0.15)' },
+            areaStyle: { color: palette.currentArea },
             symbol: 'circle',
             symbolSize: 7,
             step: 'end',
@@ -355,8 +376,8 @@ const fetchBurndowns = async () => {
             name: t('cyclesTab.idealWorkItems', 'Ideal work items'),
             type: 'line',
             data: burndown.map(item => item.idealRemaining ?? item.idealPoints ?? 0),
-            itemStyle: { color: 'var(--color-text-muted)' },
-            lineStyle: { type: 'dashed', width: 2 },
+            itemStyle: { color: palette.ideal },
+            lineStyle: { type: 'dashed', width: 2, color: palette.ideal },
             symbol: 'circle',
             symbolSize: 7,
             smooth: false
@@ -527,6 +548,10 @@ watch(
   { immediate: true }
 )
 
+watch(currentTheme, () => {
+  fetchBurndowns()
+})
+
 let cycleRefreshTimer = null
 let unsubscribeAdminRealtime = null
 onMounted(() => {
@@ -659,7 +684,7 @@ onUnmounted(() => {
                   <span class="sub text-right">{{ percentLabel(cycle) }}</span>
                 </div>
                 <div class="chart-mockup" style="height: 140px;">
-                  <v-chart v-if="burndownCharts[cycle.id]" :option="burndownCharts[cycle.id]" autoresize />
+                  <v-chart v-if="burndownCharts[cycle.id]" :option="burndownCharts[cycle.id]" :theme="chartTheme" autoresize />
                   <div v-else class="text-muted text-xs text-center pt-8">{{ t('cyclesTab.noBurndownData', 'No burndown data yet.') }}</div>
                 </div>
               </div>
@@ -918,8 +943,31 @@ onUnmounted(() => {
   height: 100%;
   color: var(--color-text-primary);
   font-family: inherit;
-  background: var(--color-bg);
+  background:
+    radial-gradient(circle at 16% 0%, rgba(14, 165, 233, 0.10), transparent 30%),
+    linear-gradient(180deg, #f8fbff, #eef5fb 52%, #f8fafc);
   min-height: calc(100vh - 100px);
+}
+
+.nexus-project-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1280px;
+  width: calc(100% - 48px);
+  margin: 20px auto 0;
+  padding: 16px 18px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.065);
+}
+
+.view-name {
+  font-weight: 900;
+  font-size: 15px;
+  color: var(--color-text-primary);
 }
 
 .text-muted { color: var(--color-text-muted); }
@@ -935,25 +983,31 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--color-border);
+  max-width: 1280px;
+  width: calc(100% - 48px);
+  margin: 24px auto 0;
+  padding: 18px 20px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.065);
 }
 
 .vh-right { display: flex; align-items: center; gap: 12px; }
 .icon-action { background: transparent; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 14px; border-radius: 6px; padding: 6px 8px; }
 .icon-action:hover { color: var(--color-text-primary); }
 .icon-action.active { color: var(--color-text-primary); background: var(--color-border); }
-.filter-action { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.filter-action { background: rgba(255,255,255,0.78); border: 1px solid rgba(148, 163, 184, 0.24); color: var(--color-text-primary); padding: 8px 12px; border-radius: 12px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 800; }
 .filter-action:hover { background: var(--color-border); }
 .filter-action.active { background: var(--color-border); border-color: #3F3F46; }
 .cycle-search-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 220px;
+  width: 260px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 5px 10px;
+  border-radius: 12px;
+  padding: 7px 12px;
   background: var(--color-surface);
 }
 .cycle-search-wrapper i { color: var(--color-text-muted); font-size: 12px; }
@@ -972,19 +1026,19 @@ onUnmounted(() => {
   top: calc(100% + 8px);
   right: 0;
   width: 220px;
-  background: #1B1C20;
-  border: 1px solid #2D2F36;
-  border-radius: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
   padding: 12px;
   z-index: 20;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.16);
 }
 .filter-title { color: var(--color-text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; }
 .filter-option {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #D4D4D8;
+  color: var(--color-text-primary);
   font-size: 13px;
   padding: 6px 0;
   cursor: pointer;
@@ -993,40 +1047,42 @@ onUnmounted(() => {
   width: 100%;
   margin-top: 8px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: 10px;
   background: var(--color-surface);
-  color: #D4D4D8;
+  color: var(--color-text-primary);
   padding: 7px;
   cursor: pointer;
 }
 .clear-filter-btn:hover { background: var(--color-border); }
-.primary-action { background: #0EA5E9; color: white; border: none; border-radius: 6px; padding: 6px 16px; font-size: 13px; cursor: pointer; font-weight: 500; }
+.primary-action { background: linear-gradient(135deg, #38bdf8, #2563eb); color: white; border: none; border-radius: 12px; padding: 8px 16px; font-size: 13px; cursor: pointer; font-weight: 900; box-shadow: 0 14px 30px rgba(37, 99, 235, 0.22); }
 .primary-action:hover { background: #0284C7; }
 
-.cycles-body { padding: 24px; flex: 1; }
+.cycles-body { width: 100%; max-width: 1280px; margin: 0 auto; padding: 22px 24px 32px; flex: 1; overflow: auto; }
 .cycle-section { margin-bottom: 24px; }
-.cs-header { display: flex; align-items: center; gap: 12px; padding: 8px 0; cursor: pointer; user-select: none; }
+.cs-header { display: flex; align-items: center; gap: 12px; padding: 10px 0; cursor: pointer; user-select: none; }
 .chevron { font-size: 12px; color: var(--color-text-muted); width: 16px; text-align: center; }
-.cs-title { font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
-.cs-count { font-size: 12px; color: var(--color-text-muted); background: var(--color-border); padding: 2px 8px; border-radius: 12px; }
-.cs-content { padding-left: 28px; margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+.cs-title { font-size: 14px; font-weight: 900; color: var(--color-text-primary); }
+.cs-count { font-size: 12px; color: var(--color-text-primary); background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface-hover)); padding: 2px 8px; border-radius: 999px; font-weight: 900; }
+.cs-content { padding-left: 28px; margin-top: 10px; display: flex; flex-direction: column; gap: 12px; }
 
 .cycle-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
   overflow: hidden;
-  transition: border-color 0.2s, background 0.2s;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.065);
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
 }
 
-.cycle-card.hover-card:hover { border-color: var(--accent-color); background: var(--hover-bg); }
-.cycle-card.collapsed { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; }
-.cc-top { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--color-border); }
-.cct-left, .cct-right { display: flex; align-items: center; gap: 12px; }
-.progress-ring { width: 34px; height: 34px; border-radius: 50%; border: 3px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; }
-.cycle-name { font-size: 15px; font-weight: 500; color: var(--color-text-primary); }
-.detail-link { font-size: 13px; color: #3B82F6; display: flex; align-items: center; gap: 6px; }
-.date-range { font-size: 12px; color: var(--color-text-muted); display: flex; align-items: center; gap: 6px; background: var(--color-border); padding: 4px 10px; border-radius: 6px; }
+.cycle-card.hover-card:hover { border-color: rgba(14, 165, 233, 0.34); background: rgba(255, 255, 255, 0.96); box-shadow: 0 18px 42px rgba(15, 23, 42, 0.09); }
+.cycle-card.collapsed { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 16px; }
+.cc-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; border-bottom: 1px solid var(--color-border); }
+.cct-left, .cct-right { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.cct-right { flex-wrap: wrap; justify-content: flex-end; }
+.progress-ring { width: 38px; height: 38px; border-radius: 50%; border: 3px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; flex: 0 0 auto; background: color-mix(in srgb, currentColor 10%, transparent); }
+.cycle-name { font-size: 15px; font-weight: 900; color: var(--color-text-primary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.detail-link { font-size: 12px; color: var(--color-accent); display: flex; align-items: center; gap: 6px; font-weight: 900; white-space: nowrap; }
+.date-range { font-size: 12px; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px; background: var(--color-surface-hover); padding: 5px 10px; border-radius: 999px; border: 1px solid var(--color-border); font-weight: 800; white-space: nowrap; }
 .icon-btn { background: transparent; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 14px; transition: color 0.2s; }
 .icon-btn:hover { color: var(--color-text-primary); }
 .completed-badge { font-size: 12px; color: #10B981; font-weight: 500; }
@@ -1081,10 +1137,10 @@ onUnmounted(() => {
   padding: 4px 0;
 }
 .carry-over-row {
-  border: 1px solid #27272A;
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
   padding: 10px 12px;
-  background: #16181D;
+  background: var(--color-surface);
 }
 .carry-over-check {
   display: inline-flex;
@@ -1103,42 +1159,42 @@ onUnmounted(() => {
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
-  color: #A1A1AA;
+  color: var(--color-text-muted);
   font-size: 11px;
 }
 .carry-over-meta span {
-  background: #27272A;
+  background: var(--color-surface-hover);
   border-radius: 999px;
   padding: 4px 8px;
 }
 
-.cc-grid { display: grid; grid-template-columns: 1fr 2fr 1.5fr; }
-.grid-panel { padding: 20px; border-right: 1px solid var(--color-border); }
+.cc-grid { display: grid; grid-template-columns: minmax(220px, 0.9fr) minmax(320px, 1.65fr) minmax(280px, 1.1fr); }
+.grid-panel { padding: 18px; border-right: 1px solid var(--color-border); min-width: 0; }
 .grid-panel:last-child { border-right: none; }
-.gp-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 500; margin-bottom: 24px; }
-.gp-header .sub { color: var(--color-text-muted); font-weight: 400; }
+.gp-header { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 900; margin-bottom: 18px; color: var(--color-text-primary); }
+.gp-header .sub { color: var(--color-text-muted); font-weight: 800; }
 
-.progress-bar-container { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--color-border); margin-bottom: 20px; }
+.progress-bar-container { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--color-border); margin-bottom: 18px; }
 .pb-segment { height: 100%; }
 .legend-list { display: flex; flex-direction: column; gap: 12px; }
-.legend-item { display: flex; align-items: center; font-size: 12px; color: var(--color-text-muted); }
+.legend-item { display: flex; align-items: center; font-size: 12px; color: var(--color-text-secondary); font-weight: 800; }
 .legend-item .dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 10px; }
 .legend-item .val { margin-left: auto; color: var(--color-text-primary); }
 
-.tabs-header { display: flex; border-bottom: 1px solid var(--color-border); margin-bottom: 16px; }
-.tab-h { padding: 0 12px 8px 12px; font-size: 12px; color: var(--color-text-muted); border: none; border-bottom: 2px solid transparent; background: transparent; cursor: pointer; }
-.tab-h.active { color: var(--color-text-primary); border-bottom-color: #38BDF8; font-weight: 500; }
-.tab-row { display: flex; justify-content: space-between; font-size: 12px; padding: 8px 12px; border-radius: 4px; }
+.tabs-header { display: flex; border-bottom: 1px solid var(--color-border); margin-bottom: 14px; gap: 8px; overflow-x: auto; }
+.tab-h { padding: 0 8px 8px; font-size: 12px; color: var(--color-text-muted); border: none; border-bottom: 2px solid transparent; background: transparent; cursor: pointer; font-weight: 800; white-space: nowrap; }
+.tab-h.active { color: var(--color-text-primary); border-bottom-color: #38BDF8; font-weight: 900; }
+.tab-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; padding: 9px 10px; border-radius: 10px; background: color-mix(in srgb, var(--color-surface-hover) 62%, transparent); }
 .tr-user { display: flex; align-items: center; gap: 8px; color: var(--color-text-primary); }
-.avatar-icon { background: var(--color-border); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+.avatar-icon { background: color-mix(in srgb, var(--color-accent) 12%, var(--color-border)); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: var(--color-accent); }
 .work-items-body { display: flex; flex-direction: column; gap: 8px; max-height: 150px; overflow-y: auto; padding-right: 4px; }
 .tab-empty { font-size: 12px; padding: 8px 12px; }
-.cycle-work-item { display: flex; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-surface); }
+.cycle-work-item { display: flex; justify-content: space-between; gap: 12px; padding: 9px 10px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); }
 .work-item-main { min-width: 0; display: flex; align-items: center; gap: 8px; }
 .work-item-id { color: var(--color-text-muted); font-size: 11px; flex-shrink: 0; }
 .work-item-title { color: var(--color-text-primary); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .work-item-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; color: var(--color-text-muted); font-size: 11px; }
-.work-item-meta span { background: var(--color-border); border-radius: 4px; padding: 2px 6px; }
+.work-item-meta span { background: var(--color-surface-hover); border-radius: 999px; padding: 3px 7px; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .modal-overlay {
   position: fixed;
@@ -1156,6 +1212,67 @@ onUnmounted(() => {
   border: 1px solid var(--color-border);
   border-radius: 12px;
   box-shadow: var(--shadow-xl);
+}
+
+[data-theme='dark'] .plane-cycles-wrapper {
+  background:
+    radial-gradient(circle at 14% 0%, rgba(14, 165, 233, 0.11), transparent 30%),
+    linear-gradient(180deg, #07111f, #0f172a 52%, #101827);
+}
+
+[data-theme='dark'] .cycles-view-header,
+[data-theme='dark'] .nexus-project-header,
+[data-theme='dark'] .cycle-card {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.78);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+}
+
+@media (max-width: 1180px) {
+  .cc-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-panel {
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .grid-panel:last-child {
+    border-bottom: none;
+  }
+}
+
+@media (max-width: 780px) {
+  .nexus-project-header,
+  .cycle-card.collapsed,
+  .cc-top {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .nexus-controls-row,
+  .cct-right {
+    justify-content: flex-start !important;
+  }
+
+  .cycles-body {
+    padding: 18px 16px 30px;
+  }
+
+  .cs-content {
+    padding-left: 0;
+  }
+}
+
+[data-theme='dark'] .filter-action {
+  background: rgba(15, 23, 42, 0.82);
+  border-color: rgba(148, 163, 184, 0.22);
+  color: #e2e8f0;
+}
+
+[data-theme='dark'] .cycle-card.hover-card:hover {
+  background: rgba(30, 41, 59, 0.90);
 }
 
 .cm-header { padding: 24px 24px 16px; }
@@ -1192,6 +1309,415 @@ onUnmounted(() => {
 .dp-day-num:hover:not(.headday):not(.disabled) { background: var(--color-surface-hover); color: var(--color-text-primary); }
 .dp-day-num.selected { background: var(--color-accent) !important; color: white !important; }
 .dp-day-num.disabled { color: var(--color-text-disabled); cursor: not-allowed; opacity: 0.5; }
+
+/* Compact density */
+.cycles-tab {
+  min-height: calc(100vh - var(--sa-topbar-height, 52px)) !important;
+}
+
+.nexus-project-header {
+  padding: 12px 16px !important;
+  border-radius: 10px !important;
+}
+
+.cycle-page-title {
+  font-size: 16px !important;
+}
+
+.icon-action,
+.filter-action,
+.primary-action,
+.cycle-search-wrapper,
+.cycle-filter-chip {
+  min-height: 32px !important;
+  border-radius: 8px !important;
+  padding: 6px 10px !important;
+  font-size: 12.5px !important;
+}
+
+.cycles-body {
+  max-width: 1160px !important;
+  padding: 16px var(--sa-page-x, 24px) 26px !important;
+}
+
+.cs-header {
+  padding: 8px 0 !important;
+}
+
+.cs-content {
+  gap: 10px !important;
+  padding-left: 22px !important;
+}
+
+.cycle-card {
+  border-radius: 10px !important;
+}
+
+.cycle-card.collapsed {
+  padding: 12px 14px !important;
+}
+
+.cc-top {
+  padding: 12px 14px !important;
+  gap: 12px !important;
+}
+
+.progress-ring {
+  width: 34px !important;
+  height: 34px !important;
+}
+
+.cycle-name {
+  font-size: 14px !important;
+}
+
+.date-range {
+  padding: 4px 8px !important;
+  font-size: 11.5px !important;
+}
+
+.cc-grid {
+  grid-template-columns: 0.8fr 1.55fr 1fr !important;
+}
+
+.grid-panel {
+  padding: 14px !important;
+}
+
+.gp-header {
+  margin-bottom: 12px !important;
+}
+
+.progress-bar-container {
+  height: 8px !important;
+  margin-bottom: 12px !important;
+}
+
+.cm-header {
+  padding: 16px 18px 12px !important;
+}
+
+.cm-title {
+  font-size: 17px !important;
+}
+
+.cm-body {
+  padding: 0 18px 18px !important;
+}
+
+@media (max-width: 780px) {
+  .cycles-body {
+    padding: 12px !important;
+  }
+
+  .cs-content {
+    padding-left: 0 !important;
+  }
+
+  .cc-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Polished cycles experience */
+.plane-cycles-wrapper {
+  background:
+    radial-gradient(circle at 14% 0%, color-mix(in srgb, var(--color-accent) 11%, transparent), transparent 34%),
+    var(--color-bg) !important;
+}
+
+.cycles-view-header,
+.nexus-project-header {
+  border-radius: 10px !important;
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+.cycle-card {
+  border-radius: 10px !important;
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+.cycle-card.expanded {
+  border-left: 3px solid #f59e0b;
+}
+
+.cycle-card.collapsed {
+  border-left: 3px solid color-mix(in srgb, var(--color-accent) 72%, #f59e0b);
+}
+
+.cycle-card.expanded {
+  position: relative;
+}
+
+.cycle-card.expanded::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, #f59e0b, #38bdf8, #22c55e);
+}
+
+.cc-top {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, #f59e0b 12%, transparent), transparent 64%),
+    color-mix(in srgb, var(--color-surface-hover) 48%, transparent);
+}
+
+.grid-panel {
+  background: color-mix(in srgb, var(--color-surface) 74%, transparent);
+}
+
+.grid-panel + .grid-panel {
+  border-left-color: color-mix(in srgb, var(--color-border) 80%, transparent) !important;
+}
+
+.gp-header,
+.cycle-name,
+.tab-row,
+.cycle-work-item {
+  color: var(--color-text-primary) !important;
+}
+
+.legend-item,
+.detail-link,
+.date-range,
+.work-item-id,
+.work-item-meta {
+  color: var(--color-text-secondary) !important;
+}
+
+.date-range,
+.tab-row,
+.cycle-work-item,
+.carry-over-row {
+  border-radius: 8px !important;
+  background: color-mix(in srgb, var(--color-surface-hover) 58%, transparent) !important;
+}
+
+.chart-mockup {
+  min-height: 150px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+  background:
+    linear-gradient(color-mix(in srgb, var(--color-text-muted) 10%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--color-text-muted) 10%, transparent) 1px, transparent 1px),
+    radial-gradient(circle at 48% 54%, color-mix(in srgb, #3b82f6 12%, transparent), transparent 40%),
+    color-mix(in srgb, var(--color-bg) 38%, transparent);
+  background-size: 100% 26px, 64px 100%, auto, auto;
+}
+
+.cs-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cs-count {
+  min-width: 22px;
+  text-align: center;
+}
+
+.empty-state.text-muted {
+  width: fit-content;
+  max-width: 100%;
+  margin: 8px 0 2px;
+  padding: 12px 14px;
+  border: 1px dashed color-mix(in srgb, var(--color-border) 86%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface-hover) 42%, transparent);
+  color: var(--color-text-secondary) !important;
+  font-weight: 650;
+}
+
+.progress-ring {
+  box-shadow:
+    inset 0 0 0 4px color-mix(in srgb, currentColor 12%, transparent),
+    0 8px 18px color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.legend-item .dot {
+  box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.tab-row,
+.cycle-work-item {
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent) !important;
+}
+
+.tab-row:hover,
+.cycle-work-item:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 32%, var(--color-border)) !important;
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface)) !important;
+}
+
+.cycle-card,
+.cycles-view-header,
+.nexus-project-header,
+.tab-row,
+.cycle-work-item,
+.date-range,
+.empty-state.text-muted {
+  transition:
+    background 220ms ease,
+    color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+
+[data-theme='dark'] .plane-cycles-wrapper,
+[data-theme='dark'] .cycles-tab {
+  color: #e5edf7 !important;
+}
+
+[data-theme='dark'] .cycles-view-header,
+[data-theme='dark'] .nexus-project-header,
+[data-theme='dark'] .cycle-card {
+  background:
+    linear-gradient(135deg, rgba(30, 41, 59, 0.90), rgba(15, 23, 42, 0.86)),
+    #111827 !important;
+  border-color: rgba(125, 211, 252, 0.20) !important;
+}
+
+[data-theme='dark'] .cc-top {
+  background:
+    linear-gradient(90deg, rgba(245, 158, 11, 0.18), rgba(56, 189, 248, 0.06) 56%, transparent),
+    rgba(30, 41, 59, 0.62) !important;
+}
+
+[data-theme='dark'] .cycle-page-title,
+[data-theme='dark'] .cs-title,
+[data-theme='dark'] .cycle-name,
+[data-theme='dark'] .gp-header,
+[data-theme='dark'] .gp-header .title,
+[data-theme='dark'] .legend-item .val,
+[data-theme='dark'] .tab-row,
+[data-theme='dark'] .cycle-work-item,
+[data-theme='dark'] .cycle-work-item .work-item-title,
+[data-theme='dark'] .cycle-status-row,
+[data-theme='dark'] .cycle-status-row strong,
+[data-theme='dark'] .progress-ring {
+  color: #f8fafc !important;
+}
+
+[data-theme='dark'] .gp-header .sub,
+[data-theme='dark'] .legend-item,
+[data-theme='dark'] .detail-link,
+[data-theme='dark'] .date-range,
+[data-theme='dark'] .work-item-id,
+[data-theme='dark'] .work-item-meta,
+[data-theme='dark'] .empty-state.text-muted,
+[data-theme='dark'] .tab-label {
+  color: #cbd5e1 !important;
+}
+
+[data-theme='dark'] .date-range,
+[data-theme='dark'] .tab-row,
+[data-theme='dark'] .cycle-work-item,
+[data-theme='dark'] .empty-state.text-muted {
+  background: rgba(30, 41, 59, 0.72) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+[data-theme='dark'] .chart-mockup {
+  background:
+    linear-gradient(rgba(203, 213, 225, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(203, 213, 225, 0.08) 1px, transparent 1px),
+    radial-gradient(circle at 48% 54%, rgba(59, 130, 246, 0.16), transparent 40%),
+    rgba(15, 23, 42, 0.64) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+[data-theme='light'] .plane-cycles-wrapper,
+[data-theme='light'] .cycles-tab {
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .cycle-page-title,
+[data-theme='light'] .cs-title,
+[data-theme='light'] .cycle-name,
+[data-theme='light'] .gp-header,
+[data-theme='light'] .legend-item .val,
+[data-theme='light'] .tab-row,
+[data-theme='light'] .cycle-work-item,
+[data-theme='light'] .cycle-work-item .work-item-title {
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .legend-item,
+[data-theme='light'] .detail-link,
+[data-theme='light'] .date-range,
+[data-theme='light'] .work-item-id,
+[data-theme='light'] .work-item-meta,
+[data-theme='light'] .empty-state.text-muted {
+  color: #475569 !important;
+}
+
+[data-theme='light'] .cycle-card,
+[data-theme='light'] .nexus-project-header,
+[data-theme='light'] .grid-panel,
+[data-theme='light'] .create-cycle-modal,
+[data-theme='light'] .cycle-filter-menu {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.88)),
+    #ffffff !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+
+[data-theme='light'] .cc-top {
+  background:
+    linear-gradient(90deg, rgba(245, 158, 11, 0.13), rgba(56, 189, 248, 0.07) 58%, transparent),
+    #f8fafc !important;
+}
+
+[data-theme='light'] .progress-ring {
+  color: #b45309 !important;
+  background: rgba(245, 158, 11, 0.10) !important;
+  text-shadow: none !important;
+}
+
+[data-theme='light'] .panel-progress .legend-item,
+[data-theme='light'] .gp-header .sub,
+[data-theme='light'] .tr-stat,
+[data-theme='light'] .tab-empty,
+[data-theme='light'] .filter-title,
+[data-theme='light'] .filter-option,
+[data-theme='light'] .clear-filter-btn {
+  color: #334155 !important;
+}
+
+[data-theme='light'] .legend-item .val,
+[data-theme='light'] .tab-h.active,
+[data-theme='light'] .tr-user,
+[data-theme='light'] .work-item-title,
+[data-theme='light'] .carry-over-main,
+[data-theme='light'] .carry-over-check {
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .chart-mockup {
+  background:
+    linear-gradient(rgba(71, 85, 105, 0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(71, 85, 105, 0.09) 1px, transparent 1px),
+    radial-gradient(circle at 48% 54%, rgba(37, 99, 235, 0.10), transparent 40%),
+    #f8fafc !important;
+  border-color: rgba(148, 163, 184, 0.28) !important;
+}
+
+[data-theme='dark'] .progress-ring {
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.24);
+}
+
+@media (max-width: 780px) {
+  .cycles-view-header,
+  .nexus-project-header {
+    width: calc(100% - 24px) !important;
+    margin-left: 12px !important;
+    margin-right: 12px !important;
+  }
+}
 </style>
 
 

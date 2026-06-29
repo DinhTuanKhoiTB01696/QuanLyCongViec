@@ -30,18 +30,18 @@ namespace TaskManagement.Infrastructure.Services
             var teamIds = items.Where(i => i.ItemType == "Team").Select(i => i.ItemId).ToList();
             var userIds = items.Where(i => i.ItemType == "User").Select(i => i.ItemId).ToList();
 
-            var goalNames = await _context.Goals
-                .Where(g => goalIds.Contains(g.Id))
-                .ToDictionaryAsync(g => g.Id, g => g.Title);
-            var projectNames = await _context.Projects
-                .Where(p => projectIds.Contains(p.Id))
-                .ToDictionaryAsync(p => p.Id, p => p.Name);
-            var teamNames = await _context.Departments
-                .Where(d => teamIds.Contains(d.Id))
-                .ToDictionaryAsync(d => d.Id, d => d.Name);
-            var userNames = await _context.Users
-                .Where(u => userIds.Contains(u.Id))
-                .ToDictionaryAsync(u => u.Id, u => u.FullName ?? u.Email);
+            var goalNames = goalIds.Count == 0
+                ? new Dictionary<Guid, string>()
+                : await _context.Goals.Where(g => goalIds.Contains(g.Id)).ToDictionaryAsync(g => g.Id, g => g.Title);
+            var projectNames = projectIds.Count == 0
+                ? new Dictionary<Guid, string>()
+                : await _context.Projects.Where(p => projectIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, p => p.Name);
+            var teamNames = teamIds.Count == 0
+                ? new Dictionary<Guid, string>()
+                : await _context.Departments.Where(d => teamIds.Contains(d.Id)).ToDictionaryAsync(d => d.Id, d => d.Name);
+            var userNames = userIds.Count == 0
+                ? new Dictionary<Guid, string>()
+                : await _context.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName ?? u.Email);
 
             return items.Select(item => new
             {

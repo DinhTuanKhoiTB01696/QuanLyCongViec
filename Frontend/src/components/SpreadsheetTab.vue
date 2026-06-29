@@ -85,6 +85,15 @@ const getStatusDisplay = (statusName) => {
   return { class: 'fa-regular fa-circle-dashed text-muted', label: 'Backlog' }
 }
 
+const getStatusTone = (statusName) => {
+  const status = `${statusName || ''}`.toUpperCase()
+  if (status.includes('DONE') || status.includes('COMPLETE')) return 'status-done'
+  if (status.includes('PROGRESS')) return 'status-progress'
+  if (status.includes('REVIEW')) return 'status-review'
+  if (status.includes('TO DO') || status.includes('TODO')) return 'status-todo'
+  return 'status-backlog'
+}
+
 const memberId = (member) => member.userId || member.id
 const memberName = (member) => member.fullName || member.name || member.email || 'Unknown'
 
@@ -246,7 +255,7 @@ watch(() => props.projectId, fetchOptions)
       </thead>
 
       <tbody>
-        <tr v-for="(task, index) in pagedTasks" :key="task.id || index">
+        <tr v-for="(task, index) in pagedTasks" :key="task.id || index" :class="getStatusTone(task.statusName)">
           <td class="sticky-work-item">
             <div class="wi-cell" @click="emit('task-click', task)">
               <span class="wi-id">{{ task.sequenceId || `CUN-${index + 1}` }}</span>
@@ -262,7 +271,7 @@ watch(() => props.projectId, fetchOptions)
 
           <td>
             <el-dropdown trigger="click" @command="value => updateField(task, 'statusName', value)">
-              <button class="cell-btn">
+              <button class="cell-btn state-badge" :class="getStatusTone(task.statusName)">
                 <i :class="getStatusDisplay(task.statusName).class"></i>
                 <span>{{ getStatusDisplay(task.statusName).label }}</span>
               </button>
@@ -280,7 +289,7 @@ watch(() => props.projectId, fetchOptions)
 
           <td>
             <el-dropdown trigger="click" @command="value => updateField(task, 'priority', value)">
-              <button class="cell-btn">
+              <button class="cell-btn priority-badge" :class="`priority-${task.priority || 0}`">
                 <i :class="getPrioIcon(task.priority).class"></i>
                 <span>{{ getPrioIcon(task.priority).label }}</span>
               </button>
@@ -350,7 +359,13 @@ watch(() => props.projectId, fetchOptions)
         </tr>
 
         <tr v-if="pagedTasks.length === 0">
-          <td colspan="13" class="empty-cell">No work items found for the current display options.</td>
+          <td colspan="13" class="empty-cell">
+            <div class="empty-state">
+              <div class="empty-icon"><i class="fa-regular fa-folder-open"></i></div>
+              <strong>No work items found</strong>
+              <span>Try changing search, state, or display options.</span>
+            </div>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -372,10 +387,12 @@ watch(() => props.projectId, fetchOptions)
 <style scoped>
 .spreadsheet-container {
   flex: 1;
-  background: var(--color-bg);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--sa-bg, var(--color-bg)) 84%, var(--color-surface) 16%), var(--sa-bg, var(--color-bg)));
   color: var(--color-text-primary);
   overflow: auto;
   border-top: 1px solid var(--color-border);
+  scrollbar-color: color-mix(in srgb, var(--sa-primary, var(--color-accent)) 32%, var(--color-border)) transparent;
 }
 
 .table-toolbar,
@@ -391,12 +408,19 @@ watch(() => props.projectId, fetchOptions)
 .table-footer {
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg);
-  position: sticky;
-  left: 0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 94%, var(--sa-bg, var(--color-bg)) 6%), var(--color-surface));
+  position: relative;
   z-index: 40;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.table-footer {
+  border-top: 1px solid var(--color-border);
+  border-bottom: 0;
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--sa-bg, var(--color-bg)));
 }
 
 .toolbar-left,
@@ -409,19 +433,34 @@ watch(() => props.projectId, fetchOptions)
 .toolbar-select,
 .date-input,
 .plane-search-input {
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--bg-tertiary);
-  color: var(--color-text-primary);
+  border: 1px solid var(--color-border) !important;
+  border-radius: 10px !important;
+  background: var(--color-input-bg) !important;
+  color: var(--color-text-primary) !important;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.toolbar-search:focus,
+.toolbar-select:focus,
+.date-input:focus,
+.plane-search-input:focus {
+  border-color: color-mix(in srgb, var(--sa-primary, var(--color-accent)) 72%, var(--color-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sa-primary, var(--color-accent)) 16%, transparent);
+  outline: none;
 }
 
 .toolbar-search {
-  width: 220px;
-  padding: 7px 10px;
+  width: 280px;
+  min-height: 38px !important;
+  height: 38px !important;
+  padding: 8px 13px !important;
 }
 
 .toolbar-select {
-  padding: 7px 10px;
+  min-width: 124px;
+  min-height: 38px !important;
+  height: 38px !important;
+  padding: 8px 12px !important;
 }
 
 .toolbar-select.small {
@@ -431,16 +470,34 @@ watch(() => props.projectId, fetchOptions)
 .toolbar-btn,
 .page-btn {
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--bg-tertiary);
+  border-radius: 10px;
+  background: var(--color-surface);
   color: var(--text-secondary);
-  padding: 7px 10px;
+  min-height: 38px;
+  padding: 8px 13px;
   cursor: pointer;
+  font-weight: 700;
+  transition: all 0.18s ease;
+}
+
+.toolbar-btn:hover,
+.page-btn:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-hover);
 }
 
 .page-btn:disabled {
-  opacity: 0.45;
+  opacity: 0.5;
   cursor: not-allowed;
+}
+
+.pagination span {
+  min-width: 48px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-text-primary);
 }
 
 .display-options {
@@ -451,21 +508,39 @@ watch(() => props.projectId, fetchOptions)
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  z-index: 50;
-  min-width: 200px;
+  z-index: var(--z-popover);
+  min-width: 230px;
   padding: 10px;
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid var(--color-border);
-  background: var(--bg-tertiary);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  background: var(--color-surface-elevated);
+  box-shadow: var(--sa-shadow-sm, var(--shadow-popover)), 0 18px 50px rgb(15 23 42 / 0.12);
 }
 
 .display-option {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 0;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
   font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.display-option:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.display-option input {
+  width: 15px !important;
+  height: 15px !important;
+  min-height: 15px !important;
+  padding: 0 !important;
+  border-radius: 4px !important;
+  accent-color: var(--color-accent);
 }
 
 .plane-table {
@@ -473,99 +548,234 @@ watch(() => props.projectId, fetchOptions)
   border-collapse: separate;
   border-spacing: 0;
   text-align: left;
-  font-size: 13px;
+  font-size: 13.5px;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
 }
 
 .plane-table th,
 .plane-table td {
   border-bottom: 1px solid var(--color-border);
   border-right: 1px solid var(--color-border);
-  background: var(--color-bg);
-}
-
-.plane-table th {
-  position: sticky;
-  top: 57px;
-  z-index: 15;
-  padding: 12px 16px;
-  color: var(--color-text-secondary);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.plane-table td {
-  padding: 8px 12px;
-  white-space: nowrap;
-}
-
-.plane-table tr:hover td {
   background: var(--color-surface);
 }
 
+.plane-table th {
+  position: static;
+  top: auto;
+  z-index: 15;
+  padding: 14px 16px;
+  color: color-mix(in srgb, var(--color-text-primary) 78%, var(--color-text-muted));
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.015em;
+  white-space: nowrap;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-table-header) 84%, var(--color-surface) 16%), var(--color-table-header));
+}
+
+.plane-table th i {
+  color: var(--sa-primary, var(--color-accent));
+  margin-right: 6px;
+  opacity: 0.88;
+}
+
+.plane-table td {
+  height: 50px;
+  padding: 10px 14px;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+}
+
+.plane-table tr:hover td {
+  background: color-mix(in srgb, var(--color-table-row-hover) 82%, var(--sa-primary, var(--color-accent)) 6%);
+}
+
 .sticky-work-item {
-  position: sticky;
-  left: 0;
+  position: static;
+  left: auto;
   z-index: 20;
   min-width: 420px;
   max-width: 420px;
-  box-shadow: 12px 0 18px rgba(0, 0, 0, 0.32);
+  box-shadow: none;
 }
 
 th.sticky-work-item {
   z-index: 25;
 }
 
+.spreadsheet-container {
+  scrollbar-gutter: stable;
+}
+
+.plane-table th:first-child,
+.plane-table td:first-child {
+  border-left: 1px solid var(--color-border);
+}
+
 .wi-cell {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   min-width: 0;
   cursor: pointer;
 }
 
 .wi-id {
-  color: var(--color-text-secondary);
+  color: color-mix(in srgb, var(--sa-primary, var(--color-accent)) 74%, var(--color-text-primary));
   font-size: 12px;
+  font-weight: 850;
   min-width: 70px;
   flex-shrink: 0;
 }
 
 .wi-title {
   color: var(--color-text-primary);
-  font-weight: 500;
+  font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
   outline: none;
+}
+
+.wi-title:focus {
+  color: var(--color-accent);
 }
 
 .cell-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  min-height: 28px;
-  padding: 4px 8px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 6px 9px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 999px;
   background: transparent;
   color: var(--color-text-primary);
   cursor: pointer;
   text-align: left;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .cell-btn:hover {
-  background: var(--color-border);
+  background: var(--color-surface-hover);
   border-color: var(--color-border);
+}
+
+.state-badge {
+  background: color-mix(in srgb, var(--sa-primary-soft, rgba(14, 165, 233, 0.12)) 62%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--sa-primary, var(--color-accent)) 18%, var(--color-border));
+}
+
+.plane-table tbody tr.status-backlog {
+  --row-status: #64748b;
+}
+
+.plane-table tbody tr.status-todo {
+  --row-status: #8b5cf6;
+}
+
+.plane-table tbody tr.status-progress {
+  --row-status: #0ea5e9;
+}
+
+.plane-table tbody tr.status-review {
+  --row-status: #f59e0b;
+}
+
+.plane-table tbody tr.status-done {
+  --row-status: #22c55e;
+}
+
+.plane-table tbody tr {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--row-status, transparent) 0%, transparent);
+}
+
+.plane-table tbody tr:hover,
+.plane-table tbody tr.status-progress:hover,
+.plane-table tbody tr.status-review:hover,
+.plane-table tbody tr.status-todo:hover,
+.plane-table tbody tr.status-done:hover,
+.plane-table tbody tr.status-backlog:hover {
+  background: color-mix(in srgb, var(--row-status, var(--color-accent)) 8%, var(--color-surface)) !important;
+  box-shadow: inset 3px 0 0 var(--row-status, var(--color-accent));
+}
+
+.state-badge.status-backlog {
+  --state-color: #64748b;
+}
+
+.state-badge.status-todo {
+  --state-color: #8b5cf6;
+}
+
+.state-badge.status-progress {
+  --state-color: #0ea5e9;
+}
+
+.state-badge.status-review {
+  --state-color: #f59e0b;
+}
+
+.state-badge.status-done {
+  --state-color: #22c55e;
+}
+
+.state-badge {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--state-color, var(--color-accent)) 16%, transparent), transparent 70%),
+    color-mix(in srgb, var(--state-color, var(--color-accent)) 9%, var(--color-surface)) !important;
+  border-color: color-mix(in srgb, var(--state-color, var(--color-accent)) 36%, var(--color-border)) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.state-badge i {
+  color: var(--state-color, var(--color-accent)) !important;
+}
+
+.priority-badge {
+  background: color-mix(in srgb, var(--color-surface-hover) 78%, var(--color-surface));
+}
+
+.priority-1 {
+  background: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-danger) 28%, var(--color-border));
+}
+
+.priority-2 {
+  background: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-warning) 30%, var(--color-border));
+}
+
+.priority-3 {
+  background: color-mix(in srgb, var(--sa-primary, var(--color-accent)) 11%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--sa-primary, var(--color-accent)) 24%, var(--color-border));
+}
+
+.priority-4 {
+  background: color-mix(in srgb, #64748b 12%, var(--color-surface));
+  border-color: color-mix(in srgb, #64748b 28%, var(--color-border));
+}
+
+.priority-0 {
+  background: color-mix(in srgb, var(--color-text-muted) 8%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-text-muted) 20%, var(--color-border));
 }
 
 .date-input {
   width: 135px;
-  padding: 5px 8px;
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 6px 9px !important;
 }
 
 .plane-search-input {
   width: 100%;
-  padding: 6px 8px;
+  min-height: 36px !important;
+  height: 36px !important;
+  padding: 7px 10px !important;
   margin-bottom: 8px;
 }
 
@@ -573,13 +783,15 @@ th.sticky-work-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
-  border-radius: 6px;
+  padding: 9px 10px;
+  border-radius: 8px;
   cursor: pointer;
+  color: var(--color-text-secondary);
 }
 
 .member-option:hover {
-  background: var(--color-border);
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
 }
 
 .text-green { color: #10b981; }
@@ -591,19 +803,65 @@ th.sticky-work-item {
 .date-text { color: var(--color-text-secondary); }
 
 .empty-cell {
-  padding: 40px;
+  padding: 56px 24px;
   text-align: center;
   color: var(--color-text-muted);
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-bg)) !important;
+}
+
+.empty-state {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 320px;
+  padding: 26px 28px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  box-shadow: var(--sa-shadow-sm, var(--shadow-sm));
+}
+
+.empty-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sa-primary-soft, color-mix(in srgb, var(--color-accent) 12%, transparent));
+  color: var(--sa-primary, var(--color-accent));
+  font-size: 18px;
+}
+
+.empty-state strong {
+  color: var(--color-text-primary);
+  font-size: 15px;
+}
+
+.empty-state span {
+  color: var(--color-text-secondary);
+  font-size: 13px;
 }
 
 .add-btn {
-  border: 0;
-  background: transparent;
-  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 800;
+}
+
+.add-btn:hover {
+  background: var(--sa-primary-soft, var(--color-surface-hover));
+  color: var(--sa-primary, var(--color-accent));
+  border-color: color-mix(in srgb, var(--sa-primary, var(--color-accent)) 24%, var(--color-border));
 }
 </style>
 

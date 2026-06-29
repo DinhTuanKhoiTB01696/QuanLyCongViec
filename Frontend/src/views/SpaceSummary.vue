@@ -119,7 +119,7 @@
                  <div class="tr-right" @click.stop>
                    <div class="pill-group">
                      <el-dropdown trigger="click" @command="(val) => updateTask(task, 'statusName', val, task.statusName)">
-                       <div class="pill pill-status cursor-pointer hover:bg-[var(--color-border)]">
+                       <div class="pill pill-status cursor-pointer hover:bg-[var(--color-border)]" :style="{ '--pill-color': getStatusColor(task.statusName) }">
                          <i :class="getBoardStatusIcon(task.statusName)" :style="{ color: getStatusColor(task.statusName) }"></i>
                          {{ normalizeStatusLabel(task.statusName) }}
                        </div>
@@ -134,7 +134,7 @@
                      </el-dropdown>
 
                      <el-dropdown trigger="click" @command="(val) => updateTask(task, 'priority', val, task.priority)">
-                       <div class="pill pill-priority cursor-pointer hover:bg-[var(--color-border)]">
+                       <div class="pill pill-priority cursor-pointer hover:bg-[var(--color-border)]" :style="{ '--pill-color': getPriorityColor(task.priority) }">
                          <i :class="getPriorityIcon(task.priority)"></i>
                        </div>
                        <template #dropdown>
@@ -205,7 +205,7 @@
       <!-- Kanban Board Layout -->
       <div class="kanban-wrapper" v-if="currentTab === 'board'">
         
-        <div class="kanban-col" v-for="col in kanbanColumns" :key="col.id">
+        <div class="kanban-col" v-for="col in kanbanColumns" :key="col.id" :style="{ '--col-color': col.color }">
           <div class="col-head">
             <div class="col-title">
               <i :class="col.icon" :style="{ color: col.color }"></i>
@@ -224,7 +224,12 @@
               @change="(evt) => handleDraggableChange(evt, col)"
             >
               <template #item="{ element }">
-                <div class="issue-card" :class="{ 'active-card': selectedTask?.id === element.id }" @click="openTaskDetail(element)">
+                <div
+                  class="issue-card"
+                  :class="{ 'active-card': selectedTask?.id === element.id }"
+                  :style="{ '--task-status-color': getStatusColor(element.statusName), '--task-priority-color': getPriorityColor(element.priority) }"
+                  @click="openTaskDetail(element)"
+                >
                   <div class="flex-between mb-1">
                     <p class="issue-sequence">{{ element.sequenceId || element.id.substring(0,8).toUpperCase() }}</p>
                     <button class="star-task-btn small" @click.stop="toggleTaskStar(element)">
@@ -234,7 +239,7 @@
                   <p class="issue-title" :style="element.statusName === 'DONE' ? { textDecoration: 'line-through', color: 'var(--color-text-muted)' } : {}">{{ element.title }}</p>
                   <div class="issue-meta mt-2" style="display:flex; align-items:center; gap:8px;" @click.stop>
                      <el-dropdown trigger="click" @command="(val) => updateTask(element, 'statusName', val, element.statusName)">
-                       <div class="badge cursor-pointer hover:bg-[var(--color-border)]">
+                       <div class="badge status-badge cursor-pointer hover:bg-[var(--color-border)]" :style="{ '--badge-color': getStatusColor(element.statusName) }">
                          <i :class="getBoardStatusIcon(element.statusName)" :style="{ color: getStatusColor(element.statusName) }"></i>
                          <span>{{ normalizeStatusLabel(element.statusName) }}</span>
                        </div>
@@ -249,7 +254,7 @@
                      </el-dropdown>
 
                      <el-dropdown trigger="click" @command="(val) => updateTask(element, 'priority', val, element.priority)">
-                       <div class="badge cursor-pointer hover:bg-[var(--color-border)]">
+                       <div class="badge priority-badge cursor-pointer hover:bg-[var(--color-border)]" :style="{ '--badge-color': getPriorityColor(element.priority) }">
                          <i :class="getPriorityIcon(element.priority)"></i>
                        </div>
                        <template #dropdown>
@@ -400,8 +405,8 @@
                <table class="ap-table">
                   <thead><tr><th>{{ analyticsTableHeading }}</th><th style="text-align: right;">Số lượng</th></tr></thead>
                   <tbody>
-                     <tr v-for="row in analyticsBreakdownRows" :key="row.label">
-                       <td>{{ row.label }}</td>
+                     <tr v-for="row in analyticsBreakdownRows" :key="row.label" :style="{ '--row-color': row.color || 'var(--color-accent)' }">
+                       <td><span class="analytics-row-label"><span class="analytics-row-dot"></span>{{ row.label }}</span></td>
                        <td style="text-align: right;">{{ row.count }}</td>
                      </tr>
                   </tbody>
@@ -577,7 +582,21 @@ const activeTaskFilters = ref([])
 const displayOrder = ref('manual')
 const groupBy = ref('status')
 const analyticsInsightMode = ref('priority')
+const analyticsTheme = ref(document.documentElement.getAttribute('data-theme') || 'light')
+let analyticsThemeObserver = null
 const activeSprintFilterId = computed(() => route.query.sprintId || route.params.cycleId || null)
+
+const analyticsThemeColors = computed(() => {
+  const isDark = analyticsTheme.value === 'dark'
+  return {
+    text: isDark ? '#e5edf7' : '#0f172a',
+    muted: isDark ? '#a8b4c7' : '#64748b',
+    grid: isDark ? 'rgba(148, 163, 184, 0.22)' : 'rgba(100, 116, 139, 0.18)',
+    axis: isDark ? 'rgba(148, 163, 184, 0.36)' : 'rgba(100, 116, 139, 0.28)',
+    tooltipBg: isDark ? '#0f172a' : '#ffffff',
+    tooltipBorder: isDark ? 'rgba(148, 163, 184, 0.24)' : 'rgba(100, 116, 139, 0.18)'
+  }
+})
 
 watch(currentTab, (val) => {
   if (val === 'board') {
@@ -711,12 +730,12 @@ const visibleTasks = computed(() => {
 })
 const visibleTopLevelTasks = computed(() => filteredTasksList.value.filter(task => !isSubtask(task)))
 const defaultTaskStatusOptions = computed(() => [
-  { name: 'BACKLOG', label: tr('Backlog', 'Chờ xử lý'), color: 'var(--color-text-muted)', icon: 'fa-regular fa-circle-dashed' },
-  { name: 'TO DO', label: tr('To Do', 'Cần làm'), color: '#D4D4D8', icon: 'fa-regular fa-circle' },
-  { name: 'IN PROGRESS', label: tr('In Progress', 'Đang thực hiện'), color: '#3B82F6', icon: 'fa-solid fa-circle-half-stroke' },
+  { name: 'BACKLOG', label: tr('Backlog', 'Chờ xử lý'), color: '#94A3B8', icon: 'fa-regular fa-circle-dashed' },
+  { name: 'TO DO', label: tr('To Do', 'Cần làm'), color: '#A78BFA', icon: 'fa-regular fa-circle' },
+  { name: 'IN PROGRESS', label: tr('In Progress', 'Đang thực hiện'), color: '#38BDF8', icon: 'fa-solid fa-circle-half-stroke' },
   { name: 'IN REVIEW', label: tr('In Review', 'Đang đánh giá'), color: '#F59E0B', icon: 'fa-solid fa-eye' },
-  { name: 'DONE', label: tr('Done', 'Hoàn thành'), color: '#10B981', icon: 'fa-solid fa-circle-check' },
-  { name: 'CANCELLED', label: tr('Cancelled', 'Đã hủy'), color: '#EF4444', icon: 'fa-regular fa-circle-xmark' }
+  { name: 'DONE', label: tr('Done', 'Hoàn thành'), color: '#22C55E', icon: 'fa-solid fa-circle-check' },
+  { name: 'CANCELLED', label: tr('Cancelled', 'Đã hủy'), color: '#F43F5E', icon: 'fa-regular fa-circle-xmark' }
 ])
 
 const normalizeText = (value) => `${value || ''}`.toLowerCase().trim()
@@ -843,6 +862,13 @@ const getPriorityIcon = (priority) => {
   if (priority === 3) return 'fa-solid fa-minus text-blue-500'
   if (priority === 4) return 'fa-solid fa-chevron-down text-gray-400'
   return 'fa-solid fa-ban text-gray-500'
+}
+const getPriorityColor = (priority) => {
+  if (priority === 1) return '#F43F5E'
+  if (priority === 2) return '#F97316'
+  if (priority === 3) return '#38BDF8'
+  if (priority === 4) return '#94A3B8'
+  return '#64748B'
 }
 const normalizePriority = (value) => {
   const map = { urgent: 1, high: 2, normal: 3, low: 4, none: null }
@@ -1110,26 +1136,28 @@ const filteredTasksList = computed(() => {
 
 const createdResolvedOptions = computed(() => {
    const buckets = buildAnalyticsDateBuckets(visibleTopLevelTasks.value)
+   const colors = analyticsThemeColors.value
    return {
       tooltip: {
         trigger: 'axis',
-        backgroundColor: '#f8fafc',
-        borderWidth: 0,
-        textStyle: { color: '#0f172a' }
+        backgroundColor: colors.tooltipBg,
+        borderColor: colors.tooltipBorder,
+        borderWidth: 1,
+        textStyle: { color: colors.text }
       },
-      legend: { data: [tr('Created', 'Đã tạo'), tr('Resolved', 'Đã xử lý')], bottom: 0, textStyle: { color: 'var(--color-text-muted)' } },
+      legend: { data: [tr('Created', 'Đã tạo'), tr('Resolved', 'Đã xử lý')], bottom: 0, textStyle: { color: colors.muted } },
       grid: { left: '2%', right: '3%', bottom: '16%', top: '10%', containLabel: true },
       xAxis: {
         type: 'category',
         data: buckets.labels.map(formatAnalyticsDateLabel),
-        axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.35)' } },
-        axisLabel: { color: 'var(--color-text-muted)' }
+        axisLine: { lineStyle: { color: colors.axis } },
+        axisLabel: { color: colors.muted }
       },
       yAxis: {
         type: 'value',
         minInterval: 1,
-        splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.16)' } },
-        axisLabel: { color: 'var(--color-text-muted)' }
+        splitLine: { lineStyle: { color: colors.grid } },
+        axisLabel: { color: colors.muted }
       },
       series: [
          {
@@ -1246,32 +1274,41 @@ const setAnalyticsInsightMode = (mode) => {
   analyticsInsightMode.value = mode
 }
 
-const insightChartOptions = computed(() => ({
-  tooltip: { trigger: 'axis' },
-  grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-  xAxis: {
-    type: 'category',
-    data: analyticsBreakdownRows.value.map(item => item.label),
-    axisLine: { lineStyle: { color: '#3F3F46' } },
-    axisLabel: { color: 'var(--color-text-muted)' }
-  },
-  yAxis: {
-    type: 'value',
-    splitLine: { lineStyle: { color: 'var(--color-border)' } },
-    axisLabel: { color: 'var(--color-text-muted)' }
-  },
-  series: [
-    {
-      type: 'bar',
-      barWidth: '30%',
-      data: analyticsBreakdownRows.value.map(item => ({
-        value: item.count,
-        itemStyle: { color: item.color, borderRadius: [4, 4, 0, 0] }
-      }))
-    }
-  ],
-  backgroundColor: 'transparent'
-}))
+const insightChartOptions = computed(() => {
+  const colors = analyticsThemeColors.value
+  return {
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      borderWidth: 1,
+      textStyle: { color: colors.text }
+    },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: analyticsBreakdownRows.value.map(item => item.label),
+      axisLine: { lineStyle: { color: colors.axis } },
+      axisLabel: { color: colors.muted }
+    },
+    yAxis: {
+      type: 'value',
+      splitLine: { lineStyle: { color: colors.grid } },
+      axisLabel: { color: colors.muted }
+    },
+    series: [
+      {
+        type: 'bar',
+        barWidth: '30%',
+        data: analyticsBreakdownRows.value.map(item => ({
+          value: item.count,
+          itemStyle: { color: item.color, borderRadius: [4, 4, 0, 0] }
+        }))
+      }
+    ],
+    backgroundColor: 'transparent'
+  }
+})
 
 const kanbanColumns = computed(() => {
   const groups = taskStatusOptions.value.map((status, index) => ({
@@ -1771,6 +1808,10 @@ const exportAnalyticsCsv = (mode = analyticsInsightMode.value) => {
 onMounted(() => {
   hydrateFiltersFromUrl()
   loadInitialData()
+  analyticsThemeObserver = new MutationObserver(() => {
+    analyticsTheme.value = document.documentElement.getAttribute('data-theme') || 'light'
+  })
+  analyticsThemeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
   window.addEventListener('global-create-task', handleGlobalCreate)
 })
 
@@ -1894,6 +1935,7 @@ watch(
 
 onUnmounted(() => {
   window.removeEventListener('global-create-task', handleGlobalCreate)
+  analyticsThemeObserver?.disconnect()
   clearTimeout(realtimeRefreshTimer)
   if (signalRTaskUpdatedHandler) {
     signalRService.off('TaskUpdated', signalRTaskUpdatedHandler)
@@ -1911,8 +1953,10 @@ onUnmounted(() => {
    PLANE.SO PROJECT KANBAN THEME
    ================================== */
 .plane-board-container {
-  background-color: var(--color-bg); 
-  height: 100vh;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--sa-bg, var(--color-bg)) 88%, var(--color-surface) 12%), var(--sa-bg, var(--color-bg)));
+  height: calc(100vh - 60px);
+  min-height: 0;
   display: flex;
   flex-direction: column;
   color: var(--color-text-primary);
@@ -1928,39 +1972,46 @@ onUnmounted(() => {
 
 /* ── PLANE HEADER ── */
 .plane-space-header {
-  height: 52px;
+  min-height: 64px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 24px;
+  gap: 18px;
+  padding: 10px 24px;
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
-  background-color: var(--color-bg);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 92%, var(--sa-bg, var(--color-bg)) 8%), var(--color-surface));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 .breadcrumb {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   font-size: 14px;
   color: var(--color-text-muted);
+  min-width: 0;
+  padding: 4px 0;
 }
 .proj-icon {
-  background: var(--color-accent);
-  color: var(--color-text-primary);
-  width: 18px;
-  height: 18px;
-  border-radius: 2px;
+  background: linear-gradient(135deg, var(--sa-primary, var(--color-accent)), #22d3ee);
+  color: #ffffff;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
-  font-weight: bold;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--sa-primary, var(--color-accent)) 24%, transparent);
 }
 .proj-name {
   color: var(--color-text-primary);
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
+  letter-spacing: -0.01em;
 }
 .proj-name:hover { color: var(--color-accent); }
 .separator {
@@ -1972,120 +2023,146 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-weight: 500;
+  font-weight: 700;
 }
 .active-page i { color: var(--color-text-muted); }
 .item-count {
-  background: var(--color-border);
-  color: #38BDF8;
-  padding: 2px 8px;
-  border-radius: 2px;
+  background: var(--sa-primary-soft, color-mix(in srgb, var(--color-accent) 12%, transparent));
+  color: color-mix(in srgb, var(--sa-primary, var(--color-accent)) 82%, var(--color-text-primary));
+  padding: 3px 8px;
+  border-radius: 999px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .sh-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .view-toggles {
   display: flex;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 2px;
-  padding: 2px;
-  margin-right: 8px;
+  border-radius: 12px;
+  padding: 3px;
+  margin-right: 2px;
+  box-shadow: var(--sa-shadow-sm, var(--shadow-sm));
 }
 .toggle-btn {
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   color: var(--color-text-muted);
-  width: 28px;
-  height: 28px;
-  border-radius: 2px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
 }
-.toggle-btn:hover { color: var(--color-text-primary); }
-.toggle-btn.active {
-  background: var(--color-border);
+.toggle-btn:hover {
   color: var(--color-text-primary);
+  background: var(--color-surface-hover);
+}
+.toggle-btn.active {
+  background: var(--sa-primary-soft, color-mix(in srgb, var(--color-accent) 14%, transparent));
+  color: var(--sa-primary, var(--color-accent));
+  border-color: color-mix(in srgb, var(--sa-primary, var(--color-accent)) 26%, var(--color-border));
 }
 
 .plane-toolbar-btn {
-  background: transparent;
-  border: none;
+  min-height: 38px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   color: var(--color-text-secondary);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 2px;
+  padding: 8px 13px;
+  border-radius: 10px;
   transition: background 0.2s;
   display: flex;
   align-items: center;
 }
 .plane-toolbar-btn:hover {
-  background: var(--color-border);
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
+  color: var(--color-text-primary);
 }
 .plane-toolbar-btn.active {
-  background: var(--color-border);
-  color: var(--color-text-primary);
+  background: var(--sa-primary-soft, color-mix(in srgb, var(--color-accent) 12%, transparent));
+  border-color: color-mix(in srgb, var(--sa-primary, var(--color-accent)) 28%, var(--color-border));
+  color: var(--sa-primary, var(--color-accent));
 }
 .filter-count {
   margin-left: 6px;
   min-width: 16px;
   height: 16px;
   border-radius: 999px;
-  background: #0EA5E9;
-  color: var(--color-text-primary);
+  background: var(--sa-primary, var(--color-accent));
+  color: #ffffff;
   font-size: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 .work-filter-row {
-  padding: 10px 24px;
+  padding: 12px 24px;
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg);
+  background: color-mix(in srgb, var(--color-surface) 86%, var(--sa-bg, var(--color-bg)));
   flex-shrink: 0;
 }
 
 .plane-primary-btn {
-  background: #0EA5E9;
-  color: var(--color-text-primary);
-  border: none;
-  border-radius: 2px;
-  padding: 6px 12px;
+  min-height: 38px;
+  background: linear-gradient(135deg, var(--sa-primary, var(--color-accent)), color-mix(in srgb, var(--sa-primary, var(--color-accent)) 78%, #2563eb));
+  color: #ffffff;
+  border: 1px solid color-mix(in srgb, var(--sa-primary, var(--color-accent)) 70%, transparent);
+  border-radius: 10px;
+  padding: 8px 14px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 800;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
   transition: background 0.2s;
 }
-.plane-primary-btn:hover { background: #0284C7; }
+.plane-primary-btn:hover {
+  background: linear-gradient(135deg, var(--color-accent-hover), var(--sa-primary, var(--color-accent)));
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--sa-primary, var(--color-accent)) 24%, transparent);
+}
 
 /* Kanban Board */
 .kanban-wrapper {
   display: flex;
   gap: 20px;
   flex: 1;
+  height: 100%;
+  min-height: 0;
   overflow-x: auto;
-  padding: 24px;
+  overflow-y: hidden;
+  padding: 26px 28px 32px;
+  background:
+    radial-gradient(circle at 10% 0%, color-mix(in srgb, #38bdf8 12%, transparent), transparent 30%),
+    radial-gradient(circle at 82% 6%, color-mix(in srgb, #a78bfa 10%, transparent), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 38%, transparent), transparent 260px);
 }
 
 .kanban-col {
   min-width: 320px;
   width: 320px;
+  height: 100%;
+  max-height: none;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  border-radius: 14px;
 }
 
 .col-head {
@@ -2093,7 +2170,12 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-  padding: 0 4px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--col-color) 26%, var(--color-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--col-color) 15%, transparent), transparent 58%),
+    color-mix(in srgb, var(--color-bg) 58%, transparent);
 }
 
 .col-title {
@@ -2101,32 +2183,69 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 800;
   color: var(--color-text-primary);
 }
 
 .col-count {
-  background: var(--color-surface-hover);
-  color: var(--color-text-muted);
-  padding: 2px 8px;
-  border-radius: 2px;
+  background: color-mix(in srgb, var(--col-color) 16%, var(--color-surface-hover));
+  color: color-mix(in srgb, var(--col-color) 28%, var(--color-text-primary));
+  padding: 3px 8px;
+  border-radius: 8px;
   font-size: 12px;
+  font-weight: 800;
 }
 
 .add-btn {
-  color: var(--color-text-muted);
+  color: color-mix(in srgb, var(--col-color) 44%, var(--color-text-secondary));
   cursor: pointer;
   font-size: 14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 160ms ease, transform 160ms ease, color 160ms ease;
 }
-.add-btn:hover { color: var(--color-text-primary); }
+.add-btn:hover {
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--col-color) 16%, transparent);
+  transform: translateY(-1px);
+}
 
 .col-body {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-height: 0;
+  max-height: none;
   overflow-y: auto;
-  padding-right: 4px; /* for scrollbar */
+  overscroll-behavior: contain;
+  padding-right: 6px;
   position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--col-color) 42%, var(--color-border)) transparent;
+}
+
+.col-body::-webkit-scrollbar,
+.kanban-wrapper::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.col-body::-webkit-scrollbar-thumb,
+.kanban-wrapper::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--col-color, var(--color-accent)) 42%, var(--color-border));
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.col-body::-webkit-scrollbar-track,
+.kanban-wrapper::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--color-surface) 44%, transparent);
+  border-radius: 999px;
 }
 
 .chart-container {
@@ -2138,31 +2257,70 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 10px;
+  min-height: min-content;
+  padding-bottom: 16px;
 }
 
 .issue-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.72)),
+    color-mix(in srgb, var(--task-status-color) 5%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--task-status-color) 23%, var(--color-border));
+  border-radius: 12px;
   padding: 16px;
   cursor: pointer;
-  transition: all 0.2s;
+  box-shadow:
+    0 12px 28px rgba(15, 23, 42, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.74);
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 180ms ease, box-shadow 180ms ease;
+}
+.issue-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--task-status-color), color-mix(in srgb, var(--task-priority-color) 62%, var(--task-status-color)));
 }
 .issue-card:hover {
-  border-color: var(--color-border);
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--task-status-color) 48%, var(--color-border));
+  box-shadow:
+    0 18px 42px rgba(15, 23, 42, 0.12),
+    0 0 0 3px color-mix(in srgb, var(--task-status-color) 10%, transparent);
 }
 .issue-card.active-card {
-  border-color: var(--color-border);
+  border-color: color-mix(in srgb, var(--task-status-color) 72%, var(--color-border));
+  box-shadow:
+    0 20px 46px rgba(15, 23, 42, 0.13),
+    0 0 0 3px color-mix(in srgb, var(--task-status-color) 18%, transparent);
 }
 
-.issue-sequence { font-size: 11px; color: var(--color-text-muted); margin: 0; }
+[data-theme='dark'] .issue-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+    color-mix(in srgb, var(--task-status-color) 9%, var(--color-surface));
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.issue-sequence {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  color: color-mix(in srgb, var(--task-status-color) 54%, var(--color-text-muted));
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
 .issue-title {
   margin: 0;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 800;
   color: var(--color-text-primary);
-  line-height: 1.5;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
 }
 
 .issue-meta {
@@ -2195,25 +2353,42 @@ onUnmounted(() => {
 .text-red { color: #EF4444; }
 .text-green { color: #10B981; }
 
-.badge { border: 1px solid var(--color-border); border-radius: 2px; padding: 2px 6px; font-size: 11px; color: var(--color-text-muted); display: flex; align-items: center; gap: 6px; }
+.badge {
+  border: 1px solid color-mix(in srgb, var(--badge-color, var(--color-border)) 32%, var(--color-border));
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: color-mix(in srgb, var(--badge-color, var(--color-text-muted)) 38%, var(--color-text-primary));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: color-mix(in srgb, var(--badge-color, var(--color-surface-hover)) 9%, transparent);
+  font-weight: 800;
+}
 
 .add-btn-bottom { 
-  color: var(--color-text-primary); 
+  color: color-mix(in srgb, var(--col-color) 52%, var(--color-text-primary)); 
   font-size: 13px; 
-  font-weight: 500; 
+  font-weight: 800; 
   cursor: pointer; 
   display: flex; 
   align-items: center; 
   gap: 8px; 
-  padding: 8px; 
+  padding: 10px 12px; 
   margin-top: 12px; 
-  position: sticky;
-  bottom: 0;
-  background-color: var(--color-bg);
-  box-shadow: 0 -4px 10px rgba(13, 15, 17, 0.8);
-  border-radius: 2px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--col-color) 10%, transparent), transparent),
+    color-mix(in srgb, var(--color-bg) 72%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--col-color) 42%, var(--color-border));
+  border-radius: 10px;
+  transition: background 160ms ease, transform 160ms ease, border-color 160ms ease;
 }
-.add-btn-bottom:hover { color: var(--color-text-primary); background-color: var(--color-border); }
+.add-btn-bottom:hover {
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--col-color) 14%, var(--color-bg));
+  border-color: color-mix(in srgb, var(--col-color) 62%, var(--color-border));
+  transform: translateY(-1px);
+}
 
 .inline-create-box { 
   background: var(--color-surface); 
@@ -2222,9 +2397,6 @@ onUnmounted(() => {
   padding: 12px 16px; 
   margin-top: 12px; 
   box-shadow: 0 4px 12px rgba(0,0,0,0.5); 
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -2284,27 +2456,28 @@ onUnmounted(() => {
 .plane-dropdown-menu {
   position: absolute;
   top: 100%;
-  left: 0;
+  right: 0;
   margin-top: 8px;
-  background: var(--color-border);
-  border: 1px solid #333;
-  border-radius: 2px;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
   width: 260px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  z-index: 1000;
+  box-shadow: var(--shadow-popover);
+  z-index: var(--z-popover);
   color: var(--color-text-primary);
   font-size: 13px;
-  padding: 8px 0;
+  padding: 8px;
 }
-.dd-section { padding: 8px 16px; }
+.dd-section { padding: 8px; }
 .dd-section.border-top { border-top: 1px solid var(--color-border); }
-.dd-title { display: flex; justify-content: space-between; color: var(--color-text-muted); font-size: 12px; font-weight: 500; margin-bottom: 8px; }
+.dd-title { display: flex; justify-content: space-between; color: var(--color-text-muted); font-size: 12px; font-weight: 700; margin-bottom: 8px; }
 .dd-btns { display: flex; gap: 8px; flex-wrap: wrap; }
-.dd-tag { background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-primary); border-radius: 2px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
-.dd-tag.active { background: #0EA5E9; color: var(--color-text-primary); border-color: #0EA5E9; }
+.dd-tag { background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-primary); border-radius: 999px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
+.dd-tag.active { background: var(--color-accent); color: #ffffff; border-color: var(--color-accent); }
 .dd-list { display: flex; flex-direction: column; gap: 8px; }
-.dd-item { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.dd-item input[type="radio"], .dd-item input[type="checkbox"] { accent-color: #0EA5E9; cursor: pointer; }
+.dd-item { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 7px 8px; border-radius: 8px; color: var(--color-text-secondary); }
+.dd-item:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+.dd-item input[type="radio"], .dd-item input[type="checkbox"] { accent-color: var(--color-accent); cursor: pointer; width: 14px; height: 14px; }
 
 .plane-list-view {
   display: flex;
@@ -2778,6 +2951,380 @@ onUnmounted(() => {
 @media (max-width: 920px) {
   .ap-stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Compact density */
+.nexus-project-header {
+  min-height: 52px !important;
+  padding: 10px 16px !important;
+}
+
+.project-title,
+.breadcrumb-current {
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+}
+
+.nexus-controls-row {
+  gap: 8px !important;
+}
+
+.nexus-btn,
+.nexus-btn-primary,
+.view-btn,
+.filter-btn,
+.stats-btn {
+  min-height: 32px !important;
+  border-radius: 8px !important;
+  padding: 6px 10px !important;
+  font-size: 12.5px !important;
+}
+
+.view-toggle {
+  border-radius: 9px !important;
+  padding: 2px !important;
+}
+
+.board-wrapper,
+.kanban-wrapper {
+  padding: 18px var(--sa-page-x, 24px) 26px !important;
+}
+
+.kanban-board {
+  gap: 14px !important;
+}
+
+.kanban-column,
+.col {
+  min-width: 284px !important;
+  width: 284px !important;
+  border-radius: 10px !important;
+}
+
+.column-header,
+.col-header {
+  min-height: 48px !important;
+  padding: 10px 12px !important;
+  border-radius: 8px !important;
+}
+
+.column-title,
+.col-title {
+  font-size: 12.5px !important;
+}
+
+.work-item-card,
+.task-card {
+  border-radius: 8px !important;
+  padding: 12px !important;
+}
+
+.task-title,
+.card-title {
+  font-size: 13px !important;
+  line-height: 1.3 !important;
+  overflow-wrap: anywhere !important;
+}
+
+.col-body {
+  gap: 10px !important;
+  padding: 10px !important;
+}
+
+.list-wrapper {
+  padding: 12px var(--sa-page-x, 24px) !important;
+}
+
+.group-header,
+.task-row {
+  min-height: 38px !important;
+  padding: 8px 10px !important;
+}
+
+.ap-panel {
+  border-radius: 10px !important;
+}
+
+.ap-header {
+  padding: 14px 18px !important;
+}
+
+.ap-body {
+  padding: 16px 18px 22px !important;
+}
+
+.ap-stats-grid {
+  gap: 10px !important;
+}
+
+.stat-box,
+.ap-chart-card,
+.ap-table-wrap {
+  border-radius: 8px !important;
+  padding: 12px !important;
+}
+
+.stat-box .val {
+  font-size: 20px !important;
+}
+
+@media (max-width: 760px) {
+  .nexus-project-header {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 10px 12px !important;
+  }
+
+  .nexus-controls-row {
+    overflow-x: auto !important;
+    justify-content: flex-start !important;
+  }
+
+  .board-wrapper,
+  .kanban-wrapper,
+  .list-wrapper {
+    padding: 12px !important;
+  }
+
+  .kanban-column,
+  .col {
+    min-width: min(82vw, 284px) !important;
+    width: min(82vw, 284px) !important;
+  }
+}
+
+/* Polished list view and analytics panel */
+.list-wrapper {
+  padding: 18px var(--sa-page-x, 24px) 28px !important;
+  background:
+    radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 32%),
+    var(--color-bg);
+}
+
+.list-group {
+  overflow: hidden;
+  margin-bottom: 18px !important;
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+}
+
+.group-header {
+  min-height: 44px !important;
+  margin: 0 !important;
+  padding: 10px 14px !important;
+  background: color-mix(in srgb, var(--color-surface-hover) 58%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+}
+
+.group-name {
+  font-size: 13.5px !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.01em;
+}
+
+.group-count {
+  min-width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface-hover));
+  color: var(--color-text-primary) !important;
+  font-size: 11px !important;
+  font-weight: 850 !important;
+}
+
+.task-row {
+  min-height: 52px !important;
+  padding: 9px 12px 9px 16px !important;
+  border-bottom-color: color-mix(in srgb, var(--color-border) 70%, transparent) !important;
+  transition: background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.task-row:hover {
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface)) !important;
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.task-id {
+  min-width: 92px !important;
+  color: color-mix(in srgb, var(--color-accent) 72%, var(--color-text-primary)) !important;
+  font-weight: 850 !important;
+}
+
+.task-title {
+  font-size: 13px !important;
+  font-weight: 650;
+}
+
+.pill {
+  min-height: 28px;
+  padding: 4px 10px !important;
+  border-color: color-mix(in srgb, var(--color-border) 86%, transparent) !important;
+  background: color-mix(in srgb, var(--color-surface-hover) 62%, transparent);
+  color: var(--color-text-primary) !important;
+  font-weight: 700;
+}
+
+.add-row-placeholder {
+  padding: 12px 16px !important;
+  background: color-mix(in srgb, var(--color-surface-hover) 42%, transparent);
+}
+
+.analytics-panel {
+  background:
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 34%),
+    var(--color-bg) !important;
+}
+
+.ap-header {
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent) !important;
+}
+
+.stat-box,
+.ap-chart-card,
+.ap-table-wrap {
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent) !important;
+}
+
+.stat-box .lbl,
+.ap-table th,
+.table-head,
+.bar-lbl,
+.x-label,
+.grid-l span {
+  color: var(--color-text-muted) !important;
+}
+
+.stat-box .val,
+.ap-chart-card h4,
+.ap-table td {
+  color: var(--color-text-primary) !important;
+}
+
+/* Stronger state color system for list and analytics */
+.group-header {
+  border-left: 3px solid color-mix(in srgb, var(--color-accent) 70%, transparent);
+}
+
+.pill-status,
+.pill-priority {
+  border-color: color-mix(in srgb, var(--pill-color, var(--color-accent)) 34%, var(--color-border)) !important;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--pill-color, var(--color-accent)) 14%, transparent), transparent 70%),
+    color-mix(in srgb, var(--pill-color, var(--color-accent)) 8%, var(--color-surface)) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.pill-status i,
+.pill-priority i {
+  color: var(--pill-color, var(--color-accent)) !important;
+}
+
+.analytics-panel {
+  background:
+    radial-gradient(circle at 82% 0%, color-mix(in srgb, #22c55e 12%, transparent), transparent 30%),
+    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--color-accent) 14%, transparent), transparent 34%),
+    var(--color-bg) !important;
+}
+
+.ap-header {
+  min-height: 56px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--color-accent) 13%, transparent), transparent 58%),
+    color-mix(in srgb, var(--color-surface) 92%, transparent) !important;
+}
+
+.ap-header h3 {
+  color: var(--color-text-primary) !important;
+  font-size: 16px !important;
+  font-weight: 900 !important;
+}
+
+.ap-body {
+  background: transparent !important;
+}
+
+.stat-box {
+  position: relative;
+  overflow: hidden;
+  min-height: 72px;
+  border-left: 3px solid var(--stat-color, var(--color-accent)) !important;
+}
+
+.stat-box:nth-child(1) { --stat-color: #38bdf8; }
+.stat-box:nth-child(2) { --stat-color: #f59e0b; }
+.stat-box:nth-child(3) { --stat-color: #8b5cf6; }
+.stat-box:nth-child(4) { --stat-color: #fb7185; }
+.stat-box:nth-child(5) { --stat-color: #22c55e; }
+
+.stat-box::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--stat-color) 13%, transparent), transparent 62%);
+  pointer-events: none;
+}
+
+.stat-box .lbl,
+.stat-box .val {
+  position: relative;
+  z-index: 1;
+}
+
+.stat-box .val {
+  color: color-mix(in srgb, var(--stat-color) 38%, var(--color-text-primary)) !important;
+}
+
+.ap-chart-card {
+  border-left: 3px solid color-mix(in srgb, var(--color-accent) 76%, #22c55e) !important;
+}
+
+.ap-table-wrap {
+  overflow: hidden;
+}
+
+.ap-table tbody tr {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--row-color, var(--color-accent)) 8%, transparent), transparent 68%);
+}
+
+.analytics-row-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 750;
+}
+
+.analytics-row-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--row-color, var(--color-accent));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--row-color, var(--color-accent)) 14%, transparent);
+}
+
+[data-theme='light'] .analytics-overlay {
+  background: rgba(15, 23, 42, 0.36) !important;
+}
+
+@media (max-width: 760px) {
+  .list-wrapper {
+    padding: 12px !important;
+  }
+
+  .task-row {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .tr-right {
+    width: 100%;
+    justify-content: flex-start !important;
   }
 }
 </style>
