@@ -3,10 +3,8 @@
     <div class="sprinta-property-label">{{ label }}</div>
     <div class="sprinta-property-value">
       <slot name="value">
-        <template v-if="avatar">
-          <div class="sprinta-property-avatar" :style="{ backgroundColor: avatarColor || '#172B4D' }">
-            {{ avatar }}
-          </div>
+        <template v-if="user || avatar">
+          <UserAvatar :user="user || { avatarColor, initials: avatar }" :size="24" :fontSize="11" class="me-2" />
         </template>
         <template v-if="icon">
           <component :is="icon" class="w-4 h-4"></component>
@@ -18,6 +16,8 @@
 </template>
 
 <script setup>
+import UserAvatar from '@/components/common/UserAvatar.vue'
+
 defineProps({
   label: {
     type: String,
@@ -26,6 +26,10 @@ defineProps({
   value: {
     type: String,
     default: ''
+  },
+  user: {
+    type: Object,
+    default: null
   },
   avatar: {
     type: String,

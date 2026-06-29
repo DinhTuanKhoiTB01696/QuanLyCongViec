@@ -2,9 +2,7 @@
   <div class="profile-sidebar">
     <div class="sidebar-user-info">
       <div class="user-avatar-wrapper">
-        <div class="sidebar-avatar" :style="avatarStyle">
-          {{ profileData.avatarUrl ? '' : getInitials(profileData.fullName) }}
-        </div>
+        <UserAvatar :user="profileData" :size="48" :fontSize="18" />
       </div>
       <div class="user-detail">
         <h3 class="user-fullname">{{ profileData.fullName || t('Member', 'Thành viên') }}</h3>
@@ -30,6 +28,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useLocale } from '@/composables/useLocale'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const { t } = useLocale()
 
@@ -79,28 +78,6 @@ const menuItems = computed(() => [
   }
 ])
 
-const getBaseUrl = () => import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5136'
-
-const avatarStyle = computed(() => {
-  if (!props.profileData.avatarUrl) return {}
-  return {
-    backgroundImage: `url(${getBaseUrl()}${props.profileData.avatarUrl})`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    color: 'transparent'
-  }
-})
-
-const getInitials = (name) => {
-  if (!name) return '?'
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .map((word) => word[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase()
-}
 </script>
 
 <style scoped>
@@ -133,14 +110,12 @@ const getInitials = (name) => {
 .sidebar-avatar {
   height: 96px;
   width: 96px;
-  background-color: #0052cc;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 32px;
   font-weight: 700;
-  color: #ffffff;
   border: 4px solid var(--color-bg);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }

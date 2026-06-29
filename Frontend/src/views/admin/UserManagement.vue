@@ -121,9 +121,7 @@
               
               <div v-for="member in paginatedDepartmentMembers" :key="member.id" class="assignment-item" style="grid-column: 1 / -1;">
                 <div class="assignment-copy" style="display: flex; align-items: center; gap: 16px;">
-                  <div class="user-avatar" :style="{ backgroundColor: getAvatarColor(getDisplayName(member)), width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 'bold' }">
-                    {{ getInitials(getDisplayName(member)) }}
-                  </div>
+                  <UserAvatar :user="member" :size="32" :fontSize="14" class="user-avatar" style="margin-right: 0;" />
                   <div>
                     <strong>{{ getDisplayName(member) }}</strong>
                     <span style="display: block; font-size: 13px; color: var(--color-text-muted);">{{ member.email }}</span>
@@ -479,9 +477,7 @@
               <tr v-for="user in filteredUsers" :key="user.id || user.email">
                 <td>
                   <div class="user-cell">
-                    <div class="user-avatar" :style="{ backgroundColor: getAvatarColor(getDisplayName(user)) }">
-                      {{ getInitials(getDisplayName(user)) }}
-                    </div>
+                    <UserAvatar :user="user" :size="32" :fontSize="14" class="user-avatar" />
                     <div class="user-copy">
                       <strong>{{ getDisplayName(user) }}</strong>
                       <span>{{ user.email }} <template v-if="isOrganizationAdmin(user)">- {{ t('Organization admin', 'Quản trị viên') }}</template></span>
@@ -767,6 +763,7 @@ import axiosClient from '@/api/axiosClient'
 import { useAdminUserStore } from '@/store/useAdminUserStore'
 import { useLocale } from '@/composables/useLocale'
 import { onUnmounted } from 'vue'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const { t, locale: currentLocale } = useLocale()
 const activeTab = ref('departments')

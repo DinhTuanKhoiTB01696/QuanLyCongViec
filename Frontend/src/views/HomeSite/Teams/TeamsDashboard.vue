@@ -34,15 +34,18 @@
                 <input type="text" placeholder="Tìm kiếm các đội ngũ" class="search-input" style="width: 100%; padding: 8px 12px 8px 36px !important; border: 1px solid #DFE1E6; border-radius: 3px; outline: none; font-size: 14px; color: #172B4D; height: 36px; transition: border-color 0.2s;" />
               </div>
               
-              <div class="view-toggle" style="display: flex; border: 1px solid #DFE1E6; border-radius: 3px; overflow: hidden; height: 32px;">
-                <button class="icon-btn" style="border: none; border-radius: 0; background: #DEEBFF; color: #0052CC; padding: 0 12px; height: 100%; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-table-cells-large"></i></button>
-                <div style="width: 1px; background-color: #DFE1E6; height: 100%;"></div>
-                <button class="icon-btn" style="border: none; border-radius: 0; background: white; color: #6B778C; padding: 0 12px; height: 100%; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-list"></i></button>
+              <div class="view-toggle">
+                <button class="toggle-btn" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'" title="Chế độ lưới">
+                  <i class="fa-solid fa-table-cells-large"></i>
+                </button>
+                <button class="toggle-btn" :class="{ active: viewMode === 'table' }" @click="viewMode = 'table'" title="Chế độ danh sách">
+                  <i class="fa-solid fa-list"></i>
+                </button>
               </div>
             </div>
           </div>
           
-          <div class="team-cards-grid">
+          <div class="team-cards-grid" v-if="viewMode === 'grid'">
             <div class="team-card" v-for="team in teams" :key="team.id" @click="goToTeam(team.id)">
               <div class="team-card-cover" :style="{ backgroundColor: '#0052cc' }"></div>
               <div class="team-card-content">
@@ -52,6 +55,53 @@
               </div>
             </div>
           </div>
+          
+
+        
+
+          <table v-if="viewMode === 'table'" class="jira-table">
+                  <thead>
+              <tr>
+                  <th style="width: 25%">Đội ngũ</th>
+                  <th style="width: 20%">Loại đội ngũ</th>
+                  <th style="width: 20%">Người quản lý</th>
+                  <th style="width: 10%">Thành viên</th>
+                  <th style="width: 10%">Đội ngũ gốc</th>
+                  <th style="width: 15%">Đội ngũ con <i class="fa-solid fa-arrow-down" style="font-size: 10px; margin-left: 4px;"></i></th>
+              </tr>
+            </thead>
+                  <tbody>
+              <tr v-for="team in (viewMode === 'table' && teams ? teams : teams)" :key="team.id" @click="goToTeam(team.id)">
+                <td>
+                  <div class="team-name-cell">
+                    <div class="team-avatar-small" :style="{ backgroundColor: '#0052cc' }">{{ team.avatarText }}</div>
+                    <span class="team-name-text">{{ team.name }}</span>
+                  </div>
+                </td>
+                <td style="white-space: nowrap;">{{ team.type }}</td>
+                <td>
+                  <div v-if="team.managerName !== 'Chưa có'" class="manager-cell" style="display: flex; align-items: center; gap: 8px;">
+                    <UserAvatar :user="{ fullName: team.managerName, email: team.managerEmail }" :size="24" :fontSize="10" />
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;">{{ team.managerName }}</span>
+                  </div>
+                  <div v-else style="color: #5E6C84; display: flex; align-items: center; gap: 6px;">
+                    <div style="width: 24px; height: 24px; border-radius: 50%; background: #DFE1E6; display: flex; align-items: center; justify-content: center; color: #172B4D; font-size: 10px; font-weight: bold;">?</div>
+                    <span>Chưa có</span>
+                  </div>
+                </td>
+                <td>{{ team.memberCount }}</td>
+                <td>{{ team.parentCount }}</td>
+                <td>{{ team.childrenCount }}</td>
+              </tr>
+            </tbody>
+      <tbody v-if="teams.length === 0">
+        <tr>
+          <td colspan="3" class="empty-table-state">
+            Không tìm thấy đội ngũ nào.
+          </td>
+        </tr>
+      </tbody>
+    </table>
         </section>
       </div>
     </div>
@@ -75,7 +125,7 @@
             <label>Thêm thành viên đội <span class="required">*</span></label>
             <div class="tags-input-container" @click="focusMemberInput">
               <div class="tag-chip" v-for="member in newTeamData.members" :key="member.id">
-                 <div class="member-avatar-micro" :style="{ backgroundColor: member.color || '#0052CC' }">{{ member.initials }}</div>
+                 <UserAvatar :user="{ ...member, fullName: member.name, avatarColor: member.color }" :size="20" :fontSize="10" />
                  {{ member.name }}
                  <i class="fa-solid fa-xmark remove-tag" @click.stop="removeMember(member.id)"></i>
               </div>
@@ -84,7 +134,7 @@
             <!-- Member Dropdown -->
             <div class="member-dropdown" v-if="isMemberDropdownOpen">
               <div class="member-dropdown-item" v-for="user in filteredUsers" :key="user.id" @click="addMember(user)">
-                <div class="member-avatar-micro" :style="{ backgroundColor: user.color || '#0052CC' }">{{ user.initials }}</div>
+                <UserAvatar :user="{ ...user, fullName: user.name, avatarColor: user.color }" :size="20" :fontSize="10" />
                 <span>{{ user.name }}</span>
               </div>
               <div class="member-dropdown-empty" v-if="filteredUsers.length === 0">Không tìm thấy thành viên</div>
@@ -119,6 +169,9 @@ import { ref, onMounted, onUnmounted, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTeamStore } from '@/store/useTeamStore'
 import { usePeopleStore } from '@/store/usePeopleStore'
+import { getStoredUser } from '@/utils/permissions'
+import { getAvatarColor, getInitials } from '@/utils/avatarHelper'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const router = useRouter()
 const teamStore = useTeamStore()
@@ -129,26 +182,27 @@ const isCreating = ref(false)
 const memberSearchQuery = ref('')
 const isMemberDropdownOpen = ref(false)
 const memberInputRef = ref(null)
+const viewMode = ref('grid')
 
 const newTeamData = reactive({
   name: '',
   description: '',
   type: 'Đội ngũ chính thức',
-  members: [
-    { id: 'currentUser', name: 'Tua20000', initials: 'T', color: '#00875A' }
-  ]
+  members: []
 })
 
 const filteredUsers = computed(() => {
   const allUsers = peopleStore.users.map(u => ({
     id: u.id,
     name: u.fullName || u.email,
-    initials: u.avatar || 'U',
-    color: '#0052CC' // default color or fetch from user
+    email: u.email,
+    initials: getInitials(u.fullName, u.email),
+    color: getAvatarColor(u.email || u.id),
+    avatarUrl: u.avatarUrl
   }))
   if (!memberSearchQuery.value) return allUsers.filter(u => !newTeamData.members.find(m => m.id === u.id))
   const q = memberSearchQuery.value.toLowerCase()
-  return allUsers.filter(u => u.name.toLowerCase().includes(q) && !newTeamData.members.find(m => m.id === u.id))
+  return allUsers.filter(u => (u.name || '').toLowerCase().includes(q) && !newTeamData.members.find(m => m.id === u.id))
 })
 
 const focusMemberInput = () => {
@@ -170,7 +224,14 @@ const teams = computed(() => teamStore.allTeams.map(t => ({
   id: t.id,
   name: t.name,
   avatarText: t.name ? t.name.substring(0, 2).toUpperCase() : 'T',
-  memberCount: t.members?.length || 0,
+  memberCount: t.memberCount ?? t.members?.length ?? t.users?.length ?? 0,
+  childrenCount: t.children?.length || t.subDepartments?.length || 0,
+  manager: t.manager || t.managerId,
+  managerName: t.manager?.fullName || t.manager?.name || 'Chưa có',
+  managerEmail: t.manager?.email || '',
+  parentTeamName: t.parentDepartment?.name || t.parent?.name || 'Không có đội ngũ gốc',
+    parentCount: (t.parentDepartment || t.parent || t.parentId) ? 1 : 0,
+  type: t.type || 'Đội ngũ chính thức',
   coverImage: t.coverImage || ''
 })))
 
@@ -193,10 +254,21 @@ const goToPerson = (id) => {
 }
 
 const openCreateTeamModal = () => {
+  const sessionUser = getStoredUser();
+  const storeUser = sessionUser ? (peopleStore.users.find(u => u.id === sessionUser.id) || sessionUser) : null;
+  const currentMemberObj = storeUser ? {
+    id: storeUser.id,
+    name: storeUser.fullName || storeUser.name || sessionUser.fullName || sessionUser.email,
+    email: storeUser.email || sessionUser.email,
+    initials: getInitials(storeUser.fullName || sessionUser.fullName, storeUser.email || sessionUser.email),
+    color: getAvatarColor(storeUser.email || sessionUser.email || storeUser.id || sessionUser.id),
+    avatarUrl: storeUser.avatarUrl || sessionUser.avatarUrl
+  } : null;
+  
   newTeamData.name = ''
   newTeamData.description = ''
   newTeamData.type = 'Đội ngũ chính thức'
-  newTeamData.members = [{ id: 'currentUser', name: 'Tua20000', initials: 'T', color: '#00875A' }]
+  newTeamData.members = currentMemberObj ? [currentMemberObj] : []
   isCreateModalOpen.value = true
   isMemberDropdownOpen.value = false
   memberSearchQuery.value = ''
@@ -710,4 +782,116 @@ const submitCreateTeam = async () => {
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* View Toggle */
+.view-toggle {
+  display: flex;
+  border: 1px solid #DFE1E6;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.toggle-btn {
+  background: #FAFBFC;
+  border: none;
+  padding: 8px 12px;
+  color: #5E6C84;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.toggle-btn:hover {
+  background: #EBECF0;
+}
+
+.toggle-btn.active {
+  background-color: #DEEBFF;
+  color: #0052CC;
+}
+
+/* Table CSS */
+.jira-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.jira-table th {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5E6C84;
+  border-bottom: 2px solid #DFE1E6;
+}
+
+.jira-table th:hover {
+  background-color: #FAFBFC;
+  cursor: pointer;
+}
+
+.sort-icon {
+  margin-left: 4px;
+  font-size: 12px;
+  color: #5E6C84;
+}
+
+.col-team {
+  width: 50%;
+}
+
+.col-members {
+  width: 25%;
+}
+
+.col-children {
+  width: 25%;
+}
+
+.jira-table td {
+  padding: 12px;
+  font-size: 14px;
+  color: #172B4D;
+  border-bottom: 1px solid #DFE1E6;
+  cursor: pointer;
+}
+
+.jira-table tbody tr:hover td {
+  background-color: #FAFBFC;
+}
+
+.team-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.team-avatar-small {
+  width: 24px;
+  height: 24px;
+  background-color: #00875A;
+  color: white;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.team-name {
+  font-weight: 500;
+  color: #0052CC;
+}
+
+.team-name:hover {
+  text-decoration: underline;
+}
+
+.empty-table-state {
+  text-align: center;
+  padding: 40px !important;
+  color: #5E6C84 !important;
+}
+
 </style>

@@ -64,7 +64,7 @@
           <div class="share-tabs">
             <button class="tab-btn" :class="{ active: activeTab === 'access' }" @click="activeTab = 'access'">Access <span class="badge">1</span></button>
             <button class="tab-btn" :class="{ active: activeTab === 'followers' }" @click="activeTab = 'followers'">Followers <span class="badge">{{ followers.length }}</span></button>
-            <button class="tab-btn" :class="{ active: activeTab === 'channels' }" @click="activeTab = 'channels'">Kênh <span class="badge">0</span></button>
+            
           </div>
 
           <!-- Tab Content: Access -->
@@ -90,10 +90,10 @@
               <h4 class="section-label">Specific access</h4>
               <div class="access-list">
                 <div class="access-row">
-                  <div class="user-avatar-current" style="background-color: #36B37E;">T</div>
+                  <UserAvatar :user="owner || currentUser" :size="32" :fontSize="14" />
                   <div class="access-info">
-                    <div class="access-title">Tua20000 (You)</div>
-                    <div class="access-desc">tua4699@gmail.com</div>
+                    <div class="access-title">{{ owner?.fullName || currentUser.fullName }} (Owner)</div>
+                    <div class="access-desc">{{ owner?.email || currentUser.email }}</div>
                   </div>
                   <div class="access-role text-muted">
                     Owner
@@ -119,11 +119,11 @@
             </div>
             
             <div v-else class="access-list">
-              <div class="access-row" v-for="follower in followers" :key="follower.id">
-                <div class="user-avatar-current">{{ getInitials(follower.name) }}</div>
+              <div class="access-row" v-for="follower in followers" :key="follower.userId || follower.id">
+                <UserAvatar :user="{ fullName: follower.name, avatarColor: follower.avatarColor, avatarUrl: follower.avatarUrl }" :size="32" :fontSize="14" />
                 <div class="access-info">
                   <div class="access-title">{{ follower.name }}</div>
-                  <div class="access-desc">{{ follower.email }}</div>
+                  <div class="access-desc">{{ follower.email || 'Thành viên' }}</div>
                 </div>
                 <div class="access-actions">
                   <button class="icon-btn"><i class="fa-solid fa-ellipsis"></i></button>
@@ -132,12 +132,7 @@
             </div>
           </div>
 
-          <!-- Tab Content: Channels -->
-          <div class="tab-content" v-if="activeTab === 'channels'">
-            <div class="empty-state">
-              <p>No channels connected yet.</p>
-            </div>
-          </div>
+          
         </template>
       </div>
     </div>
@@ -145,13 +140,20 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import axiosClient from '@/api/axiosClient'
+import { useSiteStore } from '@/store/useSiteStore'
+import { usePeopleStore } from '@/store/usePeopleStore'
+
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const props = defineProps({
   isOpen: Boolean,
-  projectId: String,
-  projectName: String
+  entityId: String,
+  entityType: { type: String, default: 'Project' },
+  entityName: String,
+  workspaceId: String,
+  owner: Object // { fullName, email, avatarUrl, avatarColor }
 })
 
 const emit = defineEmits(['close', 'shared'])
@@ -159,26 +161,76 @@ const emit = defineEmits(['close', 'shared'])
 const activeTab = ref('access')
 const searchQuery = ref('')
 const selectedUsers = ref([])
-const inviteRole = ref('Can edit')
+const inviteRole = ref('Can view')
 const addAsFollower = ref(true)
 const isSubmitting = ref(false)
 
-// Mock data
-const suggestedPeople = [
-  { id: '1', name: 'Tuấn Khôi Đinh', email: 'khoi@example.com' },
-  { id: '2', name: 'Quân Đạt Võ', email: 'quan@example.com' },
-  { id: '3', name: 'Anh Quan Ng Hoang', email: 'anhquan@example.com' },
-  { id: '4', name: 'Thịnh Phát Bùi', email: 'thinh@example.com' }
-]
-
+const siteStore = useSiteStore()
+const peopleStore = usePeopleStore()
 const followers = ref([])
 
+const currentUser = computed(() => {
+  try {
+    return JSON.parse(localStorage.getItem('user') || localStorage.getItem('currentUser') || '{}')
+  } catch {
+    return {}
+  }
+})
+
+onMounted(async () => {
+  if (peopleStore.users.length === 0) {
+    await peopleStore.fetchPeople()
+  }
+  if (props.isOpen && props.entityId) {
+    fetchFollowers()
+  }
+})
+
+watch(() => props.isOpen, (newVal) => {
+  if (newVal && props.entityId) fetchFollowers()
+})
+
+const fetchFollowers = async () => {
+  try {
+    const res = await axiosClient.get(`/workspaces/${getWorkspaceId()}/followers/entity`, {
+      params: {
+        entityType: props.entityType,
+        entityId: props.entityId
+      }
+    })
+    followers.value = normalizeFollowers(res.data?.data || res.data || [])
+  } catch (e) {
+    console.error('Failed to fetch followers', e)
+  }
+}
+
+const getWorkspaceId = () => {
+  const id = props.workspaceId || siteStore.recentSite?.id || localStorage.getItem('recent_site_id')
+  return id && id.length >= 36 ? id : '00000000-0000-0000-0000-000000000000'
+}
+
+const normalizeFollowers = (items) => {
+  return (items || []).map(item => ({
+    id: item.id,
+    userId: item.userId,
+    name: item.name || item.fullName || item.FullName,
+    fullName: item.fullName || item.FullName || item.name,
+    email: item.email || item.Email,
+    avatarUrl: item.avatarUrl || item.AvatarUrl,
+    avatarColor: item.avatarColor
+  }))
+}
+
+const suggestedPeople = computed(() => {
+  return (peopleStore.users || []).map(u => ({ id: u.id, name: u.name || u.fullName, email: u.email, avatarColor: u.avatarColor, avatarUrl: u.avatarUrl }))
+})
+
 const filteredSuggestions = computed(() => {
-  if (!searchQuery.value) return suggestedPeople.filter(u => !selectedUsers.value.some(s => s.id === u.id))
+  if (!searchQuery.value) return suggestedPeople.value.filter(u => !selectedUsers.value.some(s => s.id === u.id))
   const lowerQ = searchQuery.value.toLowerCase()
-  return suggestedPeople.filter(u => 
+  return suggestedPeople.value.filter(u => 
     !selectedUsers.value.some(s => s.id === u.id) &&
-    (u.name.toLowerCase().includes(lowerQ) || u.email.toLowerCase().includes(lowerQ))
+    ((u.name && u.name.toLowerCase().includes(lowerQ)) || (u.email && u.email.toLowerCase().includes(lowerQ)))
   )
 })
 
@@ -208,33 +260,28 @@ const focusSearch = () => {
 }
 
 const handleShare = async () => {
-  if (selectedUsers.value.length === 0 || !props.projectId) return
+  if (selectedUsers.value.length === 0 || !props.entityId) return
   
   isSubmitting.value = true
   try {
-    // Send API request for each selected user
-    for (const user of selectedUsers.value) {
-      await axiosClient.post(`/projects/${props.projectId}/members/invite`, {
-        email: user.email,
-        role: inviteRole.value === 'Can edit' ? 'Editor' : 'Viewer',
-        inviteMessage: `You have been invited to ${props.projectName || 'a project'}`
+    if (addAsFollower.value) {
+      const res = await axiosClient.post(`/workspaces/${getWorkspaceId()}/followers/entity`, {
+        userIds: selectedUsers.value.map(user => user.id)
+      }, {
+        params: {
+          entityType: props.entityType,
+          entityId: props.entityId
+        }
       })
-      
-      // If addAsFollower is true, add to followers list locally for now
-      if (addAsFollower.value) {
-        followers.value.push(user)
-      }
+      followers.value = normalizeFollowers(res.data?.data || res.data || [])
     }
     
     emit('shared', selectedUsers.value)
-    
-    // Reset state and show followers tab
     selectedUsers.value = []
     activeTab.value = 'followers'
     
   } catch (err) {
     console.error('Lỗi khi chia sẻ:', err)
-    alert('Không thể gửi lời mời lúc này.')
   } finally {
     isSubmitting.value = false
   }

@@ -49,16 +49,20 @@ namespace TaskManagement.Infrastructure.Data
 
         // Group 4: Collaboration & Tracking
         public DbSet<Comment> Comments { get; set; }
+        public DbSet<CommentMention> CommentMentions { get; set; }
         public DbSet<CommentAttachment> CommentAttachments { get; set; }
         public DbSet<Attachment> Attachments { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<SiteAuditLog> SiteAuditLogs { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<RecentView> RecentViews { get; set; }
 
         // Group 5: Gamification & Recognition
         public DbSet<PerformanceReview> PerformanceReviews { get; set; }
         public DbSet<UserWallet> UserWallets { get; set; }
         public DbSet<PointTransaction> PointTransactions { get; set; }
         public DbSet<Kudo> Kudos { get; set; }
+        public DbSet<KudoReaction> KudoReactions { get; set; }
 
         // Group 6: AI Integration
         public DbSet<AIPromptTemplate> AIPromptTemplates { get; set; }
@@ -90,10 +94,17 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<GoalLesson> GoalLessons { get; set; }
         public DbSet<GoalRisk> GoalRisks { get; set; }
         public DbSet<GoalDecision> GoalDecisions { get; set; }
+        public DbSet<TeamGoal> TeamGoals { get; set; }
 
         // Group 9: Links & Favorites
         public DbSet<StarredItem> StarredItems { get; set; }
         public DbSet<ProjectLink> ProjectLinks { get; set; }
+        public DbSet<ProjectUpdate> ProjectUpdates { get; set; }
+        public DbSet<ProjectLesson> ProjectLessons { get; set; }
+        public DbSet<ProjectRisk> ProjectRisks { get; set; }
+        public DbSet<ProjectDecision> ProjectDecisions { get; set; }
+        public DbSet<EntityFollower> EntityFollowers { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -322,10 +333,7 @@ namespace TaskManagement.Infrastructure.Data
             // 6. Relationships - Group 4: Collaboration & Tracking
             // =============================================
             modelBuilder.Entity<Comment>()
-                .HasOne(c => c.WorkTask)
-                .WithMany(wt => wt.Comments)
-                .HasForeignKey(c => c.WorkTaskId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasIndex(c => new { c.EntityType, c.EntityId });
 
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.User)
@@ -429,6 +437,49 @@ namespace TaskManagement.Infrastructure.Data
 
             modelBuilder.Entity<PointTransaction>()
                 .HasIndex(pt => new { pt.UserWalletUserId, pt.WorkTaskId, pt.TransactionType });
+
+            modelBuilder.Entity<CommentMention>()
+                .HasOne(cm => cm.Comment)
+                .WithMany()
+                .HasForeignKey(cm => cm.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SiteAuditLog>()
+                .HasOne(sal => sal.User)
+                .WithMany()
+                .HasForeignKey(sal => sal.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SiteAuditLog>()
+                .HasIndex(sal => new { sal.EntityType, sal.EntityId });
+
+            modelBuilder.Entity<RecentView>()
+                .HasOne(rv => rv.User)
+                .WithMany()
+                .HasForeignKey(rv => rv.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RecentView>().Property(rv => rv.EntityType).HasMaxLength(64);
+            modelBuilder.Entity<RecentView>().Property(rv => rv.Title).HasMaxLength(512);
+            modelBuilder.Entity<RecentView>().Property(rv => rv.Subtitle).HasMaxLength(512);
+            modelBuilder.Entity<RecentView>().Property(rv => rv.Url).HasMaxLength(1024);
+            modelBuilder.Entity<RecentView>().Property(rv => rv.Icon).HasMaxLength(128);
+
+            modelBuilder.Entity<RecentView>()
+                .HasIndex(rv => new { rv.UserId, rv.EntityType, rv.EntityId })
+                .IsUnique();
+
+            modelBuilder.Entity<KudoReaction>()
+                .HasOne(kr => kr.Kudo)
+                .WithMany()
+                .HasForeignKey(kr => kr.KudoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<KudoReaction>()
+                .HasOne(kr => kr.User)
+                .WithMany()
+                .HasForeignKey(kr => kr.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // =============================================
             // 8. Relationships - Group 6: AI Integration
@@ -651,6 +702,28 @@ namespace TaskManagement.Infrastructure.Data
                 .HasForeignKey(gu => gu.GoalId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<TeamGoal>()
+                .HasOne(tg => tg.Department)
+                .WithMany(d => d.TeamGoals)
+                .HasForeignKey(tg => tg.DepartmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TeamGoal>()
+                .HasOne(tg => tg.Goal)
+                .WithMany(g => g.TeamGoals)
+                .HasForeignKey(tg => tg.GoalId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TeamGoal>()
+                .HasOne(tg => tg.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(tg => tg.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TeamGoal>()
+                .HasIndex(tg => new { tg.DepartmentId, tg.GoalId })
+                .IsUnique();
+
             modelBuilder.Entity<GoalLesson>()
                 .HasOne(gl => gl.Goal)
                 .WithMany(g => g.Lessons)
@@ -817,7 +890,7 @@ namespace TaskManagement.Infrastructure.Data
                             pendingLogsActions.Add(list => list.Add(new AuditLog
                             {
                                 Id = Guid.NewGuid(),
-                                WorkTaskId = entry.Entity.WorkTaskId,
+                                WorkTaskId = entry.Entity.EntityId,
                                 UserId = parsedUserId,
                                 FieldChanged = "ADD_COMMENT",
                                 OldValue = "{}",

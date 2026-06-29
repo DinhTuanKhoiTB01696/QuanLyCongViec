@@ -503,6 +503,7 @@ export default {
     pickUpShort: 'Tiếp tục nơi bạn đã dừng lại',
     createNewSite: 'Tạo site mới',
     goToSprintA: 'Vào SprintA',
+    goToSpace: 'Vào không gian',
     lookingForDifferent: 'Tìm site khác',
     exploreQuestion: 'Muốn khám phá thêm tính năng?',
     exploreFeatures: 'Khám phá tính năng',

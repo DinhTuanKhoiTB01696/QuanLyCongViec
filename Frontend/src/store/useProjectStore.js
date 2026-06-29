@@ -103,7 +103,7 @@ const mapProjectRow = (project) => ({
 })
 
 export const useProjectStore = defineStore('project', {
-  state: () => ({
+  state: () => ({ lessons: [], risks: [], decisions: [],
     currentProject: null,
     allProjects: [],
     expandedProjectIds: [],
@@ -129,6 +129,10 @@ export const useProjectStore = defineStore('project', {
     }))
   },
   actions: {
+    
+    
+    
+
     async fetchAllProjects(force = false) {
       if (!force && this.allProjects.length > 0) return this.allProjects;
 

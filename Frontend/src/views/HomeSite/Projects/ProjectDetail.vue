@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="project-detail-wrapper" v-if="project">
     <!-- Module Header (matching the list view) -->
     <header class="module-header">
@@ -27,14 +27,14 @@
           </div>
           
           <div class="header-actions">
-            <span class="status-badge status-on-track">
-              ĐÚNG TIẾN ĐỘ <i class="fa-solid fa-chevron-down ms-1"></i>
+            <span class="status-badge" :class="getStatusClass(project.statusLabel || project.status)">
+              {{ project.statusLabel || (project.status ? 'ĐANG HOẠT ĐỘNG' : 'TẠM DỪNG') }}
             </span>
             <div class="target-date-badge">
-              <i class="fa-regular fa-calendar"></i> 15 thg 6 <i class="fa-solid fa-chevron-down ms-1"></i>
+              <i class="fa-regular fa-calendar"></i> {{ project.startDate ? new Date(project.startDate).toLocaleDateString('vi-VN') : 'Chưa có ngày' }}
             </div>
-            <button class="secondary-btn">
-              Đang theo dõi
+            <button class="secondary-btn" @click="toggleFollow">
+              {{ project.isFollowing ? 'Đang theo dõi' : 'Theo dõi' }}
             </button>
             <button class="secondary-btn" @click="isShareModalOpen = true">
               <i class="fa-solid fa-share-nodes"></i> Chia sẻ
@@ -67,35 +67,58 @@
           <section class="content-section">
             <h4>Dự án chúng ta đang thực hiện</h4>
             <div v-if="!editing.description" @click="editing.description = true" class="editable-placeholder">
-              <p v-if="project.description">{{ project.description }}</p>
+              <div v-if="project.description" v-html="project.description" class="prose"></div>
               <p v-else class="empty-text">Mô tả dự án này và công việc liên quan đến dự án.</p>
             </div>
-            <RichTextEditor v-else v-model="project.description" @save="editing.description = false" @cancel="editing.description = false" placeholder="Mô tả dự án này và công việc liên quan đến dự án." />
+            <RichTextEditor v-else v-model="project.description" @save="saveOverview('description')" @cancel="editing.description = false" placeholder="Mô tả dự án này và công việc liên quan đến dự án." />
           </section>
 
           <section class="content-section">
             <h4>Lý do thực hiện dự án</h4>
             <div v-if="!editing.reason" @click="editing.reason = true" class="editable-placeholder">
-              <p v-if="project.reason">{{ project.reason }}</p>
+              <div v-if="project.reason" v-html="project.reason" class="prose"></div>
               <p v-else class="empty-text">Giải thích lý do vì sao công việc này được thực hiện và những lý do thúc đẩy công việc.</p>
             </div>
-            <RichTextEditor v-else v-model="project.reason" @save="editing.reason = false" @cancel="editing.reason = false" placeholder="Giải thích lý do vì sao công việc này được thực hiện và những lý do thúc đẩy công việc." />
+            <RichTextEditor v-else v-model="project.reason" @save="saveOverview('reason')" @cancel="editing.reason = false" placeholder="Giải thích lý do vì sao công việc này được thực hiện và những lý do thúc đẩy công việc." />
           </section>
 
           <section class="content-section">
             <h4>Cách để biết rằng chúng ta đã thành công</h4>
             <div v-if="!editing.success" @click="editing.success = true" class="editable-placeholder">
-              <p v-if="project.success">{{ project.success }}</p>
+              <div v-if="project.success" v-html="project.success" class="prose"></div>
               <p v-else class="empty-text">Mô tả thành công và mục tiêu bạn hy vọng đạt được.</p>
             </div>
-            <RichTextEditor v-else v-model="project.success" @save="editing.success = false" @cancel="editing.success = false" placeholder="Mô tả thành công và mục tiêu bạn hy vọng đạt được." />
+            <RichTextEditor v-else v-model="project.success" @save="saveOverview('success')" @cancel="editing.success = false" placeholder="Mô tả thành công và mục tiêu bạn hy vọng đạt được." />
           </section>
 
-          <section class="content-section">
-            <h4>Nhận xét</h4>
-            <div class="comment-input-mockup">
-              <div class="user-avatar-current">T</div>
-              <div class="fake-input">Thêm nhận xét... tham gia cuộc hội thoại</div>
+          
+          <!-- Hoạt động -->
+          <section class="content-section" style="margin-top: 16px;">
+            <div class="section-header" style="border: none; padding-bottom: 0;">
+              <h3>Hoạt động</h3>
+            </div>
+            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+              <button class="toggle-btn" :class="{ active: activityTab === 'comments' }" @click="activityTab = 'comments'">Nhận xét</button>
+              <button class="toggle-btn" :class="{ active: activityTab === 'history' }" @click="activityTab = 'history'">Lịch sử</button>
+            </div>
+            
+            <div class="section-body">
+              <div v-if="activityTab === 'comments'">
+                <CommentSection :entity-id="route.params.id" entity-type="Project" />
+              </div>
+              <div v-else>
+                <div class="timeline-item" v-for="entry in projectHistory" :key="entry.id" style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;">
+                   <UserAvatar :user="{ fullName: entry.actor, email: entry.email }" :size="24" :fontSize="10" />
+                   <div style="flex: 1;">
+                      <div style="display: flex; justify-content: space-between; align-items: center;">
+                         <span style="font-size: 14px; color: #172B4D;"><strong>{{ entry.actor }}</strong> {{ entry.action }}</span>
+                         <span style="font-size: 12px; color: #5E6C84;">{{ formatDate(entry.createdAt) }}</span>
+                      </div>
+                      <div v-if="entry.target" style="font-size: 14px; color: #5E6C84; margin-top: 4px;">{{ entry.target }}</div>
+                   </div>
+                </div>
+                <div v-if="projectHistory.length === 0" style="color: #6B778C; font-size: 14px; padding: 12px 0;">Chưa có hoạt động nào.</div>
+              </div>
             </div>
           </section>
         </template>
@@ -104,7 +127,7 @@
         <template v-if="currentTab === 'updates'">
           <div class="updates-header">
             <h4>Lịch sử dự án</h4>
-            <span class="last-update-text">Lần cập nhật gần nhất: khoảng 14 giờ trước</span>
+            <span class="last-update-text">Lần cập nhật gần nhất: {{ projectUpdates.length ? formatDate(projectUpdates[0].createdAt) : 'Chưa có' }}</span>
           </div>
 
           <div class="timeline-visual">
@@ -120,26 +143,25 @@
               <div class="editor-field">
                 <label>Trạng thái hiện tại</label>
                 <div class="status-dropdown-wrapper">
-                  <span class="status-badge status-on-track" @click="showStatusMenu = !showStatusMenu" style="cursor: pointer;">
-                    ĐÚNG TIẾN ĐỘ <i class="fa-solid fa-chevron-down ms-1"></i>
+                  <span class="status-badge" :class="getStatusClass(newProjectUpdate.status)" @click="showStatusMenu = !showStatusMenu" style="cursor: pointer;">
+                    {{ newProjectUpdate.status }} <i class="fa-solid fa-chevron-down ms-1"></i>
                   </span>
-                  <!-- Mock Status Dropdown -->
                   <div class="status-dropdown-menu" v-if="showStatusMenu">
-                    <div class="status-option"><span class="status-badge status-pending">ĐANG CHỜ XỬ LÝ</span></div>
-                    <div class="status-option"><span class="status-badge status-on-track">ĐÚNG TIẾN ĐỘ</span></div>
-                    <div class="status-option"><span class="status-badge status-at-risk">CÓ RỦI RO</span></div>
-                    <div class="status-option"><span class="status-badge status-off-track">KHÔNG ĐÚNG TIẾN ĐỘ</span></div>
-                    <div class="status-option"><span class="status-badge status-done">ĐÃ HOÀN TẤT <i class="fa-solid fa-flag ms-1"></i></span></div>
+                    <div class="status-option" @click="selectProjectStatus('ĐANG CHỜ XỬ LÝ')"><span class="status-badge status-pending">ĐANG CHỜ XỬ LÝ</span></div>
+                    <div class="status-option" @click="selectProjectStatus('ĐÚNG TIẾN ĐỘ')"><span class="status-badge status-on-track">ĐÚNG TIẾN ĐỘ</span></div>
+                    <div class="status-option" @click="selectProjectStatus('CÓ RỦI RO')"><span class="status-badge status-at-risk">CÓ RỦI RO</span></div>
+                    <div class="status-option" @click="selectProjectStatus('KHÔNG ĐÚNG TIẾN ĐỘ')"><span class="status-badge status-off-track">KHÔNG ĐÚNG TIẾN ĐỘ</span></div>
+                    <div class="status-option" @click="selectProjectStatus('ĐÃ HOÀN TẤT')"><span class="status-badge status-done">ĐÃ HOÀN TẤT <i class="fa-solid fa-flag ms-1"></i></span></div>
                     <div class="divider"></div>
-                    <div class="status-option text-option">ĐÃ TẠM DỪNG</div>
-                    <div class="status-option text-option">ĐÃ HỦY</div>
+                    <div class="status-option text-option" @click="selectProjectStatus('ĐÃ TẠM DỪNG')">ĐÃ TẠM DỪNG</div>
+                    <div class="status-option text-option" @click="selectProjectStatus('ĐÃ HỦY')">ĐÃ HỦY</div>
                   </div>
                 </div>
               </div>
               <div class="editor-field">
                 <label>Ngày mục tiêu</label>
                 <div class="target-date-badge date-dropdown">
-                  <i class="fa-regular fa-calendar"></i> 15 thg 6 <i class="fa-solid fa-chevron-down ms-1"></i>
+                  <i class="fa-regular fa-calendar"></i> {{ project.endDate ? new Date(project.endDate).toLocaleDateString('vi-VN') : 'Không có' }}
                 </div>
               </div>
               <div class="editor-field template-link">
@@ -148,7 +170,7 @@
             </div>
             
             <div class="update-editor-body">
-              <textarea placeholder="Viết bản cập nhật gồm tối đa 280 ký tự. Nhập '/gần nhất' để sao chép bản cập nhật gần đây nhất, còn nhập / để thêm thành phần khác" rows="4"></textarea>
+              <textarea v-model="newProjectUpdate.text" placeholder="Viết bản cập nhật gồm tối đa 280 ký tự." rows="4"></textarea>
             </div>
             
             <div class="update-editor-footer">
@@ -160,59 +182,59 @@
                 <button class="tool-btn"><i class="fa-solid fa-link"></i></button>
               </div>
               <div class="editor-actions">
-                <span class="char-count">0/280 <i class="fa-solid fa-circle-question"></i></span>
+                <span class="char-count">{{ newProjectUpdate.text.length }}/280 <i class="fa-solid fa-circle-question"></i></span>
                 <button class="secondary-btn"><i class="fa-solid fa-users"></i> 1</button>
-                <button class="secondary-btn">Lưu bản nháp</button>
-                <button class="primary-btn">Đăng bản cập nhật</button>
+                <button class="secondary-btn" @click="newProjectUpdate.text = ''">Lưu bản nháp</button>
+                <button class="primary-btn" :disabled="!newProjectUpdate.text.trim()" @click="submitProjectUpdate">Đăng bản cập nhật</button>
               </div>
             </div>
           </div>
 
-          <div class="timeline-posts">
-            <h4 class="timeline-period">Tuần này</h4>
-            
-            <div class="timeline-post">
+          <div v-if="projectUpdates.length === 0" class="empty-state-large-tab">
+            <div class="empty-illustration">
+              <i class="fa-regular fa-message" style="color: #0052CC; font-size: 56px;"></i>
+            </div>
+            <div class="empty-content">
+              <h3>Chưa có bản cập nhật nào.</h3>
+              <p>Cac ban cap nhat du an se xuat hien o day sau khi duoc dang.</p>
+            </div>
+          </div>
+
+          <div v-else class="timeline-posts">
+            <div class="timeline-post" style="margin-bottom: 24px; border: 1px solid #DFE1E6; padding: 16px; border-radius: 3px; background: white;" v-for="update in projectUpdates" :key="update.id">
               <div class="post-header">
                 <div class="post-user">
-                  <div class="user-avatar-current">T</div>
+                  <UserAvatar :user="{ id: update.creatorId, fullName: update.creatorName || update.authorName || project.owner, avatarUrl: update.creatorAvatarUrl, email: update.creatorEmail || update.authorEmail || update.creatorId }" :size="32" :fontSize="12" />
                   <div class="user-info">
-                    <span class="user-name">Tua20000</span>
-                    <span class="post-time">khoảng 14 giờ trước</span>
+                    <span class="user-name">{{ update.creatorName || update.authorName || project.owner || 'Người cập nhật' }}</span>
+                    <span class="post-time">{{ formatDate(update.createdAt || update.updatedAt) }}</span>
                   </div>
                 </div>
                 <div class="post-status-meta">
-                  <span class="status-badge status-on-track">ĐÚNG TIẾN ĐỘ</span> cho <div class="target-date-badge"><i class="fa-regular fa-calendar"></i> 15 thg 6</div>
+                    <span class="status-badge" :class="getStatusClass(update.title || update.status || project.status)">{{ update.title || update.status || project.status || 'Đang chờ xử lý' }}</span>
                 </div>
               </div>
-              
               <div class="post-content">
-                <p>qr</p>
-                <div class="status-change-log">
-                  Đã thay đổi trạng thái <span class="status-badge status-pending mx-1">ĐANG CHỜ XỬ LÝ</span> <i class="fa-solid fa-arrow-right mx-1"></i> <span class="status-badge status-on-track mx-1">ĐÚNG TIẾN ĐỘ</span>
+                <p>{{ update.text || update.content || update.message || update.summary }}</p>
+                <div class="status-change-log" v-if="getPreviousStatus(update)" style="margin-top: 8px;">
+                  <template v-if="getPreviousStatus(update) === getCurrentStatus(update)">
+                    Đã giữ nguyên trạng thái <span class="status-badge mx-1" :class="getStatusClass(getCurrentStatus(update))">{{ getCurrentStatus(update) }}</span>
+                  </template>
+                  <template v-else>
+                    Đã thay đổi trạng thái <span class="status-badge mx-1" :class="getStatusClass(getPreviousStatus(update))">{{ getPreviousStatus(update) }}</span> <i class="fa-solid fa-arrow-right mx-1"></i> <span class="status-badge mx-1" :class="getStatusClass(getCurrentStatus(update))">{{ getCurrentStatus(update) }}</span>
+                  </template>
                 </div>
               </div>
-              
-              <div class="post-actions">
-                <span>Chia sẻ • Sửa • Xóa •</span>
-                <button class="reaction-btn">👍</button>
-                <button class="reaction-btn">👏</button>
-                <button class="reaction-btn">🎉</button>
-                <button class="reaction-btn">❤️</button>
-                <button class="reaction-btn"><i class="fa-solid fa-ellipsis"></i></button>
-                <button class="reaction-btn"><i class="fa-solid fa-bullseye"></i></button>
-              </div>
-              
-              <div class="comment-input-mockup mt-16">
-                <div class="user-avatar-current">T</div>
-                <div class="fake-input">Thêm nhận xét... hỏi nhóm có cần trợ giúp không</div>
-              </div>
+              <CommentSection :entity-id="update.id" entity-type="ProjectUpdate" />
             </div>
+            <h4 class="timeline-period">Tuần này</h4>
+            
           </div>
         </template>
 
         <!-- Tab: Bài học rút ra -->
         <template v-if="currentTab === 'learnings'">
-          <div v-if="!editing.learnings && !project.learnings" class="empty-state-large-tab">
+          <div v-if="!editing.learnings && !projectLessons.length" class="empty-state-large-tab">
             <div class="empty-illustration">
               <i class="fa-solid fa-lightbulb" style="color: #0052CC; font-size: 64px;"></i>
             </div>
@@ -221,45 +243,94 @@
               <p>Chia sẻ những gì bạn đã học được với công ty của bạn để giúp những người khác có một khởi đầu thuận lợi khi làm việc trên các dự án tương tự.</p>
               <div class="empty-actions">
                 <button class="secondary-btn" @click="editing.learnings = true">Thêm bài học rút ra mới</button>
-                <a href="#" class="link-btn">Xem ví dụ</a>
               </div>
             </div>
           </div>
           <div v-else>
-            <RichTextEditor v-model="project.learnings" @save="editing.learnings = false" @cancel="editing.learnings = false" v-if="editing.learnings" placeholder="Nhập bài học rút ra..." />
-            <div v-else @click="editing.learnings = true" class="editable-placeholder">
-              <p>{{ project.learnings }}</p>
+            <div v-if="editing.learnings" class="tab-item-editor" style="margin-bottom: 24px; padding-top: 16px;">
+                <RichTextEditor v-model="newProjectItem.text" @save="saveProjectLesson" @cancel="cancelProjectItem('learnings')" placeholder="Dùng không gian này để chia sẻ bài học rút ra...">
+                  <template #header>
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #DFE1E6; background-color: #fff;">
+                      <i class="fa-regular fa-lightbulb" style="color: #FFAB00; font-size: 18px;"></i>
+                      <input type="text" v-model="newProjectItem.title" placeholder="Tóm tắt cho bài học rút ra của bạn là gì?" style="border: none; outline: none; background: transparent; width: 100%; font-size: 15px; font-weight: 500; color: #172B4D;" />
+                    </div>
+                  </template>
+                </RichTextEditor>
+            </div>
+            <div v-if="!editing.learnings && projectLessons.length" style="margin-bottom: 24px; padding-top: 16px;">
+                <button class="secondary-btn" @click="editing.learnings = true">Thêm bài học</button>
+            </div>
+            
+            <div class="timeline-post" v-for="item in projectLessons" :key="item.id" style="margin-bottom: 16px;">
+                <div class="post-header">
+                  <div class="post-user">
+                    <UserAvatar :user="{ id: item.creatorId, fullName: item.creatorName, avatarUrl: item.creatorAvatarUrl, email: item.creatorEmail }" :size="32" :fontSize="12" />
+                    <div class="user-info">
+                      <span class="user-name">{{ item.creatorName }}</span>
+                      <span class="post-time">{{ formatDate(item.createdAt) }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="post-content">
+                  <h4 style="margin: 0 0 8px 0; color: #172B4D; font-size: 16px;"><i class="fa-regular fa-lightbulb" style="color: #FFAB00; margin-right: 6px;"></i> {{ item.title }}</h4>
+                  <div v-html="sanitizeHtml(item.text)"></div>
+                </div>
             </div>
           </div>
         </template>
 
         <!-- Tab: Rủi ro -->
         <template v-if="currentTab === 'risks'">
-          <div v-if="!editing.risks && !project.risks" class="empty-state-large-tab">
+          <div v-if="!editing.risks && !projectRisks.length" class="empty-state-large-tab">
             <div class="empty-illustration">
-              <i class="fa-solid fa-triangle-exclamation" style="color: #0052CC; font-size: 64px;"></i>
+              <i class="fa-solid fa-triangle-exclamation" style="color: #FF5630; font-size: 64px;"></i>
             </div>
             <div class="empty-text-content">
               <h4>Nắm bắt các rủi ro đã biết</h4>
-              <p>Theo dõi rủi ro và đảm bảo rằng các bên liên quan của bạn không bất ngờ nếu điều tồi tệ nhất xảy ra trong dự án này.</p>
+              <p>Theo dõi mọi rủi ro liên quan đến dự án này để tránh những bất ngờ sau này.</p>
               <div class="empty-actions">
                 <button class="secondary-btn" @click="editing.risks = true">Thêm rủi ro mới</button>
               </div>
             </div>
           </div>
           <div v-else>
-            <RichTextEditor v-model="project.risks" @save="editing.risks = false" @cancel="editing.risks = false" v-if="editing.risks" placeholder="Nhập rủi ro..." />
-            <div v-else @click="editing.risks = true" class="editable-placeholder">
-              <p>{{ project.risks }}</p>
+            <div v-if="editing.risks" class="tab-item-editor" style="margin-bottom: 24px; padding-top: 16px;">
+                <RichTextEditor v-model="newProjectItem.text" @save="saveProjectRisk" @cancel="cancelProjectItem('risks')" placeholder="Mô tả rủi ro...">
+                  <template #header>
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #DFE1E6; background-color: #fff;">
+                      <i class="fa-solid fa-triangle-exclamation" style="color: #FF5630; font-size: 18px;"></i>
+                      <input type="text" v-model="newProjectItem.title" placeholder="Tóm tắt rủi ro là gì?" style="border: none; outline: none; background: transparent; width: 100%; font-size: 15px; font-weight: 500; color: #172B4D;" />
+                    </div>
+                  </template>
+                </RichTextEditor>
+            </div>
+            <div v-if="!editing.risks && projectRisks.length" style="margin-bottom: 24px; padding-top: 16px;">
+                <button class="secondary-btn" @click="editing.risks = true">Thêm rủi ro</button>
+            </div>
+            
+            <div class="timeline-post" v-for="item in projectRisks" :key="item.id" style="margin-bottom: 16px;">
+                <div class="post-header">
+                  <div class="post-user">
+                    <UserAvatar :user="{ id: item.creatorId, fullName: item.creatorName, avatarUrl: item.creatorAvatarUrl, email: item.creatorEmail }" :size="32" :fontSize="12" />
+                    <div class="user-info">
+                      <span class="user-name">{{ item.creatorName }}</span>
+                      <span class="post-time">{{ formatDate(item.createdAt) }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="post-content">
+                  <h4 style="margin: 0 0 8px 0; color: #172B4D; font-size: 16px;"><i class="fa-solid fa-triangle-exclamation" style="color: #FF5630; margin-right: 6px;"></i> {{ item.title }}</h4>
+                  <div v-html="sanitizeHtml(item.text)"></div>
+                </div>
             </div>
           </div>
         </template>
 
         <!-- Tab: Quyết định -->
         <template v-if="currentTab === 'decisions'">
-          <div v-if="!editing.decisions && !project.decisions" class="empty-state-large-tab">
+          <div v-if="!editing.decisions && !projectDecisions.length" class="empty-state-large-tab">
             <div class="empty-illustration">
-              <i class="fa-solid fa-code-branch" style="color: #0052CC; font-size: 64px;"></i>
+              <i class="fa-solid fa-check-circle" style="color: #36B37E; font-size: 64px;"></i>
             </div>
             <div class="empty-text-content">
               <h4>Truyền đạt các quyết định lớn</h4>
@@ -270,15 +341,39 @@
             </div>
           </div>
           <div v-else>
-            <RichTextEditor v-model="project.decisions" @save="editing.decisions = false" @cancel="editing.decisions = false" v-if="editing.decisions" placeholder="Nhập quyết định..." />
-            <div v-else @click="editing.decisions = true" class="editable-placeholder">
-              <p>{{ project.decisions }}</p>
+            <div v-if="editing.decisions" class="tab-item-editor" style="margin-bottom: 24px; padding-top: 16px;">
+                <RichTextEditor v-model="newProjectItem.text" @save="saveProjectDecision" @cancel="cancelProjectItem('decisions')" placeholder="Mô tả quyết định...">
+                  <template #header>
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #DFE1E6; background-color: #fff;">
+                      <i class="fa-solid fa-check-circle" style="color: #36B37E; font-size: 18px;"></i>
+                      <input type="text" v-model="newProjectItem.title" placeholder="Tóm tắt quyết định là gì?" style="border: none; outline: none; background: transparent; width: 100%; font-size: 15px; font-weight: 500; color: #172B4D;" />
+                    </div>
+                  </template>
+                </RichTextEditor>
+            </div>
+            <div v-if="!editing.decisions && projectDecisions.length" style="margin-bottom: 24px; padding-top: 16px;">
+                <button class="secondary-btn" @click="editing.decisions = true">Thêm quyết định</button>
+            </div>
+            
+            <div class="timeline-post" v-for="item in projectDecisions" :key="item.id" style="margin-bottom: 16px;">
+                <div class="post-header">
+                  <div class="post-user">
+                    <UserAvatar :user="{ id: item.creatorId, fullName: item.creatorName, avatarUrl: item.creatorAvatarUrl, email: item.creatorEmail }" :size="32" :fontSize="12" />
+                    <div class="user-info">
+                      <span class="user-name">{{ item.creatorName }}</span>
+                      <span class="post-time">{{ formatDate(item.createdAt) }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="post-content">
+                  <h4 style="margin: 0 0 8px 0; color: #172B4D; font-size: 16px;"><i class="fa-solid fa-check-circle" style="color: #36B37E; margin-right: 6px;"></i> {{ item.title }}</h4>
+                  <div v-html="sanitizeHtml(item.text)"></div>
+                </div>
             </div>
           </div>
         </template>
 
       </div>
-
       <!-- Right Column: Sidebar Details -->
       <div class="side-column">
         <div class="details-body">
@@ -287,8 +382,8 @@
             <div class="detail-label">Chủ sở hữu</div>
             <div class="detail-value">
               <div class="owner-chip">
-                <div class="owner-avatar-micro">T</div>
-                <span class="owner-name">Tua20000</span>
+                <UserAvatar :user="projectOwner" :size="24" :fontSize="11" class="owner-avatar-micro" />
+                <span class="owner-name">{{ projectOwner.name }}</span>
               </div>
             </div>
           </div>
@@ -298,10 +393,10 @@
             <div class="detail-label">Người đóng góp <span class="badge-count">1</span> <button class="icon-btn-micro"><i class="fa-solid fa-plus"></i></button></div>
             <div class="detail-value">
               <div class="owner-chip">
-                <div class="owner-avatar-micro">T</div>
+                  <UserAvatar :user="projectOwner" :size="24" :fontSize="11" class="owner-avatar-micro" />
                 <div class="owner-info">
-                  <span class="owner-name">Tua20000</span>
-                  <span class="owner-role">Lập trình viên</span>
+                  <span class="owner-name">{{ projectOwner.name }}</span>
+                  <span class="owner-role">{{ projectOwner.role }}</span>
                 </div>
               </div>
             </div>
@@ -327,7 +422,7 @@
               <div class="linked-item" v-for="g in linkedGoals" :key="g.id">
                 <i class="fa-solid fa-bullseye item-icon"></i>
                 <span class="item-name">{{ g.name }}</span>
-                <button class="remove-btn" @click="removeGoal(g.id)"><i class="fa-solid fa-xmark"></i></button>
+                <button class="remove-btn" @click="removeGoal(g)"><i class="fa-solid fa-xmark"></i></button>
               </div>
             </div>
 
@@ -336,7 +431,7 @@
               <input type="text" class="popover-search" placeholder="Tìm kiếm mục tiêu hoặc dán liên kết" v-model="searchQueries.goal" />
               <div class="popover-list-title">Mục tiêu gần đây</div>
               <div class="popover-list">
-                <div class="popover-item" v-for="g in mockGoalsList" :key="g.id" @click="addGoal(g)">
+                <div class="popover-item" v-for="g in availableGoals" :key="g.id" @click="addGoal(g)">
                   <i class="fa-solid fa-bullseye item-icon-muted"></i>
                   <div class="item-details">
                     <div class="item-name">{{ g.name }}</div>
@@ -353,19 +448,19 @@
             
             <div class="detail-value" v-if="linkedProjects.length > 0">
               <div class="linked-item" v-for="p in linkedProjects" :key="p.id">
-                <span class="item-icon">{{ p.icon }}</span>
+                <i class="fa-solid fa-rocket item-icon"></i>
                 <span class="item-name">{{ p.name }}</span>
-                <button class="remove-btn" @click="removeProject(p.id)"><i class="fa-solid fa-xmark"></i></button>
+                <button class="remove-btn" @click="removeProject(p)"><i class="fa-solid fa-xmark"></i></button>
               </div>
             </div>
 
             <!-- Project Popover -->
             <div class="custom-popover" v-if="popovers.project" @click.stop>
-              <div class="popover-select-mock">Dự án liên quan đến <i class="fa-solid fa-chevron-down ms-auto"></i></div>
+              <div class="popover-select-control">Dự án liên quan đến <i class="fa-solid fa-chevron-down ms-auto"></i></div>
               <input type="text" class="popover-search mt-2" placeholder="Tìm kiếm dự án" v-model="searchQueries.project" />
               <div class="popover-list mt-2">
-                <div class="popover-item" v-for="p in mockProjectsList" :key="p.id" @click="addProject(p)">
-                  <span class="item-icon-muted">{{ p.icon }}</span>
+                <div class="popover-item" v-for="p in availableRelatedProjects" :key="p.id" @click="addProject(p)">
+                  <i class="fa-solid fa-rocket item-icon-muted"></i>
                   <div class="item-name">{{ p.name }}</div>
                 </div>
               </div>
@@ -376,11 +471,11 @@
           <div class="detail-row relative-popover-container">
             <div class="detail-label">Công việc được theo dõi ở đâu? <button class="icon-btn-micro" @click.stop="togglePopover('tracked')"><i class="fa-solid fa-plus"></i></button></div>
             
-            <div class="detail-value" v-if="linkedTrackedUrl">
-              <div class="linked-item">
+            <div class="detail-value" v-if="linkedTrackedUrls.length > 0">
+              <div class="linked-item" v-for="link in linkedTrackedUrls" :key="link.linkId">
                 <i class="fa-solid fa-link item-icon"></i>
-                <a :href="linkedTrackedUrl" target="_blank" class="item-name truncate">{{ linkedTrackedUrl }}</a>
-                <button class="remove-btn" @click="linkedTrackedUrl = ''"><i class="fa-solid fa-xmark"></i></button>
+                <a :href="link.url" target="_blank" class="item-name truncate">{{ link.url }}</a>
+                <button class="remove-btn" @click="removeLink(link)"><i class="fa-solid fa-xmark"></i></button>
               </div>
             </div>
 
@@ -413,10 +508,11 @@
             <div class="custom-popover" v-if="popovers.link" @click.stop>
               <input type="text" class="popover-search" placeholder="Dán liên kết hoặc tìm nội dung vừa xem" v-model="searchQueries.link" />
               <div class="popover-list mt-2">
-                <div class="popover-item" v-for="l in mockLinksList" :key="l.id" @click="addTask(l)">
+                <div class="popover-item" v-for="l in linkedTrackedUrls" :key="l.linkId" @click="selectExistingTrackedLink(l)">
                   <i class="fa-solid fa-file-lines item-icon-muted text-blue"></i>
-                  <div class="item-name">{{ l.name }}</div>
+                  <div class="item-name">{{ l.url }}</div>
                 </div>
+                <button class="primary-btn mt-2" :disabled="!searchQueries.link" @click="addTask">Thêm liên kết</button>
               </div>
             </div>
           </div>
@@ -424,7 +520,7 @@
           <!-- Ngày bắt đầu -->
           <div class="detail-row">
             <div class="detail-label">Ngày bắt đầu <button class="icon-btn-micro"><i class="fa-regular fa-pen-to-square"></i></button></div>
-            <div class="detail-value"><span class="empty-value">15 Jun 2026</span></div>
+            <div class="detail-value"><span class="empty-value">{{ project.startDate ? new Date(project.startDate).toLocaleDateString('vi-VN') : 'Chưa có' }}</span></div>
           </div>
         </div>
       </div>
@@ -444,15 +540,25 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useHomeProjectStore } from '@/store/useHomeProjectStore'
+import { useGoalStore } from '@/store/useGoalStore'
+import axiosClient from '@/api/axiosClient'
+import DOMPurify from 'dompurify'
 import RichTextEditor from '@/components/common/RichTextEditor.vue'
 import ShareModal from '@/components/common/ShareModal.vue'
+import CommentSection from '@/components/common/CommentSection.vue'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const route = useRoute()
 const projectStore = useHomeProjectStore()
+const goalStore = useGoalStore()
 
 const currentTab = ref('overview')
+const activityTab = ref('comments')
 const showStatusMenu = ref(false)
+const sanitizeHtml = (value) => DOMPurify.sanitize(value || '')
 const isShareModalOpen = ref(false)
+const newProjectUpdate = ref({ status: 'ĐANG CHỜ XỬ LÝ', text: '' })
+const newProjectItem = ref({ title: '', text: '' })
 
 const popovers = ref({
   goal: false,
@@ -477,54 +583,172 @@ const closePopovers = (e) => {
 const linkedGoals = ref([])
 const linkedProjects = ref([])
 const linkedTrackedUrl = ref('')
+const linkedTrackedUrls = ref([])
 const linkedTasks = ref([])
-
-const mockGoalsList = [
-  { id: 'g1', name: 'r2', owner: 'Tua20000' },
-  { id: 'g2', name: '342', owner: 'Tua20000' },
-  { id: 'g3', name: 'uew', owner: 'Tua20000' }
-]
-
-const mockProjectsList = [
-  { id: 'p1', name: 'e', icon: '😎' },
-  { id: 'p2', name: 'ueq', icon: '😃' },
-  { id: 'p3', name: '##E', icon: '😎' }
-]
-
-const mockLinksList = [
-  { id: 'l1', type: 'doc', name: 'Dự Án Tốt Nghiệp Home' },
-  { id: 'l2', type: 'doc', name: 'Đặc tả lại dự án' },
-  { id: 'l3', type: 'doc', name: 'Làm lại tài liệu dự án' },
-  { id: 'l4', type: 'link', name: 'Làm trang quản lý riêng cho space' }
-]
+const projectLinks = ref([])
 
 const searchQueries = ref({ goal: '', project: '', tracked: '', link: '' })
 
-const addGoal = (g) => {
-  if (!linkedGoals.value.find(x => x.id === g.id)) linkedGoals.value.push(g)
+const availableGoals = computed(() => {
+  const linkedIds = new Set(linkedGoals.value.map(goal => goal.id))
+  const q = searchQueries.value.goal.trim().toLowerCase()
+  return (goalStore.goals || [])
+    .filter(goal => goal.id && !linkedIds.has(goal.id))
+    .filter(goal => !q || (goal.title || '').toLowerCase().includes(q))
+    .map(goal => ({
+      id: goal.id,
+      name: goal.title,
+      owner: goal.owner || goal.ownerName || goal.creatorName || ''
+    }))
+})
+
+const availableRelatedProjects = computed(() => {
+  const linkedIds = new Set(linkedProjects.value.map(project => project.id))
+  const currentProjectId = route.params.id
+  const q = searchQueries.value.project.trim().toLowerCase()
+  return (projectStore.projects || [])
+    .filter(project => project.id && project.id !== currentProjectId && !linkedIds.has(project.id))
+    .filter(project => !q || (project.name || project.title || '').toLowerCase().includes(q))
+    .map(project => ({ id: project.id, name: project.name || project.title }))
+})
+
+const projectUpdates = computed(() => projectStore.updates || [])
+const projectHistory = computed(() => {
+  const explicitHistory = projectStore.history || project.value?.history || []
+  if (explicitHistory.length) {
+    return explicitHistory.map((entry, index) => ({
+      id: entry.id || index,
+      actor: entry.actor || entry.creatorName || project.value?.creatorName || 'Người dùng',
+      email: entry.creatorEmail || entry.authorEmail,
+      action: entry.action || entry.title || 'đã cập nhật',
+      target: entry.target || entry.content || '',
+      createdAt: entry.createdAt
+    }))
+  }
+  return projectUpdates.value.map(upd => ({
+    id: upd.id,
+    actor: upd.creatorName || upd.authorName || project.value?.owner || 'Người dùng',
+    email: upd.creatorEmail || upd.authorEmail,
+    action: 'đã đăng bản cập nhật',
+    target: '',
+    createdAt: upd.createdAt || upd.updatedAt
+  }))
+})
+const projectLessons = computed(() => project.value.lessons || [])
+const projectRisks = computed(() => project.value.risks || [])
+const projectDecisions = computed(() => project.value.decisions || [])
+const projectOwner = computed(() => ({
+  name: project.value.owner || project.value.ownerName || project.value.leadName || project.value.creatorName || 'Chưa gán',
+  role: project.value.ownerRole || project.value.myRole || 'Thành viên',
+  id: project.value.ownerId || project.value.leadUserId || project.value.creatorId,
+  fullName: project.value.owner || project.value.ownerName || project.value.leadName || project.value.creatorName,
+  avatarUrl: project.value.ownerAvatarUrl || project.value.leadAvatarUrl || project.value.creatorAvatarUrl,
+  avatarColor: project.value.ownerColor,
+  email: project.value.ownerEmail || project.value.leadEmail || project.value.creatorEmail || project.value.ownerId
+}))
+
+const loadProjectLinks = async () => {
+  const projectId = route.params.id
+  if (!projectId) return
+  const workspaceId = projectStore.getWorkspaceId()
+  const response = await axiosClient.get(`/workspaces/${workspaceId}/projects/${projectId}/links`)
+  projectLinks.value = response.data?.data || response.data || []
+  linkedGoals.value = projectLinks.value
+    .filter(link => link.linkedType === 'Goal' || link.LinkedType === 'Goal')
+    .map(link => ({
+      id: link.linkedId || link.LinkedId,
+      linkId: link.id || link.Id,
+      name: link.linkedName || link.itemName || 'Goal'
+    }))
+  linkedProjects.value = projectLinks.value
+    .filter(link => link.linkedType === 'Project' || link.LinkedType === 'Project')
+    .map(link => ({
+      id: link.linkedId || link.LinkedId,
+      linkId: link.id || link.Id,
+      name: link.linkedName || link.itemName || 'Project'
+    }))
+  linkedTrackedUrls.value = projectLinks.value
+    .filter(link => link.linkedType === 'TrackedLink' || link.LinkedType === 'TrackedLink')
+    .map(link => ({
+      linkId: link.id || link.Id,
+      url: link.trackedUrl || link.TrackedUrl || link.linkedName
+    }))
+}
+
+const addGoal = async (g) => {
+  const projectId = route.params.id
+  const workspaceId = projectStore.getWorkspaceId()
+  await axiosClient.post(`/workspaces/${workspaceId}/projects/${projectId}/links`, {
+    linkedType: 'Goal',
+    linkedId: g.id
+  })
+  await loadProjectLinks()
   popovers.value.goal = false
 }
-const removeGoal = (id) => { linkedGoals.value = linkedGoals.value.filter(x => x.id !== id) }
+const removeGoal = async (goal) => {
+  const projectId = route.params.id
+  const workspaceId = projectStore.getWorkspaceId()
+  const linkId = goal.linkId || projectLinks.value.find(link =>
+    (link.linkedId || link.LinkedId) === goal.id &&
+    (link.linkedType || link.LinkedType) === 'Goal'
+  )?.id
+  if (!linkId) return
+  await axiosClient.delete(`/workspaces/${workspaceId}/projects/${projectId}/links/${linkId}`)
+  await loadProjectLinks()
+}
 
-const addProject = (p) => {
-  if (!linkedProjects.value.find(x => x.id === p.id)) linkedProjects.value.push(p)
+const addProject = async (p) => {
+  const projectId = route.params.id
+  const workspaceId = projectStore.getWorkspaceId()
+  await axiosClient.post(`/workspaces/${workspaceId}/projects/${projectId}/links`, {
+    linkedType: 'Project',
+    linkedId: p.id
+  })
+  await loadProjectLinks()
   popovers.value.project = false
 }
-const removeProject = (id) => { linkedProjects.value = linkedProjects.value.filter(x => x.id !== id) }
+const removeProject = async (project) => {
+  await removeLink(project)
+}
 
-const addTrackedUrl = () => {
+const addTrackedUrl = async () => {
   if (searchQueries.value.tracked) {
-    linkedTrackedUrl.value = searchQueries.value.tracked
+    const projectId = route.params.id
+    const workspaceId = projectStore.getWorkspaceId()
+    await axiosClient.post(`/workspaces/${workspaceId}/projects/${projectId}/links`, {
+      linkedType: 'TrackedLink',
+      trackedUrl: searchQueries.value.tracked
+    })
     searchQueries.value.tracked = ''
+    await loadProjectLinks()
     popovers.value.tracked = false
   }
 }
 
-const addTask = (l) => {
-  if (!linkedTasks.value.find(x => x.id === l.id)) linkedTasks.value.push(l)
+const addTask = async () => {
+  if (!searchQueries.value.link) return
+  const projectId = route.params.id
+  const workspaceId = projectStore.getWorkspaceId()
+  await axiosClient.post(`/workspaces/${workspaceId}/projects/${projectId}/links`, {
+    linkedType: 'TrackedLink',
+    trackedUrl: searchQueries.value.link
+  })
+  searchQueries.value.link = ''
+  await loadProjectLinks()
   popovers.value.link = false
 }
-const removeTask = (id) => { linkedTasks.value = linkedTasks.value.filter(x => x.id !== id) }
+const selectExistingTrackedLink = (link) => {
+  searchQueries.value.link = link.url
+}
+const removeLink = async (link) => {
+  const projectId = route.params.id
+  const workspaceId = projectStore.getWorkspaceId()
+  const linkId = link.linkId || link.id
+  if (!linkId) return
+  await axiosClient.delete(`/workspaces/${workspaceId}/projects/${projectId}/links/${linkId}`)
+  await loadProjectLinks()
+}
+const removeTask = async (task) => { await removeLink(task) }
 
 const editing = ref({
   description: false,
@@ -536,7 +760,7 @@ const editing = ref({
 })
 
 const project = computed(() => projectStore.currentProject || {
-  title: 'uqe',
+  title: 'Đang tải dự án',
   description: '',
   reason: '',
   success: '',
@@ -545,10 +769,109 @@ const project = computed(() => projectStore.currentProject || {
   decisions: ''
 })
 
+const saveOverview = async (field) => {
+  if (!project.value?.id) return
+  await projectStore.updateProjectOverview(project.value.id, {
+    description: project.value.description,
+    reason: project.value.reason,
+    success: project.value.success,
+    trackedLinkUrl: project.value.trackedLinkUrl
+  })
+  editing.value[field] = false
+}
+
+const selectProjectStatus = (status) => {
+  newProjectUpdate.value.status = status
+  showStatusMenu.value = false
+}
+
+const getPreviousStatus = (update) => update.oldStatus || update.previousStatus || update.OldStatus || update.PreviousStatus
+const getCurrentStatus = (update) => update.newStatus || update.title || update.status || update.NewStatus || update.Title || update.Status
+
+const submitProjectUpdate = async () => {
+  if (!project.value?.id || !newProjectUpdate.value.text.trim()) return
+  await projectStore.addProjectUpdate(project.value.id, {
+    title: newProjectUpdate.value.status,
+    status: newProjectUpdate.value.status,
+    text: newProjectUpdate.value.text.trim()
+  })
+  newProjectUpdate.value.text = ''
+  await projectStore.fetchProjectDetail(project.value.id)
+}
+
+const cancelProjectItem = (section) => {
+  editing.value[section] = false
+  newProjectItem.value.title = ''; newProjectItem.value.text = ''
+}
+
+const saveProjectLesson = async () => {
+  if (!project.value?.id || !newProjectItem.value.text.trim()) return
+  await projectStore.addProjectLesson(project.value.id, { title: newProjectItem.value.title.trim(), text: newProjectItem.value.text.trim() })
+  await projectStore.fetchProjectDetail(project.value.id)
+  cancelProjectItem('learnings')
+}
+
+const saveProjectRisk = async () => {
+  if (!project.value?.id || !newProjectItem.value.text.trim()) return
+  await projectStore.addProjectRisk(project.value.id, { title: newProjectItem.value.title.trim(), text: newProjectItem.value.text.trim(), severity: 'Medium' })
+  await projectStore.fetchProjectDetail(project.value.id)
+  cancelProjectItem('risks')
+}
+
+const saveProjectDecision = async () => {
+  if (!project.value?.id || !newProjectItem.value.text.trim()) return
+  await projectStore.addProjectDecision(project.value.id, { title: newProjectItem.value.title.trim(), text: newProjectItem.value.text.trim() })
+  await projectStore.fetchProjectDetail(project.value.id)
+  cancelProjectItem('decisions')
+}
+
+const toggleFollow = async () => {
+  if (project.value?.id) await projectStore.toggleFollow(project.value.id)
+}
+
+const getStatusClass = (status) => {
+  const normalized = String(status || '').toLowerCase()
+  if (normalized.includes('rủi ro') || normalized.includes('risk')) return 'status-at-risk'
+  if (normalized.includes('không') || normalized.includes('chậm') || normalized.includes('off')) return 'status-off-track'
+  if (normalized.includes('hoàn') || normalized.includes('done')) return 'status-done'
+  if (normalized.includes('đúng') || normalized.includes('on')) return 'status-on-track'
+  return 'status-pending'
+}
+
+const getInitials = (value = '') => {
+  return value.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'U'
+}
+
+const formatDate = (value) => {
+  return value ? new Date(value).toLocaleString('vi-VN') : ''
+}
+
+const recordRecentView = async () => {
+  if (!project.value?.id) return
+  try {
+    await axiosClient.post('/recentviews', {
+      entityType: 'Project',
+      entityId: project.value.id,
+      title: project.value.name || project.value.title || 'Project',
+      subtitle: 'Project',
+      url: `/home/projects/${project.value.id}`,
+      icon: 'fa-solid fa-rocket'
+    })
+  } catch (err) {
+    console.warn('Failed to record recent project view', err)
+  }
+}
+
 onMounted(async () => {
   window.addEventListener('click', closePopovers)
   if (route.params.id) {
-    await projectStore.fetchProjectDetail(route.params.id)
+    await Promise.all([
+      projectStore.fetchProjectDetail(route.params.id),
+      projectStore.fetchProjects(),
+      goalStore.fetchGoals()
+    ])
+    await loadProjectLinks()
+    await recordRecentView()
   }
 })
 </script>
@@ -668,7 +991,7 @@ onMounted(async () => {
   color: #5E6C84;
 }
 
-.popover-select-mock {
+.popover-select-control {
   display: flex;
   align-items: center;
   border: 2px solid #DFE1E6;
@@ -981,7 +1304,7 @@ onMounted(async () => {
   color: #5E6C84 !important;
 }
 
-.comment-input-mockup {
+.comment-input-preview {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1000,7 +1323,7 @@ onMounted(async () => {
   font-weight: 600;
 }
 
-.fake-input {
+.comment-input-placeholder {
   flex: 1;
   padding: 10px 16px;
   background-color: #FAFBFC;
@@ -1465,3 +1788,4 @@ onMounted(async () => {
   background-color: #FAFBFC;
 }
 </style>
+

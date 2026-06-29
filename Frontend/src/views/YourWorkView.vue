@@ -38,7 +38,8 @@ const fetchProfile = async () => {
         fullName: data.fullName || '—',
         email: data.email || '—',
         avatarUrl: data.avatarUrl,
-        initials: data.fullName ? data.fullName.substring(0, 1).toUpperCase() : (data.email ? data.email.substring(0, 1).toUpperCase() : '—'),
+        avatarColor: data.avatarColor,
+        initials: data.initials || (data.fullName ? data.fullName.substring(0, 1).toUpperCase() : (data.email ? data.email.substring(0, 1).toUpperCase() : '—')),
         joinedOn: '—',
         timezone: '—'
       }
@@ -220,6 +221,8 @@ const listData = computed(() => {
     state: task.statusName || 'To Do',
     priority: task.priority || 3,
     assigneeName: task.assigneeName,
+    assigneeInitials: task.assigneeInitials,
+    assigneeAvatarColor: task.assigneeAvatarColor,
     modules: '0 Modules',
     cycle: 'No Cycle',
     task
@@ -297,6 +300,7 @@ const getInitials = (name) => {
   }
   return name[0]?.toUpperCase() || 'U'
 }
+import UserAvatar from '@/components/common/UserAvatar.vue'
 </script>
 
 <template>
@@ -466,9 +470,7 @@ const getInitials = (name) => {
                   </template>
                 </el-dropdown>
 
-                <div class="avatar-badge cursor-not-allowed" v-if="item.assigneeName" :style="{ backgroundColor: getAvatarBg(item.assigneeName) }">
-                  {{ getInitials(item.assigneeName) }}
-                </div>
+                <UserAvatar v-if="item.assigneeName" :user="{ avatarColor: item.assigneeAvatarColor || getAvatarBg(item.assigneeName), initials: item.assigneeInitials || getInitials(item.assigneeName), fullName: item.assigneeName }" :size="24" :fontSize="10" />
                 <div class="lr-badge cursor-not-allowed" v-else>
                   <i class="fa-regular fa-user"></i>
                 </div>
@@ -507,8 +509,7 @@ const getInitials = (name) => {
           <button class="edit-cover"><i class="fa-solid fa-pencil"></i></button>
         </div>
         <div class="profile-info">
-          <img v-if="userProfile.avatarUrl" :src="getAvatarUrl(userProfile.avatarUrl)" class="avatar-lg" style="object-fit: cover;" />
-          <div v-else class="avatar-lg bg-blue">{{ userProfile.initials }}</div>
+          <UserAvatar :user="userProfile" :size="56" :fontSize="24" class="avatar-lg" style="position: absolute; top: -28px;" />
           <div class="user-details">
             <h2 class="user-name">{{ userProfile.fullName }}</h2>
             <p class="user-handle">({{ userProfile.email }})</p>

@@ -195,10 +195,7 @@
               <div v-for="member in teamWorkload" :key="member.userId" class="workload-item">
                 <div class="workload-item-top">
                   <div class="workload-user-info">
-                    <div class="workload-avatar" :style="{ backgroundColor: getAvatarBg(member.fullName) }">
-                      <span v-if="member.avatar">{{ member.avatar }}</span>
-                      <i v-else class="fa-solid fa-user"></i>
-                    </div>
+                    <UserAvatar :user="{ avatarColor: member.avatarColor || getAvatarBg(member.fullName), initials: member.avatar, fullName: member.fullName }" :size="32" :fontSize="14" />
                     <span class="workload-name">{{ member.fullName }}</span>
                   </div>
                   <span class="workload-completion-text">
@@ -273,6 +270,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import { useI18n } from '@/composables/useI18n'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const { t } = useI18n()
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
@@ -400,7 +398,8 @@ const teamWorkload = computed(() => {
           membersMap[uid] = {
             userId: uid,
             fullName: name,
-            avatar: name.substring(0, 1).toUpperCase(),
+            avatar: assignee.initials || name.substring(0, 1).toUpperCase(),
+            avatarColor: assignee.avatarColor,
             count: 0,
             doneCount: 0
           }

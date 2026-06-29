@@ -1,16 +1,14 @@
 <template>
   <el-dropdown trigger="click" popper-class="user-dropdown-popper" @command="handleCommand" :teleported="true">
     <div class="user-avatar-trigger" :class="{ 'has-text': true }">
-      <div class="avatar-circle" :style="avatarStyle">
-        {{ avatarUrl ? '' : userInitial }}
-      </div>
+      <UserAvatar :user="currentUser" :size="28" :fontSize="11" />
       <span class="user-trigger-text">{{ userEmailPrefix }}</span>
       <i class="fa-solid fa-chevron-down trigger-arrow"></i>
     </div>
     <template #dropdown>
       <el-dropdown-menu class="jira-user-menu">
         <div class="user-menu-header">
-          <div class="header-avatar" :style="avatarStyle">{{ avatarUrl ? '' : userInitial }}</div>
+          <UserAvatar :user="currentUser" :size="40" :fontSize="14" />
           <div class="header-info">
             <div class="user-display-name">{{ userDisplayName }}</div>
             <div class="user-email">{{ userEmail }}</div>
@@ -81,6 +79,7 @@ import { getStoredUser } from '@/utils/permissions'
 import { clearAuthSession } from '@/utils/authSession'
 import axiosClient from '@/api/axiosClient'
 import { useI18nStore } from '@/store/useI18nStore'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const router = useRouter()
 const langSubVisible = ref(false)
@@ -94,47 +93,15 @@ const userDisplayName = computed(() => currentUser.value?.fullName || currentUse
 const userEmail = computed(() => currentUser.value?.email || 'user@example.com')
 const userEmailPrefix = computed(() => userEmail.value.split('@')[0])
 
-const getInitials = (name) => {
-  if (!name) return '?'
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .map((word) => word[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase()
-}
-
-const userInitial = computed(() => getInitials(userDisplayName.value))
-
-const getBaseUrl = () => import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5136'
-
-const avatarUrl = computed(() => currentUser.value?.avatarUrl || '')
-
-const avatarStyle = computed(() => {
-  if (!avatarUrl.value) {
-    return { backgroundColor: avatarColor.value }
-  }
-  return {
-    backgroundImage: `url(${getBaseUrl()}${avatarUrl.value})`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    color: 'transparent',
-    border: '1px solid var(--color-border)'
-  }
-})
-
-const avatarColor = computed(() => {
-  const colors = ['#579dff', '#c97cf4', '#00b8d9', '#22a06b', '#f5cd47', '#e2483d']
-  const name = userDisplayName.value || 'User'
-  const index = name.length % colors.length
-  return colors[index]
-})
-
 const fetchProfile = async () => {
   try {
     const response = await axiosClient.get('/users/me')
     profileData.value = response.data?.data
+    const stored = getStoredUser()
+    if (stored && profileData.value) {
+      stored.avatarColor = profileData.value.avatarColor
+      localStorage.setItem('sprinta_user', JSON.stringify(stored))
+    }
   } catch (error) {
     console.error('Failed to fetch user profile in dropdown', error)
   }

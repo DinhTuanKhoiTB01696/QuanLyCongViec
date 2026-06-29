@@ -35,25 +35,40 @@
 
     <!-- Table View -->
     <table v-if="viewMode === 'table'" class="jira-table">
-      <thead>
-        <tr>
-          <th class="col-team">Đội ngũ</th>
-          <th class="col-members">Thành viên</th>
-          <th class="col-children">Đội ngũ con <i class="fa-solid fa-arrow-down sort-icon"></i></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="team in filteredTeams" :key="team.id" @click="goToTeam(team.id)">
-          <td>
-            <div class="team-cell">
-              <div class="team-avatar-small">{{ team.avatarText }}</div>
-              <span class="team-name">{{ team.name }}</span>
-            </div>
-          </td>
-          <td>{{ team.memberCount }}</td>
-          <td>{{ team.childrenCount || 0 }}</td>
-        </tr>
-      </tbody>
+                  <thead>
+              <tr>
+                <th style="width: 25%">Đội ngũ</th>
+                <th style="width: 20%">Loại đội ngũ</th>
+                <th style="width: 20%">Người quản lý</th>
+                <th style="width: 10%">Thành viên</th>
+                <th style="width: 10%">Đội ngũ gốc</th>
+                <th style="width: 15%">Đội ngũ con <i class="fa-solid fa-arrow-down" style="font-size: 10px; margin-left: 4px;"></i></th>
+              </tr>
+            </thead>
+                  <tbody>
+              <tr v-for="team in (viewMode === 'table' && filteredTeams ? filteredTeams : teams)" :key="team.id" @click="goToTeam(team.id)">
+                <td>
+                  <div class="team-name-cell">
+                    <div class="team-avatar-small" :style="{ backgroundColor: '#0052cc' }">{{ team.avatarText }}</div>
+                    <span class="team-name-text">{{ team.name }}</span>
+                  </div>
+                </td>
+                <td style="white-space: nowrap;">{{ team.type }}</td>
+                <td>
+                  <div v-if="team.managerName !== 'Chưa có'" class="manager-cell" style="display: flex; align-items: center; gap: 8px;">
+                    <UserAvatar :user="{ fullName: team.managerName, email: team.managerEmail }" :size="24" :fontSize="10" />
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;">{{ team.managerName }}</span>
+                  </div>
+                  <div v-else style="color: #5E6C84; display: flex; align-items: center; gap: 6px;">
+                    <div style="width: 24px; height: 24px; border-radius: 50%; background: #DFE1E6; display: flex; align-items: center; justify-content: center; color: #172B4D; font-size: 10px; font-weight: bold;">?</div>
+                    <span>Chưa có</span>
+                  </div>
+                </td>
+                <td>{{ team.memberCount }}</td>
+                <td>{{ team.parentCount }}</td>
+                <td>{{ team.childrenCount }}</td>
+              </tr>
+            </tbody>
       <tbody v-if="filteredTeams.length === 0">
         <tr>
           <td colspan="3" class="empty-table-state">
@@ -69,6 +84,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTeamStore } from '@/store/useTeamStore'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const router = useRouter()
 const teamStore = useTeamStore()
@@ -91,8 +107,14 @@ const filteredTeams = computed(() => {
   return list.map(t => ({
     ...t,
     avatarText: t.name ? t.name.substring(0, 2).toUpperCase() : 'T',
-    memberCount: t.members?.length || 0,
-    childrenCount: t.children?.length || 0
+    memberCount: t.memberCount ?? t.members?.length ?? t.users?.length ?? 0,
+    childrenCount: t.children?.length || t.subDepartments?.length || 0,
+    manager: t.manager || t.managerId,
+    managerName: t.manager?.fullName || t.manager?.name || 'Chưa có',
+    managerEmail: t.manager?.email || '',
+    parentTeamName: t.parentDepartment?.name || t.parent?.name || 'Không có đội ngũ gốc',
+    parentCount: (t.parentDepartment || t.parent || t.parentId) ? 1 : 0,
+    type: t.type || 'Đội ngũ chính thức'
   }))
 })
 
