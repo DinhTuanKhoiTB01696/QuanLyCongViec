@@ -650,7 +650,8 @@ namespace TaskManagement.API.Controllers
             var comment = new TaskManagement.Domain.Entities.Comment
             {
                 Id = Guid.NewGuid(),
-                WorkTaskId = request.WorkTaskId,
+                EntityId = request.WorkTaskId,
+                EntityType = "WorkTask",
                 Content = request.Content,
                 ParentCommentId = request.ParentCommentId,
                 UserId = userId,
@@ -913,6 +914,66 @@ namespace TaskManagement.API.Controllers
                 .ToListAsync();
 
             return Ok(ApiResponse<object>.Success(results));
+        }
+
+        [HttpGet("{id}/lessons")]
+        public async Task<IActionResult> GetLessons(Guid id)
+        {
+            var items = await _projectService.GetLessonsAsync(id);
+            return Ok(ApiResponse<object>.Success(items));
+        }
+
+        [HttpPost("{id}/lessons")]
+        public async Task<IActionResult> AddLesson(Guid id, [FromBody] CreateTabItemDto dto)
+        {
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+            var item = await _projectService.AddLessonAsync(id, dto, userId);
+            return StatusCode(201, ApiResponse<object>.Created(item));
+        }
+
+        [HttpGet("{id}/risks")]
+        public async Task<IActionResult> GetRisks(Guid id)
+        {
+            var items = await _projectService.GetRisksAsync(id);
+            return Ok(ApiResponse<object>.Success(items));
+        }
+
+        [HttpPost("{id}/risks")]
+        public async Task<IActionResult> AddRisk(Guid id, [FromBody] CreateTabItemDto dto)
+        {
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+            var item = await _projectService.AddRiskAsync(id, dto, userId);
+            return StatusCode(201, ApiResponse<object>.Created(item));
+        }
+
+        [HttpGet("{id}/decisions")]
+        public async Task<IActionResult> GetDecisions(Guid id)
+        {
+            var items = await _projectService.GetDecisionsAsync(id);
+            return Ok(ApiResponse<object>.Success(items));
+        }
+
+        [HttpPost("{id}/decisions")]
+        public async Task<IActionResult> AddDecision(Guid id, [FromBody] CreateTabItemDto dto)
+        {
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+            var item = await _projectService.AddDecisionAsync(id, dto, userId);
+            return StatusCode(201, ApiResponse<object>.Created(item));
+        }
+
+        [HttpGet("{id}/updates")]
+        public async Task<IActionResult> GetUpdates(Guid id)
+        {
+            var items = await _projectService.GetUpdatesAsync(id);
+            return Ok(ApiResponse<object>.Success(items));
+        }
+
+        [HttpPost("{id}/updates")]
+        public async Task<IActionResult> AddUpdate(Guid id, [FromBody] CreateTabItemDto dto)
+        {
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+            var item = await _projectService.AddUpdateAsync(id, dto, userId);
+            return StatusCode(201, ApiResponse<object>.Created(item));
         }
 
         private static string GetProjectIntegrationGroup(Guid projectId) => $"ProjectIntegrations:{projectId:D}";

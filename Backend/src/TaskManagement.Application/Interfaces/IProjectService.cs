@@ -17,5 +17,13 @@ namespace TaskManagement.Application.Interfaces
         Task<List<ProjectDiscoveryDto>> GetDeletedAsync();
         Task RestoreDeletedAsync(Guid id);
         Task PermanentDeleteAsync(Guid id);
+        Task<IEnumerable<TaskManagement.Application.DTOs.Common.TabItemDto>> GetUpdatesAsync(Guid id);
+        Task<TaskManagement.Application.DTOs.Common.TabItemDto> AddUpdateAsync(Guid id, TaskManagement.Application.DTOs.Common.CreateTabItemDto dto, Guid userId);
+        Task<IEnumerable<TaskManagement.Application.DTOs.Common.TabItemDto>> GetLessonsAsync(Guid id);
+        Task<TaskManagement.Application.DTOs.Common.TabItemDto> AddLessonAsync(Guid id, TaskManagement.Application.DTOs.Common.CreateTabItemDto dto, Guid userId);
+        Task<IEnumerable<TaskManagement.Application.DTOs.Common.TabItemDto>> GetRisksAsync(Guid id);
+        Task<TaskManagement.Application.DTOs.Common.TabItemDto> AddRiskAsync(Guid id, TaskManagement.Application.DTOs.Common.CreateTabItemDto dto, Guid userId);
+        Task<IEnumerable<TaskManagement.Application.DTOs.Common.TabItemDto>> GetDecisionsAsync(Guid id);
+        Task<TaskManagement.Application.DTOs.Common.TabItemDto> AddDecisionAsync(Guid id, TaskManagement.Application.DTOs.Common.CreateTabItemDto dto, Guid userId);
     }
 }

@@ -18,6 +18,13 @@ namespace TaskManagement.Domain.Entities
 
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
+        
+        // Overview Info
+        public string? Why { get; set; }
+        public string? SuccessCriteria { get; set; }
+        public DateTime? CloseDate { get; set; }
+        public string? TrackedLinkUrl { get; set; }
+
         public bool Status { get; set; } = true;
         public Guid CreatorId { get; set; }
         public User Creator { get; set; } = null!;
@@ -51,5 +58,10 @@ namespace TaskManagement.Domain.Entities
         public ICollection<Module> Modules { get; set; } = new List<Module>();
         public ICollection<Intake> Intakes { get; set; } = new List<Intake>();
         public ICollection<Page> Pages { get; set; } = new List<Page>();
+        public ICollection<ProjectUpdate> Updates { get; set; } = new List<ProjectUpdate>();
+        public ICollection<ProjectLesson> Lessons { get; set; } = new List<ProjectLesson>();
+        public ICollection<ProjectRisk> Risks { get; set; } = new List<ProjectRisk>();
+        public ICollection<ProjectDecision> Decisions { get; set; } = new List<ProjectDecision>();
+
     }
 }

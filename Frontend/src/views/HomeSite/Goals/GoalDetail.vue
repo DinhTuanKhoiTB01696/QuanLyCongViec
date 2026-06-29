@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="goal-detail-wrapper" v-if="goal">
     <!-- Module Header (matching the list view) -->
     <header class="module-header">
@@ -59,7 +59,7 @@
       <div class="goal-tabs-nav" style="padding: 0 40px; display: flex; gap: 24px; max-width: 1000px; margin: 0 auto; width: 100%;">
         <button class="tab-btn" :class="{ active: currentTab === 'overview' }" @click="currentTab = 'overview'">Tổng quan</button>
         <button class="tab-btn" :class="{ active: currentTab === 'updates' }" @click="currentTab = 'updates'">Cập nhật <span v-if="updates.length" class="badge-count">{{ updates.length + 1 }}</span></button>
-        <button class="tab-btn" :class="{ active: currentTab === 'jira' }" @click="currentTab = 'jira'">Jira</button>
+        <button class="tab-btn" :class="{ active: currentTab === 'jira' }" @click="currentTab = 'jira'">SprintA</button>
         <button class="tab-btn" :class="{ active: currentTab === 'projects' }" @click="currentTab = 'projects'">Dự án</button>
         <button class="tab-btn" :class="{ active: currentTab === 'learnings' }" @click="currentTab = 'learnings'">Bài học rút ra</button>
         <button class="tab-btn" :class="{ active: currentTab === 'risks' }" @click="currentTab = 'risks'">Rủi ro</button>
@@ -81,30 +81,19 @@
             <div class="section-body">
               <RichTextEditor v-if="isEditingBio" v-model="tempBio" @save="saveBio" @cancel="isEditingBio = false" placeholder="Mô tả ngắn gọn lý do tại sao mục tiêu này lại quan trọng và cách đo lường thành công..." />
               <div v-else @click="startEditingBio" style="cursor: pointer; color: #5E6C84; font-size: 14px; padding: 8px; border-radius: 3px; min-height: 40px;" onmouseover="this.style.backgroundColor='#FAFBFC'" onmouseout="this.style.backgroundColor='transparent'">
-                {{ goal.description || 'Mô tả ngắn gọn lý do tại sao mục tiêu này lại quan trọng và cách đo lường thành công, để bạn có thể cung cấp hiểu biết chung cho người theo dõi.' }}
+                <div v-if="goal.description && goal.description !== '<p></p>'" v-html="safeGoalDescription" class="tiptap-content"></div>
+                <div v-else>Mô tả ngắn gọn lý do tại sao mục tiêu này lại quan trọng và cách đo lường thành công, để bạn có thể cung cấp hiểu biết chung cho người theo dõi.</div>
               </div>
             </div>
           </section>
 
-          <!-- Key results -->
+          <!-- Key results / Progress Chart -->
           <section class="content-section">
             <div class="section-header">
               <h3>Key results</h3>
             </div>
             <div class="section-body">
-              <div style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 24px; display: flex; justify-content: space-between; align-items: center; background: white;">
-                <div style="max-width: 400px;">
-                  <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #172B4D;">Theo dõi tiến độ hướng tới mục tiêu của bạn</h4>
-                  <p style="margin: 0 0 16px 0; font-size: 14px; color: #5E6C84; line-height: 1.5;">Chia sẻ nội dung cập nhật riêng cho từng kết quả chính để tự động cập nhật tiến độ của mục tiêu này.</p>
-                  <button class="primary-btn" style="display: inline-flex; align-items: center; gap: 8px; height: 32px;"><i class="fa-solid fa-plus"></i> Tạo</button>
-                </div>
-                <div>
-                  <div style="width: 180px; height: 100px; background: #E6FCFF; border-radius: 8px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
-                    <div style="position: absolute; right: -20px; top: -20px; width: 80px; height: 80px; background: #0052CC; transform: rotate(45deg);"></div>
-                    <i class="fa-solid fa-chart-line" style="font-size: 40px; color: #0052CC; z-index: 1;"></i>
-                  </div>
-                </div>
-              </div>
+              <GoalProgressChart :goal="goal" />
             </div>
           </section>
 
@@ -120,18 +109,24 @@
             
             <div class="section-body">
               <div v-if="activityTab === 'comments'">
-                <h4 style="font-size: 14px; color: #172B4D; margin: 0 0 16px 0;">Comments</h4>
-                <div class="update-input-mockup" style="background: #FAFBFC; padding: 12px; border-radius: 3px; border: 1px solid transparent; transition: border 0.2s;" onmouseover="this.style.border='1px solid #DFE1E6'" onmouseout="this.style.border='1px solid transparent'">
-                  <div class="user-avatar-current" style="background: #36B37E;">T</div>
-                  <input type="text" placeholder="Thêm nhận xét... đặt câu hỏi" style="border: none; background: transparent; width: 100%; outline: none; font-size: 14px;" />
-                </div>
+                <CommentSection :entity-id="route.params.id" entity-type="Goal" />
               </div>
               <div v-else>
-                <div class="timeline-item" style="display: flex; align-items: flex-start; gap: 12px;">
+                <div class="timeline-item" v-for="entry in goalHistory" :key="entry.id" style="display: flex; align-items: flex-start; gap: 12px;">
+                   <UserAvatar :user="{ fullName: entry.actor, email: entry.email }" :size="24" :fontSize="10" />
+                   <div style="flex: 1;">
+                      <div style="display: flex; justify-content: space-between; align-items: center;">
+                         <span style="font-size: 14px; color: #172B4D;"><strong>{{ entry.actor }}</strong> {{ entry.action }}</span>
+                         <span style="font-size: 12px; color: #5E6C84;">{{ formatDate(entry.createdAt) }}</span>
+                      </div>
+                      <div style="font-size: 14px; color: #5E6C84; margin-top: 4px;">{{ entry.target }}</div>
+                   </div>
+                </div>
+                <div class="timeline-item" v-if="false" style="display: flex; align-items: flex-start; gap: 12px;">
                    <div class="user-avatar-current" style="background: #36B37E; width: 24px; height: 24px; font-size: 10px;">T</div>
                    <div style="flex: 1;">
                       <div style="display: flex; justify-content: space-between; align-items: center;">
-                         <span style="font-size: 14px; color: #172B4D;"><strong>Tua20000</strong> đã tạo Mục tiêu</span>
+                         <span style="font-size: 14px; color: #172B4D;"><strong>Hệ thống</strong> đã tạo mục tiêu</span>
                          <span style="font-size: 12px; color: #5E6C84;">9 days ago</span>
                       </div>
                       <div style="font-size: 14px; color: #5E6C84; margin-top: 4px;">{{ goal.title }}</div>
@@ -142,107 +137,150 @@
           </section>
         </template>
 
-        <!-- CẬP NHẬT TAB -->
         <template v-if="currentTab === 'updates'">
-           <div class="status-update-box">
-             <div class="update-input-mockup" @click="showUpdateForm = true" v-if="!showUpdateForm" style="background: white; border: 1px solid #DFE1E6; padding: 16px; border-radius: 3px;">
-               <div class="user-avatar-current" style="background: #36B37E;">T</div>
-               <div style="color: #5E6C84; font-size: 14px;">Đăng bản cập nhật của bạn</div>
-             </div>
-             
-             <div class="update-form-active" v-else style="background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 8px -2px rgba(9,30,66,0.25); overflow: hidden;">
-               <!-- Status Dropdown & Date row -->
-               <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid #DFE1E6; background: #FAFBFC;">
-                 <div style="position: relative;">
-                   <label style="font-size: 11px; font-weight: 600; color: #6B778C; display: block; margin-bottom: 4px;">Trạng thái hiện tại</label>
-                   <div @click="isUpdateStatusOpen = !isUpdateStatusOpen" style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                      <span class="status-badge" :class="getStatusClass(newUpdate.status)" style="font-size: 11px; padding: 4px 8px;">{{ newUpdate.status }} <i class="fa-solid fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i></span>
-                   </div>
-                   <!-- Status Menu -->
-                   <div v-if="isUpdateStatusOpen" class="dropdown-menu" style="position: absolute; top: 100%; left: 0; margin-top: 4px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 200px; z-index: 100; display: flex; flex-direction: column; padding: 8px 0;">
-                      <div v-for="st in ['ĐANG CHỜ XỬ LÝ', 'ĐÚNG TIẾN ĐỘ', 'CÓ RỦI RO', 'KHÔNG ĐÚNG TIẾN ĐỘ', 'ĐÃ HOÀN TẤT', 'ĐÃ TẠM DỪNG', 'ĐÃ HỦY']" :key="st" @click="newUpdate.status = st; isUpdateStatusOpen = false" style="padding: 6px 12px; cursor: pointer; display: flex; align-items: center;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                         <span class="status-badge" :class="getStatusClass(st)" style="font-size: 10px;">{{ st }}</span>
-                      </div>
-                   </div>
-                 </div>
-                 
-                 <div>
-                   <label style="font-size: 11px; font-weight: 600; color: #6B778C; display: block; margin-bottom: 4px;">Ngày mục tiêu</label>
-                   <div style="display: flex; align-items: center; gap: 4px; color: #172B4D; font-size: 13px; font-weight: 500;">
-                     <i class="fa-regular fa-calendar" style="color: #6B778C;"></i> Tháng 07 <i class="fa-solid fa-chevron-down" style="font-size: 10px; color: #6B778C;"></i>
-                   </div>
-                 </div>
-                 
-                 <div>
-                    <label style="font-size: 11px; font-weight: 600; color: #6B778C; display: block; margin-bottom: 4px;">Tiến độ</label>
-                    <div style="font-size: 13px; color: #172B4D; display: flex; align-items: center; gap: 8px;">
-                      <input type="number" v-model="newUpdate.progress" style="width: 50px; padding: 2px 4px; border: 1px solid #DFE1E6; border-radius: 3px; font-size: 13px;" /> % -> 100%
-                    </div>
-                 </div>
-               </div>
-               
-               <div style="padding: 16px;">
-                 <textarea v-model="newUpdate.message" rows="4" style="width: 100%; border: none; outline: none; font-size: 14px; color: #172B4D; resize: none; font-family: inherit;" placeholder="Viết bản cập nhật gồm tối đa 280 ký tự. Nhập '/gần nhất' để sao chép bản cập nhật gần đây nhất, còn nhập / để thêm thành phần khác" maxlength="280"></textarea>
-                 
-                 <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #DFE1E6; padding-top: 12px; margin-top: 8px;">
-                   <div style="display: flex; gap: 16px; color: #6B778C; font-size: 16px;">
-                     <i class="fa-regular fa-face-smile" style="cursor: pointer;"></i>
-                     <i class="fa-regular fa-image" style="cursor: pointer;"></i>
-                     <i class="fa-solid fa-link" style="cursor: pointer;"></i>
-                   </div>
-                   <div style="display: flex; align-items: center; gap: 12px;">
-                     <span style="font-size: 12px; color: #5E6C84;">{{ newUpdate.message.length }}/280</span>
-                     <button class="primary-btn" @click="postUpdate" :disabled="!newUpdate.message && !newUpdate.progress" style="width: 80px;">Đăng</button>
-                   </div>
-                 </div>
-               </div>
-             </div>
-           </div>
+          <div class="updates-header">
+            <h4>Lịch sử mục tiêu</h4>
+            <span class="last-update-text">Lần cập nhật gần nhất: {{ goalStore.updates?.length ? new Date(goalStore.updates[0].createdAt).toLocaleDateString('vi-VN') : 'Chưa có' }}</span>
+          </div>
 
-           <!-- Latest update Mockup -->
-           <div>
-             <h4 style="font-size: 14px; font-weight: 600; color: #172B4D; margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px;">Latest update <span style="font-size: 12px; font-weight: 400; color: #5E6C84;">Nội dung cập nhật đầu tiên trong chuỗi</span></h4>
-             
-             <div style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 16px; background: white; margin-bottom: 24px;">
-               <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                 <div style="display: flex; gap: 12px;">
-                    <div class="user-avatar-current" style="background: #36B37E; width: 32px; height: 32px;">T</div>
-                    <div>
-                      <div style="font-size: 14px; font-weight: 600; color: #172B4D;">Tua20000</div>
-                      <div style="font-size: 12px; color: #5E6C84;">khoảng 12 giờ trước • 1 người đã xem</div>
-                    </div>
-                 </div>
-                 <span class="status-badge" :class="getStatusClass('Đã hoàn tất')" style="font-size: 11px;">ĐÃ HOÀN TẤT</span>
-               </div>
-               
-               <p style="font-size: 14px; color: #172B4D; margin: 0 0 16px 0;">Cập nhật xong chức năng mục tiêu.</p>
-               
-               <div style="background: #FAFBFC; border: 1px solid #DFE1E6; border-radius: 3px; padding: 12px; display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-                  <span style="font-size: 12px; color: #5E6C84;">Đã thay đổi trạng thái</span>
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                     <span class="status-badge" style="font-size: 10px; background: #DFE1E6; color: #42526E;">ĐANG CHỜ XỬ LÝ</span>
-                     <i class="fa-solid fa-arrow-right" style="font-size: 10px; color: #5E6C84;"></i>
-                     <span class="status-badge" style="font-size: 10px; background: #EAE6FF; color: #403294;">ĐÃ HOÀN TẤT</span>
+          
+          <div class="timeline-visual">
+            <div class="timeline-line"></div>
+            <div class="timeline-node current">
+              <i class="fa-solid fa-user-group"></i>
+              <span>Tuần này</span>
+            </div>
+          </div>
+
+          <div class="update-editor-box">
+            <div class="update-editor-header">
+              <div class="editor-field">
+                <label>Trạng thái hiện tại</label>
+                <div class="status-dropdown-wrapper">
+                  <span class="status-badge" :class="getStatusClass(newUpdateForm.status)" @click="showStatusMenu = !showStatusMenu" style="cursor: pointer;">
+                    {{ newUpdateForm.status }} <i class="fa-solid fa-chevron-down ms-1"></i>
+                  </span>
+                  <div class="status-dropdown-menu" v-if="showStatusMenu">
+                    <div class="status-option" @click="selectStatus('ĐANG CHỜ XỬ LÝ')"><span class="status-badge status-pending">ĐANG CHỜ XỬ LÝ</span></div>
+                    <div class="status-option" @click="selectStatus('ĐÚNG TIẾN ĐỘ')"><span class="status-badge status-on-track">ĐÚNG TIẾN ĐỘ</span></div>
+                    <div class="status-option" @click="selectStatus('CÓ RỦI RO')"><span class="status-badge status-at-risk">CÓ RỦI RO</span></div>
+                    <div class="status-option" @click="selectStatus('CHẬM TIẾN ĐỘ')"><span class="status-badge status-off-track">CHẬM TIẾN ĐỘ</span></div>
+                    <div class="status-option" @click="selectStatus('ĐÃ HOÀN TẤT')"><span class="status-badge status-done">ĐÃ HOÀN TẤT <i class="fa-solid fa-flag ms-1"></i></span></div>
+                    <div class="divider"></div>
+                    <div class="status-option text-option" @click="selectStatus('ĐÃ TẠM DỪNG')">ĐÃ TẠM DỪNG</div>
+                    <div class="status-option text-option" @click="selectStatus('ĐÃ HỦY')">ĐÃ HỦY</div>
                   </div>
-               </div>
-               
-               <div style="display: flex; align-items: center; gap: 12px; font-size: 13px; color: #5E6C84; border-bottom: 1px solid #DFE1E6; padding-bottom: 12px; margin-bottom: 12px;">
-                 <span style="cursor: pointer;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Chia sẻ</span> •
-                 <span style="cursor: pointer;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Sửa</span> •
-                 <span style="cursor: pointer;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Xóa</span> •
-                 <div style="display: flex; gap: 4px;">
-                   <span style="background: #FFF0B3; padding: 2px 6px; border-radius: 12px; cursor: pointer;">👍 1</span>
-                   <span style="background: #FFEBE6; padding: 2px 6px; border-radius: 12px; cursor: pointer;">❤️ 1</span>
-                   <span style="background: #FAFBFC; border: 1px solid #DFE1E6; padding: 2px 6px; border-radius: 12px; cursor: pointer;"><i class="fa-regular fa-face-smile"></i></span>
-                 </div>
-               </div>
-               
-               <div style="display: flex; align-items: center; gap: 12px;">
-                 <div class="user-avatar-current" style="background: #36B37E; width: 24px; height: 24px; font-size: 10px;">T</div>
-                 <input type="text" placeholder="Thêm nhận xét... ăn mừng cùng đồng đội của bạn" style="flex: 1; border: none; background: #FAFBFC; padding: 8px 12px; border-radius: 3px; font-size: 13px; outline: none;" />
-               </div>
-             </div>
-           </div>
+                </div>
+              </div>
+              <div class="editor-field">
+                <label>Ngày mục tiêu</label>
+                <div class="target-date-badge date-dropdown">
+                  <i class="fa-regular fa-calendar"></i> {{ goal?.endDate ? new Date(goal.endDate).toLocaleDateString('vi-VN', { day: 'numeric', month: 'short' }) : 'Không có' }} <i class="fa-solid fa-chevron-down ms-1"></i>
+                </div>
+              </div>
+              <div class="editor-field">
+                <label>Tiến độ</label>
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                  <input type="number" v-model="newUpdateForm.progress" style="width: 50px; padding: 2px 4px; border: 1px solid #DFE1E6; border-radius: 3px; font-size: 13px;" min="0" max="100" /> <span style="font-size: 13px; color: #5E6C84;">%</span>
+                </div>
+              </div>
+              <div class="editor-field template-link" style="margin-left: auto;">
+                <span>Mẫu <i class="fa-solid fa-chevron-down ms-1"></i></span>
+              </div>
+            </div>
+            
+            <div class="update-editor-body">
+              <textarea v-model="newUpdateForm.content" placeholder="Viết bản cập nhật... Nhấn enter để tạo dòng mới." rows="6" style="width: 100%; border: none; outline: none; resize: none; font-size: 14px; background: transparent; padding: 8px 0;"></textarea>
+            </div>
+            
+            <div class="update-editor-footer">
+              <div class="editor-tools">
+                <span class="tool-ai"><i class="fa-solid fa-wand-magic-sparkles"></i> Soạn thảo bằng Rovo</span>
+                <button class="tool-btn"><i class="fa-solid fa-plus"></i></button>
+                <button class="tool-btn"><i class="fa-solid fa-image"></i></button>
+                <button class="tool-btn"><i class="fa-solid fa-at"></i></button>
+                <button class="tool-btn"><i class="fa-solid fa-link"></i></button>
+              </div>
+              <div class="editor-actions">
+                <span class="char-count">{{ newUpdateForm.content.length }}/1000 <i class="fa-solid fa-circle-question"></i></span>
+                <button class="secondary-btn"><i class="fa-solid fa-users"></i> 1</button>
+                <button class="secondary-btn">Lưu bản nháp</button>
+                <button class="primary-btn" @click="submitGoalUpdate" :disabled="!newUpdateForm.content.trim()">Đăng bản cập nhật</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-posts" v-if="goalStore.updates?.length">
+            <div class="timeline-post" style="margin-bottom: 24px; border: 1px solid #DFE1E6; padding: 16px; border-radius: 3px; background: white;" v-for="update in goalStore.updates" :key="update.id">
+              <div class="post-header">
+                <div class="post-user">
+                  <UserAvatar :user="{ id: update.userId, fullName: update.userName, avatarUrl: update.userAvatar }" :size="32" :fontSize="12" />
+                  <div class="user-info">
+                    <span class="user-name">{{ update.userName }}</span>
+                    <span class="post-time">{{ new Date(update.createdAt).toLocaleString('vi-VN') }}</span>
+                  </div>
+                </div>
+                <div class="post-status-meta">
+                  <span class="status-badge" :class="getStatusClass(update.status)">{{ update.status }}</span> cho <div class="target-date-badge"><i class="fa-regular fa-calendar"></i> {{ goal?.endDate ? new Date(goal.endDate).toLocaleDateString('vi-VN', { day: 'numeric', month: 'short' }) : 'Không có' }}</div>
+                </div>
+              </div>
+              
+              <div class="post-content">
+                <div v-if="editingUpdateId === update.id" style="margin-bottom: 12px;">
+                  <textarea v-model="editingContent" rows="3" style="width: 100%; padding: 8px; border: 2px solid #4C9AFF; border-radius: 3px; font-size: 14px; outline: none; resize: none;"></textarea>
+                  <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <button class="primary-btn" style="height: 32px;" @click="saveInlineEdit(update)">Lưu</button>
+                    <button class="secondary-btn" style="height: 32px;" @click="cancelInlineEdit">Hủy</button>
+                  </div>
+                </div>
+                <p v-else style="white-space: pre-wrap;">{{ update.content }}</p>
+                <div class="status-change-log" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                  <div v-if="getPreviousStatus(update) && getPreviousStatus(update) !== getCurrentStatus(update)">
+                    Đã thay đổi trạng thái từ <span class="status-badge mx-1" :class="getStatusClass(update.previousStatus)">{{ update.previousStatus }}</span> <i class="fa-solid fa-arrow-right text-gray-400 mx-1 text-xs"></i> <span class="status-badge mx-1" :class="getStatusClass(update.status)">{{ update.status }}</span>
+                  </div>
+                  <div v-else>
+                    Đã giữ nguyên trạng thái <span class="status-badge mx-1" :class="getStatusClass(update.status)">{{ update.status }}</span>
+                  </div>
+                  <div v-if="update.progress !== undefined && update.progress !== null" style="color: #5E6C84; font-size: 13px;">
+                    <i class="fa-solid fa-chart-line"></i> Tiến độ: <strong>{{ update.progress }}%</strong>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="post-actions">
+                
+                  <div style="display: flex; gap: 12px; color: #5E6C84; font-size: 13px; font-weight: 500;">
+                    <span style="cursor: pointer;"><i class="fa-solid fa-share-nodes"></i> Chia sẻ</span>
+                    <span style="cursor: pointer;" @click="editUpdate(update)"><i class="fa-solid fa-pen"></i> Sửa</span>
+                    <el-popconfirm title="Bạn có chắc muốn xóa bản cập nhật này?" @confirm="deleteUpdate(update.id)" confirm-button-text="Xóa" cancel-button-text="Hủy" confirm-button-type="danger">
+                      <template #reference>
+                        <span style="cursor: pointer; color: #DE350B;"><i class="fa-solid fa-trash"></i> Xóa</span>
+                      </template>
+                    </el-popconfirm>
+                  </div>
+    
+                <button class="reaction-btn">👍</button>
+                <button class="reaction-btn">👏</button>
+                <button class="reaction-btn">🎉</button>
+                <button class="reaction-btn">❤️</button>
+                <button class="reaction-btn"><i class="fa-solid fa-ellipsis"></i></button>
+                <button class="reaction-btn"><i class="fa-solid fa-bullseye"></i></button>
+              </div>
+              
+              <div class="mt-4">
+                <CommentSection :entity-id="update.id" entity-type="GoalUpdate" />
+              </div>
+            </div>
+          </div>
+                    <div v-else class="empty-state-large-tab">
+            <div class="empty-illustration">
+              <i class="fa-regular fa-message" style="color: #0052CC; font-size: 56px;"></i>
+            </div>
+            <div class="empty-content">
+              <h3>Chưa có bản cập nhật nào.</h3>
+              <p>Các bản cập nhật mục tiêu sẽ xuất hiện ở đây sau khi được đăng.</p>
+            </div>
+          </div>
         </template>
 
         <!-- JIRA TAB -->
@@ -256,16 +294,16 @@
                   </div>
                </div>
                <div>
-                 <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #172B4D;">Thêm công việc trong Jira góp phần vào mục tiêu này</h3>
-                 <p style="margin: 0 0 16px 0; font-size: 14px; color: #5E6C84; line-height: 1.5;">Kết nối công việc của đội ngũ để xem mục tiêu này trong Jira và liên kết các nội dung cập nhật với công việc. <a href="#" style="color: #0052CC; text-decoration: none;">Thông tin khác về mục tiêu trong Jira</a></p>
+                 <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #172B4D;">Thêm công việc trong SprintA góp phần vào mục tiêu này</h3>
+                 <p style="margin: 0 0 16px 0; font-size: 14px; color: #5E6C84; line-height: 1.5;">Kết nối công việc của đội ngũ để xem mục tiêu này trong SprintA và liên kết các nội dung cập nhật với công việc. <a href="#" style="color: #0052CC; text-decoration: none;">Thông tin khác về mục tiêu trong SprintA</a></p>
                  <div style="position: relative; display: inline-block;">
-                   <button class="secondary-btn" @click="isJiraInputOpen = !isJiraInputOpen" style="background: white; border: 1px solid #DFE1E6; font-weight: 600;">Thêm hạng mục công việc Jira</button>
+                   <button class="secondary-btn" @click="isSprintAInputOpen = !isSprintAInputOpen" style="background: white; border: 1px solid #DFE1E6; font-weight: 600;">Thêm hạng mục công việc SprintA</button>
                    
-                   <!-- Jira Input Dropdown -->
-                   <div v-if="isJiraInputOpen" class="dropdown-menu" style="position: absolute; top: 100%; left: 0; margin-top: 8px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 320px; z-index: 100; padding: 16px;">
-                      <input type="text" placeholder="Dán URL Jira" style="width: 100%; padding: 8px 12px; border: 2px solid #4C9AFF; border-radius: 3px; font-size: 14px; outline: none; box-sizing: border-box; margin-bottom: 12px;" />
+                   <!-- SprintA Input Dropdown -->
+                   <div v-if="isSprintAInputOpen" class="dropdown-menu" style="position: absolute; top: 100%; left: 0; margin-top: 8px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 320px; z-index: 100; padding: 16px;">
+                      <input type="text" placeholder="Dán URL SprintA" style="width: 100%; padding: 8px 12px; border: 2px solid #4C9AFF; border-radius: 3px; font-size: 14px; outline: none; box-sizing: border-box; margin-bottom: 12px;" />
                       <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                        <button class="cancel-btn" @click="isJiraInputOpen = false">Hủy</button>
+                        <button class="cancel-btn" @click="isSprintAInputOpen = false">Hủy</button>
                         <button class="primary-btn">Thêm</button>
                       </div>
                    </div>
@@ -297,9 +335,9 @@
                         <input type="text" placeholder="Tìm kiếm dự án" style="width: 100%; padding: 8px 12px; border: 2px solid #DFE1E6; border-radius: 3px; font-size: 14px; outline: none; box-sizing: border-box;" onfocus="this.style.borderColor='#4C9AFF'" onblur="this.style.borderColor='#DFE1E6'" />
                       </div>
                       <div style="max-height: 200px; overflow-y: auto;">
-                        <div v-for="proj in ['uqe', 'e', 'ueq', 'rWÉ']" :key="proj" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; color: #172B4D;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
+                        <div v-for="proj in siteProjects" :key="proj.id" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; color: #172B4D;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
                            <div style="width: 16px; height: 16px; background: #FFAB00; border-radius: 3px; font-size: 10px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-rocket" style="color: white;"></i></div>
-                           {{ proj }}
+                           {{ proj.name || proj.title }}
                         </div>
                       </div>
                       <div style="padding: 12px 12px 0; border-top: 1px solid #DFE1E6; margin-top: 4px;">
@@ -314,264 +352,145 @@
 
         <!-- BÀI HỌC RÚT RA TAB -->
         <template v-if="currentTab === 'learnings'">
-          <div v-if="!isEditingLearning" style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 40px; background: white; margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 32px;">
-             <div style="position: relative;">
-               <div style="width: 48px; height: 48px; background: #FFAB00; border-radius: 50%; position: relative; z-index: 1;"></div>
-               <div style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 24px; height: 16px; background: #172B4D; border-radius: 4px; z-index: 2;"></div>
-               <div style="position: absolute; top: -16px; left: 50%; transform: translateX(-50%); color: #172B4D; font-size: 16px;">\ | /</div>
-             </div>
-             <div style="max-width: 400px;">
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; color: #172B4D; text-decoration: line-through;">Những bộ óc vĩ đại có tư duy giống nhau</h3>
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; color: #172B4D;">sẽ chia sẻ kiến thức của họ</h3>
-                <p style="margin: 0 0 16px 0; font-size: 14px; color: #5E6C84; line-height: 1.5;">Chia sẻ bất kỳ bài học kinh nghiệm nào để giúp các đội ngũ khác có khởi đầu thuận lợi khi thực hiện các mục tiêu tương tự.</p>
-                <div style="display: flex; gap: 16px; align-items: center;">
-                  <button class="secondary-btn" @click="isEditingLearning = true" style="background: white; border: 1px solid #DFE1E6; font-weight: 600;">Thêm learning mới</button>
-                  <a href="#" style="color: #5E6C84; text-decoration: none; font-size: 14px;">Xem ví dụ</a>
-                </div>
-             </div>
+          <div v-if="!editing.learnings && !goalStore.lessons?.length" class="empty-state-large-tab">
+            <div class="empty-illustration">
+              <i class="fa-solid fa-lightbulb" style="color: #0052CC; font-size: 64px;"></i>
+            </div>
+            <div class="empty-text-content">
+              <h4>Những bộ óc vĩ đại có tư duy giống nhau sẽ chia sẻ kiến thức của họ</h4>
+              <p>Chia sẻ những gì bạn đã học được với công ty của bạn để giúp những người khác có một khởi đầu thuận lợi khi làm việc trên các mục tiêu tương tự.</p>
+              <div class="empty-actions">
+                <button class="secondary-btn" @click="editing.learnings = true">Thêm bài học rút ra mới</button>
+              </div>
+            </div>
           </div>
-
-          <div v-else style="border: 1px solid #4C9AFF; border-radius: 3px; background: white; margin-top: 16px; overflow: hidden; box-shadow: 0 0 0 1px #4C9AFF;">
-             <div style="padding: 16px 24px; border-bottom: 1px solid #DFE1E6; display: flex; align-items: center; gap: 12px;">
-                <i class="fa-regular fa-lightbulb" style="color: #FFAB00; font-size: 18px;"></i>
-                <input type="text" placeholder="Tóm tắt cho bài học rút ra của bạn là gì?" style="border: none; outline: none; font-size: 16px; color: #172B4D; width: 100%;" />
-             </div>
-             
-             <!-- Rich Text Editor Toolbar Mockup -->
-             <div style="display: flex; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #DFE1E6; background: white; flex-wrap: wrap; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; cursor: pointer; color: #5E6C84; border-radius: 3px;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                  <span style="font-size: 13px;">Normal text</span> <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
-                </div>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-bold toolbar-icon"></i>
-                <i class="fa-solid fa-italic toolbar-icon"></i>
-                <i class="fa-solid fa-ellipsis toolbar-icon"></i>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 4px; border-radius: 3px;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                   <i class="fa-solid fa-font" style="font-size: 14px; color: #5E6C84;"></i>
-                   <div style="width: 12px; height: 3px; background: #FF5630; margin-top: 2px;"></div>
-                </div>
-                <i class="fa-solid fa-chevron-down toolbar-icon" style="font-size: 10px; margin-left: -4px;"></i>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-list-ul toolbar-icon"></i>
-                <i class="fa-solid fa-list-ol toolbar-icon"></i>
-                <i class="fa-regular fa-square-check toolbar-icon"></i>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-link toolbar-icon"></i>
-                <i class="fa-solid fa-at toolbar-icon"></i>
-                <i class="fa-regular fa-face-smile toolbar-icon"></i>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-table-cells toolbar-icon"></i>
-                <div style="position: relative;">
-                  <i class="fa-solid fa-columns toolbar-icon" @click="isLayoutMenuOpen = !isLayoutMenuOpen"></i>
-                  <!-- Layout Float Menu Mock -->
-                  <div v-if="isLayoutMenuOpen" style="position: absolute; top: 100%; left: 0; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; gap: 8px; padding: 8px; z-index: 100;">
-                     <div style="width: 24px; height: 24px; background: #FAFBFC; border: 1px solid #DFE1E6; display: flex; gap: 2px; padding: 2px; cursor: pointer;"><div style="flex:1;background:#DFE1E6"></div><div style="flex:1;background:#DFE1E6"></div></div>
-                     <div style="width: 24px; height: 24px; background: #FAFBFC; border: 1px solid #DFE1E6; display: flex; gap: 2px; padding: 2px; cursor: pointer;"><div style="flex:1;background:#DFE1E6"></div><div style="flex:2;background:#DFE1E6"></div></div>
-                     <div style="width: 24px; height: 24px; background: #FAFBFC; border: 1px solid #DFE1E6; display: flex; gap: 2px; padding: 2px; cursor: pointer;"><div style="flex:2;background:#DFE1E6"></div><div style="flex:1;background:#DFE1E6"></div></div>
-                     <div style="width: 24px; height: 24px; background: #E6FCFF; border: 1px solid #0052CC; display: flex; gap: 2px; padding: 2px; cursor: pointer;"><div style="flex:1;background:#0052CC"></div><div style="flex:1;background:#0052CC"></div><div style="flex:1;background:#0052CC"></div></div>
-                     <div style="width: 1px; height: 24px; background: #DFE1E6; margin: 0 4px;"></div>
-                     <i class="fa-solid fa-trash" style="color: #5E6C84; line-height: 24px; cursor: pointer;"></i>
+          <div v-else>
+            <div v-if="editing.learnings" class="tab-item-editor" style="margin-bottom: 24px; padding-top: 16px;">
+                <RichTextEditor v-model="newItem.text" @save="saveLearning" @cancel="editing.learnings = false; newItem.title = ''; newItem.text = ''" placeholder="Dùng không gian này để chia sẻ bài học rút ra...">
+                  <template #header>
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #DFE1E6; background-color: #fff;">
+                      <i class="fa-regular fa-lightbulb" style="color: #FFAB00; font-size: 18px;"></i>
+                      <input type="text" v-model="newItem.title" placeholder="Tóm tắt cho bài học rút ra của bạn là gì?" style="border: none; outline: none; background: transparent; width: 100%; font-size: 15px; font-weight: 500; color: #172B4D;" />
+                    </div>
+                  </template>
+                </RichTextEditor>
+                
+            </div>
+            <div v-if="!editing.learnings && goalStore.lessons?.length" style="margin-bottom: 24px; padding-top: 16px;">
+                <button class="secondary-btn" @click="editing.learnings = true">Thêm bài học</button>
+            </div>
+            
+            <div class="timeline-post" v-for="item in goalStore.lessons" :key="item.id" style="margin-bottom: 16px;">
+                <div class="post-header">
+                  <div class="post-user">
+                    <UserAvatar :user="{ id: item.creatorId, fullName: item.creatorName, avatarUrl: item.creatorAvatarUrl, email: item.creatorEmail }" :size="32" :fontSize="12" />
+                    <div class="user-info">
+                      <span class="user-name">{{ item.creatorName }}</span>
+                      <span class="post-time">{{ new Date(item.createdAt).toLocaleString('vi-VN') }}</span>
+                    </div>
                   </div>
                 </div>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-plus toolbar-icon"></i>
-                <i class="fa-solid fa-chevron-down toolbar-icon" style="font-size: 10px; margin-left: -4px;"></i>
-             </div>
-             
-             <!-- Editor Area -->
-             <div style="padding: 24px; min-height: 200px; color: #172B4D; font-size: 14px; line-height: 1.5; outline: none;" contenteditable="true">
-               <p style="margin: 0 0 16px 0; color: #5E6C84;">Dùng không gian này để chia sẻ bài học rút ra với 1 người theo dõi</p>
-               <p v-if="isLayoutMenuOpen" style="margin: 0 0 16px 0;">Chúng tôi đã làm dự án chậm nhưng rất kỳ lạ thành công</p>
-               <table v-if="isLayoutMenuOpen" style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
-                 <tr>
-                   <td style="border: 1px solid #DFE1E6; padding: 8px; background: #FAFBFC; height: 32px;"></td>
-                   <td style="border: 1px solid #DFE1E6; padding: 8px; background: #FAFBFC;"></td>
-                   <td style="border: 1px solid #DFE1E6; padding: 8px; background: #FAFBFC;"></td>
-                 </tr>
-                 <tr>
-                   <td style="border: 1px solid #DFE1E6; padding: 8px; height: 32px;"></td>
-                   <td style="border: 1px solid #DFE1E6; padding: 8px;"></td>
-                   <td style="border: 1px solid #DFE1E6; padding: 8px;"></td>
-                 </tr>
-                 <tr>
-                   <td style="border: 1px solid #DFE1E6; padding: 8px; height: 32px;"></td>
-                   <td style="border: 1px solid #DFE1E6; padding: 8px;"></td>
-                   <td style="border: 1px solid #DFE1E6; padding: 8px;"></td>
-                 </tr>
-               </table>
-               <div v-if="isLayoutMenuOpen" style="display: flex; gap: 16px; margin-bottom: 16px;">
-                  <div style="flex: 1; border: 1px dashed #DFE1E6; border-radius: 3px; height: 40px; background: #FAFBFC;"></div>
-                  <div style="flex: 1; border: 1px dashed #DFE1E6; border-radius: 3px; height: 40px; background: #FAFBFC;"></div>
-                  <div style="flex: 1; border: 1px dashed #DFE1E6; border-radius: 3px; height: 40px; background: #FAFBFC;"></div>
-               </div>
-             </div>
-             
-             <!-- Footer Actions -->
-             <div style="padding: 12px 24px; border-top: 1px solid #DFE1E6; display: flex; gap: 8px; background: #FAFBFC;">
-               <button class="primary-btn" @click="isEditingLearning = false">Save</button>
-               <button class="cancel-btn" @click="isEditingLearning = false">Cancel</button>
-             </div>
+                <div class="post-content">
+                  <h4 style="margin: 0 0 8px 0; color: #172B4D; font-size: 16px;"><i class="fa-regular fa-lightbulb" style="color: #FFAB00; margin-right: 6px;"></i> {{ item.title }}</h4>
+                  <div v-html="sanitizeHtml(item.text)"></div>
+                </div>
+            </div>
           </div>
         </template>
 
         <!-- RỦI RO TAB -->
         <template v-if="currentTab === 'risks'">
-          <div v-if="!isEditingRisk" style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 40px; background: white; margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 32px;">
-             <div style="position: relative; width: 64px; height: 64px; display: flex; justify-content: center; align-items: center;">
-               <div style="width: 40px; height: 50px; background: #FFAB00; border-radius: 2px; position: relative; z-index: 1;">
-                 <div style="position: absolute; top: 10px; left: 8px; right: 8px; height: 2px; background: #172B4D;"></div>
-                 <div style="position: absolute; top: 18px; left: 8px; right: 8px; height: 2px; background: #172B4D;"></div>
-                 <div style="position: absolute; top: 26px; left: 8px; right: 8px; height: 2px; background: #172B4D;"></div>
-                 <div style="position: absolute; top: 34px; left: 8px; right: 8px; height: 2px; background: #172B4D;"></div>
-               </div>
-               <div style="position: absolute; right: 0; bottom: 5px; width: 8px; height: 30px; background: #FFC400; border-radius: 2px; transform: rotate(15deg); z-index: 2;">
-                 <div style="position: absolute; bottom: -4px; left: 0; right: 0; height: 4px; background: #172B4D; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px;"></div>
-               </div>
-             </div>
-             <div style="max-width: 400px;">
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; color: #172B4D;">Nắm bắt các rủi ro đã biết</h3>
-                <p style="margin: 0 0 16px 0; font-size: 14px; color: #5E6C84; line-height: 1.5;">Theo dõi mọi rủi ro liên quan đến mục tiêu này để tránh những bất ngờ sau này.</p>
-                <div style="display: flex; gap: 16px; align-items: center;">
-                  <button class="secondary-btn" @click="isEditingRisk = true" style="background: white; border: 1px solid #DFE1E6; font-weight: 600;">Thêm risk mới</button>
-                </div>
-             </div>
+          <div v-if="!editing.risks && !goalStore.risks?.length" class="empty-state-large-tab">
+            <div class="empty-illustration">
+              <i class="fa-solid fa-triangle-exclamation" style="color: #FF5630; font-size: 64px;"></i>
+            </div>
+            <div class="empty-text-content">
+              <h4>Nắm bắt các rủi ro đã biết</h4>
+              <p>Theo dõi mọi rủi ro liên quan đến mục tiêu này để tránh những bất ngờ sau này.</p>
+              <div class="empty-actions">
+                <button class="secondary-btn" @click="editing.risks = true">Thêm rủi ro mới</button>
+              </div>
+            </div>
           </div>
-
-          <div v-else style="border: 1px solid #4C9AFF; border-radius: 3px; background: white; margin-top: 16px; overflow: hidden; box-shadow: 0 0 0 1px #4C9AFF;">
-             <div style="padding: 16px 24px; border-bottom: 1px solid #DFE1E6; display: flex; align-items: center; gap: 12px;">
-                <i class="fa-solid fa-triangle-exclamation" style="color: #FF5630; font-size: 18px;"></i>
-                <input type="text" placeholder="Tóm tắt cho rủi ro của bạn là gì?" style="border: none; outline: none; font-size: 16px; color: #172B4D; width: 100%;" />
-             </div>
-             
-             <!-- Rich Text Editor Toolbar Mockup -->
-             <div style="display: flex; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #DFE1E6; background: white; flex-wrap: wrap; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; cursor: pointer; color: #5E6C84; border-radius: 3px;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                  <span style="font-size: 13px;">Normal text</span> <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
-                </div>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-bold toolbar-icon"></i>
-                <i class="fa-solid fa-italic toolbar-icon"></i>
-                <i class="fa-solid fa-ellipsis toolbar-icon"></i>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 4px; border-radius: 3px;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                   <i class="fa-solid fa-font" style="font-size: 14px; color: #5E6C84;"></i>
-                   <div style="width: 12px; height: 3px; background: #FF5630; margin-top: 2px;"></div>
-                </div>
-                <i class="fa-solid fa-chevron-down toolbar-icon" style="font-size: 10px; margin-left: -4px;"></i>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-list-ul toolbar-icon"></i>
-                <i class="fa-solid fa-list-ol toolbar-icon"></i>
-                <i class="fa-regular fa-square-check toolbar-icon"></i>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-link toolbar-icon"></i>
-                <i class="fa-solid fa-at toolbar-icon"></i>
-                <i class="fa-regular fa-face-smile toolbar-icon"></i>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-table-cells toolbar-icon"></i>
-                <div style="position: relative;">
-                  <i class="fa-solid fa-columns toolbar-icon" @click="isLayoutMenuOpenRisk = !isLayoutMenuOpenRisk"></i>
-                  <div v-if="isLayoutMenuOpenRisk" style="position: absolute; top: 100%; left: 0; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; gap: 8px; padding: 8px; z-index: 100;">
-                     <div style="width: 24px; height: 24px; background: #FAFBFC; border: 1px solid #DFE1E6; display: flex; gap: 2px; padding: 2px; cursor: pointer;"><div style="flex:1;background:#DFE1E6"></div><div style="flex:1;background:#DFE1E6"></div></div>
-                     <div style="width: 24px; height: 24px; background: #FAFBFC; border: 1px solid #DFE1E6; display: flex; gap: 2px; padding: 2px; cursor: pointer;"><div style="flex:1;background:#DFE1E6"></div><div style="flex:2;background:#DFE1E6"></div></div>
-                     <div style="width: 24px; height: 24px; background: #FAFBFC; border: 1px solid #DFE1E6; display: flex; gap: 2px; padding: 2px; cursor: pointer;"><div style="flex:2;background:#DFE1E6"></div><div style="flex:1;background:#DFE1E6"></div></div>
-                     <div style="width: 24px; height: 24px; background: #E6FCFF; border: 1px solid #0052CC; display: flex; gap: 2px; padding: 2px; cursor: pointer;"><div style="flex:1;background:#0052CC"></div><div style="flex:1;background:#0052CC"></div><div style="flex:1;background:#0052CC"></div></div>
-                     <div style="width: 1px; height: 24px; background: #DFE1E6; margin: 0 4px;"></div>
-                     <i class="fa-solid fa-trash" style="color: #5E6C84; line-height: 24px; cursor: pointer;"></i>
+          <div v-else>
+            <div v-if="editing.risks" class="tab-item-editor" style="margin-bottom: 24px; padding-top: 16px;">
+                <RichTextEditor v-model="newItem.text" @save="saveRisk" @cancel="editing.risks = false; newItem.title = ''; newItem.text = ''" placeholder="Mô tả rủi ro...">
+                  <template #header>
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #DFE1E6; background-color: #fff;">
+                      <i class="fa-solid fa-triangle-exclamation" style="color: #FF5630; font-size: 18px;"></i>
+                      <input type="text" v-model="newItem.title" placeholder="Tóm tắt rủi ro là gì?" style="border: none; outline: none; background: transparent; width: 100%; font-size: 15px; font-weight: 500; color: #172B4D;" />
+                    </div>
+                  </template>
+                </RichTextEditor>
+                
+            </div>
+            <div v-if="!editing.risks && goalStore.risks?.length" style="margin-bottom: 24px; padding-top: 16px;">
+                <button class="secondary-btn" @click="editing.risks = true">Thêm rủi ro</button>
+            </div>
+            
+            <div class="timeline-post" v-for="item in goalStore.risks" :key="item.id" style="margin-bottom: 16px;">
+                <div class="post-header">
+                  <div class="post-user">
+                    <UserAvatar :user="{ id: item.creatorId, fullName: item.creatorName, avatarUrl: item.creatorAvatarUrl, email: item.creatorEmail }" :size="32" :fontSize="12" />
+                    <div class="user-info">
+                      <span class="user-name">{{ item.creatorName }}</span>
+                      <span class="post-time">{{ new Date(item.createdAt).toLocaleString('vi-VN') }}</span>
+                    </div>
                   </div>
                 </div>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-plus toolbar-icon"></i>
-                <i class="fa-solid fa-chevron-down toolbar-icon" style="font-size: 10px; margin-left: -4px;"></i>
-             </div>
-             
-             <!-- Editor Area -->
-             <div style="padding: 24px; min-height: 200px; color: #172B4D; font-size: 14px; line-height: 1.5; outline: none;" contenteditable="true">
-               <p style="margin: 0 0 16px 0; color: #5E6C84;">Sử dụng không gian này để chia sẻ rủi ro mới của bạn với 1 người theo dõi của bạn</p>
-             </div>
-             
-             <!-- Footer Actions -->
-             <div style="padding: 12px 24px; border-top: 1px solid #DFE1E6; display: flex; gap: 8px; background: #FAFBFC;">
-               <button class="primary-btn" @click="isEditingRisk = false">Save</button>
-               <button class="cancel-btn" @click="isEditingRisk = false">Cancel</button>
-             </div>
+                <div class="post-content">
+                  <h4 style="margin: 0 0 8px 0; color: #172B4D; font-size: 16px;"><i class="fa-solid fa-triangle-exclamation" style="color: #FF5630; margin-right: 6px;"></i> {{ item.title }}</h4>
+                  <div v-html="sanitizeHtml(item.text)"></div>
+                </div>
+            </div>
           </div>
         </template>
 
         <!-- QUYẾT ĐỊNH TAB -->
         <template v-if="currentTab === 'decisions'">
-          <div v-if="!isEditingDecision" style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 40px; background: white; margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 32px;">
-             <div style="position: relative; width: 64px; height: 64px; display: flex; justify-content: center; align-items: center;">
-               <i class="fa-solid fa-code-branch fa-rotate-270" style="font-size: 40px; color: #36B37E;"></i>
-               <div style="position: absolute; top: 12px; left: 16px; width: 12px; height: 12px; background: #0052CC; transform: rotate(45deg);"></div>
-               <div style="position: absolute; bottom: 12px; left: 16px; width: 12px; height: 12px; background: #6554C0; transform: rotate(45deg);"></div>
-             </div>
-             <div style="max-width: 400px;">
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; color: #172B4D;">Truyền đạt các quyết định lớn</h3>
-                <p style="margin: 0 0 16px 0; font-size: 14px; color: #5E6C84; line-height: 1.5;">Ghi lại các quyết định lớn cho mục tiêu này tại đây để chia sẻ trong bản cập nhật mới nhất của bạn.</p>
-                <div style="display: flex; gap: 16px; align-items: center;">
-                  <button class="secondary-btn" @click="isEditingDecision = true" style="background: white; border: 1px solid #DFE1E6; font-weight: 600;">Thêm decision mới</button>
-                </div>
-             </div>
+          <div v-if="!editing.decisions && !goalStore.decisions?.length" class="empty-state-large-tab">
+            <div class="empty-illustration">
+              <i class="fa-solid fa-check-circle" style="color: #36B37E; font-size: 64px;"></i>
+            </div>
+            <div class="empty-text-content">
+              <h4>Truyền đạt các quyết định lớn</h4>
+              <p>Ghi lại các quyết định lớn cho mục tiêu này tại đây để chia sẻ trong bản cập nhật mới nhất của bạn.</p>
+              <div class="empty-actions">
+                <button class="secondary-btn" @click="editing.decisions = true">Thêm quyết định mới</button>
+              </div>
+            </div>
           </div>
-
-          <div v-else style="border: 1px solid #4C9AFF; border-radius: 3px; background: white; margin-top: 16px; overflow: hidden; box-shadow: 0 0 0 1px #4C9AFF;">
-             <div style="padding: 16px 24px; border-bottom: 1px solid #DFE1E6; display: flex; align-items: center; gap: 12px;">
-                <i class="fa-solid fa-code-branch fa-rotate-270" style="color: #36B37E; font-size: 18px;"></i>
-                <input type="text" placeholder="Tóm tắt cho quyết định của bạn là gì?" style="border: none; outline: none; font-size: 16px; color: #172B4D; width: 100%;" />
-             </div>
-             
-             <!-- Rich Text Editor Toolbar Mockup -->
-             <div style="display: flex; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #DFE1E6; background: white; flex-wrap: wrap; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; cursor: pointer; color: #5E6C84; border-radius: 3px;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                  <span style="font-size: 13px;">Normal text</span> <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
-                </div>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-bold toolbar-icon"></i>
-                <i class="fa-solid fa-italic toolbar-icon"></i>
-                <i class="fa-solid fa-ellipsis toolbar-icon"></i>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 4px; border-radius: 3px;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                   <i class="fa-solid fa-font" style="font-size: 14px; color: #5E6C84;"></i>
-                   <div style="width: 12px; height: 3px; background: #FF5630; margin-top: 2px;"></div>
-                </div>
-                <i class="fa-solid fa-chevron-down toolbar-icon" style="font-size: 10px; margin-left: -4px;"></i>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-list-ul toolbar-icon"></i>
-                <i class="fa-solid fa-list-ol toolbar-icon"></i>
-                <i class="fa-regular fa-square-check toolbar-icon"></i>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-link toolbar-icon"></i>
-                <i class="fa-solid fa-at toolbar-icon"></i>
-                <i class="fa-regular fa-face-smile toolbar-icon"></i>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-table-cells toolbar-icon"></i>
-                <div style="position: relative;">
-                  <i class="fa-solid fa-columns toolbar-icon" @click="isLayoutMenuOpenDecision = !isLayoutMenuOpenDecision"></i>
-                  <div v-if="isLayoutMenuOpenDecision" style="position: absolute; top: 100%; left: 0; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; gap: 8px; padding: 8px; z-index: 100;">
-                     <div style="width: 24px; height: 24px; background: #FAFBFC; border: 1px solid #DFE1E6; display: flex; gap: 2px; padding: 2px; cursor: pointer;"><div style="flex:1;background:#DFE1E6"></div><div style="flex:1;background:#DFE1E6"></div></div>
-                     <div style="width: 24px; height: 24px; background: #FAFBFC; border: 1px solid #DFE1E6; display: flex; gap: 2px; padding: 2px; cursor: pointer;"><div style="flex:1;background:#DFE1E6"></div><div style="flex:2;background:#DFE1E6"></div></div>
-                     <div style="width: 24px; height: 24px; background: #FAFBFC; border: 1px solid #DFE1E6; display: flex; gap: 2px; padding: 2px; cursor: pointer;"><div style="flex:2;background:#DFE1E6"></div><div style="flex:1;background:#DFE1E6"></div></div>
-                     <div style="width: 24px; height: 24px; background: #E6FCFF; border: 1px solid #0052CC; display: flex; gap: 2px; padding: 2px; cursor: pointer;"><div style="flex:1;background:#0052CC"></div><div style="flex:1;background:#0052CC"></div><div style="flex:1;background:#0052CC"></div></div>
-                     <div style="width: 1px; height: 24px; background: #DFE1E6; margin: 0 4px;"></div>
-                     <i class="fa-solid fa-trash" style="color: #5E6C84; line-height: 24px; cursor: pointer;"></i>
+          <div v-else>
+            <div v-if="editing.decisions" class="tab-item-editor" style="margin-bottom: 24px; padding-top: 16px;">
+                <RichTextEditor v-model="newItem.text" @save="saveDecision" @cancel="editing.decisions = false; newItem.title = ''; newItem.text = ''" placeholder="Mô tả quyết định...">
+                  <template #header>
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #DFE1E6; background-color: #fff;">
+                      <i class="fa-solid fa-check-circle" style="color: #36B37E; font-size: 18px;"></i>
+                      <input type="text" v-model="newItem.title" placeholder="Tóm tắt quyết định là gì?" style="border: none; outline: none; background: transparent; width: 100%; font-size: 15px; font-weight: 500; color: #172B4D;" />
+                    </div>
+                  </template>
+                </RichTextEditor>
+                
+            </div>
+            <div v-if="!editing.decisions && goalStore.decisions?.length" style="margin-bottom: 24px; padding-top: 16px;">
+                <button class="secondary-btn" @click="editing.decisions = true">Thêm quyết định</button>
+            </div>
+            
+            <div class="timeline-post" v-for="item in goalStore.decisions" :key="item.id" style="margin-bottom: 16px;">
+                <div class="post-header">
+                  <div class="post-user">
+                    <UserAvatar :user="{ id: item.creatorId, fullName: item.creatorName, avatarUrl: item.creatorAvatarUrl, email: item.creatorEmail }" :size="32" :fontSize="12" />
+                    <div class="user-info">
+                      <span class="user-name">{{ item.creatorName }}</span>
+                      <span class="post-time">{{ new Date(item.createdAt).toLocaleString('vi-VN') }}</span>
+                    </div>
                   </div>
                 </div>
-                <div style="width: 1px; height: 16px; background: #DFE1E6;"></div>
-                <i class="fa-solid fa-plus toolbar-icon"></i>
-                <i class="fa-solid fa-chevron-down toolbar-icon" style="font-size: 10px; margin-left: -4px;"></i>
-             </div>
-             
-             <!-- Editor Area -->
-             <div style="padding: 24px; min-height: 200px; color: #172B4D; font-size: 14px; line-height: 1.5; outline: none;" contenteditable="true">
-               <p style="margin: 0 0 16px 0; color: #5E6C84;">Sử dụng không gian này để chia sẻ quyết định của bạn với 1 người theo dõi</p>
-             </div>
-             
-             <!-- Footer Actions -->
-             <div style="padding: 12px 24px; border-top: 1px solid #DFE1E6; display: flex; gap: 8px; background: #FAFBFC;">
-               <button class="primary-btn" @click="isEditingDecision = false">Save</button>
-               <button class="cancel-btn" @click="isEditingDecision = false">Cancel</button>
-             </div>
+                <div class="post-content">
+                  <h4 style="margin: 0 0 8px 0; color: #172B4D; font-size: 16px;"><i class="fa-solid fa-check-circle" style="color: #36B37E; margin-right: 6px;"></i> {{ item.title }}</h4>
+                  <div v-html="sanitizeHtml(item.text)"></div>
+                </div>
+            </div>
           </div>
         </template>
       </div>
@@ -592,22 +511,13 @@
               </div>
             </div>
 
-            <!-- Key results -->
-            <div class="detail-row">
-              <div class="detail-label">Key results <span class="badge-count">0</span></div>
-              <div class="detail-value progress-value">
-                <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 0%"></div></div>
-                <span>0%</span>
-              </div>
-            </div>
-
             <!-- Chủ sở hữu -->
             <div class="detail-row">
               <div class="detail-label">Chủ sở hữu</div>
               <div class="detail-value">
                 <div class="owner-chip">
-                  <div class="owner-avatar-micro">{{ goal.creatorName ? goal.creatorName.substring(0,1) : (goal.owner ? goal.owner.substring(0,1) : 'U') }}</div>
-                  <span>{{ goal.creatorName || goal.owner || 'Chưa có' }}</span>
+                  <UserAvatar :user="{ id: goal.creatorId || goal.ownerId, avatarColor: goal.creatorColor || goal.ownerColor, fullName: goal.creatorName || goal.ownerName || goal.owner, avatarUrl: goal.creatorAvatarUrl || goal.ownerAvatarUrl, email: goal.creatorEmail || goal.ownerEmail }" :size="24" :fontSize="11" class="owner-avatar-micro" />
+                  <span>{{ goal.creatorName || goal.ownerName || goal.owner || 'Chưa có' }}</span>
                 </div>
               </div>
             </div>
@@ -631,7 +541,7 @@
               <div class="detail-value" v-if="linkedParentGoal">
                 <div class="linked-item">
                   <i class="fa-solid fa-bullseye item-icon"></i>
-                  <span class="item-name">{{ linkedParentGoal.name }}</span>
+                  <span class="item-name">{{ linkedParentGoal.title }}</span>
                   <button class="remove-btn" @click="linkedParentGoal = null"><i class="fa-solid fa-xmark"></i></button>
                 </div>
               </div>
@@ -641,10 +551,10 @@
                 <input type="text" class="popover-search" placeholder="Tìm kiếm mục tiêu hoặc dán liên kết" v-model="searchQueries.parentGoal" />
                 <div class="popover-list-title">Kết quả</div>
                 <div class="popover-list">
-                  <div class="popover-item" v-for="g in mockGoalsList" :key="g.id" @click="setParentGoal(g)">
+                  <div class="popover-item" v-for="g in filteredParentGoals" :key="g.id" @click="setParentGoal(g)">
                     <i class="fa-solid fa-bullseye item-icon-muted"></i>
                     <div class="item-details">
-                      <div class="item-name">{{ g.name }}</div>
+                      <div class="item-name">{{ g.title }}</div>
                       <div class="item-meta">{{ g.owner }}</div>
                     </div>
                   </div>
@@ -662,7 +572,7 @@
               <div class="detail-value" v-if="linkedSubGoals.length > 0">
                 <div class="linked-item" v-for="g in linkedSubGoals" :key="g.id">
                   <i class="fa-solid fa-bullseye item-icon"></i>
-                  <span class="item-name">{{ g.name }}</span>
+                  <span class="item-name">{{ g.title }}</span>
                   <button class="remove-btn" @click="removeSubGoal(g.id)"><i class="fa-solid fa-xmark"></i></button>
                 </div>
               </div>
@@ -672,10 +582,10 @@
                 <input type="text" class="popover-search" placeholder="Tìm kiếm mục tiêu hoặc dán liên kết" v-model="searchQueries.subGoals" />
                 <div class="popover-list-title">Kết quả</div>
                 <div class="popover-list">
-                  <div class="popover-item" v-for="g in mockGoalsList" :key="g.id" @click="addSubGoal(g)">
+                  <div class="popover-item" v-for="g in filteredSubGoals" :key="g.id" @click="addSubGoal(g)">
                     <i class="fa-solid fa-bullseye item-icon-muted"></i>
                     <div class="item-details">
-                      <div class="item-name">{{ g.name }}</div>
+                      <div class="item-name">{{ g.title }}</div>
                       <div class="item-meta">{{ g.owner }}</div>
                     </div>
                   </div>
@@ -710,7 +620,7 @@
                   <input type="text" class="popover-search with-icon" placeholder="Tìm kiếm đội ngũ" v-model="searchQueries.teams" />
                 </div>
                 <div class="popover-list mt-2" style="max-height: 250px; overflow-y: auto;">
-                  <div class="popover-item team-select-item" v-for="t in mockTeamsList" :key="t.id" @click="addTeam(t)">
+                  <div class="popover-item team-select-item" v-for="t in filteredTeams" :key="t.id" @click="addTeam(t)">
                     <div class="team-icon-large" :style="{ backgroundColor: t.color }"><i class="fa-solid fa-users"></i></div>
                     <div class="item-details">
                       <div class="item-name" style="font-weight: 500;">{{ t.name }} <i class="fa-solid fa-circle-check text-blue" style="font-size: 12px;" v-if="t.verified"></i></div>
@@ -730,28 +640,10 @@
               <div class="custom-popover" v-if="popovers.startDate" @click.stop style="width: 300px; padding: 0;">
                 <div style="padding: 16px; border-bottom: 1px solid #DFE1E6;">
                   <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #172B4D;">Ngày bắt đầu</h4>
-                  <div class="date-input-mock">
-                    <input type="text" placeholder="Nhập ngày bắt đầu" v-model="formattedStartDate" readonly />
+                  <div class="date-input-control">
+                    <input type="date" v-model="startDateInput" />
                     <i class="fa-regular fa-calendar"></i>
                   </div>
-                </div>
-                <div style="padding: 16px;">
-                  <div class="calendar-header">
-                    <button class="cal-nav-btn"><i class="fa-solid fa-angles-left"></i></button>
-                    <button class="cal-nav-btn"><i class="fa-solid fa-angle-left"></i></button>
-                    <span class="cal-month-year">June 2026</span>
-                    <button class="cal-nav-btn"><i class="fa-solid fa-angle-right"></i></button>
-                    <button class="cal-nav-btn"><i class="fa-solid fa-angles-right"></i></button>
-                  </div>
-                  <div class="calendar-grid">
-                    <div class="cal-day-header">Sun</div><div class="cal-day-header">Mon</div><div class="cal-day-header">Tue</div><div class="cal-day-header">Wed</div><div class="cal-day-header">Thu</div><div class="cal-day-header">Fri</div><div class="cal-day-header">Sat</div>
-                    <div class="cal-day muted">31</div><div class="cal-day">1</div><div class="cal-day">2</div><div class="cal-day">3</div><div class="cal-day">4</div><div class="cal-day">5</div><div class="cal-day">6</div>
-                    <div class="cal-day">7</div><div class="cal-day">8</div><div class="cal-day">9</div><div class="cal-day">10</div><div class="cal-day">11</div><div class="cal-day">12</div><div class="cal-day">13</div>
-                    <div class="cal-day">14</div><div class="cal-day">15</div><div class="cal-day active">16</div><div class="cal-day">17</div><div class="cal-day">18</div><div class="cal-day">19</div><div class="cal-day">20</div>
-                    <div class="cal-day">21</div><div class="cal-day">22</div><div class="cal-day">23</div><div class="cal-day">24</div><div class="cal-day">25</div><div class="cal-day">26</div><div class="cal-day">27</div>
-                    <div class="cal-day">28</div><div class="cal-day">29</div><div class="cal-day">30</div><div class="cal-day muted">1</div><div class="cal-day muted">2</div><div class="cal-day muted">3</div><div class="cal-day muted">4</div>
-                  </div>
-                  <div style="font-size: 11px; color: #0052CC; margin-top: 12px;">Đã tạo mục tiêu này vào 7 Jun 2026</div>
                 </div>
                 <div class="popover-actions" style="padding: 12px 16px; border-top: 1px solid #DFE1E6; display: flex; justify-content: space-between;">
                   <button class="secondary-btn" style="flex: 1;" @click="popovers.startDate = false">Hủy</button>
@@ -767,8 +659,11 @@
     <!-- Share Modal -->
     <ShareModal 
       :isOpen="isShareModalOpen" 
-      :projectId="route.params.id" 
-      :projectName="goal?.name" 
+      :entityId="goal?.id" 
+      entityType="Goal"
+      :entityName="goal?.title" 
+      :workspaceId="goal?.workspaceId"
+      :owner="{ fullName: goal?.owner, avatarColor: goal?.ownerColor, avatarUrl: goal?.ownerAvatarUrl }"
       @close="isShareModalOpen = false" 
     />
   </div>
@@ -778,18 +673,76 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGoalStore } from '@/store/useGoalStore'
+import { useHomeProjectStore } from '@/store/useHomeProjectStore'
+import { usePeopleStore } from '@/store/usePeopleStore'
+import axiosClient from '@/api/axiosClient'
+import { useTeamStore } from '@/store/useTeamStore'
 import RichTextEditor from '@/components/common/RichTextEditor.vue'
 import ShareModal from '@/components/common/ShareModal.vue'
+import CommentSection from '@/components/common/CommentSection.vue'
+import UserAvatar from '@/components/common/UserAvatar.vue'
+import DOMPurify from 'dompurify'
 
 const route = useRoute()
 const router = useRouter()
 const goalStore = useGoalStore()
+const projectStore = useHomeProjectStore()
+const teamStore = useTeamStore()
+const peopleStore = usePeopleStore()
+const siteProjects = computed(() => projectStore.projects || [])
 
+const myInitials = computed(() => {
+  const name = goalStore.currentGoal?.owner || 'User'
+  return name.charAt(0).toUpperCase()
+})
+
+
+const newItem = ref({ title: '', text: '' })
+
+const saveLearning = async () => {
+    if (!newItem.value.title || !newItem.value.text) return;
+    await goalStore.addGoalLesson(goal.value?.id, newItem.value);
+    newItem.value = { title: '', text: '' };
+    editing.value.learnings = false;
+}
+const saveRisk = async () => {
+    if (!newItem.value.title || !newItem.value.text) return;
+    await goalStore.addGoalRisk(goal.value?.id, newItem.value);
+    newItem.value = { title: '', text: '' };
+    editing.value.risks = false;
+}
+const saveDecision = async () => {
+    if (!newItem.value.title || !newItem.value.text) return;
+    await goalStore.addGoalDecision(goal.value?.id, newItem.value);
+    newItem.value = { title: '', text: '' };
+    editing.value.decisions = false;
+}
+
+const editing = ref({ learnings: false, risks: false, decisions: false })
+
+const siteUsers = computed(() => peopleStore.users || [])
+const goalOwnerData = computed(() => {
+  if (!goal.value) return null
+  const ownerId = goal.value.ownerId || goal.value.creatorId
+  const ownerName = goal.value.owner || goal.value.ownerName || goal.value.creatorName
+  if (ownerId) return siteUsers.value.find(u => u.id === ownerId) || { id: ownerId, fullName: ownerName }
+  if (ownerName) return siteUsers.value.find(u => u.fullName === ownerName) || { fullName: ownerName }
+  return null
+})
+
+const currentTab = ref('overview')
+const activityTab = ref('history')
 const showUpdateForm = ref(false)
 const isUpdateStatusOpen = ref(false)
-const newUpdate = ref({ status: 'ĐÚNG TIẾN ĐỘ', message: '', progress: 0 })
+const showStatusMenu = ref(false)
 
-const isJiraInputOpen = ref(false)
+const newUpdateForm = ref({
+  content: '',
+  status: 'ĐANG CHỜ XỬ LÝ',
+  progress: 0
+})
+
+const isSprintAInputOpen = ref(false)
 const isProjectSearchOpen = ref(false)
 const isEditingLearning = ref(false)
 const isEditingRisk = ref(false)
@@ -798,17 +751,71 @@ const isLayoutMenuOpen = ref(false)
 const isLayoutMenuOpenRisk = ref(false)
 const isLayoutMenuOpenDecision = ref(false)
 
-const currentTab = ref('overview')
-const activityTab = ref('comments')
-
 const isEditingBio = ref(false)
 const tempBio = ref('')
 
 const goal = computed(() => goalStore.currentGoal)
+const sanitizeHtml = (value) => DOMPurify.sanitize(value || '')
+const safeGoalDescription = computed(() => sanitizeHtml(goal.value?.description || ''))
 const updates = computed(() => goalStore.updates || [])
+const goalHistory = computed(() => {
+  const explicitHistory = goalStore.history || goal.value?.history || []
+  if (explicitHistory.length) {
+    return explicitHistory.map((entry, index) => ({
+      id: entry.id || `history-${index}`,
+      actor: entry.actor || entry.userName || entry.createdByName || 'Hệ thống',
+      email: entry.creatorEmail || entry.authorEmail,
+      action: entry.action || entry.description || 'đã cập nhật mục tiêu',
+      target: entry.target || entry.fieldName || goal.value?.title || '',
+      createdAt: entry.createdAt || entry.timestamp || entry.updatedAt
+    }))
+  }
 
-// Mocks for subgoals
-const subGoals = ref([])
+  const updateHistory = (goalStore.updates || []).map((update, index) => ({
+    id: update.id || `update-${index}`,
+    actor: update.userName || update.createdByName || goal.value?.owner || goal.value?.ownerName || 'Hệ thống',
+    action: 'đã đăng bản cập nhật',
+    target: update.content || update.status || goal.value?.title || '',
+    createdAt: update.createdAt || update.updatedAt
+  }))
+
+  if (updateHistory.length) return updateHistory
+
+  return [{
+    id: goal.value?.id || 'created',
+    actor: goal.value?.owner || goal.value?.ownerName || goal.value?.creatorName || 'Hệ thống',
+    action: 'đã tạo mục tiêu',
+    target: goal.value?.title || '',
+    createdAt: goal.value?.createdAt || goal.value?.updatedAt || new Date().toISOString()
+  }]
+})
+
+onMounted(async () => {
+  if (projectStore.projects.length === 0) await projectStore.fetchProjects();
+  if (goalStore.goals.length === 0) await goalStore.fetchGoals();
+  if (teamStore.allTeams.length === 0) await teamStore.fetchAllTeams();
+  if (peopleStore.users.length === 0) await peopleStore.fetchPeople('', 1, 100);
+  if (route.params.id) {
+    await goalStore.fetchGoalDetail(route.params.id)
+    const dateValue = goal.value?.startDate || goal.value?.dueDate || goal.value?.date || null
+    startDate.value = dateValue
+    startDateInput.value = dateValue ? new Date(dateValue).toISOString().slice(0, 10) : ''
+    if (goal.value?.id) {
+      try {
+        await axiosClient.post('/recentviews', {
+          entityType: 'Goal',
+          entityId: goal.value.id,
+          title: goal.value.title || 'Goal',
+          subtitle: 'Goal',
+          url: `/home/goals/${goal.value.id}`,
+          icon: 'fa-solid fa-bullseye'
+        })
+      } catch (err) {
+        console.warn('Failed to record recent goal view', err)
+      }
+    }
+  }
+})
 
 const isShareModalOpen = ref(false)
 
@@ -838,18 +845,53 @@ const linkedParentGoal = ref(null)
 const linkedSubGoals = ref([])
 const linkedTeams = ref([])
 const startDate = ref(null)
-const formattedStartDate = ref('16 Jun 2026')
+const startDateInput = ref('')
+const formattedStartDate = computed(() => {
+  if (!startDate.value) return ''
+  return new Date(startDate.value).toLocaleDateString('vi-VN')
+})
 
-const mockGoalsList = [
-  { id: 'g1', name: 'iPhone 15 Pro Max', owner: 'Tua20000' },
-  { id: 'g2', name: 'uew', owner: 'Tua20000' }
-]
 
-const mockTeamsList = [
-  { id: 't1', name: '###', members: 1, color: '#36B37E', verified: true },
-  { id: 't2', name: '30', members: 1, color: '#FF5630', verified: true },
-  { id: 't3', name: 'RRRR', members: 1, color: '#FF5630', verified: true }
-]
+const filteredParentGoals = computed(() => {
+  if (!goalStore.goals) return []
+  let list = goalStore.goals.filter(g => g.id !== goal.value?.id) // Cannot be self
+  if (linkedSubGoals.value.length > 0) {
+    const subIds = linkedSubGoals.value.map(s => s.id)
+    list = list.filter(g => !subIds.includes(g.id)) // Cannot be a subgoal
+  }
+  if (searchQueries.value.parentGoal) {
+    list = list.filter(g => g.title && g.title.toLowerCase().includes(searchQueries.value.parentGoal.toLowerCase()))
+  }
+  return list
+})
+
+const filteredSubGoals = computed(() => {
+  if (!goalStore.goals) return []
+  let list = goalStore.goals.filter(g => g.id !== goal.value?.id) // Cannot be self
+  if (linkedParentGoal.value) {
+    list = list.filter(g => g.id !== linkedParentGoal.value.id) // Cannot be parent goal
+  }
+  const linkedIds = linkedSubGoals.value.map(s => s.id)
+  list = list.filter(g => !linkedIds.includes(g.id)) // Cannot be already linked
+  if (searchQueries.value.subGoals) {
+    list = list.filter(g => g.title && g.title.toLowerCase().includes(searchQueries.value.subGoals.toLowerCase()))
+  }
+  return list
+})
+
+const filteredTeams = computed(() => {
+  if (!teamStore.allTeams) return []
+  let list = teamStore.allTeams
+  const linkedIds = linkedTeams.value.map(t => t.id)
+  list = list.filter(t => !linkedIds.includes(t.id))
+  if (searchQueries.value.teams) {
+    list = list.filter(t => t.name && t.name.toLowerCase().includes(searchQueries.value.teams.toLowerCase()))
+  }
+  return list
+})
+
+
+
 
 const setParentGoal = (g) => {
   linkedParentGoal.value = g
@@ -868,9 +910,48 @@ const addTeam = (t) => {
 }
 const removeTeam = (id) => { linkedTeams.value = linkedTeams.value.filter(x => x.id !== id) }
 
-const saveStartDate = () => {
-  startDate.value = '2026-06-16'
+const saveStartDate = async () => {
+  if (!goal.value?.workspaceId || !goal.value?.id || !startDateInput.value) {
+    popovers.value.startDate = false
+    return
+  }
+
+  await axiosClient.put(`/workspaces/${goal.value.workspaceId}/goals/${goal.value.id}`, {
+    startDate: startDateInput.value,
+    dueDate: startDateInput.value
+  })
+  await goalStore.fetchGoalDetail(goal.value.id)
+  startDate.value = startDateInput.value
   popovers.value.startDate = false
+}
+
+const selectStatus = (status) => {
+  newUpdateForm.value.status = status
+  showStatusMenu.value = false
+}
+
+const getPreviousStatus = (update) => update.oldStatus || update.previousStatus || update.OldStatus || update.PreviousStatus
+const getCurrentStatus = (update) => update.newStatus || update.status || update.NewStatus || update.Status
+const getUpdateProgress = (update) => {
+  const value = update.newProgress ?? update.progress ?? update.NewProgress ?? update.Progress
+  return value === undefined || value === null ? null : value
+}
+
+const getInitials = (value = '') => {
+  const text = String(value || '').trim()
+  if (!text) return 'H'
+  return text
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(part => part.charAt(0).toUpperCase())
+    .join('')
+}
+
+const formatDate = (value) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 const startEditingBio = () => {
@@ -878,25 +959,92 @@ const startEditingBio = () => {
   isEditingBio.value = true
 }
 
-const saveBio = async (val) => {
-  if (goal.value) {
-    // API call to update bio
-    goal.value.description = typeof val === 'string' ? val : tempBio.value
-  }
+const saveBio = async () => {
+  if (!goal.value?.id) return
+  await axiosClient.put(`/workspaces/${goal.value.workspaceId}/goals/${goal.value.id}`, {
+    ...goal.value,
+    description: tempBio.value
+  })
+  await goalStore.fetchGoalDetail(goal.value.id)
   isEditingBio.value = false
 }
 
-onMounted(async () => {
-  window.addEventListener('click', closePopovers)
-  if (route.params.id) {
-    await goalStore.fetchGoalDetail(route.params.id)
-  }
-})
+const toggleShare = () => {
+  isShareModalOpen.value = true
+}
+
+const toggleMenu = () => {
+  isLayoutMenuOpen.value = !isLayoutMenuOpen.value
+}
+
+
+  const editingUpdateId = ref(null);
+  const editingContent = ref('');
+  const editUpdate = (update) => {
+    editingUpdateId.value = update.id;
+    editingContent.value = update.content;
+  };
+  const cancelInlineEdit = () => {
+    editingUpdateId.value = null;
+    editingContent.value = '';
+  };
+  const saveInlineEdit = async (update) => {
+    try {
+      const payload = {
+        content: editingContent.value
+      };
+      await axiosClient.put(`/workspaces/${goal.value.workspaceId}/goals/${goal.value.id}/updates/${update.id}`, payload);
+      await goalStore.fetchGoalDetail(goal.value.id);
+    if (newUpdateForm.value.progress !== undefined) {
+       goal.value.progress = newUpdateForm.value.progress;
+    }
+      editingUpdateId.value = null;
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const deleteUpdate = async (updateId) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa bản cập nhật này không?')) return;
+    try {
+      await axiosClient.delete(`/workspaces/${goal.value.workspaceId}/goals/${goal.value.id}/updates/${updateId}`);
+      await goalStore.fetchGoalDetail(goal.value.id);
+    } catch (error) {
+      console.error('Failed to delete update:', error);
+      alert('Không thể xóa bản cập nhật.');
+    }
+  };
+    
+const submitGoalUpdate = async () => {
+  if (!newUpdateForm.value.content.trim()) return
+  try {
+    const payload = {
+      content: newUpdateForm.value.content,
+      status: newUpdateForm.value.status,
+      progress: newUpdateForm.value.progress
+    };
+    
+    if (newUpdateForm.value.id) {
+      // Edit
+      await axiosClient.put(`/workspaces/${goal.value.workspaceId}/goals/${goal.value.id}/updates/${newUpdateForm.value.id}`, payload);
+    } else {
+      // Create
+      await axiosClient.post(`/workspaces/${goal.value.workspaceId}/goals/${goal.value.id}/updates`, payload);
+    }
+
+    await goalStore.fetchGoalDetail(goal.value.id);
+    
+    newUpdateForm.value.content = ''
+    newUpdateForm.value.id = null
+  } catch (error) {
+    console.error('Failed to submit update:', error)
+}
+}
 
 const getStatusClass = (status) => {
   if (!status) return 'status-pending'
   const map = {
-    'đúng tiến độ': 'status-on-track',
+    'đúng tiến độ': 'status-pending',
     'có rủi ro': 'status-at-risk',
     'trễ tiến độ': 'status-off-track',
     'đang chờ cập nhật': 'status-pending',
@@ -907,7 +1055,7 @@ const getStatusClass = (status) => {
 }
 
 const toggleFollow = () => {
-  if (goal.value) goalStore.toggleFollow(goal.value.id)
+  if (goal.value) goalStore.toggleFollow(goal.value?.id)
 }
 
 const toggleStar = () => {
@@ -916,8 +1064,7 @@ const toggleStar = () => {
 
 const postUpdate = () => {
   showUpdateForm.value = false
-  newUpdate.value.message = ''
-  // API Call would go here
+  newUpdateForm.value.content = ''
 }
 </script>
 
@@ -1129,8 +1276,8 @@ const postUpdate = () => {
 }
 
 /* Status Colors */
-.status-on-track { background-color: #E3FCEF; color: #006644; }
-.status-on-track .status-dot { background-color: #36B37E; }
+.status-pending { background-color: #E3FCEF; color: #006644; }
+.status-pending .status-dot { background-color: #36B37E; }
 
 .status-at-risk { background-color: #FFF0B3; color: #FF8B00; }
 .status-at-risk .status-dot { background-color: #FFAB00; }
@@ -1231,7 +1378,7 @@ const postUpdate = () => {
   margin-bottom: 24px;
 }
 
-.update-input-mockup {
+.update-input-controlup {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1251,7 +1398,7 @@ const postUpdate = () => {
   font-weight: 600;
 }
 
-.fake-input {
+.update-input-placeholder {
   flex: 1;
   padding: 10px 16px;
   border: 1px solid #DFE1E6;
@@ -1261,7 +1408,7 @@ const postUpdate = () => {
   transition: border-color 0.2s;
 }
 
-.fake-input:hover {
+.update-input-placeholder:hover {
   border-color: #A5ADBA;
 }
 
@@ -1506,14 +1653,7 @@ const postUpdate = () => {
 .owner-avatar-micro {
   width: 20px;
   height: 20px;
-  background-color: #0052CC;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: bold;
+  flex-shrink: 0;
 }
 
 .tab-btn {
@@ -1584,6 +1724,7 @@ const postUpdate = () => {
   background: #FAFBFC;
 }
 
+.reaction-btn { border: none !important; background: transparent; }
 .reaction-btn:hover {
   background-color: #FAFBFC;
 }
@@ -1734,10 +1875,10 @@ const postUpdate = () => {
 }
 
 /* Start Date Calendar Custom Styles */
-.date-input-mock {
+.date-input-control {
   position: relative;
 }
-.date-input-mock input {
+.date-input-control input {
   width: 100%;
   padding: 6px 8px 6px 32px;
   border: 2px solid #DFE1E6;
@@ -1747,7 +1888,7 @@ const postUpdate = () => {
   box-sizing: border-box;
   background-color: #FAFBFC;
 }
-.date-input-mock i {
+.date-input-control i {
   position: absolute;
   left: 10px;
   top: 50%;
@@ -1851,4 +1992,208 @@ const postUpdate = () => {
   background-color: rgba(9, 30, 66, 0.08);
   border-radius: 3px;
 }
+
+.timeline-post {
+  border: 1px solid #DFE1E6;
+  border-radius: 3px;
+  padding: 16px;
+  background-color: #FAFBFC;
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.post-user {
+  display: flex;
+  gap: 12px;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #172B4D;
+}
+
+.post-time {
+  font-size: 12px;
+  color: #5E6C84;
+}
+
+.post-status-meta {
+  font-size: 12px;
+  color: #5E6C84;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.post-content {
+  margin-bottom: 16px;
+}
+
+.post-content p {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: #172B4D;
+}
+
+
+/* CSS extracted from ProjectDetail.vue for GoalDetail.vue consistency */
+.update-editor-box {
+  border: 1px solid #DFE1E6;
+  border-radius: 3px;
+  background-color: #FFFFFF;
+  box-shadow: 0 4px 8px -2px rgba(9,30,66,0.25);
+  margin-bottom: 40px;
+}
+.updates-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.update-editor-header {
+  display: flex;
+  padding: 16px;
+  border-bottom: 1px solid #DFE1E6;
+  gap: 24px;
+}
+.editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.status-dropdown-wrapper {
+  position: relative;
+}
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.status-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid #DFE1E6;
+  border-radius: 3px;
+  box-shadow: 0 4px 8px -2px rgba(9,30,66,0.25);
+  padding: 8px 0;
+  z-index: 10;
+  min-width: 180px;
+}
+.status-option {
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.target-date-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: #42526E;
+  border: 1px solid #DFE1E6;
+}
+.template-link {
+  justify-content: center;
+  color: #5E6C84;
+  font-size: 12px;
+  cursor: pointer;
+}
+.update-editor-body {
+  padding: 16px;
+}
+.update-editor-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-top: 1px solid #DFE1E6;
+  background-color: #FAFBFC;
+}
+.editor-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tool-ai {
+  font-size: 12px;
+  color: #5E6C84;
+  margin-right: 8px;
+}
+.tool-btn {
+  background: transparent;
+  border: none;
+  color: #42526E;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.empty-state-large-tab {
+  display: flex;
+  align-items: center;
+  padding: 40px;
+  background-color: #FFFFFF;
+  border: 1px solid #DFE1E6;
+  border-radius: 3px;
+  gap: 40px;
+  margin-top: 16px;
+}
+.empty-illustration {
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.empty-text-content {
+  flex: 1;
+}
+.empty-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.link-btn {
+  color: #0052CC;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+
+.seamless-textarea {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  resize: none !important;
+}
+.seamless-textarea:focus {
+  outline: none !important;
+}
 </style>
+

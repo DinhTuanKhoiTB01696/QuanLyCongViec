@@ -9,9 +9,7 @@
       </div>
       <div class="header-main">
         <div class="identity-block">
-          <div class="profile-avatar" :class="{ inactive: isInactive }">
-            {{ user.avatar }}
-          </div>
+          <UserAvatar :user="{ id: user.id, avatarUrl: user.avatarUrl, avatarColor: user.avatarColor, initials: user.initials, fullName: user.fullName, email: user.email }" :size="96" :fontSize="36" class="profile-avatar" :class="{ inactive: isInactive }" />
           <div class="title-block">
             <div class="title-row">
               <h1>{{ user.fullName }}</h1>
@@ -58,9 +56,28 @@
       <!-- Overview -->
       <div v-if="currentTab === 'overview'" class="tab-pane layout-grid">
         <div class="main-column">
-          <section class="info-section">
+                    <section class="info-section">
             <h3>Bio</h3>
-            <p>{{ user.bio || 'No bio provided.' }}</p>
+            <div class="bio-content-wrapper" :class="{ 'is-editing': editingBio }">
+              <RichTextEditor 
+                v-if="editingBio"
+                v-model="tempBio"
+                @save="saveBio"
+                @cancel="editingBio = false"
+                placeholder="Thêm giới thiệu về bạn..."
+              />
+              <div 
+                v-else 
+                class="bio-display tiptap-content" 
+                @click="startEditingBio"
+                style="min-height: 40px; padding: 8px; border: 1px solid transparent; border-radius: 4px; cursor: pointer;"
+                onmouseover="this.style.backgroundColor='#FAFBFC'"
+                onmouseout="this.style.backgroundColor='transparent'"
+              >
+                <div v-if="user.bio && user.bio !== '<p></p>'" v-html="user.bio"></div>
+                <div v-else style="color: #5E6C84;">Thêm giới thiệu về bạn...</div>
+              </div>
+            </div>
           </section>
           <section class="info-section">
             <h3>Teams & Departments</h3>
@@ -74,9 +91,28 @@
               </div>
             </div>
           </section>
-          <section class="info-section">
+                    <section class="info-section">
             <h3>Hobbies & Interests</h3>
-            <p>{{ user.hobbies || 'Has not shared any hobbies yet.' }}</p>
+            <div class="bio-content-wrapper" :class="{ 'is-editing': editingHobbies }">
+              <RichTextEditor 
+                v-if="editingHobbies"
+                v-model="tempHobbies"
+                @save="saveHobbies"
+                @cancel="editingHobbies = false"
+                placeholder="Chia sẻ sở thích của bạn..."
+              />
+              <div 
+                v-else 
+                class="bio-display tiptap-content" 
+                @click="startEditingHobbies"
+                style="min-height: 40px; padding: 8px; border: 1px solid transparent; border-radius: 4px; cursor: pointer;"
+                onmouseover="this.style.backgroundColor='#FAFBFC'"
+                onmouseout="this.style.backgroundColor='transparent'"
+              >
+                <div v-if="user.hobbies && user.hobbies !== '<p></p>'" v-html="user.hobbies"></div>
+                <div v-else style="color: #5E6C84;">Has not shared any hobbies yet.</div>
+              </div>
+            </div>
           </section>
         </div>
         <div class="side-column">
@@ -143,7 +179,7 @@
           <tbody>
             <tr v-for="goal in linkedGoals" :key="goal.id" @click="goToGoal(goal.id)">
               <td class="link-text"><i class="fa-solid fa-bullseye"></i> {{ goal.title }}</td>
-              <td><span class="status-badge" :class="goal.status.toLowerCase().replace(' ', '-')">{{ goal.status }}</span></td>
+              <td><span class="status-badge" :class="statusClass(goal.status)">{{ goal.status }}</span></td>
             </tr>
           </tbody>
         </table>
@@ -175,7 +211,7 @@
         </div>
         <div class="kudos-grid mt-16">
           <div class="kudos-card" v-for="k in kudos" :key="k.id">
-            <div class="kudos-icon"><i class="fa-solid fa-star" style="color: #FFAB00;"></i></div>
+            <div class="kudos-icon">{{ k.icon || 'Star' }}</div>
             <div class="kudos-content">
               <p class="kudos-msg">"{{ k.message }}"</p>
               <div class="kudos-meta">
@@ -207,38 +243,111 @@
     <div class="loader-spinner"></div>
     <p>Loading profile...</p>
   </div>
+
+  <!-- Edit Profile Modal -->
+  <div class="modal-overlay" v-if="isEditModalOpen" @click.self="closeEditProfile">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit Profile</h2>
+        <button class="close-btn" @click="closeEditProfile">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" v-model="editForm.fullName" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label>Job Title</label>
+          <input type="text" v-model="editForm.jobTitle" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <input type="text" v-model="editForm.location" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label>Bio</label>
+          <textarea v-model="editForm.bio" class="form-input" rows="4"></textarea>
+        </div>
+        <div class="error-message" v-if="editError">{{ editError }}</div>
+      </div>
+      <div class="modal-footer">
+        <button class="cancel-btn" @click="closeEditProfile" :disabled="isSaving">Cancel</button>
+        <button class="primary-btn" @click="saveProfile" :disabled="isSaving">
+          {{ isSaving ? 'Saving...' : 'Save Changes' }}
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { getStoredUser } from '@/utils/permissions'
 import { useRoute, useRouter } from 'vue-router'
 import { usePeopleStore } from '@/store/usePeopleStore'
+import UserAvatar from '@/components/common/UserAvatar.vue'
+import RichTextEditor from '@/components/common/RichTextEditor.vue'
+import { useGoalStore } from '@/store/useGoalStore'
+import { useHomeProjectStore as useProjectStore } from '@/store/useHomeProjectStore'
 
 const route = useRoute()
 const router = useRouter()
 const peopleStore = usePeopleStore()
+const goalStore = useGoalStore()
+const projectStore = useProjectStore()
+
+
+const editingBio = ref(false)
+const tempBio = ref('')
+const startEditingBio = () => {
+  tempBio.value = user.value.bio || ''
+  editingBio.value = true
+}
+const saveBio = async () => {
+  try {
+    await peopleStore.updateProfile({ bio: tempBio.value })
+    editingBio.value = false
+    await peopleStore.fetchProfileDetail(route.params.id)
+  } catch(e) { console.error('Save bio failed', e) }
+}
+
+const editingHobbies = ref(false)
+const tempHobbies = ref('')
+const startEditingHobbies = () => {
+  tempHobbies.value = user.value.hobbies || ''
+  editingHobbies.value = true
+}
+const saveHobbies = async () => {
+  try {
+    await peopleStore.updateProfile({ hobbies: tempHobbies.value })
+    editingHobbies.value = false
+    await peopleStore.fetchProfileDetail(route.params.id)
+  } catch(e) { console.error('Save hobbies failed', e) }
+}
 
 const currentTab = ref('overview')
 const isMenuOpen = ref(false)
+const isEditModalOpen = ref(false)
+const isSaving = ref(false)
+const editError = ref('')
+const editForm = ref({
+  fullName: '',
+  jobTitle: '',
+  location: '',
+  bio: ''
+})
 
 const user = computed(() => {
-  const u = peopleStore.currentUser
-  if (!u) return null
+  const u = peopleStore.currentUser || getStoredUser() || {}
   return {
     ...u,
-    teamsList: [
-      { id: '1', name: 'Engineering Frontend' },
-      { id: '2', name: 'UI/UX Guild' }
-    ],
-    hobbies: 'Photography, Hiking, Board Games'
+    teamsList: u.departments || [],
+    hobbies: u.hobbies || '',
+    avatarColor: u.avatarColor
   }
 })
 
-// Mocks
-const assignedTasks = ref([
-  { id: 't1', key: 'SA-104', summary: 'Fix Navigation Bug', projectName: 'SprintA Refactor', status: 'IN PROGRESS' },
-  { id: 't2', key: 'SA-105', summary: 'Design People Profile', projectName: 'SprintA Refactor', status: 'DONE' }
-])
+const assignedTasks = ref([])
 const linkedGoals = computed(() => peopleStore.linkedGoals)
 const linkedProjects = computed(() => peopleStore.linkedProjects)
 const kudos = computed(() => peopleStore.kudos)
@@ -246,7 +355,12 @@ const history = computed(() => peopleStore.history)
 
 const isInactive = computed(() => user.value?.status === 'Inactive')
 
+const userGoals = computed(() => goalStore.goals.filter(g => g.ownerId === user.value.id || g.owner === user.value.fullName))
+const userProjects = computed(() => projectStore.projects.filter(p => p.ownerId === user.value.id || p.owner === user.value.fullName))
+
 onMounted(async () => {
+  goalStore.fetchGoals();
+  projectStore.fetchProjects();
   await peopleStore.fetchProfileDetail(route.params.id)
   document.addEventListener('click', closeMenuOnOutsideClick)
 })
@@ -269,9 +383,44 @@ const goToProject = (id) => {
   router.push(`/home/projects/${id}`)
 }
 
+const statusClass = (status) => `${status || ''}`.toLowerCase().replace(/\s+/g, '-')
+
 const openEditProfile = () => {
   isMenuOpen.value = false
-  // TODO: Open modal
+  editForm.value = {
+    fullName: user.value?.fullName || '',
+    jobTitle: user.value?.position || '',
+    location: user.value?.location || '',
+    bio: user.value?.bio || ''
+  }
+  editError.value = ''
+  isEditModalOpen.value = true
+}
+
+const closeEditProfile = () => {
+  if (!isSaving.value) {
+    isEditModalOpen.value = false
+  }
+}
+
+const saveProfile = async () => {
+  isSaving.value = true
+  editError.value = ''
+  try {
+    const payload = {
+      fullName: editForm.value.fullName,
+      jobTitle: editForm.value.jobTitle,
+      location: editForm.value.location,
+      bio: editForm.value.bio
+    }
+    await peopleStore.updateProfile(payload)
+    isEditModalOpen.value = false
+    await peopleStore.fetchProfileDetail(route.params.id) // reload
+  } catch (err) {
+    editError.value = err.response?.data?.message || err.message || 'Failed to update profile'
+  } finally {
+    isSaving.value = false
+  }
 }
 
 const goToTask = (task) => {
@@ -333,7 +482,6 @@ const goToTask = (task) => {
 .profile-avatar {
   width: 96px;
   height: 96px;
-  background-color: #0052cc;
   color: white;
   border-radius: 50%;
   display: flex;
@@ -780,5 +928,134 @@ const goToTask = (task) => {
   border: 1px dashed #dfe1e6;
   border-radius: 3px;
   margin-top: 16px;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(9, 30, 66, 0.54);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #FFFFFF;
+  border-radius: 3px;
+  width: 500px;
+  box-shadow: 0 8px 16px -4px rgba(9, 30, 66, 0.25);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #DFE1E6;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  color: #172B4D;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #5E6C84;
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5E6C84;
+}
+
+.form-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid #DFE1E6;
+  border-radius: 3px;
+  font-size: 14px;
+  color: #172B4D;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.form-input:focus {
+  border-color: #4C9AFF;
+  background-color: #FFFFFF;
+}
+
+.error-message {
+  color: #DE350B;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #DFE1E6;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cancel-btn {
+  background: transparent;
+  border: none;
+  color: #42526E;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 3px;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background-color: rgba(9, 30, 66, 0.08);
+}
+
+.primary-btn {
+  background-color: #0052CC;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 3px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.primary-btn:hover:not(:disabled) {
+  background-color: #0047B3;
+}
+
+.primary-btn:disabled {
+  background-color: rgba(9, 30, 66, 0.04);
+  color: #A5ADBA;
+  cursor: not-allowed;
 }
 </style>

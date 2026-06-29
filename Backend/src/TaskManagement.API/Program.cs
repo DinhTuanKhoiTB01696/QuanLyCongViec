@@ -64,18 +64,8 @@ builder.Services.AddCors(options =>
 // 3. CẤU HÌNH CODE-FIRST (ENTITY FRAMEWORK CORE)
 // Luôn dùng SQL Server để dữ liệu được lưu trữ vĩnh viễn (comment, notification, v.v.)
 var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
-var useInMemoryFallback = false;
 
-if (!string.IsNullOrWhiteSpace(defaultConnection) && builder.Environment.IsDevelopment())
-{
-    useInMemoryFallback = !CanConnectToSqlServer(defaultConnection);
-    if (useInMemoryFallback)
-    {
-        Console.WriteLine("SQL Server is unavailable. Falling back to InMemory database for Development.");
-    }
-}
-
-if (!string.IsNullOrWhiteSpace(defaultConnection) && !useInMemoryFallback)
+if (!string.IsNullOrWhiteSpace(defaultConnection))
 {
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
        options.UseSqlServer(defaultConnection,
@@ -162,6 +152,8 @@ using (var scope = app.Services.CreateScope())
         // await context.Database.EnsureCreatedAsync();
         if (context.Database.IsRelational())
         {
+            context.Database.SetCommandTimeout(TimeSpan.FromMinutes(5));
+
             await context.Database.ExecuteSqlRawAsync(@"
 IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
 BEGIN
@@ -262,9 +254,195 @@ BEGIN
         CONSTRAINT FK_TaskSubscribers_Users_UserId FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE CASCADE
     );
 END;
+IF OBJECT_ID('dbo.TeamGoals', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.TeamGoals (
+        Id uniqueidentifier NOT NULL,
+        DepartmentId uniqueidentifier NOT NULL,
+        GoalId uniqueidentifier NOT NULL,
+        CreatedByUserId uniqueidentifier NOT NULL,
+        CreatedAt datetime2 NOT NULL CONSTRAINT DF_TeamGoals_CreatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_TeamGoals PRIMARY KEY (Id),
+        CONSTRAINT FK_TeamGoals_Departments_DepartmentId FOREIGN KEY (DepartmentId) REFERENCES dbo.Departments(Id) ON DELETE CASCADE,
+        CONSTRAINT FK_TeamGoals_Goals_GoalId FOREIGN KEY (GoalId) REFERENCES dbo.Goals(Id) ON DELETE CASCADE,
+        CONSTRAINT FK_TeamGoals_Users_CreatedByUserId FOREIGN KEY (CreatedByUserId) REFERENCES dbo.Users(Id)
+    );
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TeamGoals_DepartmentId_GoalId' AND object_id = OBJECT_ID('dbo.TeamGoals'))
+BEGIN
+    CREATE UNIQUE INDEX IX_TeamGoals_DepartmentId_GoalId ON dbo.TeamGoals(DepartmentId, GoalId);
+END;
+IF OBJECT_ID('dbo.RecentViews', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.RecentViews (
+        Id uniqueidentifier NOT NULL,
+        UserId uniqueidentifier NOT NULL,
+        EntityType nvarchar(64) NOT NULL,
+        EntityId uniqueidentifier NOT NULL,
+        Title nvarchar(512) NOT NULL,
+        Subtitle nvarchar(512) NULL,
+        Url nvarchar(1024) NULL,
+        Icon nvarchar(128) NULL,
+        ViewedAt datetime2 NOT NULL CONSTRAINT DF_RecentViews_ViewedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_RecentViews PRIMARY KEY (Id),
+        CONSTRAINT FK_RecentViews_Users_UserId FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE CASCADE
+    );
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_RecentViews_UserId_EntityType_EntityId' AND object_id = OBJECT_ID('dbo.RecentViews'))
+BEGIN
+    CREATE UNIQUE INDEX IX_RecentViews_UserId_EntityType_EntityId ON dbo.RecentViews(UserId, EntityType, EntityId);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_RecentViews_UserId_ViewedAt' AND object_id = OBJECT_ID('dbo.RecentViews'))
+BEGIN
+    CREATE INDEX IX_RecentViews_UserId_ViewedAt ON dbo.RecentViews(UserId, ViewedAt DESC);
+END;
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TaskSubscribers_UserId' AND object_id = OBJECT_ID('dbo.TaskSubscribers'))
 BEGIN
     CREATE INDEX IX_TaskSubscribers_UserId ON dbo.TaskSubscribers(UserId);
+END;
+IF OBJECT_ID('dbo.GoalUpdates', 'U') IS NOT NULL AND COL_LENGTH('dbo.GoalUpdates', 'OldStatus') IS NULL
+BEGIN
+    ALTER TABLE dbo.GoalUpdates ADD OldStatus nvarchar(max) NULL;
+END;
+IF OBJECT_ID('dbo.GoalUpdates', 'U') IS NOT NULL AND COL_LENGTH('dbo.GoalUpdates', 'NewStatus') IS NULL
+BEGIN
+    ALTER TABLE dbo.GoalUpdates ADD NewStatus nvarchar(max) NULL;
+END;
+IF OBJECT_ID('dbo.GoalUpdates', 'U') IS NOT NULL AND COL_LENGTH('dbo.GoalUpdates', 'OldProgress') IS NULL
+BEGIN
+    ALTER TABLE dbo.GoalUpdates ADD OldProgress int NULL;
+END;
+IF OBJECT_ID('dbo.GoalUpdates', 'U') IS NOT NULL AND COL_LENGTH('dbo.GoalUpdates', 'NewProgress') IS NULL
+BEGIN
+    ALTER TABLE dbo.GoalUpdates ADD NewProgress int NULL;
+END;
+IF OBJECT_ID('dbo.ProjectUpdates', 'U') IS NOT NULL AND COL_LENGTH('dbo.ProjectUpdates', 'OldStatus') IS NULL
+BEGIN
+    ALTER TABLE dbo.ProjectUpdates ADD OldStatus nvarchar(max) NULL;
+END;
+IF OBJECT_ID('dbo.ProjectUpdates', 'U') IS NOT NULL AND COL_LENGTH('dbo.ProjectUpdates', 'NewStatus') IS NULL
+BEGIN
+    ALTER TABLE dbo.ProjectUpdates ADD NewStatus nvarchar(max) NULL;
+END;
+IF OBJECT_ID('dbo.EntityFollowers', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.EntityFollowers (
+        Id uniqueidentifier NOT NULL,
+        EntityId uniqueidentifier NOT NULL,
+        EntityType nvarchar(128) NOT NULL,
+        UserId uniqueidentifier NOT NULL,
+        CreatedAt datetime2 NOT NULL CONSTRAINT DF_EntityFollowers_CreatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_EntityFollowers PRIMARY KEY (Id),
+        CONSTRAINT FK_EntityFollowers_Users_UserId FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE CASCADE
+    );
+END;
+IF OBJECT_ID('dbo.EntityFollowers', 'U') IS NOT NULL
+   AND EXISTS (
+       SELECT 1
+       FROM sys.columns
+       WHERE object_id = OBJECT_ID('dbo.EntityFollowers')
+         AND name = 'EntityType'
+         AND max_length = -1
+   )
+BEGIN
+    UPDATE dbo.EntityFollowers SET EntityType = LEFT(EntityType, 128) WHERE LEN(EntityType) > 128;
+    ALTER TABLE dbo.EntityFollowers ALTER COLUMN EntityType nvarchar(128) NOT NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_EntityFollowers_UserId' AND object_id = OBJECT_ID('dbo.EntityFollowers'))
+BEGIN
+    CREATE INDEX IX_EntityFollowers_UserId ON dbo.EntityFollowers(UserId);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_EntityFollowers_UserId_EntityType_EntityId' AND object_id = OBJECT_ID('dbo.EntityFollowers'))
+BEGIN
+    CREATE UNIQUE INDEX IX_EntityFollowers_UserId_EntityType_EntityId ON dbo.EntityFollowers(UserId, EntityType, EntityId);
+END;
+IF OBJECT_ID('dbo.ProjectUpdates', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ProjectUpdates (
+        Id uniqueidentifier NOT NULL,
+        ProjectId uniqueidentifier NOT NULL,
+        Content nvarchar(max) NOT NULL,
+        Status nvarchar(max) NOT NULL,
+        OldStatus nvarchar(max) NULL,
+        NewStatus nvarchar(max) NULL,
+        CreatorId uniqueidentifier NOT NULL,
+        CreatedAt datetime2 NOT NULL CONSTRAINT DF_ProjectUpdates_CreatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_ProjectUpdates PRIMARY KEY (Id),
+        CONSTRAINT FK_ProjectUpdates_Projects_ProjectId FOREIGN KEY (ProjectId) REFERENCES dbo.Projects(Id) ON DELETE CASCADE,
+        CONSTRAINT FK_ProjectUpdates_Users_CreatorId FOREIGN KEY (CreatorId) REFERENCES dbo.Users(Id) ON DELETE CASCADE
+    );
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ProjectUpdates_ProjectId' AND object_id = OBJECT_ID('dbo.ProjectUpdates'))
+BEGIN
+    CREATE INDEX IX_ProjectUpdates_ProjectId ON dbo.ProjectUpdates(ProjectId);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ProjectUpdates_CreatorId' AND object_id = OBJECT_ID('dbo.ProjectUpdates'))
+BEGIN
+    CREATE INDEX IX_ProjectUpdates_CreatorId ON dbo.ProjectUpdates(CreatorId);
+END;
+IF OBJECT_ID('dbo.ProjectLessons', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ProjectLessons (
+        Id uniqueidentifier NOT NULL,
+        ProjectId uniqueidentifier NOT NULL,
+        Text nvarchar(max) NOT NULL,
+        CreatorId uniqueidentifier NOT NULL,
+        CreatedAt datetime2 NOT NULL CONSTRAINT DF_ProjectLessons_CreatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_ProjectLessons PRIMARY KEY (Id),
+        CONSTRAINT FK_ProjectLessons_Projects_ProjectId FOREIGN KEY (ProjectId) REFERENCES dbo.Projects(Id) ON DELETE CASCADE,
+        CONSTRAINT FK_ProjectLessons_Users_CreatorId FOREIGN KEY (CreatorId) REFERENCES dbo.Users(Id) ON DELETE CASCADE
+    );
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ProjectLessons_ProjectId' AND object_id = OBJECT_ID('dbo.ProjectLessons'))
+BEGIN
+    CREATE INDEX IX_ProjectLessons_ProjectId ON dbo.ProjectLessons(ProjectId);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ProjectLessons_CreatorId' AND object_id = OBJECT_ID('dbo.ProjectLessons'))
+BEGIN
+    CREATE INDEX IX_ProjectLessons_CreatorId ON dbo.ProjectLessons(CreatorId);
+END;
+IF OBJECT_ID('dbo.ProjectRisks', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ProjectRisks (
+        Id uniqueidentifier NOT NULL,
+        ProjectId uniqueidentifier NOT NULL,
+        Text nvarchar(max) NOT NULL,
+        Severity nvarchar(max) NOT NULL,
+        CreatorId uniqueidentifier NOT NULL,
+        CreatedAt datetime2 NOT NULL CONSTRAINT DF_ProjectRisks_CreatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_ProjectRisks PRIMARY KEY (Id),
+        CONSTRAINT FK_ProjectRisks_Projects_ProjectId FOREIGN KEY (ProjectId) REFERENCES dbo.Projects(Id) ON DELETE CASCADE,
+        CONSTRAINT FK_ProjectRisks_Users_CreatorId FOREIGN KEY (CreatorId) REFERENCES dbo.Users(Id) ON DELETE CASCADE
+    );
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ProjectRisks_ProjectId' AND object_id = OBJECT_ID('dbo.ProjectRisks'))
+BEGIN
+    CREATE INDEX IX_ProjectRisks_ProjectId ON dbo.ProjectRisks(ProjectId);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ProjectRisks_CreatorId' AND object_id = OBJECT_ID('dbo.ProjectRisks'))
+BEGIN
+    CREATE INDEX IX_ProjectRisks_CreatorId ON dbo.ProjectRisks(CreatorId);
+END;
+IF OBJECT_ID('dbo.ProjectDecisions', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ProjectDecisions (
+        Id uniqueidentifier NOT NULL,
+        ProjectId uniqueidentifier NOT NULL,
+        Text nvarchar(max) NOT NULL,
+        CreatorId uniqueidentifier NOT NULL,
+        CreatedAt datetime2 NOT NULL CONSTRAINT DF_ProjectDecisions_CreatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_ProjectDecisions PRIMARY KEY (Id),
+        CONSTRAINT FK_ProjectDecisions_Projects_ProjectId FOREIGN KEY (ProjectId) REFERENCES dbo.Projects(Id) ON DELETE CASCADE,
+        CONSTRAINT FK_ProjectDecisions_Users_CreatorId FOREIGN KEY (CreatorId) REFERENCES dbo.Users(Id) ON DELETE CASCADE
+    );
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ProjectDecisions_ProjectId' AND object_id = OBJECT_ID('dbo.ProjectDecisions'))
+BEGIN
+    CREATE INDEX IX_ProjectDecisions_ProjectId ON dbo.ProjectDecisions(ProjectId);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ProjectDecisions_CreatorId' AND object_id = OBJECT_ID('dbo.ProjectDecisions'))
+BEGIN
+    CREATE INDEX IX_ProjectDecisions_CreatorId ON dbo.ProjectDecisions(CreatorId);
 END;
 IF COL_LENGTH('dbo.TaskDrafts', 'ProjectId') IS NOT NULL
 BEGIN
@@ -289,22 +467,3 @@ END;
 
 app.MapFallbackToFile("index.html");
 app.Run();
-
-static bool CanConnectToSqlServer(string connectionString)
-{
-    try
-    {
-        var builder = new SqlConnectionStringBuilder(connectionString)
-        {
-            ConnectTimeout = 3
-        };
-
-        using var connection = new SqlConnection(builder.ConnectionString);
-        connection.Open();
-        return true;
-    }
-    catch
-    {
-        return false;
-    }
-}

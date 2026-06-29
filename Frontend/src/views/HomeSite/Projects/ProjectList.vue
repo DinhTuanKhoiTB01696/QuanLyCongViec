@@ -22,23 +22,12 @@
           <input type="text" v-model="searchQuery" placeholder="Tìm kiếm dự án" class="search-input" />
         </div>
         
-        <div class="filters-row mt-16" v-if="isDirectory || isArchived">
-          <button class="filter-btn"><i class="fa-solid fa-hashtag"></i> Lọc theo Thẻ</button>
-          <button class="filter-btn"><i class="fa-solid fa-signal"></i> Trạng thái</button>
-          <button class="filter-btn"><i class="fa-solid fa-bullseye"></i> Mục tiêu</button>
-          <button class="filter-btn"><i class="fa-solid fa-users"></i> Nhóm</button>
-          <button class="filter-btn"><i class="fa-regular fa-user"></i> Chủ sở hữu</button>
-          <button class="filter-btn"><i class="fa-solid fa-user-group"></i> Người đóng góp</button>
-          <button class="filter-btn"><i class="fa-regular fa-eye"></i> Đang theo dõi</button>
-          <button class="filter-btn"><i class="fa-regular fa-star"></i> Có gắn sao</button>
-          <button class="filter-btn"><i class="fa-solid fa-network-wired"></i> Tuyến báo cáo</button>
-        </div>
-        
-        <div class="filters-row mt-16" v-if="isFollowing">
-          <div class="active-filter-chip">
-            <i class="fa-regular fa-eye"></i> Đang theo dõi <i class="fa-solid fa-xmark chip-close"></i>
-          </div>
-          <button class="filter-btn">Thêm bộ lọc +</button>
+                <div class="filter-chips" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; width: 100%;">
+          <DropdownFilter label="Trạng thái" :options="statusOptions" v-model="filters.status" />
+          <DropdownFilter label="Chủ sở hữu" :options="ownerOptions" v-model="filters.owner" />
+          <DropdownFilter label="Theo dõi" :options="booleanOptions" v-model="filters.following" />
+          <DropdownFilter label="Yêu thích" :options="booleanOptions" v-model="filters.starred" />
+          <button v-if="hasActiveFilters" class="clear-filters-btn" @click="clearFilters" style="padding: 6px 12px; border-radius: 16px; border: 1px solid #DFE1E6; background: #fff; cursor: pointer; color: #5E6C84; font-size: 14px;">Xóa lọc</button>
         </div>
       </div>
 
@@ -64,6 +53,7 @@
               <th class="col-date">Ngày mục tiêu</th>
               <th class="col-owner">Chủ sở hữu</th>
               <th class="col-following">Đang theo dõi</th>
+                <th class="col-star" style="width: 100px;">Có gắn sao</th>
               <th class="col-updated">Cập nhật lần cuối</th>
               <th class="actions-col"></th>
             </tr>
@@ -83,17 +73,20 @@
               </td>
               <td>
                 <div class="target-date-badge" :class="{ 'overdue': false }">
-                  <i class="fa-regular fa-calendar"></i> 15 thg 6
+                  <i class="fa-regular fa-calendar"></i> {{ formatDate(proj.startDate || proj.createdAt) }}
                 </div>
               </td>
               <td>
-                <div class="owner-avatar-micro">T</div>
+                <UserAvatar :user="{ id: proj.ownerId, fullName: proj.owner || proj.ownerName || proj.creatorName, avatarUrl: proj.ownerAvatarUrl, avatarColor: proj.ownerColor }" :size="24" :fontSize="10" class="owner-avatar-micro" />
+              </td>
+              <td @click.stop="toggleFollow(proj.id)">
+                <span class="following-text" style="cursor: pointer;">{{ proj.isFollowing ? 'Đang theo dõi' : 'Theo dõi' }}</span>
+              </td>
+              <td @click.stop="toggleStar(proj.id)">
+                <i :class="proj.isStarred ? 'fa-solid fa-star text-yellow-400' : 'fa-regular fa-star text-gray-400'" style="cursor: pointer;"></i>
               </td>
               <td>
-                <span class="following-text">{{ isFollowing ? 'Đang theo dõi' : 'Theo dõi' }}</span>
-              </td>
-              <td>
-                <span class="updated-text">Hôm qua</span>
+                <span class="updated-text">{{ formatDate(proj.updatedAt || proj.createdAt) }}</span>
               </td>
               <td class="actions-col" @click.stop>
                 <button class="icon-btn"><i class="fa-solid fa-ellipsis"></i></button>
@@ -137,7 +130,7 @@
           
           <div class="form-group mt-16">
             <label>Chọn một biểu tượng cảm xúc</label>
-            <div class="emoji-picker-mock">
+            <div class="emoji-picker-control">
               <button class="emoji-btn">{{ newProject.icon }}</button>
               <button class="refresh-emoji-btn" @click="cycleEmoji"><i class="fa-solid fa-arrows-rotate"></i></button>
             </div>
@@ -172,12 +165,67 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useHomeProjectStore } from '@/store/useHomeProjectStore'
+import { useStarredStore } from '@/store/useStarredStore'
+import { useFollowerStore } from '@/store/useFollowerStore'
+import UserAvatar from '@/components/common/UserAvatar.vue'
+import DropdownFilter from '@/components/common/DropdownFilter.vue'
 
 const router = useRouter()
 const projectStore = useHomeProjectStore()
+const starredStore = useStarredStore()
+const followerStore = useFollowerStore()
 
 const currentTab = ref('all')
 const searchQuery = ref('')
+const translateStatus = (status) => {
+  if (!status) return 'Đang chờ xử lý'
+  if (status === true || status === 'true') return 'Đang chờ xử lý'
+  if (status === false || status === 'false') return 'Đã lưu trữ'
+  const map = {
+    'on track': 'Đúng tiến độ',
+    'at risk': 'Có rủi ro',
+    'off track': 'Trễ tiến độ',
+    'pending': 'Đang chờ xử lý',
+    'completed': 'Đã hoàn tất',
+    'archived': 'Đã lưu trữ'
+  }
+  return map[status.toString().toLowerCase()] || status
+}
+
+const filters = ref({
+  status: '',
+  owner: '',
+  following: '',
+  starred: ''
+})
+
+const uniqueValues = (selector) => Array.from(new Set(
+  (projectStore.projects || [])
+    .map(selector)
+    .filter(value => value && value !== 'N/A')
+)).sort()
+
+const statusOptions = computed(() => {
+  const statuses = uniqueValues(p => p.status);
+  return Array.from(new Set(statuses.map(translateStatus).filter(s => s && s.toString().trim() !== '')));
+});
+const ownerOptions = computed(() => uniqueValues(p => p.owner))
+
+const booleanOptions = [
+  { label: 'Có', value: 'true' },
+  { label: 'Không', value: 'false' }
+]
+
+const clearFilters = () => {
+  filters.value = {
+    status: '',
+    owner: '',
+    following: '',
+    starred: ''
+  }
+}
+const hasActiveFilters = computed(() => Object.values(filters.value).some(val => val !== ''))
+
 const isCreateModalOpen = ref(false)
 
 const newProject = ref({
@@ -231,6 +279,8 @@ const pageTitle = computed(() => {
 
 onMounted(async () => {
   await projectStore.fetchProjects()
+  await starredStore.fetchStarredItems()
+  await followerStore.fetchFollowedItems()
   window.addEventListener('global-create-click', openCreateModal)
 })
 
@@ -262,10 +312,28 @@ const filteredProjects = computed(() => {
     )
   }
 
-  return list.map(p => ({
+  
+  if (filters.value.status) {
+    list = list.filter(p => translateStatus(p.status) === filters.value.status)
+  }
+  if (filters.value.owner) {
+    list = list.filter(p => p.owner === filters.value.owner)
+  }
+  if (filters.value.following) {
+    const isFol = filters.value.following === 'true'
+    list = list.filter(p => !!p.isFollowing === isFol)
+  }
+  if (filters.value.starred) {
+    const isStar = filters.value.starred === 'true'
+    list = list.filter(p => !!p.isStarred === isStar)
+  }
+
+    return list.map(p => ({
     ...p,
     key: p.key || (p.title ? p.title.substring(0, 3).toUpperCase() : 'PRJ'),
-    status: p.status || 'ĐÚNG TIẾN ĐỘ'
+    status: p.status === true ? 'ĐANG CHỜ XỬ LÝ' : (p.status === false ? 'ĐÃ LƯU TRỮ' : (p.status || 'ĐANG CHỜ XỬ LÝ')),
+    isStarred: starredStore.starredItems?.some(i => i.itemId === p.id) || false,
+    isFollowing: followerStore.followedItems?.some(i => i.entityId === p.id) || false
   }))
 })
 
@@ -273,13 +341,36 @@ const goToProject = (id) => {
   router.push(`/home/projects/${id}`)
 }
 
-const toggleStar = (id) => {
-  // Logic to toggle star
+const toggleStar = async (id) => {
+  await starredStore.toggleStar('Project', id)
+}
+
+const toggleFollow = async (id) => {
+  await followerStore.toggleFollow('Project', id)
+}
+
+const getInitials = (value) => {
+  const text = String(value || '').trim()
+  if (!text) return '?'
+  return text
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase())
+    .join('')
+}
+
+const formatDate = (value) => {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 const getStatusClass = (status) => {
-  if (status === 'ĐÚNG TIẾN ĐỘ') return 'status-on-track'
-  if (status === 'ĐÃ HOÀN TẤT') return 'status-done'
+  const value = String(status || '').toLowerCase()
+  if (value.includes('risk') || value.includes('rui ro') || value.includes('rủi ro')) return 'status-default'
+  if (value.includes('done') || value.includes('complete') || value.includes('hoan') || value.includes('hoàn')) return 'status-done'
+  if (value.includes('on track') || value.includes('active') || value.includes('dung') || value.includes('đúng')) return 'status-on-track'
   return 'status-default'
 }
 
@@ -433,7 +524,7 @@ const getStatusClass = (status) => {
   justify-content: flex-end;
 }
 
-.mock-illustration {
+.empty-illustration {
   width: 280px;
   height: 200px;
   background-color: #E6FCFF;
@@ -443,7 +534,7 @@ const getStatusClass = (status) => {
   justify-content: center;
 }
 
-.mock-illustration i {
+.empty-illustration i {
   font-size: 64px;
   color: #0052CC;
 }
@@ -830,7 +921,7 @@ const getStatusClass = (status) => {
   outline: none;
 }
 
-.emoji-picker-mock {
+.emoji-picker-control {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1169,4 +1260,20 @@ const getStatusClass = (status) => {
 .empty-text-sub a:hover {
   text-decoration: underline;
 }
+
+.clear-filters-btn {
+  background: white;
+  border: 1px solid #DFE1E6;
+  border-radius: 3px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0052CC;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.clear-filters-btn:hover {
+  background: #E6FCFF;
+}
 </style>
+

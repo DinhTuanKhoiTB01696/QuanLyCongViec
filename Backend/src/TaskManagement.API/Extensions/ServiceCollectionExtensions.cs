@@ -68,6 +68,7 @@ namespace TaskManagement.API.Extensions
             services.AddScoped<IGoalService, GoalService>();
             services.AddScoped<IProjectLinkService, ProjectLinkService>();
             services.AddScoped<IStarredItemService, StarredItemService>();
+            services.AddScoped<IFollowerService, FollowerService>();
             
             return services;
         }
@@ -80,6 +81,9 @@ namespace TaskManagement.API.Extensions
             services.AddHttpContextAccessor();
             services.AddSingleton<IAuditLogQueue, AuditLogQueue>();
             services.AddHostedService<AuditLogWorker>();
+            services.AddScoped<ISignalRClientNotifier, TaskManagement.API.Services.SignalRClientNotifier>();
+            services.AddScoped<ISiteAuditService, SiteAuditService>();
+            services.AddScoped<INotificationService, NotificationService>();
             return services;
         }
     }

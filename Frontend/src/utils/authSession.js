@@ -28,10 +28,10 @@ export const getStoredUserSession = () => {
   )
 }
 
-export const saveAuthSession = ({ accessToken, fullName, email, systemRoles, id }) => {
+export const saveAuthSession = ({ accessToken, fullName, email, systemRoles, id, avatarColor, avatarUrl, username }) => {
   if (typeof window === 'undefined') return
 
-  const userPayload = JSON.stringify({ id, fullName, email, systemRoles })
+  const userPayload = JSON.stringify({ id, fullName, email, systemRoles, avatarColor, avatarUrl, username })
 
   window.sessionStorage.setItem(ACCESS_TOKEN_KEY, accessToken || '')
   window.sessionStorage.setItem(USER_KEY, userPayload)

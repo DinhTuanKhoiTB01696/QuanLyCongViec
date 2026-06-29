@@ -1,0 +1,10 @@
+<Project>
+  <Target Name="SignLocalDevAssembly"
+          AfterTargets="Build"
+          Condition="'$(OS)' == 'Windows_NT' and '$(TargetExt)' == '.dll' and Exists('$(TargetPath)')">
+    <PropertyGroup>
+      <_LocalDevSigningSubject>CN=QuanLyCongViec Local Dev Code Signing</_LocalDevSigningSubject>
+    </PropertyGroup>
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$ErrorActionPreference='Stop'; $subject='$(_LocalDevSigningSubject)'; $cert=Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Where-Object { $_.Subject -eq $subject } | Select-Object -First 1; if (-not $cert) { $cert=New-SelfSignedCertificate -Type CodeSigningCert -Subject $subject -CertStoreLocation Cert:\CurrentUser\My -KeyExportPolicy Exportable -KeyUsage DigitalSignature }; Set-AuthenticodeSignature -FilePath '$(TargetPath)' -Certificate $cert | Out-Null&quot;" />
+  </Target>
+</Project>

@@ -94,10 +94,10 @@
           </div>
           <div class="member-list">
             <div class="member-item" v-for="member in members" :key="member.id">
-              <div class="member-avatar-small">{{ member.avatar }}</div>
+              <UserAvatar :user="{ ...member, fullName: member.fullName || member.name, avatarColor: getAvatarColor(member.email || member.id) }" :size="32" :fontSize="14" />
               <div class="member-info">
-                <span class="member-name">{{ member.name }}</span>
-                <span class="member-role">{{ member.role }}</span>
+                <span class="member-name">{{ member.fullName || member.name }}</span>
+                <span class="member-role">{{ member.role || 'Thành viên' }}</span>
               </div>
             </div>
           </div>
@@ -109,21 +109,23 @@
         <section class="info-section">
           <h3 style="margin-bottom: 24px;">Công việc của {{ team.name }}</h3>
           
-          <div class="activity-list" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px;">
-            <div class="activity-item" v-for="(task, index) in mockTasks" :key="index" style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #DFE1E6;">
+          <div class="activity-list" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px;" v-if="teamTasks && teamTasks.length > 0">
+            <div class="activity-item" v-for="task in teamTasks" :key="task.id" style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #DFE1E6;">
               <div style="display: flex; align-items: center; gap: 16px;">
                  <div style="color: #0052CC; font-size: 16px;"><i class="fa-solid fa-square-check"></i></div>
                  <div>
-                   <div style="font-size: 14px; color: #172B4D; font-weight: 500;">{{ task.title }}</div>
-                   <div style="font-size: 12px; color: #6B778C;">{{ task.subtitle }}</div>
+                   <div style="font-size: 14px; color: #172B4D; font-weight: 500;">{{ task.name }}</div>
+                   <div style="font-size: 12px; color: #6B778C;">{{ task.projectKey }} • {{ task.projectName }}</div>
                  </div>
               </div>
               <div style="display: flex; align-items: center; gap: 24px;">
-                 <span style="font-size: 12px; color: #6B778C;">{{ task.time }}</span>
-                 <div class="member-avatar-micro" style="background-color: #00875A; color: white;">T</div>
+                 <span style="font-size: 12px; color: #6B778C;">{{ new Date(task.createdAt || Date.now()).toLocaleDateString() }}</span>
+                 <UserAvatar v-if="task.assignee" :user="{ ...task.assignee, fullName: task.assignee.name, avatarColor: getAvatarColor(task.assignee.email || task.assignee.id) }" :size="24" :fontSize="10" />
+                 <div class="member-avatar-micro" v-else style="background-color: #DFE1E6; color: #6B778C;"><i class="fa-solid fa-user"></i></div>
               </div>
             </div>
           </div>
+          <div v-else style="color: #6B778C; font-size: 13px; margin-bottom: 32px;">Không có công việc nào gần đây từ các dự án được liên kết.</div>
 
           <div class="jira-empty-box" style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 24px; display: flex; align-items: center; gap: 24px;">
             <div style="width: 80px; height: 60px; background-color: #F4F5F7; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
@@ -190,33 +192,24 @@
           </div>
 
           <div class="tree-level children-level" style="display: flex; flex-direction: column; align-items: center; position: relative; width: 100%;">
-            <div class="child-nodes-wrapper" style="display: flex; justify-content: center;">
+            <div class="child-nodes-wrapper" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; justify-content: center; width: auto; max-width: 600px; margin: 0 auto; position: relative;">
+              <div style="position: absolute; top: -24px; left: 25%; right: 25%; height: 1px; background-color: #DFE1E6; z-index: 0;" v-if="hierarchy.children && hierarchy.children.length > 1"></div>
               
-              <div class="tree-node child-node" v-for="(child, index) in hierarchy.children" :key="child.id" style="position: relative; padding: 0 12px; display: flex; flex-direction: column; align-items: center;">
-                <div style="position: absolute; top: 0; height: 1px; background-color: #DFE1E6;"
-                     :style="{
-                        left: index === 0 ? '50%' : '0',
-                        right: '0'
-                     }"></div>
-                <div class="tree-line-vertical-up" style="width: 1px; height: 24px; background-color: #DFE1E6;"></div>
+              <div class="tree-node child-node" v-for="(child, index) in hierarchy.children" :key="child.id" style="position: relative; padding: 0; display: flex; flex-direction: column; align-items: center; z-index: 1;">
+                <div class="tree-line-vertical-up" style="width: 1px; height: 24px; background-color: #DFE1E6; position: absolute; top: -24px;"></div>
                 
-                <div class="hierarchy-card-box" style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: white; min-width: 200px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                <div class="hierarchy-card-box" style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: white; min-width: 220px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); position: relative;">
                   <div class="member-avatar-micro" style="background-color: #36B37E; color: white;">{{ child.name.substring(0,2).toUpperCase() }}</div>
-                  <div style="display: flex; flex-direction: column;">
+                  <div style="display: flex; flex-direction: column; flex: 1;">
                     <span style="font-size: 13px; font-weight: 500; color: #172B4D;">{{ child.name }}</span>
                     <span style="font-size: 11px; color: #6B778C;">Đội ngũ chính thức <i class="fa-solid fa-circle-check text-primary"></i> • 1 members</span>
                   </div>
+                  <button class="icon-btn micro" style="position: absolute; right: 8px; color: #6B778C;" @click.stop="removeChildTeam(child.id)"><i class="fa-solid fa-xmark"></i></button>
                 </div>
               </div>
 
-              <div class="tree-node add-node" style="position: relative; padding: 0 12px; display: flex; flex-direction: column; align-items: center;">
-                <div style="position: absolute; top: 0; height: 1px; background-color: #DFE1E6;"
-                     :style="{
-                        left: '0',
-                        right: '50%',
-                        display: hierarchy.children && hierarchy.children.length > 0 ? 'block' : 'none'
-                     }"></div>
-                <div class="tree-line-vertical-up" style="width: 1px; height: 24px; background-color: #DFE1E6;"></div>
+              <div class="tree-node add-node" style="position: relative; padding: 0; display: flex; flex-direction: column; align-items: center; z-index: 1;">
+                <div class="tree-line-vertical-up" style="width: 1px; height: 24px; background-color: #DFE1E6; position: absolute; top: -24px;" v-if="hierarchy.children?.length === 0"></div>
                 
                 <div class="add-node-box" @click.stop="openChildDropdown" style="border: 1px dashed #DFE1E6; border-radius: 3px; padding: 8px 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; color: #6B778C; min-width: 200px; justify-content: center; background-color: #FAFBFC;">
                   <i class="fa-solid fa-plus"></i> <span style="font-size: 13px;">Add sub-teams</span>
@@ -256,29 +249,31 @@
                     <i class="fa-solid fa-plus" style="font-size: 16px;"></i>
                  </div>
               </div>
-              <div style="flex: 1;">
+              <div style="flex: 1; position: relative;">
                  <h4 style="font-size: 14px; color: #172B4D; margin-bottom: 8px;">Xem các mục tiêu mà đội ngũ của bạn đang hướng tới</h4>
                  <p style="font-size: 13px; color: #6B778C; margin-bottom: 16px; line-height: 1.5;">Mục tiêu giúp đội ngũ của bạn kết nối công việc với những kết quả mà họ đóng góp, đồng thời cung cấp một nơi duy nhất để chia sẻ tiến độ thực hiện mục tiêu. Tạo mục tiêu để mọi người hiểu rõ định hướng và ưu tiên của nhóm.</p>
-                 <button class="secondary-btn" @click.stop="isGoalDropdownOpen = !isGoalDropdownOpen">Thêm mục tiêu</button>
-              </div>
-
-              <!-- Goal Dropdown Menu -->
-              <div class="dropdown-menu search-dropdown" v-if="isGoalDropdownOpen" @click.stop style="position: absolute; top: 120px; left: 24px; z-index: 100; width: 300px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 3px; border: 1px solid #DFE1E6; background: white;">
-                 <input type="text" v-model="goalSearch" placeholder="Tìm kiếm mục tiêu hoặc dán liên kết" class="search-input" style="width: 100%; margin-bottom: 12px; padding-left: 12px !important;" />
-                 <h5 style="font-size: 11px; color: #6B778C; text-transform: uppercase; padding: 0 8px 8px;">Mục tiêu gần đây</h5>
-                 <div class="goal-list-options" style="max-height: 200px; overflow-y: auto;">
-                   <div class="team-option" v-for="g in mockRecentGoals" :key="g.id" @click="linkGoal(g)" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 3px;">
-                     <i class="fa-solid fa-bullseye" style="color: #6B778C; font-size: 14px;"></i>
-                     <div style="display: flex; flex-direction: column;">
-                       <span style="font-size: 13px; color: #172B4D;">{{ g.title }}</span>
-                       <span style="font-size: 11px; color: #6B778C;">{{ g.owner }}</span>
-                     </div>
+                 <div style="position: relative; display: inline-block;">
+                   <button class="secondary-btn" @click.stop="isGoalDropdownOpen = !isGoalDropdownOpen">Thêm mục tiêu</button>
+                   <!-- Goal Dropdown Menu -->
+                   <div class="dropdown-menu search-dropdown" v-if="isGoalDropdownOpen" @click.stop style="position: absolute; top: 100%; left: 0; margin-top: 4px; z-index: 100; width: 300px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 3px; border: 1px solid #DFE1E6; background: white;">
+                      <input type="text" v-model="goalSearch" placeholder="Tìm kiếm mục tiêu hoặc dán liên kết" class="search-input" style="width: 100%; margin-bottom: 12px; padding-left: 12px !important;" />
+                      <h5 style="font-size: 11px; color: #6B778C; text-transform: uppercase; padding: 0 8px 8px;">Mục tiêu gần đây</h5>
+                      <div class="goal-list-options" style="max-height: 200px; overflow-y: auto;">
+                        <div class="team-option" v-for="g in siteGoals" :key="g.id" @click="linkGoal(g)" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 3px;">
+                          <i class="fa-solid fa-bullseye" style="color: #6B778C; font-size: 14px;"></i>
+                          <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 13px; color: #172B4D;">{{ g.title }}</span>
+                            <span style="font-size: 11px; color: #6B778C;">{{ g.owner }}</span>
+                          </div>
+                        </div>
+                        <div v-if="!siteGoals || siteGoals.length === 0" style="padding: 8px; font-size: 12px; color: #6B778C;">Không có mục tiêu nào</div>
+                      </div>
+                      <div style="border-top: 1px solid #DFE1E6; margin-top: 8px; padding-top: 8px;">
+                         <div class="team-option" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; color: #172B4D;" @click="isCreateGoalOpen = true">
+                            <i class="fa-solid fa-plus"></i> <span style="font-size: 13px;">Tạo mục tiêu</span>
+                         </div>
+                      </div>
                    </div>
-                 </div>
-                 <div style="border-top: 1px solid #DFE1E6; margin-top: 8px; padding-top: 8px;">
-                    <div class="team-option" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; color: #172B4D;" @click="isCreateGoalOpen = true">
-                       <i class="fa-solid fa-plus"></i> <span style="font-size: 13px;">Tạo mục tiêu</span>
-                    </div>
                  </div>
               </div>
            </div>
@@ -348,10 +343,32 @@
                     <i class="fa-solid fa-plus" style="font-size: 16px;"></i>
                  </div>
               </div>
-              <div style="flex: 1;">
+              <div style="flex: 1; position: relative;">
                  <h4 style="font-size: 14px; color: #172B4D; margin-bottom: 8px;">Chỉ định cho đội ngũ của bạn các dự án mà họ đang thực hiện</h4>
                  <p style="font-size: 13px; color: #6B778C; margin-bottom: 16px; line-height: 1.5;">Mục Dự án có thể giúp đội ngũ của bạn chia sẻ các bản cập nhật trạng thái hàng tuần với các bên liên quan trong tổ chức của bạn. Thêm đội ngũ của bạn vào các dự án phù hợp để xem tất cả dự án được liệt kê ở đây.</p>
-                 <button class="secondary-btn" @click="goToProjects">Tạo dự án</button>
+                 <div style="position: relative; display: inline-block;">
+                   <button class="secondary-btn" @click.stop="isProjectDropdownOpen = !isProjectDropdownOpen">Thêm dự án</button>
+                   <!-- Project Dropdown Menu -->
+                   <div class="dropdown-menu search-dropdown" v-if="isProjectDropdownOpen" @click.stop style="position: absolute; top: 100%; left: 0; margin-top: 4px; z-index: 100; width: 300px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 3px; border: 1px solid #DFE1E6; background: white;">
+                      <input type="text" v-model="projectSearch" placeholder="Tìm kiếm dự án" class="search-input" style="width: 100%; margin-bottom: 12px; padding-left: 12px !important;" />
+                      <h5 style="font-size: 11px; color: #6B778C; text-transform: uppercase; padding: 0 8px 8px;">Dự án gần đây</h5>
+                      <div class="goal-list-options" style="max-height: 200px; overflow-y: auto;">
+                        <div class="team-option" v-for="p in siteProjects" :key="p.id" @click="linkProject(p)" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 3px;">
+                          <i class="fa-solid fa-rocket" style="color: #6B778C; font-size: 14px;"></i>
+                          <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 13px; color: #172B4D;">{{ p.name }}</span>
+                            <span style="font-size: 11px; color: #6B778C;">{{ p.key }}</span>
+                          </div>
+                        </div>
+                        <div v-if="!siteProjects || siteProjects.length === 0" style="padding: 8px; font-size: 12px; color: #6B778C;">Không có dự án nào</div>
+                      </div>
+                      <div style="border-top: 1px solid #DFE1E6; margin-top: 8px; padding-top: 8px;">
+                         <div class="team-option" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; color: #172B4D;" @click="goToProjects">
+                            <i class="fa-solid fa-plus"></i> <span style="font-size: 13px;">Tạo dự án</span>
+                         </div>
+                      </div>
+                   </div>
+                 </div>
               </div>
            </div>
         </div>
@@ -414,13 +431,29 @@
            <button class="icon-btn small" title="Add Link" style="width: 24px; height: 24px;"><i class="fa-solid fa-plus"></i></button>
         </div>
         <div class="link-items" style="display: flex; flex-direction: column; gap: 16px;">
-          <div class="link-item" style="display: flex; align-items: center; gap: 12px; color: #6B778C; cursor: pointer;">
-            <div style="width: 24px; height: 24px; border-radius: 4px; background-color: #0052CC; color: white; display: flex; align-items: center; justify-content: center;"><i class="fa-brands fa-jira" style="font-size: 14px;"></i></div>
-            <span style="font-size: 14px;">Thêm dự án Jira</span>
+          <div class="link-item" style="display: flex; align-items: center; gap: 12px; color: #6B778C; cursor: pointer; position: relative;" @click="isSprintAProjectOpen = !isSprintAProjectOpen">
+            <div style="width: 24px; height: 24px; border-radius: 4px; background-color: #0052CC; color: white; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-rocket" style="font-size: 14px;"></i></div>
+            <span style="font-size: 14px;">Thêm dự án SprintA</span>
+            <!-- SprintA Dropdown Menu -->
+            <div class="dropdown-menu search-dropdown" v-if="isSprintAProjectOpen" @click.stop style="position: absolute; top: 100%; right: 0; margin-top: 4px; z-index: 100; width: 250px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 3px; border: 1px solid #DFE1E6; background: white; max-height: 200px; overflow-y: auto;">
+              <div style="padding: 4px 8px; font-size: 11px; font-weight: bold; color: #6B778C; text-transform: uppercase;">Dự án trong Space</div>
+              <div class="team-option" v-for="sp in siteProjects" :key="sp.id" @click="linkProject(sp)" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 3px;">
+                 <i class="fa-solid fa-rocket" style="color: #6B778C; font-size: 14px;"></i>
+                 <span style="font-size: 13px; color: #172B4D;">{{ sp.name }}</span>
+              </div>
+              <div v-if="!siteProjects || siteProjects.length === 0" style="padding: 8px; font-size: 12px; color: #6B778C;">Không có dự án nào</div>
+            </div>
           </div>
-          <div class="link-item" style="display: flex; align-items: center; gap: 12px; color: #6B778C; cursor: pointer;">
+          <div class="link-item" style="display: flex; align-items: center; gap: 12px; color: #6B778C; cursor: pointer; position: relative;" @click="isSpaceDropdownOpen = !isSpaceDropdownOpen">
             <div style="width: 24px; height: 24px; border-radius: 4px; background-color: #0052CC; color: white; display: flex; align-items: center; justify-content: center;"><i class="fa-brands fa-confluence" style="font-size: 14px;"></i></div>
             <span style="font-size: 14px;">Thêm không gian</span>
+            <!-- Space Dropdown Menu -->
+            <div class="dropdown-menu search-dropdown" v-if="isSpaceDropdownOpen" @click.stop style="position: absolute; top: 100%; right: 0; margin-top: 4px; z-index: 100; width: 250px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 3px; border: 1px solid #DFE1E6; background: white; max-height: 200px; overflow-y: auto;">
+              <div class="team-option" v-for="space in sites" :key="space.id" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 3px;">
+                 <div style="width: 20px; height: 20px; background: #0052CC; color: white; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px;">{{ space.name.substring(0,1).toUpperCase() }}</div>
+                 <span style="font-size: 13px; color: #172B4D;">{{ space.name }}</span>
+              </div>
+            </div>
           </div>
           <div class="link-item" style="display: flex; align-items: center; gap: 12px; color: #6B778C; cursor: pointer;">
             <div style="width: 24px; height: 24px; border-radius: 50%; background-color: #F4F5F7; color: #6B778C; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-link" style="font-size: 12px;"></i></div>
@@ -462,9 +495,22 @@
            <span style="flex: 1; font-size: 13px; color: #172B4D; font-weight: 500;">Đội ngũ chính thức <i class="fa-solid fa-circle-check" style="color: #0052cc;"></i></span>
         </div>
 
-        <div class="meta-item-row" style="display: flex; align-items: center;">
+        <div class="meta-item-row" style="display: flex; align-items: center; position: relative;">
            <span style="width: 120px; color: #6B778C; font-size: 13px;">Người quản lý</span>
-           <span style="flex: 1; font-size: 13px; color: #172B4D;">Đang cập nhật</span>
+           <div style="flex: 1; position: relative;">
+              <div class="add-node-box" @click="isManagerDropdownOpen = !isManagerDropdownOpen" style="border: 1px dashed #DFE1E6; border-radius: 3px; padding: 4px 8px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; color: #172B4D; font-size: 13px; background-color: #FAFBFC;">
+                 <UserAvatar v-if="team.manager" :user="{ ...team.manager, fullName: team.manager.name, avatarColor: getAvatarColor(team.manager.email || team.manager.id) }" :size="16" :fontSize="8" />
+                 <i class="fa-solid fa-user-plus" v-else></i>
+                 <span>{{ team.manager ? team.manager.name : 'Chọn người quản lý' }}</span>
+              </div>
+              <!-- Dropdown Menu -->
+              <div class="dropdown-menu" v-if="isManagerDropdownOpen" @click.stop style="position: absolute; top: 100%; left: 0; margin-top: 4px; z-index: 100; width: 250px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 3px; border: 1px solid #DFE1E6; background: white; max-height: 200px; overflow-y: auto;">
+                <div class="team-option" v-for="m in members" :key="m.id" @click="selectManager(m)" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 3px;">
+                  <UserAvatar :user="{ ...m, fullName: m.fullName || m.name, avatarColor: getAvatarColor(m.email || m.id) }" :size="20" :fontSize="10" />
+                  <span style="font-size: 13px; color: #172B4D;">{{ m.fullName || m.name }}</span>
+                </div>
+              </div>
+           </div>
         </div>
 
       </div>
@@ -501,9 +547,9 @@
               <span v-else>No members found matching "{{ memberSearch }}"</span>
             </div>
             <div class="select-item" v-for="user in filteredUsers" :key="user.id" @click="toggleSelectMember(user.id)">
-              <div class="member-avatar-micro">{{ user.initials }}</div>
-              <div class="user-details">
-                <span class="user-name">{{ user.name }}</span>
+              <UserAvatar :user="{ ...user, fullName: user.fullName || user.name, avatarColor: getAvatarColor(user.email || user.id) }" :size="24" :fontSize="10" />
+              <div class="user-details" style="margin-left: 8px;">
+                <span class="user-name">{{ user.fullName || user.name }}</span>
                 <span class="user-email">{{ user.email }}</span>
               </div>
               <i class="fa-solid fa-check check-icon" v-if="selectedMembers.includes(user.id)"></i>
@@ -580,39 +626,35 @@
     </div>
 
     <!-- Give Kudos Full Screen Overlay -->
-    <div class="give-kudos-overlay" v-if="isGiveKudosOpen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #FFF4F8; z-index: 1000; overflow-y: auto; display: flex; flex-direction: column;">
+    <div class="give-kudos-overlay" v-if="isGiveKudosOpen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #FFF4F8; z-index: 9999; overflow-y: auto; display: flex; flex-direction: column;">
        
-       <!-- Header -->
-       <div style="padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;">
-          <button class="icon-btn" @click="isGiveKudosOpen = false" style="background: transparent; border: none; font-size: 16px; cursor: pointer; color: #42526E;"><i class="fa-solid fa-arrow-left"></i></button>
-          
-          <div></div> <!-- Empty center to push button right -->
-
-          <button class="primary-btn" :disabled="!kudosText" style="height: 32px;" @click="submitKudos">Khen ngợi</button>
-       </div>
-
        <!-- Content -->
        <div style="flex: 1; display: flex; justify-content: center; padding-top: 40px;" @click="isKudosLinkDropdownOpen = false; isKudosTargetDropdownOpen = false; isKudosEmojiDropdownOpen = false">
           <div style="width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 24px; position: relative;">
+             <!-- Top Actions -->
+             <div style="display: flex; justify-content: flex-end; margin-bottom: -16px;">
+                <button class="icon-btn" @click="isGiveKudosOpen = false" style="background: transparent; border: none; font-size: 14px; font-weight: 500; cursor: pointer; color: #42526E; display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 4px; transition: background 0.1s;" onmouseover="this.style.background='#EBECF0'" onmouseout="this.style.background='transparent'">Quay lại <i class="fa-solid fa-arrow-right"></i></button>
+             </div>
              <div style="position: relative;">
                  <div style="display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 14px; color: #0052CC; cursor: pointer; padding: 8px 12px; border: 1px solid #4C9AFF; border-radius: 4px; display: inline-flex;" @click.stop="isKudosTargetDropdownOpen = !isKudosTargetDropdownOpen">
-                    <div class="member-avatar-micro" :style="{ backgroundColor: kudosTargetType === 'team' ? '#E2B203' : '#0052CC', color: 'white' }">{{ kudosTargetAvatar }}</div>
+                    <UserAvatar v-if="kudosTargetType === 'user'" :user="kudosTargetData || {}" :size="24" :fontSize="10" />
+                     <div v-else class="member-avatar-micro" style="background-color: #36B37E; color: white; width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px;">{{ kudosTargetAvatar }}</div>
                     Khen ngợi {{ kudosTargetName }}
                  </div>
                  
                  <!-- Target Dropdown -->
                  <div v-if="isKudosTargetDropdownOpen" @click.stop class="dropdown-menu" style="position: absolute; top: 40px; left: 0; z-index: 10; width: 340px; background: white; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #DFE1E6; padding: 8px 0; display: flex; flex-direction: column; max-height: 300px; overflow-y: auto;">
                     <div style="padding: 4px 12px; font-size: 11px; font-weight: 700; color: #5E6C84; text-transform: uppercase;">Mọi người</div>
-                    <div v-for="user in mockPeopleList" :key="user.id" @click="selectKudosTarget('user', user)" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; transition: background 0.1s;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                       <div class="member-avatar-micro" style="background-color: #0052CC; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px;">{{ user.initials }}</div>
-                       <span style="font-size: 14px; color: #172B4D;">{{ user.name }}</span>
+                    <div v-for="user in kudosTargetUsers" :key="user.id" @click="selectKudosTarget('user', user)" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; transition: background 0.1s;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
+                       <UserAvatar :user="{ ...user, fullName: user.fullName || user.name, avatarColor: getAvatarColor(user.email || user.id) }" :size="24" :fontSize="10" />
+                       <span style="font-size: 14px; color: #172B4D;">{{ user.fullName || user.name }}</span>
                     </div>
                     <div style="padding: 4px 12px; font-size: 11px; font-weight: 700; color: #5E6C84; text-transform: uppercase; margin-top: 8px; border-top: 1px solid #DFE1E6; padding-top: 8px;">Đội ngũ</div>
-                    <div v-for="t in mockTeamList" :key="t.id" @click="selectKudosTarget('team', t)" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; transition: background 0.1s; background: #E6FCFF;" onmouseover="this.style.background='#B3F5FF'" onmouseout="this.style.background='#E6FCFF'">
-                       <div class="member-avatar-micro" style="background-color: #36B37E; color: white; width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px;">{{ t.initials }}</div>
+                    <div v-for="t in teamStore.allTeams" :key="t.id" @click="selectKudosTarget('team', t)" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; transition: background 0.1s; background: #E6FCFF;" onmouseover="this.style.background='#B3F5FF'" onmouseout="this.style.background='#E6FCFF'">
+                       <div class="member-avatar-micro" style="background-color: #36B37E; color: white; width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px;">{{ t.name ? t.name.substring(0, 2).toUpperCase() : 'T' }}</div>
                        <div style="display: flex; flex-direction: column;">
                          <span style="font-size: 14px; color: #0052CC;">{{ t.name }} <i class="fa-solid fa-circle-check" style="font-size: 10px;"></i></span>
-                         <span style="font-size: 11px; color: #6B778C;">Đội ngũ chính thức • {{ t.memberCount }} thành viên, kể cả bạn</span>
+                         <span style="font-size: 11px; color: #6B778C;">Đội ngũ chính thức • {{ t.memberCount || 0 }} thành viên, kể cả bạn</span>
                        </div>
                     </div>
                  </div>
@@ -620,17 +662,14 @@
              
              <!-- Text input that renders HTML or handles link replacement -->
              <div style="position: relative;">
-                 <textarea 
-                   v-if="!isKudosRichText"
-                   v-model="kudosText"
-                   style="width: 100%; min-height: 60px; font-size: 20px; color: #172B4D; outline: none; border: none; background: transparent; line-height: 1.5; padding: 8px 0; resize: none; overflow: hidden; font-weight: 400;"
-                   :placeholder="`Hãy cho ${kudosTargetName} biết lý do bạn gửi lời khen ngợi này`"
-                   rows="1"
-                   oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"
-                 ></textarea>
-                 <div v-else style="min-height: 60px; font-size: 20px; color: #172B4D; line-height: 1.5; padding: 8px 0; font-weight: 400;" @click="isKudosRichText = false">
-                    {{ kudosTextBefore }}<a href="#" style="color: #0052CC; text-decoration: none;">{{ kudosLinkText }}</a>{{ kudosTextAfter }}
-                 </div>
+                 <div 
+                   ref="kudosEditorRef"
+                   class="kudos-editor"
+                   contenteditable="true"
+                   @input="e => kudosText = e.target.innerHTML"
+                   style="width: 100%; min-height: 60px; font-size: 20px; color: #172B4D; outline: none; border: none; background: transparent; line-height: 1.5; padding: 8px 0; font-weight: 400; cursor: text;"
+                   :data-placeholder="'Hãy cho ' + kudosTargetName + ' biết lý do bạn gửi lời khen ngợi này'"
+                 ></div>
              </div>
 
              <!-- Icons toolbar -->
@@ -639,9 +678,12 @@
                  <i class="fa-regular fa-face-smile" style="cursor: pointer;" @click.stop="isKudosEmojiDropdownOpen = !isKudosEmojiDropdownOpen"></i>
                  
                  <!-- Emoji Dropdown -->
-                 <div v-if="isKudosEmojiDropdownOpen" @click.stop class="dropdown-menu" style="position: absolute; top: 28px; left: 0; z-index: 10; background: white; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #DFE1E6; padding: 8px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px;">
-                    <div v-for="emoji in ['😀','🎉','👍','🚀','❤️','🔥','👏','🙌','💯','💪','✨','🌟']" :key="emoji" @click="insertEmoji(emoji)" style="cursor: pointer; font-size: 20px; text-align: center; padding: 4px; border-radius: 4px; transition: background 0.1s;" onmouseover="this.style.background='#F4F5F7'" onmouseout="this.style.background='transparent'">
-                       {{ emoji }}
+                 <div v-if="isKudosEmojiDropdownOpen" @click.stop class="dropdown-menu" style="position: absolute; top: 28px; left: 0; z-index: 10; background: white; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #DFE1E6; padding: 12px; width: 340px; display: flex; flex-direction: column; gap: 8px;">
+                    <input type="text" placeholder="Tìm kiếm icon..." v-model="kudosEmojiSearch" style="width: 100%; padding: 6px; border: 1px solid #DFE1E6; border-radius: 3px; outline: none; font-size: 13px;" />
+                    <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; max-height: 200px; overflow-y: auto;">
+                       <div v-for="emoji in filteredKudosEmojis" :key="emoji" @click="insertEmoji(emoji)" style="cursor: pointer; font-size: 20px; text-align: center; padding: 4px; border-radius: 4px; transition: background 0.1s;" onmouseover="this.style.background='#F4F5F7'" onmouseout="this.style.background='transparent'">
+                          {{ emoji }}
+                       </div>
                     </div>
                  </div>
                </div>
@@ -662,21 +704,21 @@
                     </div>
                     
                     <div style="display: flex; gap: 16px; border-bottom: 1px solid #DFE1E6; padding-bottom: 8px;">
-                      <span style="font-size: 13px; font-weight: 600; color: #0052CC; border-bottom: 2px solid #0052CC; padding-bottom: 8px; cursor: pointer; margin-bottom: -9px;">Home</span>
-                      <span style="font-size: 13px; font-weight: 500; color: #6B778C; cursor: pointer;">Jira</span>
-                      <span style="font-size: 13px; font-weight: 500; color: #6B778C; cursor: pointer;">Confluence</span>
+                      <span @click="kudosLinkTab = 'Home'" :style="{ fontSize: '13px', fontWeight: kudosLinkTab === 'Home' ? '600' : '500', color: kudosLinkTab === 'Home' ? '#0052CC' : '#6B778C', borderBottom: kudosLinkTab === 'Home' ? '2px solid #0052CC' : 'none', paddingBottom: '8px', cursor: 'pointer', marginBottom: '-9px' }">Home</span>
+                      <span @click="kudosLinkTab = 'SprintA'" :style="{ fontSize: '13px', fontWeight: kudosLinkTab === 'SprintA' ? '600' : '500', color: kudosLinkTab === 'SprintA' ? '#0052CC' : '#6B778C', borderBottom: kudosLinkTab === 'SprintA' ? '2px solid #0052CC' : 'none', paddingBottom: '8px', cursor: 'pointer', marginBottom: '-9px' }">SprintA</span>
                     </div>
 
                     <div>
-                      <h5 style="font-size: 11px; color: #6B778C; text-transform: uppercase; margin-bottom: 8px;">Đã xem gần đây</h5>
+                      <h5 style="font-size: 11px; color: #6B778C; text-transform: uppercase; margin-bottom: 8px;">{{ kudosLinkTab === 'Home' ? 'Dự án trên Home' : 'Dự án của đội ngũ' }}</h5>
                       <div style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
-                        <div v-for="item in mockRecentLinks" :key="item.id" @click="selectKudosLink(item)" style="display: flex; align-items: flex-start; gap: 8px; padding: 4px; cursor: pointer; border-radius: 3px; transition: background 0.1s;" onmouseover="this.style.background='#F4F5F7'" onmouseout="this.style.background='transparent'">
-                          <i :class="item.icon" :style="{ color: item.iconColor, marginTop: '4px' }"></i>
+                        <div v-for="item in (kudosLinkTab === 'Home' ? siteProjects : projects)" :key="item.id" @click="selectKudosLink(item)" style="display: flex; align-items: flex-start; gap: 8px; padding: 4px; cursor: pointer; border-radius: 3px; transition: background 0.1s;" onmouseover="this.style.background='#F4F5F7'" onmouseout="this.style.background='transparent'">
+                          <i class="fa-solid fa-rocket" style="color: #6B778C; margin-top: 4px;"></i>
                           <div style="display: flex; flex-direction: column;">
-                            <span style="font-size: 13px; color: #172B4D;">{{ item.title }}</span>
-                            <span style="font-size: 11px; color: #6B778C;">{{ item.subtitle }}</span>
+                            <span style="font-size: 13px; color: #172B4D;">{{ item.name }}</span>
+                            <span style="font-size: 11px; color: #6B778C;">{{ item.key || 'Dự án' }}</span>
                           </div>
                         </div>
+                        <div v-if="(kudosLinkTab === 'Home' ? siteProjects : projects).length === 0" style="padding: 8px; font-size: 12px; color: #6B778C;">Không có dự án nào.</div>
                       </div>
                     </div>
 
@@ -689,17 +731,25 @@
              </div>
 
              <!-- Personalize Graphic Card -->
-             <div style="width: 100%; height: 280px; background: #0052CC; border-radius: 8px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                <button class="secondary-btn" style="position: absolute; top: 12px; right: 12px; font-size: 12px; padding: 4px 8px; height: auto;">Cá nhân hóa</button>
+             <div style="width: 100%; height: 280px; border-radius: 8px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer;" :style="{ background: selectedKudosGraphic.bg }" @click.stop="isKudosGraphicDropdownOpen = !isKudosGraphicDropdownOpen">
+                <button class="secondary-btn" style="position: absolute; top: 12px; right: 12px; font-size: 12px; padding: 4px 8px; height: auto; pointer-events: none; color: white; background: rgba(255,255,255,0.2); border: none;">Cá nhân hóa</button>
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
-                   <i class="fa-solid fa-fish-fins" style="font-size: 40px; color: #FF8F73; position: absolute; right: -40px; top: -20px; transform: rotate(-15deg);"></i>
-                   <i class="fa-solid fa-box-open" style="font-size: 100px; color: #FF5630; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.2));"></i>
-                   <div style="display: flex; gap: 8px; margin-top: -10px; z-index: -1;">
-                     <i class="fa-solid fa-coins" style="font-size: 30px; color: #FFAB00;"></i>
-                     <i class="fa-solid fa-coins" style="font-size: 40px; color: #FFAB00; margin-top: -10px;"></i>
-                     <i class="fa-solid fa-coins" style="font-size: 30px; color: #FFAB00;"></i>
+                   <i :class="selectedKudosGraphic.icon1" :style="{ fontSize: '40px', color: selectedKudosGraphic.c1, position: 'absolute', right: '-40px', top: '-20px', transform: 'rotate(-15deg)' }"></i>
+                   <i :class="selectedKudosGraphic.icon2" :style="{ fontSize: '100px', color: selectedKudosGraphic.c2, filter: 'drop-shadow(0 10px 10px rgba(0,0,0,0.2))' }"></i>
+                </div>
+                
+                <!-- Graphic Picker Dropdown -->
+                <div v-if="isKudosGraphicDropdownOpen" @click.stop class="dropdown-menu" style="position: absolute; top: 44px; right: 12px; z-index: 10; background: white; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #DFE1E6; padding: 12px; width: 320px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-height: 250px; overflow-y: auto;">
+                   <div v-for="(g, index) in kudosGraphics" :key="index" @click="selectKudosGraphic(g)" style="width: 60px; height: 60px; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden;" :style="{ background: g.bg }">
+                      <i :class="g.icon2" :style="{ fontSize: '24px', color: g.c2 }"></i>
                    </div>
                 </div>
+             </div>
+
+             <!-- Action Buttons -->
+             <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
+                <button class="secondary-btn" style="height: 36px; padding: 0 16px; font-size: 14px; font-weight: 500;" @click="isGiveKudosOpen = false">Hủy</button>
+                <button class="primary-btn" :disabled="!kudosText" style="height: 36px; padding: 0 16px; font-size: 14px; font-weight: 500;" @click="submitKudos">Khen ngợi</button>
              </div>
           </div>
        </div>
@@ -718,11 +768,33 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTeamStore } from '@/store/useTeamStore'
 import { usePeopleStore } from '@/store/usePeopleStore'
+import { useGoalStore } from '@/store/useGoalStore'
+import { useHomeProjectStore } from '@/store/useHomeProjectStore'
+import { useSiteStore } from '@/store/useSiteStore'
+import { useWorkTaskStore } from '@/store/useWorkTaskStore'
+import { getStoredUser } from '@/utils/permissions'
+import { getAvatarColor } from '@/utils/avatarHelper'
+import UserAvatar from '@/components/common/UserAvatar.vue'
+import RichTextEditor from '@/components/common/RichTextEditor.vue'
 
 const route = useRoute()
 const router = useRouter()
 const teamStore = useTeamStore()
 const peopleStore = usePeopleStore()
+const goalStore = useGoalStore()
+const homeProjectStore = useHomeProjectStore()
+const siteStore = useSiteStore()
+const workTaskStore = useWorkTaskStore()
+
+const currentUser = getStoredUser()
+// Only Admin or SystemAdmin can edit manager
+const isSiteOwner = computed(() => {
+  return currentUser?.role === 'Admin' || currentUser?.role === 'SystemAdmin'
+})
+
+const sites = computed(() => siteStore.sites || [])
+const siteGoals = computed(() => goalStore.goals || [])
+const siteProjects = computed(() => homeProjectStore.projects || [])
 
 const currentTab = ref('overview')
 const isMenuOpen = ref(false)
@@ -735,6 +807,12 @@ const memberSearch = ref('')
 const teamSearch = ref('')
 const newGoalTitle = ref('')
 const selectedMembers = ref([])
+
+const teamTasks = computed(() => {
+  if (!teamStore.projects || teamStore.projects.length === 0) return []
+  const linkedProjectIds = teamStore.projects.map(p => p.id)
+  return workTaskStore.tasks.filter(t => linkedProjectIds.includes(t.projectId))
+})
 
 const team = computed(() => teamStore.currentTeam)
 const isArchived = computed(() => team.value?.status === 'Archived')
@@ -801,9 +879,18 @@ const openChildDropdown = () => {
 
 const filteredTeams = computed(() => {
   let list = teamStore.allTeams.filter(t => t.id !== team.value?.id)
+  
+  if (teamStore.hierarchy?.parent?.id) {
+    list = list.filter(t => t.id !== teamStore.hierarchy.parent.id)
+  }
+  if (teamStore.hierarchy?.children?.length > 0) {
+    const selectedChildIds = teamStore.hierarchy.children.map(c => c.id)
+    list = list.filter(t => !selectedChildIds.includes(t.id))
+  }
+
   if (teamSearch.value) {
     const q = teamSearch.value.toLowerCase()
-    list = list.filter(t => t.name.toLowerCase().includes(q))
+    list = list.filter(t => (t.name || '').toLowerCase().includes(q))
   }
   return list
 })
@@ -825,15 +912,27 @@ const addChildTeam = async (t) => {
   teamSearch.value = ''
 }
 
+const removeChildTeam = async (childId) => {
+  if (teamStore.hierarchy && teamStore.hierarchy.children) {
+    teamStore.hierarchy.children = teamStore.hierarchy.children.filter(c => c.id !== childId)
+  }
+}
+
 const isGoalDropdownOpen = ref(false)
+const isProjectDropdownOpen = ref(false)
+const isSprintAProjectOpen = ref(false)
+const isSpaceDropdownOpen = ref(false)
+const isManagerDropdownOpen = ref(false)
 const goalSearch = ref('')
-const mockRecentGoals = ref([
-  { id: 1, title: 'r2', owner: 'Tua20000' },
-  { id: 2, title: '342', owner: 'Tua20000' },
-  { id: 3, title: 'uew', owner: 'Tua20000' },
-  { id: 4, title: 'd', owner: 'Tua20000' },
-  { id: 5, title: 'iPhone 15 Pro Max', owner: 'Tua20000' }
-])
+const projectSearch = ref('')
+
+const selectManager = async (member) => {
+  if (teamStore.currentTeam) {
+    teamStore.currentTeam.manager = member
+    await teamStore.updateManager(member.id)
+  }
+  isManagerDropdownOpen.value = false
+}
 
 const linkGoal = (goal) => {
   if (!teamStore.goals) teamStore.goals = []
@@ -841,6 +940,14 @@ const linkGoal = (goal) => {
     teamStore.goals.push({ ...goal, status: 'Đã hoàn tất 🚀' })
   }
   isGoalDropdownOpen.value = false
+}
+
+const linkProject = (proj) => {
+  if (!teamStore.projects) teamStore.projects = []
+  if (!teamStore.projects.find(p => p.id === proj.id)) {
+    teamStore.projects.push({ ...proj, status: 'Đang thực hiện' })
+  }
+  isProjectDropdownOpen.value = false
 }
 
 const goToProjects = () => {
@@ -860,11 +967,45 @@ const isKudosTargetDropdownOpen = ref(false)
 const isKudosEmojiDropdownOpen = ref(false)
 const kudosLinkSearch = ref('')
 const kudosLinkDisplay = ref('')
+const kudosLinkTab = ref('Home')
+const kudosEmojiSearch = ref('')
+
+const isKudosGraphicDropdownOpen = ref(false)
+const kudosGraphics = [
+  { bg: '#0052CC', c1: '#FF8F73', c2: '#FF5630', icon1: 'fa-solid fa-fish-fins', icon2: 'fa-solid fa-box-open' },
+  { bg: '#00875A', c1: '#FFC400', c2: '#FFAB00', icon1: 'fa-solid fa-star', icon2: 'fa-solid fa-trophy' },
+  { bg: '#FF5630', c1: '#00B8D9', c2: '#008DA6', icon1: 'fa-solid fa-bolt', icon2: 'fa-solid fa-medal' },
+  { bg: '#6554C0', c1: '#FF7452', c2: '#FF5630', icon1: 'fa-solid fa-heart', icon2: 'fa-solid fa-gem' },
+  { bg: '#36B37E', c1: '#0052CC', c2: '#FFC400', icon1: 'fa-solid fa-thumbs-up', icon2: 'fa-solid fa-check-circle' },
+  { bg: '#FFAB00', c1: '#6554C0', c2: '#FF5630', icon1: 'fa-solid fa-crown', icon2: 'fa-solid fa-award' },
+  { bg: '#00B8D9', c1: '#36B37E', c2: '#FF8F73', icon1: 'fa-solid fa-lightbulb', icon2: 'fa-solid fa-rocket' },
+  { bg: '#172B4D', c1: '#00B8D9', c2: '#0052CC', icon1: 'fa-solid fa-handshake', icon2: 'fa-solid fa-hand-holding-heart' }
+]
+const selectedKudosGraphic = ref(kudosGraphics[0])
+
+const selectKudosGraphic = (g) => {
+  selectedKudosGraphic.value = g
+  isKudosGraphicDropdownOpen.value = false
+}
+
+const allEmojis = ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾','🙈','🙉','🙊','💥','💫','💦','💨','🐵','🐒','🦍','🦧','🐶','🐕','🦮','🐕‍🦺','🐩','🐺','🦊','🦝','🐱','🐈','🦁','🐯','🐅','🐆','🐴','🐎','🦄','🦓','🦌','🐮','🐂','🐃','🐄','🐷','🐖','🐗','🐽','🐏','🐑','🐐','🐪','🐫','🦙','🦒','🐘','🦏','🦛','🐭','🐁','🐀','🐹','🐰','🐇','🐿️','🦔','🦇','🐻','🐨','🐼','🦥','🦦','🦨','🦘','🦡','🐾','🦃','🐔','🐓','🐣','🐤','🐥','🐦','🐧','🕊️','🦅','🦆','🦢','🦉','🦩','🦚','🦜','🐸','🐊','🐢','🦎','🐍','🐲','🐉','🦕','🦖','🐳','🐋','🐬','🐟','🐠','🐡','🦈','🐙','🐚','🐌','🦋','🐛','🐜','🐝','🐞','🦗','🕷️','🕸️','🦂','🦟','🦠','💐','🌸','💮','🏵️','🌹','🥀','🌺','🌻','🌼','🌷','🌱','🌲','🌳','🌴','🌵','🌾','🌿','☘️','🍀','🍁','🍂','🍃','🍇','🍈','🍉','🍊','🍋','🍌','🍍','🥭','🍎','🍏','🍐','🍑','🍒','🍓','🥝','🍅','🥥','🥑','🍆','🥔','🥕','🌽','🌶️','🥒','🥬','🥦','🧄','🧅','🍄','🥜','🌰','🍞','🥐','🥖','🥨','🥯','🥞','🧇','🧀','🍖','🍗','🥩','🥓','🍔','🍟','🍕','🌭','🥪','🌮','🌯','🥙','🧆','🥚','🍳','🥘','🍲','🥣','🥗','🍿','🧈','🧂','🥫','🍱','🍘','🍙','🍚','🍛','🍜','🍝','🍠','🍢','🍣','🍤','🍥','🥮','🍡','🥟','🥠','🥡','🦀','🦞','🦐','🦑','🦪','🍦','🍧','🍨','🍩','🍪','🎂','🍰','🧁','🥧','🍫','🍬','🍭','🍮','🍯','🍼','🥛','☕','🍵','🍶','🍾','🍷','🍸','🍹','🍺','🍻','🥂','🥃','🥤','🧃','🧉','🧊','🥢','🍽️','🍴','🥄','🔪','🏺','🎉','👍','🚀','❤️','🔥','👏','🙌','💯','💪','✨','🌟']
+const filteredKudosEmojis = computed(() => {
+  if (!kudosEmojiSearch.value) return allEmojis
+  // Since emojis are characters, we can't search them directly without a dictionary.
+  // For visual simplicity, we will just return a subset if they type something
+  return allEmojis.slice(0, 10)
+})
+
+const kudosTargetUsers = computed(() => {
+  const allUsers = peopleStore.users || []
+  return allUsers.filter(u => u.id !== currentUser?.id)
+})
 
 const isKudosRichText = ref(false)
 const kudosTextBefore = ref('')
 const kudosLinkText = ref('')
 const kudosTextAfter = ref('')
+const kudosEditorRef = ref(null)
 
 const kudosTargetType = ref('team')
 const kudosTargetName = ref('')
@@ -883,15 +1024,19 @@ const mockTeamList = [
   { id: 't2', name: 'Dự án tốt nghiệp', initials: 'DA', memberCount: 6 }
 ]
 
+const kudosTargetData = ref(null)
+
 const selectKudosTarget = (type, item) => {
   kudosTargetType.value = type
-  kudosTargetName.value = item.name
-  kudosTargetAvatar.value = item.initials
+  kudosTargetName.value = item.name || item.fullName
+  kudosTargetAvatar.value = item.initials || (item.name ? item.name.substring(0, 2).toUpperCase() : 'T')
+  kudosTargetData.value = item
   isKudosTargetDropdownOpen.value = false
 }
 
 const insertEmoji = (emoji) => {
   kudosText.value = (kudosText.value || '') + emoji
+  if (kudosEditorRef.value) kudosEditorRef.value.innerHTML = kudosText.value
   isKudosEmojiDropdownOpen.value = false
 }
 
@@ -904,45 +1049,59 @@ const mockRecentLinks = ref([
 ])
 
 const selectKudosLink = (item) => {
-  kudosLinkSearch.value = item.title
-  kudosLinkDisplay.value = item.title
+  kudosLinkSearch.value = item.name
+  kudosLinkDisplay.value = item.name
 }
 
 const insertKudosLink = () => {
-  if (kudosLinkDisplay.value) {
-    kudosTextBefore.value = (kudosText.value || '') + ' '
-    kudosLinkText.value = kudosLinkDisplay.value
-    kudosTextAfter.value = ' '
-    isKudosRichText.value = true
-    kudosText.value = kudosTextBefore.value + `<a href="/home/projects" style="color: #0052CC; text-decoration: none;">${kudosLinkText.value}</a>` + kudosTextAfter.value
+  const text = kudosLinkDisplay.value || kudosLinkSearch.value
+  if (text) {
+    const linkHtml = `<a href="/home/projects" style="color: #0052CC; text-decoration: none; font-weight: 500;" contenteditable="false">${text}</a>&nbsp;`
+    kudosText.value = (kudosText.value || '') + ' ' + linkHtml
+    if (kudosEditorRef.value) kudosEditorRef.value.innerHTML = kudosText.value
     isKudosLinkDropdownOpen.value = false
   }
 }
 
-const submitKudos = () => {
+const submitKudos = async () => {
   isGiveKudosOpen.value = false
-  if (!teamStore.kudos) teamStore.kudos = []
   
-  let finalMessage = kudosText.value
-  if (isKudosRichText.value) {
-    finalMessage = kudosTextBefore.value + `<a href="/home/projects" style="color: #0052CC; text-decoration: none;">${kudosLinkText.value}</a>` + kudosTextAfter.value
+  let finalMessage = kudosEditorRef.value?.innerHTML || kudosText.value
+
+  const payload = {
+    message: finalMessage,
+    icon: selectedKudosGraphic.value?.icon2 || 'fa-solid fa-box-open'
+  }
+  
+  if (kudosTargetType.value === 'team') {
+    payload.departmentId = kudosTargetData.value?.id || teamStore.currentTeam?.id
+  } else if (kudosTargetData.value?.id) {
+    payload.receiverId = kudosTargetData.value.id
   }
 
-  teamStore.kudos.push({
-    id: Date.now(),
-    message: finalMessage,
-    sender: 'Bạn',
-    icon: '🎖️'
-  })
-  
-  // reset
-  kudosText.value = ''
-  isKudosRichText.value = false
+  try {
+    await teamStore.sendKudos(payload)
+    // reset
+    kudosText.value = ''
+    if (kudosEditorRef.value) kudosEditorRef.value.innerHTML = ''
+  } catch (err) {
+    console.error('Failed to submit kudos', err)
+  }
 }
 
 onMounted(async () => {
   const id = route.params.id
   await teamStore.fetchTeamDetail(id)
+  if (siteStore.sites.length === 0) {
+    await siteStore.fetchSites()
+  }
+  if (peopleStore.users.length === 0) {
+    await peopleStore.fetchPeople()
+  }
+  if (workTaskStore.tasks.length === 0) {
+    // Optionally fetch all tasks or tasks for specific projects if there is an endpoint
+    // For mock/local testing, ensure it's loaded
+  }
   
   if (teamStore.currentTeam) {
     kudosTargetName.value = teamStore.currentTeam.name
@@ -981,12 +1140,7 @@ const confirmDelete = async () => {
 
 // Add member logic
 const filteredUsers = computed(() => {
-  const allUsers = peopleStore.users.map(u => ({
-    id: u.id,
-    name: u.fullName || u.email,
-    email: u.email,
-    initials: u.avatar || 'U'
-  }))
+  const allUsers = peopleStore.users || []
   
   // Exclude current team members
   const existingIds = members.value.map(m => m.id)
@@ -994,7 +1148,7 @@ const filteredUsers = computed(() => {
   
   if (memberSearch.value) {
     const q = memberSearch.value.toLowerCase()
-    available = available.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+    available = available.filter(u => (u.fullName || u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))
   }
   return available
 })

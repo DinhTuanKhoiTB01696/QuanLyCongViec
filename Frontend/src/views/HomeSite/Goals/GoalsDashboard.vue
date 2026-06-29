@@ -29,7 +29,7 @@
               </div>
             </div>
             <div class="empty-banner-illustration">
-              <div class="mock-illustration">
+              <div class="empty-illustration">
                 <i class="fa-solid fa-bullseye"></i>
               </div>
             </div>
@@ -46,10 +46,19 @@
           </div>
           <div class="filter-actions">
             <button class="filter-btn" v-if="currentTab === 'following'" style="background-color: #E6FCFF; color: #0052CC; border: 1px solid #4C9AFF;">Đang theo dõi <i class="fa-solid fa-xmark"></i></button>
-            <button class="filter-btn">Trạng thái <i class="fa-solid fa-chevron-down"></i></button>
-            <button class="filter-btn">Chủ sở hữu <i class="fa-solid fa-chevron-down"></i></button>
-            <button class="filter-btn">Nhãn <i class="fa-solid fa-chevron-down"></i></button>
+            
+            
+            
           </div>
+          <div class="filter-chips" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; width: 100%;">
+            <DropdownFilter label="Trạng thái" :options="statusOptions" v-model="filters.status" />
+            <DropdownFilter label="Chủ sở hữu" :options="ownerOptions" v-model="filters.owner" />
+            <DropdownFilter label="Tiến độ" :options="progressOptions" v-model="filters.progress" />
+            <DropdownFilter label="Yêu thích" :options="booleanOptions" v-model="filters.favorite" />
+            <DropdownFilter label="Theo dõi" :options="booleanOptions" v-model="filters.following" />
+            <button v-if="hasActiveFilters" class="clear-filters-btn" @click="clearFilters">Xóa lọc</button>
+          </div>
+
         </div>
 
         <div class="table-container" v-if="!isLoading">
@@ -59,8 +68,10 @@
                 <th class="col-title">Mục tiêu</th>
                 <th class="col-status">Trạng thái</th>
                 <th class="col-progress">Tiến độ</th>
-                <th class="col-report">Báo cáo nội bộ</th>
-                <th class="col-labels">Nhãn</th>
+                <th class="col-created">Ngày tạo</th>
+     <th class="col-updated">Ngày cập nhật</th>
+     <th class="col-star">Yêu thích</th>
+     <th class="col-watch">Theo dõi</th>
                 <th class="col-owner">Chủ sở hữu</th>
               </tr>
             </thead>
@@ -75,7 +86,7 @@
                 <td>
                   <span class="status-badge" :class="getStatusClass(goal.status)">
                     <span class="status-dot"></span>
-                    {{ goal.status }}
+                    {{ translateStatus(goal.status) }}
                   </span>
                 </td>
                 <td>
@@ -86,16 +97,17 @@
                     <span class="progress-text">{{ goal.progress || 0 }}%</span>
                   </div>
                 </td>
-                <td><span class="report-text">{{ goal.innerReport || '-' }}</span></td>
-                <td>
-                  <div class="labels-container" v-if="goal.labels && goal.labels.length > 0">
-                    <span class="label-badge" v-for="lbl in goal.labels" :key="lbl">{{ lbl }}</span>
-                  </div>
-                  <span v-else>-</span>
+                <td>{{ goal.createdAt ? new Date(goal.createdAt).toLocaleDateString('vi-VN') : '-' }}</td>
+                <td>{{ goal.updatedAt ? new Date(goal.updatedAt).toLocaleDateString('vi-VN') : '-' }}</td>
+                <td @click.stop="toggleStar(goal)">
+                  <i :class="goal.isStarred ? 'fa-solid fa-star text-yellow-400' : 'fa-regular fa-star text-gray-400'" style="cursor: pointer;"></i>
+                </td>
+                <td @click.stop="toggleWatch(goal)">
+                  <span :class="goal.isFollowing ? 'text-blue-500' : 'text-gray-500'" style="cursor: pointer;">{{ goal.isFollowing ? 'Đang theo dõi' : 'Theo dõi' }}</span>
                 </td>
                 <td>
                   <div class="owner-cell">
-                    <div class="owner-avatar">{{ goal.owner ? goal.owner.substring(0, 1).toUpperCase() : 'U' }}</div>
+                    <UserAvatar :user="{ id: goal.ownerId, fullName: goal.ownerName, avatarColor: goal.ownerColor, avatarUrl: goal.ownerAvatarUrl }" :size="24" :fontSize="10" />
                     <span class="owner-name">{{ goal.owner || 'Chưa gán' }}</span>
                   </div>
                 </td>
@@ -139,53 +151,35 @@
           
           <div class="form-group">
             <label>Loại <span class="required">*</span></label>
-            <div style="position: relative;">
-               <select v-model="newGoal.type" class="jira-select" style="appearance: none; background: #FAFBFC; padding-left: 32px;">
-                 <option value="Objective">Objective</option>
-                 <option value="Key Result">Key Result</option>
-               </select>
-               <i class="fa-solid fa-bullseye" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #6B778C; font-size: 14px;"></i>
-               <i class="fa-solid fa-chevron-down" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #6B778C; font-size: 12px; pointer-events: none;"></i>
+            <div style="position: relative; display: flex; align-items: center; gap: 8px; background: #FAFBFC; padding: 8px 12px; border: 1px solid #DFE1E6; border-radius: 3px; cursor: default;">
+               <i class="fa-solid fa-bullseye" style="color: #6B778C; font-size: 14px;"></i>
+               <span style="color: #172B4D; font-size: 14px;">Objective</span>
             </div>
           </div>
           
           <div class="form-group" style="position: relative;">
             <label>Ngày mục tiêu</label>
-            <div class="date-input-wrapper" @click="isDateDropdownOpen = !isDateDropdownOpen" style="position: relative; border: 2px solid #DFE1E6; border-radius: 3px; padding: 8px 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: white;">
-               <span :style="{ color: newGoal.date ? '#172B4D' : '#6B778C' }">{{ newGoal.date || 'Chọn ngày' }}</span>
-               <i class="fa-regular fa-calendar" style="color: #6B778C;"></i>
-            </div>
-            
-            <!-- Custom Date Dropdown -->
-            <div v-if="isDateDropdownOpen" class="dropdown-menu" style="position: absolute; top: 100%; left: 0; margin-top: 4px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 280px; z-index: 100; padding: 16px;">
-               <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #DFE1E6;">
-                 <button style="flex: 1; padding: 4px 0 8px; background: none; border: none; font-size: 12px; font-weight: 500; color: #5E6C84; cursor: pointer;">Ngày</button>
-                 <button style="flex: 1; padding: 4px 0 8px; background: none; border: none; border-bottom: 2px solid #0052CC; font-size: 12px; font-weight: 600; color: #0052CC; cursor: pointer; margin-bottom: -2px;">Tháng</button>
-                 <button style="flex: 1; padding: 4px 0 8px; background: none; border: none; font-size: 12px; font-weight: 500; color: #5E6C84; cursor: pointer;">Quý</button>
-               </div>
-               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                 <i class="fa-solid fa-chevron-left" style="cursor: pointer; color: #6B778C; font-size: 12px;"></i>
-                 <span style="font-weight: 600; font-size: 14px; color: #172B4D;">2026</span>
-                 <i class="fa-solid fa-chevron-right" style="cursor: pointer; color: #6B778C; font-size: 12px;"></i>
-               </div>
-               <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
-                 <div v-for="month in ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']" :key="month" @click="selectDate(month + ' 2026')" style="text-align: center; padding: 8px 0; font-size: 13px; color: #172B4D; cursor: pointer; border-radius: 3px;" :style="{ background: month === 'Jun' ? '#E6FCFF' : 'transparent', color: month === 'Jun' ? '#0052CC' : '#172B4D', fontWeight: month === 'Jun' ? '600' : '400' }" onmouseover="this.style.background='#FAFBFC'" onmouseout="if(this.innerText !== 'Jun') this.style.background='transparent'">
-                    {{ month }}
-                 </div>
-               </div>
-            </div>
+            <el-date-picker
+              v-model="newGoal.date"
+              type="date"
+              placeholder="Chọn ngày"
+              format="MMM DD, YYYY"
+              value-format="YYYY-MM-DD"
+              style="width: 100%"
+              class="jira-date-picker"
+            />
           </div>
           
           <div class="form-group" style="position: relative;">
             <label>Chủ sở hữu <span class="required">*</span></label>
             <div class="owner-input-wrapper" @click="isOwnerDropdownOpen = !isOwnerDropdownOpen" style="position: relative; border: 2px solid #DFE1E6; border-radius: 3px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; background: white;">
-               <div class="member-avatar-micro" style="background-color: #36B37E; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px;">{{ newGoal.ownerAvatar }}</div>
+               <UserAvatar :user="{ avatarColor: newGoal.ownerAvatarColor, initials: newGoal.ownerAvatar, fullName: newGoal.ownerName, avatarUrl: newGoal.ownerAvatarUrl }" :size="24" :fontSize="11" />
                <span style="font-size: 14px; color: #172B4D;">{{ newGoal.ownerName }}</span>
             </div>
             
             <div v-if="isOwnerDropdownOpen" class="dropdown-menu" style="position: absolute; top: 100%; left: 0; margin-top: 4px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 100%; z-index: 100; max-height: 200px; overflow-y: auto;">
-               <div v-for="user in mockUsers" :key="user.id" @click="selectOwner(user)" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; transition: background 0.1s;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                  <div class="member-avatar-micro" style="background-color: #0052CC; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px;">{{ user.initials }}</div>
+               <div v-for="user in siteUsers" :key="user.id" @click="selectOwner(user)" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; transition: background 0.1s;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
+                  <UserAvatar :user="user" :size="24" :fontSize="11" />
                   <span style="font-size: 14px; color: #172B4D;">{{ user.name }}</span>
                </div>
             </div>
@@ -204,34 +198,95 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGoalStore } from '@/store/useGoalStore'
+import { useStarredStore } from '@/store/useStarredStore'
+import { useFollowerStore } from '@/store/useFollowerStore'
+import { usePeopleStore } from '@/store/usePeopleStore'
+import axiosClient from '@/api/axiosClient'
+import UserAvatar from '@/components/common/UserAvatar.vue'
+import DropdownFilter from '@/components/common/DropdownFilter.vue'
+import { getStoredUser } from '@/utils/permissions'
+import { getInitials, getAvatarColor } from '@/utils/avatarHelper'
 
 const router = useRouter()
 const goalStore = useGoalStore()
+const starredStore = useStarredStore()
+const followerStore = useFollowerStore()
+const peopleStore = usePeopleStore()
 
 const currentTab = ref('all')
 const searchQuery = ref('')
+const filters = ref({
+  status: '',
+  progress: '',
+  favorite: '',
+  following: '',
+  owner: ''
+})
+
+const uniqueValues = (selector) => Array.from(new Set(
+  (goalStore.goals || [])
+    .map(selector)
+    .filter(value => value && value !== 'N/A')
+)).sort()
+
+const statusOptions = computed(() => {
+  const statuses = uniqueValues(g => g.status);
+  // Map raw statuses to translated statuses and remove duplicates again
+  return Array.from(new Set(statuses.map(translateStatus)));
+})
+const ownerOptions = computed(() => uniqueValues(g => g.owner))
+const progressOptions = [
+  { label: 'Chưa bắt đầu (0%)', value: '0' },
+  { label: 'Đang tiến hành (>0%)', value: 'in_progress' },
+  { label: 'Hoàn thành (100%)', value: '100' }
+]
+const booleanOptions = [
+  { label: 'Có', value: 'true' },
+  { label: 'Không', value: 'false' }
+]
+
+const clearFilters = () => {
+  filters.value = {
+    status: '',
+    progress: '',
+    favorite: '',
+    following: '',
+    owner: ''
+  }
+}
+const hasActiveFilters = computed(() => Object.values(filters.value).some(val => val !== ''))
+
 const isCreateModalOpen = ref(false)
 const isTitleTouched = ref(false)
-const isDateDropdownOpen = ref(false)
 const isOwnerDropdownOpen = ref(false)
 
-const mockUsers = [
-  { id: 'u1', name: 'Tua20000', initials: 'T' },
-  { id: 'u2', name: 'Tuấn Khôi Đinh', initials: 'TK' },
-  { id: 'u3', name: 'ngkiet2805', initials: 'N' }
-]
+const siteUsers = computed(() => {
+  return peopleStore.users.map(u => ({
+    id: u.id,
+    name: u.fullName || u.email,
+    initials: u.initials || getInitials(u.fullName || u.email),
+    avatarColor: u.avatarColor,
+    avatarUrl: u.avatarUrl
+  }))
+})
 
 const newGoal = ref({
   title: '',
   type: 'Objective',
   date: '',
-  ownerName: 'Tua20000',
-  ownerAvatar: 'T',
+  ownerId: '',
+  ownerName: '',
+  ownerAvatar: '',
+  ownerAvatarColor: '',
+  ownerAvatarUrl: '',
   status: 'Đang chờ cập nhật'
 })
 
 onMounted(async () => {
   await goalStore.fetchGoals()
+  await starredStore.fetchStarredItems()
+  await followerStore.fetchFollowedItems()
+  await peopleStore.fetchPeople()
   window.addEventListener('global-create-click', openCreateModal)
 })
 
@@ -264,6 +319,29 @@ const filteredGoals = computed(() => {
     )
   }
 
+  if (filters.value.status) {
+    list = list.filter(g => translateStatus(g.status) === filters.value.status)
+  }
+  if (filters.value.owner) {
+    list = list.filter(g => g.owner === filters.value.owner)
+  }
+  if (filters.value.progress) {
+    list = list.filter(g => {
+      if (filters.value.progress === '0') return g.progress === 0
+      if (filters.value.progress === '100') return g.progress === 100
+      if (filters.value.progress === 'in_progress') return g.progress > 0 && g.progress < 100
+      return true
+    })
+  }
+  if (filters.value.favorite) {
+    const isFav = filters.value.favorite === 'true'
+    list = list.filter(g => !!g.isFavorite === isFav)
+  }
+  if (filters.value.following) {
+    const isFol = filters.value.following === 'true'
+    list = list.filter(g => !!g.isFollowing === isFol)
+  }
+
   return list
 })
 
@@ -271,32 +349,63 @@ const getStatusClass = (status) => {
   if (!status) return 'status-pending'
   const map = {
     'đúng tiến độ': 'status-on-track',
+    'on track': 'status-on-track',
     'có rủi ro': 'status-at-risk',
+    'at risk': 'status-at-risk',
     'trễ tiến độ': 'status-off-track',
+    'off track': 'status-off-track',
     'không đúng tiến độ': 'status-off-track',
     'đang chờ cập nhật': 'status-pending',
+    'pending': 'status-pending',
     'đã hoàn tất': 'status-done',
-    'đã lưu trữ': 'status-archived'
+    'completed': 'status-done',
+    'đã lưu trữ': 'status-archived',
+    'archived': 'status-archived'
   }
   return map[status.toLowerCase()] || 'status-pending'
 }
 
+const translateStatus = (status) => {
+  if (!status) return 'Đang chờ cập nhật'
+  const map = {
+    'on track': 'Đúng tiến độ',
+    'at risk': 'Có rủi ro',
+    'off track': 'Trễ tiến độ',
+    'pending': 'Đang chờ cập nhật',
+    'completed': 'Đã hoàn tất',
+    'archived': 'Đã lưu trữ'
+  }
+  return map[status.toLowerCase()] || status
+}
+
 const openCreateModal = () => {
-  newGoal.value = { title: '', type: 'Objective', date: '', ownerName: 'Tua20000', ownerAvatar: 'T', status: 'Đang chờ cập nhật' }
+  const stored = getStoredUser() || {}
+  const currentUser = peopleStore.users.find(u => u.id === stored.id) || peopleStore.currentUser || stored
+  const name = currentUser.fullName || currentUser.name || currentUser.publicName || currentUser.email || 'User'
+  const email = currentUser.email || ''
+
+  newGoal.value = { 
+    title: '', 
+    type: 'Objective', 
+    date: '', 
+    ownerId: currentUser.id,
+    ownerName: name, 
+    ownerAvatar: currentUser.initials || getInitials(name, email),
+    ownerAvatarColor: currentUser.avatarColor,
+    ownerAvatarUrl: currentUser.avatarUrl,
+    status: 'Đang chờ cập nhật' 
+  }
   isTitleTouched.value = false
-  isDateDropdownOpen.value = false
   isOwnerDropdownOpen.value = false
   isCreateModalOpen.value = true
 }
 
-const selectDate = (d) => {
-  newGoal.value.date = d
-  isDateDropdownOpen.value = false
-}
-
 const selectOwner = (user) => {
+  newGoal.value.ownerId = user.id
   newGoal.value.ownerName = user.name
   newGoal.value.ownerAvatar = user.initials
+  newGoal.value.ownerAvatarColor = user.avatarColor
+  newGoal.value.ownerAvatarUrl = user.avatarUrl
   isOwnerDropdownOpen.value = false
 }
 
@@ -308,7 +417,9 @@ const submitCreateGoal = async () => {
     await goalStore.createGoal({ 
       title: newGoal.value.title, 
       status: newGoal.value.status,
+      ownerId: newGoal.value.ownerId,
       owner: newGoal.value.ownerName,
+      ownerColor: newGoal.value.ownerAvatarColor,
       type: newGoal.value.type,
       date: newGoal.value.date
     })
@@ -321,6 +432,17 @@ const submitCreateGoal = async () => {
 
 const goToGoal = (id) => {
   router.push(`/home/goals/${id}`)
+}
+
+const toggleStar = async (goal) => {
+  if (!goal?.id) return
+  goalStore.currentGoal = goal
+  await goalStore.toggleStar()
+}
+
+const toggleWatch = async (goal) => {
+  if (!goal?.id) return
+  await goalStore.toggleFollow(goal.id)
 }
 </script>
 
@@ -473,7 +595,7 @@ const goToGoal = (id) => {
   justify-content: flex-end;
 }
 
-.mock-illustration {
+.empty-illustration {
   width: 280px;
   height: 200px;
   background-color: #E6FCFF;
@@ -483,7 +605,7 @@ const goToGoal = (id) => {
   justify-content: center;
 }
 
-.mock-illustration i {
+.empty-illustration i {
   font-size: 64px;
   color: #0052CC;
 }
@@ -848,4 +970,11 @@ const goToGoal = (id) => {
 .cancel-btn:hover {
   background: rgba(9, 30, 66, 0.08);
 }
+
+:deep(.jira-date-picker .el-input__inner) {
+  border: none !important;
+  padding: 0 !important;
+  height: auto !important;
+}
 </style>
+

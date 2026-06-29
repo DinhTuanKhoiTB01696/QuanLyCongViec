@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import axiosClient from '@/api/axiosClient'
+import { useStarredStore } from '@/store/useStarredStore'
 
 export const useTeamStore = defineStore('team', {
   state: () => ({
@@ -8,6 +9,7 @@ export const useTeamStore = defineStore('team', {
     hierarchy: { parent: null, children: [] },
     goals: [],
     projects: [],
+    activityTasks: [],
     kudos: [],
     isLoading: false,
     error: null,
@@ -40,13 +42,15 @@ export const useTeamStore = defineStore('team', {
           coverImage: team.coverImage || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200&q=80',
           status: team.isArchived ? 'Archived' : 'Active',
           isStarred: false,
-          description: team.description || 'Department details.'
+          description: team.description || 'Department details.',
+          manager: team.manager || null
         }
         
         this.members = team.members || []
         this.hierarchy = team.hierarchy || { parent: null, children: [] }
         this.goals = team.goals || []
         this.projects = team.projects || []
+        this.activityTasks = team.activityTasks || []
         this.kudos = team.kudos || []
         
         this.isSuccess = true
@@ -66,9 +70,13 @@ export const useTeamStore = defineStore('team', {
       }
     },
     async toggleStar() {
-      if (this.currentTeam) {
-        this.currentTeam.isStarred = !this.currentTeam.isStarred
-      }
+      if (!this.currentTeam) return
+      const starredStore = useStarredStore()
+      await starredStore.toggleStar('Team', this.currentTeam.id)
+      this.currentTeam.isStarred = starredStore.starredItems.some(item =>
+        (item.itemId || item.ItemId) === this.currentTeam.id &&
+        (item.itemType || item.ItemType) === 'Team'
+      )
     },
     async addMembers(userIds) {
       if (!this.currentTeam) return
@@ -97,6 +105,27 @@ export const useTeamStore = defineStore('team', {
         await this.fetchTeamDetail(this.currentTeam.id) // Reload hierarchy
       } catch (err) {
         console.error('Failed to update hierarchy', err)
+        throw err
+      }
+    },
+    async updateTeamParent(teamId, parentId) {
+      try {
+        await axiosClient.put(`/departments/${teamId}/hierarchy`, parentId)
+        if (this.currentTeam) {
+          await this.fetchTeamDetail(this.currentTeam.id)
+        }
+      } catch (err) {
+        console.error('Failed to update team parent', err)
+        throw err
+      }
+    },
+    async updateManager(userId) {
+      if (!this.currentTeam) return
+      try {
+        await axiosClient.put(`/departments/${this.currentTeam.id}/manager/${userId}`)
+        await this.fetchTeamDetail(this.currentTeam.id)
+      } catch (err) {
+        console.error('Failed to update manager', err)
         throw err
       }
     },
@@ -130,14 +159,65 @@ export const useTeamStore = defineStore('team', {
         throw err
       }
     },
+    async linkGoal(goalId) {
+      if (!this.currentTeam) return
+      try {
+        await axiosClient.post(`/departments/${this.currentTeam.id}/goals/${goalId}`)
+        await this.fetchTeamDetail(this.currentTeam.id)
+      } catch (err) {
+        console.error('Failed to link goal', err)
+        throw err
+      }
+    },
+    async unlinkGoal(goalId) {
+      if (!this.currentTeam) return
+      try {
+        await axiosClient.delete(`/departments/${this.currentTeam.id}/goals/${goalId}`)
+        await this.fetchTeamDetail(this.currentTeam.id)
+      } catch (err) {
+        console.error('Failed to unlink goal', err)
+        throw err
+      }
+    },
+    async linkProject(projectId) {
+      if (!this.currentTeam) return
+      try {
+        await axiosClient.post(`/departments/${this.currentTeam.id}/projects/${projectId}`)
+        await this.fetchTeamDetail(this.currentTeam.id)
+      } catch (err) {
+        console.error('Failed to link project', err)
+        throw err
+      }
+    },
+    async unlinkProject(projectId) {
+      if (!this.currentTeam) return
+      try {
+        await axiosClient.delete(`/departments/${this.currentTeam.id}/projects/${projectId}`)
+        await this.fetchTeamDetail(this.currentTeam.id)
+      } catch (err) {
+        console.error('Failed to unlink project', err)
+        throw err
+      }
+    },
     async sendKudos(data) {
       try {
         await axiosClient.post('/kudos', data)
         if (this.currentTeam && this.currentTeam.id === data.departmentId) {
           await this.fetchTeamDetail(this.currentTeam.id)
+        } else {
+          await this.fetchRecentKudos()
         }
       } catch (err) {
         console.error('Failed to send kudos', err)
+        throw err
+      }
+    },
+    async fetchRecentKudos() {
+      try {
+        const response = await axiosClient.get('/kudos')
+        this.kudos = response.data?.data || response.data || []
+      } catch (err) {
+        console.error('Failed to fetch kudos', err)
         throw err
       }
     }

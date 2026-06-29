@@ -6,7 +6,7 @@ namespace TaskManagement.Application.DTOs.Auth
         public Guid Id { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        // Các quyền hệ thống (System Roles)
+        public string? AvatarUrl { get; set; }
         public string[] SystemRoles { get; set; } = Array.Empty<string>();
     }
 }

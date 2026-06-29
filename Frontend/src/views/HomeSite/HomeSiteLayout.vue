@@ -17,7 +17,7 @@
         </div>
         
         <nav class="sidebar-nav">
-          <router-link to="/sites" class="nav-item" :class="{ 'active-nav': $route.path === '/sites' }">
+          <router-link to="/home/for-you" class="nav-item" :class="{ 'active-nav': route.path === '/home/for-you' || route.path === '/sites' }">
             <span class="nav-icon"><i class="fa-regular fa-user-circle"></i></span>
             <span>{{ t('For you', 'Dành cho bạn') }}</span>
           </router-link>
@@ -84,7 +84,7 @@ const t = i18nStore.t
 const showCreateModal = ref(false)
 
 const currentUser = getStoredUser()
-const userName = currentUser?.username || 'Tua20000'
+const userName = currentUser?.fullName || currentUser?.username || currentUser?.email || 'bạn'
 const userInitials = userName.substring(0, 2).toUpperCase()
 
 const isModule = (moduleName) => {

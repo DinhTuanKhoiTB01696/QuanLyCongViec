@@ -772,3 +772,25 @@ i.fa-regular.fa-calendar {
 .el-tabs__nav-wrap::after {
   background-color: var(--color-border) !important;
 }
+
+
+.status-on-track {
+  background: #E3FCEF;
+  color: #006644;
+}
+.status-pending {
+  background: #DFE1E6;
+  color: #42526E;
+}
+.status-at-risk {
+  background: #FFFAE6;
+  color: #FF8B00;
+}
+.status-off-track {
+  background: #FFEBE6;
+  color: #DE350B;
+}
+.status-done {
+  background: #EAE6FF;
+  color: #403294;
+}

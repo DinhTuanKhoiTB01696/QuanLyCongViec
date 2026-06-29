@@ -144,9 +144,7 @@
           <div v-if="!leaderboard.length" class="empty">Chưa có dữ liệu xếp hạng.</div>
           <article v-for="(item, index) in leaderboard" :key="item.userId" class="leader-row">
             <span class="rank">#{{ index + 1 }}</span>
-            <span class="avatar" :style="{ backgroundColor: getAvatarBg(item.userName) }">
-              {{ getInitials(item.userName) }}
-            </span>
+            <UserAvatar :user="{ avatarColor: getAvatarBg(item.userName), initials: getInitials(item.userName), fullName: item.userName }" :size="32" :fontSize="11" class="avatar-wrapper" />
             <div class="leader-main">
               <strong>{{ item.userName || 'Thành viên' }}</strong>
               <small>{{ item.careerTitle || `Cấp độ ${item.level}` }}</small>
@@ -164,6 +162,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import axiosClient from '@/api/axiosClient'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const loading = ref(false)
 const wallet = ref({ totalPoints: 0, level: 1, nextLevelAt: 1000 })

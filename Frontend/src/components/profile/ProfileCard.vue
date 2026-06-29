@@ -13,9 +13,7 @@
       <h3 class="section-title">{{ t('Profile photo', 'Ảnh đại diện') }}</h3>
       <div class="profile-photo-block">
         <div class="photo-preview-wrapper">
-          <div class="large-avatar-preview" :style="avatarStyle">
-            {{ profileData.avatarUrl ? '' : getInitials(form.fullName) }}
-          </div>
+          <UserAvatar :user="profileData" :size="96" :fontSize="36" />
         </div>
         <div class="photo-actions">
           <div class="photo-buttons">
@@ -204,6 +202,7 @@
 import { computed, ref, watch, onMounted } from 'vue'
 import { useLocale } from '@/composables/useLocale'
 import { ElMessage } from 'element-plus'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const { t } = useLocale()
 const avatarInput = ref(null)
@@ -272,28 +271,7 @@ onMounted(() => {
   }
 })
 
-const getBaseUrl = () => import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5136'
 
-const avatarStyle = computed(() => {
-  if (!props.profileData.avatarUrl) return {}
-  return {
-    backgroundImage: `url(${getBaseUrl()}${props.profileData.avatarUrl})`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    color: 'transparent'
-  }
-})
-
-const getInitials = (name) => {
-  if (!name) return '?'
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .map((word) => word[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase()
-}
 
 const getVisibilityIcon = (val) => {
   switch (val) {
@@ -404,14 +382,12 @@ const onSubmit = () => {
 .large-avatar-preview {
   height: 96px;
   width: 96px;
-  background-color: #0052cc;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 36px;
   font-weight: 700;
-  color: #ffffff;
   border: 1px solid var(--color-border);
 }
 

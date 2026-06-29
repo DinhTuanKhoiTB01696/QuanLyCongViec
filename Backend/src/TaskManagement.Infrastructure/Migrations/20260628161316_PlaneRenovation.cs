@@ -132,6 +132,10 @@ namespace TaskManagement.Infrastructure.Migrations
                     FullName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AvatarUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CoverUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Bio = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    JobTitle = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Location = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Timezone = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -243,6 +247,37 @@ namespace TaskManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Comments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    EntityId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    EntityType = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ParentCommentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Comments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Comments_Comments_ParentCommentId",
+                        column: x => x.ParentCommentId,
+                        principalTable: "Comments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Comments_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Departments",
                 columns: table => new
                 {
@@ -272,6 +307,27 @@ namespace TaskManagement.Infrastructure.Migrations
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "EntityFollowers",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    EntityId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    EntityType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EntityFollowers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_EntityFollowers_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -336,6 +392,31 @@ namespace TaskManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "RecentViews",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    EntityType = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                    EntityId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(512)", maxLength: 512, nullable: false),
+                    Subtitle = table.Column<string>(type: "nvarchar(512)", maxLength: 512, nullable: true),
+                    Url = table.Column<string>(type: "nvarchar(1024)", maxLength: 1024, nullable: true),
+                    Icon = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: true),
+                    ViewedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RecentViews", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_RecentViews_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "RefreshTokens",
                 columns: table => new
                 {
@@ -358,6 +439,30 @@ namespace TaskManagement.Infrastructure.Migrations
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SiteAuditLogs",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    EntityId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    EntityType = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Action = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    OldValue = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    NewValue = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SiteAuditLogs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SiteAuditLogs_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -499,6 +604,61 @@ namespace TaskManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CommentAttachments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CommentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UploadedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FileUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ContentType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FileSize = table.Column<long>(type: "bigint", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CommentAttachments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CommentAttachments_Comments_CommentId",
+                        column: x => x.CommentId,
+                        principalTable: "Comments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CommentAttachments_Users_UploadedByUserId",
+                        column: x => x.UploadedByUserId,
+                        principalTable: "Users",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CommentMentions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CommentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    MentionedUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CommentMentions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CommentMentions_Comments_CommentId",
+                        column: x => x.CommentId,
+                        principalTable: "Comments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CommentMentions_Users_MentionedUserId",
+                        column: x => x.MentionedUserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "DepartmentMembers",
                 columns: table => new
                 {
@@ -615,6 +775,10 @@ namespace TaskManagement.Infrastructure.Migrations
                     IssueSequence = table.Column<int>(type: "int", nullable: false),
                     StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EndDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Why = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    SuccessCriteria = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CloseDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    TrackedLinkUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Status = table.Column<bool>(type: "bit", nullable: false),
                     CreatorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     DepartmentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
@@ -712,6 +876,33 @@ namespace TaskManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "KudoReactions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    KudoId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ReactionType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_KudoReactions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_KudoReactions_Kudos_KudoId",
+                        column: x => x.KudoId,
+                        principalTable: "Kudos",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_KudoReactions_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "GoalDecisions",
                 columns: table => new
                 {
@@ -802,6 +993,10 @@ namespace TaskManagement.Infrastructure.Migrations
                     GoalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    OldStatus = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    NewStatus = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    OldProgress = table.Column<int>(type: "int", nullable: true),
+                    NewProgress = table.Column<int>(type: "int", nullable: true),
                     UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -820,6 +1015,39 @@ namespace TaskManagement.Infrastructure.Migrations
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TeamGoals",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    DepartmentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    GoalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TeamGoals", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TeamGoals_Departments_DepartmentId",
+                        column: x => x.DepartmentId,
+                        principalTable: "Departments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TeamGoals_Goals_GoalId",
+                        column: x => x.GoalId,
+                        principalTable: "Goals",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TeamGoals_Users_CreatedByUserId",
+                        column: x => x.CreatedByUserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -924,6 +1152,33 @@ namespace TaskManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ProjectDecisions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ProjectId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Text = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProjectDecisions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ProjectDecisions_Projects_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "Projects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProjectDecisions_Users_CreatorId",
+                        column: x => x.CreatorId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ProjectDepartmentRoles",
                 columns: table => new
                 {
@@ -945,6 +1200,33 @@ namespace TaskManagement.Infrastructure.Migrations
                         name: "FK_ProjectDepartmentRoles_Projects_ProjectId",
                         column: x => x.ProjectId,
                         principalTable: "Projects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProjectLessons",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ProjectId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Text = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProjectLessons", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ProjectLessons_Projects_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "Projects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProjectLessons_Users_CreatorId",
+                        column: x => x.CreatorId,
+                        principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -1001,6 +1283,64 @@ namespace TaskManagement.Infrastructure.Migrations
                     table.ForeignKey(
                         name: "FK_ProjectMembers_Users_UserId",
                         column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProjectRisks",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ProjectId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Text = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Severity = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProjectRisks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ProjectRisks_Projects_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "Projects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProjectRisks_Users_CreatorId",
+                        column: x => x.CreatorId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProjectUpdates",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ProjectId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    OldStatus = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    NewStatus = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProjectUpdates", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ProjectUpdates_Projects_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "Projects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProjectUpdates_Users_CreatorId",
+                        column: x => x.CreatorId,
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -1230,42 +1570,6 @@ namespace TaskManagement.Infrastructure.Migrations
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_AuditLogs_WorkTasks_WorkTaskId",
-                        column: x => x.WorkTaskId,
-                        principalTable: "WorkTasks",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Comments",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    WorkTaskId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ParentCommentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Comments", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Comments_Comments_ParentCommentId",
-                        column: x => x.ParentCommentId,
-                        principalTable: "Comments",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Comments_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Comments_WorkTasks_WorkTaskId",
                         column: x => x.WorkTaskId,
                         principalTable: "WorkTasks",
                         principalColumn: "Id",
@@ -1533,35 +1837,6 @@ namespace TaskManagement.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "CommentAttachments",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CommentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UploadedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    FileUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ContentType = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    FileSize = table.Column<long>(type: "bigint", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CommentAttachments", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_CommentAttachments_Comments_CommentId",
-                        column: x => x.CommentId,
-                        principalTable: "Comments",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_CommentAttachments_Users_UploadedByUserId",
-                        column: x => x.UploadedByUserId,
-                        principalTable: "Users",
-                        principalColumn: "Id");
-                });
-
             migrationBuilder.InsertData(
                 table: "ProjectTemplates",
                 columns: new[] { "Id", "DefaultNavigationConfig", "Description", "Name", "TemplateCode" },
@@ -1622,6 +1897,21 @@ namespace TaskManagement.Infrastructure.Migrations
                 column: "UploadedByUserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_CommentMentions_CommentId",
+                table: "CommentMentions",
+                column: "CommentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CommentMentions_MentionedUserId",
+                table: "CommentMentions",
+                column: "MentionedUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Comments_EntityType_EntityId",
+                table: "Comments",
+                columns: new[] { "EntityType", "EntityId" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Comments_ParentCommentId",
                 table: "Comments",
                 column: "ParentCommentId");
@@ -1630,11 +1920,6 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "IX_Comments_UserId",
                 table: "Comments",
                 column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Comments_WorkTaskId",
-                table: "Comments",
-                column: "WorkTaskId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DepartmentMembers_UserId",
@@ -1650,6 +1935,11 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "IX_Departments_ParentId",
                 table: "Departments",
                 column: "ParentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EntityFollowers_UserId",
+                table: "EntityFollowers",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_GoalDecisions_CreatorId",
@@ -1742,6 +2032,16 @@ namespace TaskManagement.Infrastructure.Migrations
                 column: "ModuleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_KudoReactions_KudoId",
+                table: "KudoReactions",
+                column: "KudoId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_KudoReactions_UserId",
+                table: "KudoReactions",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Kudos_DepartmentId",
                 table: "Kudos",
                 column: "DepartmentId");
@@ -1828,9 +2128,29 @@ namespace TaskManagement.Infrastructure.Migrations
                 column: "WorkTaskId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ProjectDecisions_CreatorId",
+                table: "ProjectDecisions",
+                column: "CreatorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProjectDecisions_ProjectId",
+                table: "ProjectDecisions",
+                column: "ProjectId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ProjectDepartmentRoles_DepartmentId",
                 table: "ProjectDepartmentRoles",
                 column: "DepartmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProjectLessons_CreatorId",
+                table: "ProjectLessons",
+                column: "CreatorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProjectLessons_ProjectId",
+                table: "ProjectLessons",
+                column: "ProjectId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProjectLinks_CreatorId",
@@ -1846,6 +2166,16 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "IX_ProjectMembers_UserId",
                 table: "ProjectMembers",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProjectRisks_CreatorId",
+                table: "ProjectRisks",
+                column: "CreatorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProjectRisks_ProjectId",
+                table: "ProjectRisks",
+                column: "ProjectId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Projects_CreatorId",
@@ -1869,6 +2199,16 @@ namespace TaskManagement.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_ProjectUpdates_CreatorId",
+                table: "ProjectUpdates",
+                column: "CreatorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProjectUpdates_ProjectId",
+                table: "ProjectUpdates",
+                column: "ProjectId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ProjectViews_CreatedById",
                 table: "ProjectViews",
                 column: "CreatedById");
@@ -1879,6 +2219,12 @@ namespace TaskManagement.Infrastructure.Migrations
                 column: "ProjectId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_RecentViews_UserId_EntityType_EntityId",
+                table: "RecentViews",
+                columns: new[] { "UserId", "EntityType", "EntityId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_UserId",
                 table: "RefreshTokens",
                 column: "UserId");
@@ -1887,6 +2233,16 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "IX_RolePermissions_PermissionId",
                 table: "RolePermissions",
                 column: "PermissionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SiteAuditLogs_EntityType_EntityId",
+                table: "SiteAuditLogs",
+                columns: new[] { "EntityType", "EntityId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SiteAuditLogs_UserId",
+                table: "SiteAuditLogs",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Sprints_ProjectId",
@@ -1952,6 +2308,22 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "IX_TaskTypes_ProjectId",
                 table: "TaskTypes",
                 column: "ProjectId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TeamGoals_CreatedByUserId",
+                table: "TeamGoals",
+                column: "CreatedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TeamGoals_DepartmentId_GoalId",
+                table: "TeamGoals",
+                columns: new[] { "DepartmentId", "GoalId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TeamGoals_GoalId",
+                table: "TeamGoals",
+                column: "GoalId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TimeLogs_UserId",
@@ -2066,7 +2438,13 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "CommentAttachments");
 
             migrationBuilder.DropTable(
+                name: "CommentMentions");
+
+            migrationBuilder.DropTable(
                 name: "DepartmentMembers");
+
+            migrationBuilder.DropTable(
+                name: "EntityFollowers");
 
             migrationBuilder.DropTable(
                 name: "GoalDecisions");
@@ -2090,7 +2468,7 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "IssueModules");
 
             migrationBuilder.DropTable(
-                name: "Kudos");
+                name: "KudoReactions");
 
             migrationBuilder.DropTable(
                 name: "Notifications");
@@ -2105,7 +2483,13 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "PointTransactions");
 
             migrationBuilder.DropTable(
+                name: "ProjectDecisions");
+
+            migrationBuilder.DropTable(
                 name: "ProjectDepartmentRoles");
+
+            migrationBuilder.DropTable(
+                name: "ProjectLessons");
 
             migrationBuilder.DropTable(
                 name: "ProjectLinks");
@@ -2114,13 +2498,25 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "ProjectMembers");
 
             migrationBuilder.DropTable(
+                name: "ProjectRisks");
+
+            migrationBuilder.DropTable(
+                name: "ProjectUpdates");
+
+            migrationBuilder.DropTable(
                 name: "ProjectViews");
+
+            migrationBuilder.DropTable(
+                name: "RecentViews");
 
             migrationBuilder.DropTable(
                 name: "RefreshTokens");
 
             migrationBuilder.DropTable(
                 name: "RolePermissions");
+
+            migrationBuilder.DropTable(
+                name: "SiteAuditLogs");
 
             migrationBuilder.DropTable(
                 name: "StarredItems");
@@ -2150,6 +2546,9 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "TaskVectorEmbeddings");
 
             migrationBuilder.DropTable(
+                name: "TeamGoals");
+
+            migrationBuilder.DropTable(
                 name: "TenantConfigs");
 
             migrationBuilder.DropTable(
@@ -2165,13 +2564,13 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "Comments");
 
             migrationBuilder.DropTable(
-                name: "Goals");
-
-            migrationBuilder.DropTable(
                 name: "Labels");
 
             migrationBuilder.DropTable(
                 name: "Modules");
+
+            migrationBuilder.DropTable(
+                name: "Kudos");
 
             migrationBuilder.DropTable(
                 name: "UserWallets");
@@ -2180,10 +2579,13 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "Permissions");
 
             migrationBuilder.DropTable(
-                name: "Roles");
+                name: "Goals");
 
             migrationBuilder.DropTable(
                 name: "WorkTasks");
+
+            migrationBuilder.DropTable(
+                name: "Roles");
 
             migrationBuilder.DropTable(
                 name: "Sprints");
