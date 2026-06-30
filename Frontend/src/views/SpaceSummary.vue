@@ -204,8 +204,27 @@
 
       <!-- Kanban Board Layout -->
       <div class="kanban-wrapper" v-if="currentTab === 'board'">
-        
-        <div class="kanban-col" v-for="col in kanbanColumns" :key="col.id" :style="{ '--col-color': col.color }">
+        <!-- Loading indicator -->
+        <div class="kanban-loading-bar" v-if="store.loading">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+          <span>Đang tải dữ liệu...</span>
+        </div>
+
+        <!-- Error banner -->
+        <div class="kanban-error-banner" v-if="store.error && !store.loading">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Không thể tải bảng công việc. Đang thử kết nối lại...</span>
+          <button class="kanban-retry-btn" @click="fetchTasks()">
+            <i class="fa-solid fa-rotate-right"></i> Thử lại
+          </button>
+        </div>
+
+        <div
+          class="kanban-col"
+          v-for="col in kanbanColumns"
+          :key="col.id"
+          :style="{ '--col-color': col.color, '--col-bg': col.bgColor }"
+        >
           <div class="col-head">
             <div class="col-title">
               <i :class="col.icon" :style="{ color: col.color }"></i>
@@ -232,9 +251,20 @@
                 >
                   <div class="flex-between mb-1">
                     <p class="issue-sequence">{{ element.sequenceId || element.id.substring(0,8).toUpperCase() }}</p>
-                    <button class="star-task-btn small" @click.stop="toggleTaskStar(element)">
-                      <i :class="isTaskStarred(element.id) ? 'fa-solid fa-star text-yellow-400' : 'fa-regular fa-star text-gray-400'"></i>
-                    </button>
+                    <div class="card-top-right">
+                      <!-- Due date hiển thị đỏ nếu quá hạn -->
+                      <span
+                        v-if="element.dueDate"
+                        class="card-due-badge"
+                        :class="{ 'card-due-overdue': new Date(element.dueDate) < new Date() && element.statusName !== 'DONE' }"
+                      >
+                        <i class="fa-regular fa-calendar"></i>
+                        {{ new Date(element.dueDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) }}
+                      </span>
+                      <button class="star-task-btn small" @click.stop="toggleTaskStar(element)">
+                        <i :class="isTaskStarred(element.id) ? 'fa-solid fa-star text-yellow-400' : 'fa-regular fa-star text-gray-400'"></i>
+                      </button>
+                    </div>
                   </div>
                   <p class="issue-title" :style="element.statusName === 'DONE' ? { textDecoration: 'line-through', color: 'var(--color-text-muted)' } : {}">{{ element.title }}</p>
                   <div class="issue-meta mt-2" style="display:flex; align-items:center; gap:8px;" @click.stop>
@@ -293,26 +323,78 @@
                   </div>
                 </div>
               </template>
+
+              <!-- Empty state per-column -->
+              <template #footer>
+                <div class="col-empty-state" v-if="col.items.length === 0 && !store.loading">
+                  <span v-if="col.name === 'DONE'">Bạn đã hoàn thành mọi việc! 🎉</span>
+                  <span v-else>Chưa có công việc nào</span>
+                </div>
+              </template>
             </draggable>
             
-            <div class="inline-create-box" v-if="inlineCreateColId === col.id">
+            <!-- Inline create box nâng cấp (date + assignee) -->
+            <div class="inline-create-box" v-if="inlineCreateColId === col.id" @click.stop>
                <div class="ic-top">
                  <i class="fa-solid fa-plus ic-plus"></i>
-                 <input type="text" class="ic-input" v-model="inlineTaskTitle" placeholder="New work item" @keyup.enter="submitInlineTask(col)" @keyup.esc="inlineCreateColId = null" ref="inlineInput" />
+                 <input type="text" class="ic-input" v-model="inlineTaskTitle" placeholder="Tiêu đề công việc mới..." @keyup.enter="submitInlineTask(col)" @keyup.esc="inlineCreateColId = null" ref="inlineInput" />
                </div>
-               <div class="ic-bottom">
-                 <div class="ic-chip"><i class="fa-regular fa-circle"></i> {{ col.name }}</div>
-                 <div class="ic-chip"><i class="fa-solid fa-minus text-blue"></i></div>
-                 <div class="avatar-xs ms-auto ic-avatar"><i class="fa-solid fa-user"></i></div>
+               <div class="ic-extras">
+                 <!-- Due date picker -->
+                 <label class="ic-extra-label">
+                   <i class="fa-regular fa-calendar" style="color: var(--color-text-muted);"></i>
+                   <input
+                     type="date"
+                     class="ic-date-input"
+                     v-model="inlineDueDate"
+                     title="Hạn chót"
+                   />
+                 </label>
+                 <!-- Assignee picker -->
+                 <el-popover placement="top-start" trigger="click" width="220" popper-class="plane-popover" @click.stop>
+                   <template #reference>
+                     <button class="ic-assignee-btn" type="button" title="Gán người thực hiện">
+                       <i class="fa-solid fa-user-plus"></i>
+                       <span v-if="inlineAssigneeIds.length">{{ inlineAssigneeIds.length }} người</span>
+                       <span v-else>Người thực hiện</span>
+                     </button>
+                   </template>
+                   <div class="popover-content">
+                     <div class="plane-list">
+                       <label
+                         class="plane-list-item"
+                         v-for="member in projectMembers"
+                         :key="member.userId || member.id"
+                         @click.stop
+                       >
+                         <input
+                           type="checkbox"
+                           :value="member.userId || member.id"
+                           v-model="inlineAssigneeIds"
+                         />
+                         {{ member.fullName || member.name || member.email }}
+                       </label>
+                     </div>
+                   </div>
+                 </el-popover>
+               </div>
+               <div class="ic-actions">
+                 <button class="ic-submit-btn" @click="submitInlineTask(col)">
+                   <i class="fa-solid fa-check"></i> Thêm
+                 </button>
+                 <button class="ic-cancel-btn" @click="inlineCreateColId = null">
+                   <i class="fa-solid fa-xmark"></i>
+                 </button>
                </div>
             </div>
             <div class="add-btn-bottom" v-else @click="openInlineCreate(col.id)">
-               <i class="fa-solid fa-plus"></i> New work item
+               <i class="fa-solid fa-plus"></i> Thêm công việc
             </div>
           </div>
         </div>
 
       </div>
+
     </div>
 
     <!-- Task Detail Modal -->
@@ -574,6 +656,8 @@ const selectedTask = ref(null)
 const taskDetailHistory = ref([])
 const inlineCreateColId = ref(null)
 const inlineTaskTitle = ref('')
+const inlineDueDate = ref('')
+const inlineAssigneeIds = ref([])
 
 const currentTab = ref('board')
 const searchQuery = ref('')
@@ -1311,20 +1395,31 @@ const insightChartOptions = computed(() => {
 })
 
 const kanbanColumns = computed(() => {
+  // Map màu nền nhạt cho từng trạng thái (theo design spec)
+  const statusBgMap = {
+    'BACKLOG':     'rgba(148, 163, 184, 0.05)',
+    'TO DO':       'rgba(167, 139, 250, 0.06)',
+    'IN PROGRESS': 'rgba(245, 158, 11, 0.06)',
+    'IN REVIEW':   'rgba(56, 189, 248, 0.06)',
+    'DONE':        'rgba(34, 197, 94, 0.05)',
+    'CANCELLED':   'rgba(244, 63, 94, 0.05)'
+  }
+
   const groups = taskStatusOptions.value.map((status, index) => ({
     id: `${status.name.toLowerCase().replace(/\s+/g, '-')}-${index}`,
     name: status.name,
     color: status.color,
     icon: status.icon,
+    bgColor: statusBgMap[status.name] || 'rgba(148, 163, 184, 0.04)',
     priorityValue: null,
     items: []
   }));
 
   const pGroups = [
-    { id: 'p1', name: 'Urgent', color: '#EF4444', icon: 'fa-solid fa-angles-up', priorityValue: 1, items: [] },
-    { id: 'p2', name: 'High', color: '#F97316', icon: 'fa-solid fa-chevron-up', priorityValue: 2, items: [] },
-    { id: 'p3', name: 'Normal', color: '#3B82F6', icon: 'fa-solid fa-minus', priorityValue: 3, items: [] },
-    { id: 'p4', name: 'Low', color: '#94A3B8', icon: 'fa-solid fa-chevron-down', priorityValue: 4, items: [] }
+    { id: 'p1', name: 'Urgent', color: '#EF4444', icon: 'fa-solid fa-angles-up', bgColor: 'rgba(239,68,68,0.05)', priorityValue: 1, items: [] },
+    { id: 'p2', name: 'High', color: '#F97316', icon: 'fa-solid fa-chevron-up', bgColor: 'rgba(249,115,22,0.05)', priorityValue: 2, items: [] },
+    { id: 'p3', name: 'Normal', color: '#3B82F6', icon: 'fa-solid fa-minus', bgColor: 'rgba(59,130,246,0.05)', priorityValue: 3, items: [] },
+    { id: 'p4', name: 'Low', color: '#94A3B8', icon: 'fa-solid fa-chevron-down', bgColor: 'rgba(148,163,184,0.05)', priorityValue: 4, items: [] }
   ];
 
   const validTasks = filteredTasksList.value || [];
@@ -1634,6 +1729,8 @@ const inlineInput = ref(null);
 const openInlineCreate = (colId) => {
    inlineCreateColId.value = colId;
    inlineTaskTitle.value = '';
+   inlineDueDate.value = '';
+   inlineAssigneeIds.value = [];
    nextTick(() => {
      if(inlineInput.value) {
         // inlineInput.value could be an array if inside v-for, or a proxy. We handle both:
@@ -1652,18 +1749,25 @@ const submitInlineTask = async (col) => {
       return;
    }
    try {
-      await axiosClient.post(`/projects/${getProjectId()}/WorkTasks`, {
+      const payload = {
          title: inlineTaskTitle.value.trim(),
          description: '',
          statusName: col.name || 'BACKLOG',
-          priority: 3,
-          sprintId: activeSprintFilterId.value || null
-      });
+         priority: 3,
+         sprintId: activeSprintFilterId.value || null
+      }
+      if (inlineDueDate.value) payload.dueDate = inlineDueDate.value
+      if (inlineAssigneeIds.value.length) payload.assigneeIds = inlineAssigneeIds.value
+      await axiosClient.post(`/projects/${getProjectId()}/WorkTasks`, payload);
       inlineTaskTitle.value = '';
+      inlineDueDate.value = '';
+      inlineAssigneeIds.value = [];
+      inlineCreateColId.value = null;
       fetchTasks();
+      ElMessage.success('Đã tạo công việc thành công.');
    } catch (e) {
       console.error(e);
-      ElMessage.error(e.response?.data?.message || 'Khong the tao cong viec');
+      ElMessage.error(e.response?.data?.message || 'Không thể tạo công việc.');
    }
 }
 
@@ -2162,8 +2266,196 @@ onUnmounted(() => {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  border-radius: 14px;
+  background: var(--col-bg, transparent);
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--col-color) 18%, var(--color-border));
 }
+
+/* Loading indicator thanh ngang */
+.kanban-loading-bar {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  box-shadow: var(--shadow-popover);
+  pointer-events: none;
+}
+
+/* Error banner */
+.kanban-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, #ef4444 8%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, #ef4444 28%, var(--color-border));
+  border-radius: 10px;
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+  align-self: flex-start;
+  width: 100%;
+  max-width: 560px;
+}
+
+.kanban-retry-btn {
+  margin-left: auto;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.2s;
+}
+.kanban-retry-btn:hover { background: #dc2626; }
+
+/* Card top right area (due date + star) */
+.card-top-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Due date badge */
+.card-due-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-surface-hover);
+  border-radius: 6px;
+  padding: 2px 7px;
+}
+.card-due-badge.card-due-overdue {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  animation: pulse-overdue 2s ease-in-out infinite;
+}
+@keyframes pulse-overdue {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Empty state per-column */
+.col-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  border: 1.5px dashed color-mix(in srgb, var(--col-color) 24%, var(--color-border));
+  border-radius: 10px;
+  margin-top: 8px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* Inline create extras row */
+.ic-extras {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+.ic-extra-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.ic-date-input {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  padding: 3px 6px;
+  outline: none;
+  cursor: pointer;
+  max-width: 120px;
+}
+.ic-date-input:focus { border-color: var(--color-accent); }
+
+.ic-assignee-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ic-assignee-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* Inline create action buttons */
+.ic-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--color-border);
+  margin-top: 4px;
+}
+.ic-submit-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.ic-submit-btn:hover { background: var(--color-accent-hover); }
+.ic-cancel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ic-cancel-btn:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
 
 .col-head {
   display: flex;
