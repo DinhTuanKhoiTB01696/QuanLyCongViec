@@ -3,9 +3,9 @@
     <div v-if="isForbidden" class="forbidden-overlay">
       <div class="forbidden-content">
         <div class="lock-icon"><i class="fa-solid fa-lock"></i></div>
-        <h2>{{ t('common.accessDenied') }}</h2>
-        <p>{{ t('common.accessDeniedProject') }}</p>
-        <button class="plane-primary-btn mt-4" @click="router.push('/spaces')">{{ t('common.backToHome') }}</button>
+        <h2>{{ t('Access Denied') }}</h2>
+        <p>{{ t('You do not have permission to access this project.') }}</p>
+        <button class="plane-primary-btn mt-4" @click="router.push('/spaces')">{{ t('Back to Home') }}</button>
       </div>
     </div>
     <div v-else class="plane-board-container">
@@ -14,16 +14,25 @@
         <div class="sh-left">
           <div class="breadcrumb">
             <span class="proj-icon">{{ projectBadge }}</span>
-            <span class="proj-name">{{ project?.name || t('common.project') }}</span>
+            <span class="proj-name">{{ project?.name || t('Project') }}</span>
             <i class="fa-solid fa-chevron-right separator"></i>
             <span class="active-page">
-              <i class="fa-solid fa-layer-group"></i> {{ t('workItems.workItems') }}
+              <i class="fa-solid fa-layer-group"></i> {{ t('Work Items') }}
             </span>
             <span class="item-count">{{ visibleTopLevelTasks.length }}</span>
           </div>
         </div>
         
         <div class="sh-right">
+          <!-- View Toggles -->
+          <div class="view-toggles">
+            <button class="toggle-btn" :class="{ active: currentTab === 'list' }" @click="currentTab = 'list'" :title="t('List view')"><i class="fa-solid fa-bars"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'board' }" @click="currentTab = 'board'" :title="t('Kanban view')"><i class="fa-solid fa-table-columns"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'calendar' }" @click="currentTab = 'calendar'" :title="t('Calendar view')"><i class="fa-regular fa-calendar"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'spreadsheet' }" @click="currentTab = 'spreadsheet'" :title="t('Spreadsheet view')"><i class="fa-solid fa-table-cells"></i></button>
+            <button class="toggle-btn" :class="{ active: currentTab === 'timeline' }" @click="currentTab = 'timeline'" :title="t('Gantt chart view')"><i class="fa-solid fa-chart-gantt"></i></button>
+          </div>
+
           <button class="plane-toolbar-btn" @click="showFilterPanel = !showFilterPanel" :class="{ active: showFilterPanel || activeTaskFilters.length }">
             <i class="fa-solid fa-filter"></i>
             <span v-if="activeTaskFilters.length" class="filter-count">{{ activeTaskFilters.length }}</span>
@@ -31,58 +40,44 @@
           
           <!-- Display Dropdown -->
           <div class="display-dropdown-wrapper">
-             <button class="plane-toolbar-btn" @click.stop="showDisplayDropdown = !showDisplayDropdown" :class="{ 'active': showDisplayDropdown }">{{ t('workItems.display') }}</button>
+             <button class="plane-toolbar-btn" @click.stop="showDisplayDropdown = !showDisplayDropdown" :class="{ 'active': showDisplayDropdown }">{{ t('Display') }}</button>
              <div class="plane-dropdown-menu" v-show="showDisplayDropdown" @click.stop>
-                <div class="dd-section">
+                <div class="nexus-display-properties-dropdown dd-section">
                    <div class="dd-title">
-                      <span>{{ t('workItems.displayProperties') }}</span>
+                      <span>{{ t('Display Properties') }}</span>
                       <i class="fa-solid fa-chevron-up"></i>
                    </div>
                    <div class="dd-btns">
-                      <button class="dd-tag active" type="button" disabled title="[Cáº¦N FLOW] TÃ¹y chá»‰nh thuá»™c tÃ­nh hiá»ƒn thá»‹ chÆ°a há»— trá»£">ID</button>
+                      <button class="dd-tag active">ID</button>
                    </div>
                 </div>
                 <div class="dd-section border-top">
                    <div class="dd-title">
-                      <span>{{ t('workItems.orderBy') }}</span>
+                      <span>{{ t('Order by') }}</span>
                       <i class="fa-solid fa-chevron-up"></i>
                    </div>
                    <div class="dd-list">
-                      <label class="dd-item"><input type="radio" name="order" value="manual" v-model="displayOrder" /> {{ t('workItems.manual') }}</label>
-                      <label class="dd-item"><input type="radio" name="order" value="created" v-model="displayOrder" /> {{ t('workItems.lastCreated') }}</label>
-                      <label class="dd-item"><input type="radio" name="order" value="updated" v-model="displayOrder" /> {{ t('workItems.lastUpdated') }}</label>
-                      <label class="dd-item"><input type="radio" name="order" value="priority" v-model="displayOrder" /> {{ t('common.priority') }}</label>
+                      <label class="dd-item"><input type="radio" name="order" value="manual" v-model="displayOrder" /> {{ t('Manual') }}</label>
+                      <label class="dd-item"><input type="radio" name="order" value="created" v-model="displayOrder" /> {{ t('Last created') }}</label>
+                      <label class="dd-item"><input type="radio" name="order" value="updated" v-model="displayOrder" /> {{ t('Last updated') }}</label>
+                      <label class="dd-item"><input type="radio" name="order" value="priority" v-model="displayOrder" /> {{ t('Priority') }}</label>
                    </div>
                 </div>
                 <div class="dd-section border-top">
                    <label class="dd-item checkbox">
-                     <input type="checkbox" v-model="showSubtasks" /> {{ t('workItems.showSubWorkItems') }}
+                     <input type="checkbox" v-model="showSubtasks" /> {{ t('Show sub-work items') }}
                    </label>
                 </div>
              </div>
           </div>
           
-          <button class="plane-toolbar-btn" @click="showAnalyticsSidebar = true">{{ t('workItems.analytics') }}</button>
+          <button class="plane-toolbar-btn" @click="showAnalyticsSidebar = true">{{ t('Analytics') }}</button>
           
           <button class="plane-primary-btn" @click="openCreateTask('TO DO')">
-            {{ t('workItems.addWorkItem') }}
+            {{ t('Add work item') }}
           </button>
         </div>
       </header>
-
-      <!-- Jira-style tab bar (dá»±ng theo áº£nh Board.jpeg / Backlog1.jpeg) -->
-      <nav class="jira-tab-bar">
-        <button
-          v-for="tab in projectTabs"
-          :key="tab.key"
-          class="jira-tab"
-          :class="{ active: currentTab === tab.key }"
-          @click="currentTab = tab.key"
-        >
-          <i :class="tab.icon"></i> {{ t(tab.labelKey) }}
-        </button>
-        <button class="jira-tab add-tab" type="button" disabled title="[Cáº¦N FLOW] ThÃªm view chÆ°a há»— trá»£"><i class="fa-solid fa-plus"></i></button>
-      </nav>
 
       <div class="work-filter-row" v-if="showFilterPanel || activeTaskFilters.length">
         <FilterBar
@@ -92,44 +87,6 @@
           @clear="clearTaskFilters"
         />
       </div>
-
-      <!-- Backlog tab -->
-      <BacklogTab
-        v-if="currentTab === 'backlog'"
-        :tasks="filteredTasksList"
-        :projectMembers="projectMembers"
-        :statusOptions="taskStatusOptions"
-        :selectedTaskId="selectedTask?.id || null"
-        @open-task="openTaskDetail"
-        @update-task="updateTask"
-        @create-task="(status) => openCreateTask(status)"
-      />
-
-      <!-- Reports tab -->
-      <ReportsTab
-        v-if="currentTab === 'reports'"
-        :tasks="visibleTopLevelTasks"
-        :projectMembers="projectMembers"
-        :statusOptions="taskStatusOptions"
-        @open-task="openTaskDetail"
-      />
-
-      <!-- Summary tab -->
-      <SummaryTab
-        v-if="currentTab === 'summary'"
-        :tasks="visibleTopLevelTasks"
-        :projectMembers="projectMembers"
-        :statusOptions="taskStatusOptions"
-        @view-work-items="currentTab = 'list'"
-      />
-
-      <!-- Auxiliary Jira-style tabs. Missing flows stay disabled inside each tab. -->
-      <DevelopmentTab
-        v-if="currentTab === 'development'"
-        :tasks="visibleTopLevelTasks"
-      />
-      <FormsTab v-if="currentTab === 'forms'" />
-      <DocsTab v-if="currentTab === 'docs'" />
 
       <!-- Other Tab Views -->
       <div v-if="currentTab === 'list'" class="list-wrapper" style="padding: 16px;">
@@ -162,7 +119,7 @@
                  <div class="tr-right" @click.stop>
                    <div class="pill-group">
                      <el-dropdown trigger="click" @command="(val) => updateTask(task, 'statusName', val, task.statusName)">
-                       <div class="pill pill-status cursor-pointer hover:bg-[var(--color-border)]">
+                       <div class="pill pill-status cursor-pointer hover:bg-[var(--color-border)]" :style="{ '--pill-color': getStatusColor(task.statusName) }">
                          <i :class="getBoardStatusIcon(task.statusName)" :style="{ color: getStatusColor(task.statusName) }"></i>
                          {{ normalizeStatusLabel(task.statusName) }}
                        </div>
@@ -177,7 +134,7 @@
                      </el-dropdown>
 
                      <el-dropdown trigger="click" @command="(val) => updateTask(task, 'priority', val, task.priority)">
-                       <div class="pill pill-priority cursor-pointer hover:bg-[var(--color-border)]">
+                       <div class="pill pill-priority cursor-pointer hover:bg-[var(--color-border)]" :style="{ '--pill-color': getPriorityColor(task.priority) }">
                          <i :class="getPriorityIcon(task.priority)"></i>
                        </div>
                        <template #dropdown>
@@ -202,7 +159,7 @@
                          </div>
                        </template>
                        <div class="popover-content">
-                         <input type="text" class="plane-search-input" v-model="assigneeSearch" :placeholder="t('workItems.searchMembers')" />
+                         <input type="text" class="plane-search-input" v-model="assigneeSearch" placeholder="Search members" />
                          <div class="plane-list mt-2">
                            <label
                              class="plane-list-item"
@@ -222,7 +179,7 @@
                </template>
 
                <div class="add-row-placeholder" @click="openCreateTask(group.statusName)">
-                 <i class="fa-solid fa-plus"></i> {{ t('workItems.newWorkItem') }}
+                 <i class="fa-solid fa-plus"></i> New work item
                </div>
              </div>
            </div>
@@ -247,8 +204,28 @@
 
       <!-- Kanban Board Layout -->
       <div class="kanban-wrapper" v-if="currentTab === 'board'">
-        
-        <div class="kanban-col" v-for="col in kanbanColumns" :key="col.id">
+
+        <!-- Loading indicator -->
+        <div class="kanban-loading-bar" v-if="store.loading">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+          <span>Đang tải dữ liệu...</span>
+        </div>
+
+        <!-- Error banner -->
+        <div class="kanban-error-banner" v-if="store.error && !store.loading">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Không thể tải bảng công việc. Đang thử kết nối lại...</span>
+          <button class="kanban-retry-btn" @click="fetchTasks()">
+            <i class="fa-solid fa-rotate-right"></i> Thử lại
+          </button>
+        </div>
+
+        <div
+          class="kanban-col"
+          v-for="col in kanbanColumns"
+          :key="col.id"
+          :style="{ '--col-color': col.color, '--col-bg': col.bgColor }"
+        >
           <div class="col-head">
             <div class="col-title">
               <i :class="col.icon" :style="{ color: col.color }"></i>
@@ -267,17 +244,33 @@
               @change="(evt) => handleDraggableChange(evt, col)"
             >
               <template #item="{ element }">
-                <div class="issue-card" :class="{ 'active-card': selectedTask?.id === element.id }" @click="openTaskDetail(element)">
+                <div
+                  class="issue-card"
+                  :class="{ 'active-card': selectedTask?.id === element.id }"
+                  :style="{ '--task-status-color': getStatusColor(element.statusName), '--task-priority-color': getPriorityColor(element.priority) }"
+                  @click="openTaskDetail(element)"
+                >
                   <div class="flex-between mb-1">
                     <p class="issue-sequence">{{ element.sequenceId || element.id.substring(0,8).toUpperCase() }}</p>
-                    <button class="star-task-btn small" @click.stop="toggleTaskStar(element)">
-                      <i :class="isTaskStarred(element.id) ? 'fa-solid fa-star text-yellow-400' : 'fa-regular fa-star text-gray-400'"></i>
-                    </button>
+                    <div class="card-top-right">
+                      <!-- Due date hiển thị đỏ nếu quá hạn -->
+                      <span
+                        v-if="element.dueDate"
+                        class="card-due-badge"
+                        :class="{ 'card-due-overdue': new Date(element.dueDate) < new Date() && element.statusName !== 'DONE' }"
+                      >
+                        <i class="fa-regular fa-calendar"></i>
+                        {{ new Date(element.dueDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) }}
+                      </span>
+                      <button class="star-task-btn small" @click.stop="toggleTaskStar(element)">
+                        <i :class="isTaskStarred(element.id) ? 'fa-solid fa-star text-yellow-400' : 'fa-regular fa-star text-gray-400'"></i>
+                      </button>
+                    </div>
                   </div>
                   <p class="issue-title" :style="element.statusName === 'DONE' ? { textDecoration: 'line-through', color: 'var(--color-text-muted)' } : {}">{{ element.title }}</p>
                   <div class="issue-meta mt-2" style="display:flex; align-items:center; gap:8px;" @click.stop>
                      <el-dropdown trigger="click" @command="(val) => updateTask(element, 'statusName', val, element.statusName)">
-                       <div class="badge cursor-pointer hover:bg-[var(--color-border)]">
+                       <div class="badge status-badge cursor-pointer hover:bg-[var(--color-border)]" :style="{ '--badge-color': getStatusColor(element.statusName) }">
                          <i :class="getBoardStatusIcon(element.statusName)" :style="{ color: getStatusColor(element.statusName) }"></i>
                          <span>{{ normalizeStatusLabel(element.statusName) }}</span>
                        </div>
@@ -292,7 +285,7 @@
                      </el-dropdown>
 
                      <el-dropdown trigger="click" @command="(val) => updateTask(element, 'priority', val, element.priority)">
-                       <div class="badge cursor-pointer hover:bg-[var(--color-border)]">
+                       <div class="badge priority-badge cursor-pointer hover:bg-[var(--color-border)]" :style="{ '--badge-color': getPriorityColor(element.priority) }">
                          <i :class="getPriorityIcon(element.priority)"></i>
                        </div>
                        <template #dropdown>
@@ -314,7 +307,7 @@
                          <div class="avatar-xs ms-auto cursor-pointer hover:bg-[var(--color-border)]" style="border: 1px dashed var(--color-text-muted); background: transparent; color: var(--color-text-muted);" v-else><i class="fa-solid fa-user"></i></div>
                        </template>
                        <div class="popover-content">
-                         <input type="text" class="plane-search-input" v-model="assigneeSearch" :placeholder="t('workItems.searchMembers')" />
+                         <input type="text" class="plane-search-input" v-model="assigneeSearch" placeholder="Search members" />
                          <div class="plane-list mt-2">
                            <label
                              class="plane-list-item"
@@ -331,26 +324,78 @@
                   </div>
                 </div>
               </template>
+
+              <!-- Empty state per-column -->
+              <template #footer>
+                <div class="col-empty-state" v-if="col.items.length === 0 && !store.loading">
+                  <span v-if="col.name === 'DONE'">Bạn đã hoàn thành mọi việc! 🎉</span>
+                  <span v-else>Chưa có công việc nào</span>
+                </div>
+              </template>
             </draggable>
             
-            <div class="inline-create-box" v-if="inlineCreateColId === col.id">
+            <!-- Inline create box nâng cấp (date + assignee) -->
+            <div class="inline-create-box" v-if="inlineCreateColId === col.id" @click.stop>
                <div class="ic-top">
                  <i class="fa-solid fa-plus ic-plus"></i>
-                 <input type="text" class="ic-input" v-model="inlineTaskTitle" :placeholder="t('workItems.newWorkItem')" @keyup.enter="submitInlineTask(col)" @keyup.esc="inlineCreateColId = null" ref="inlineInput" />
+                 <input type="text" class="ic-input" v-model="inlineTaskTitle" placeholder="Tiêu đề công việc mới..." @keyup.enter="submitInlineTask(col)" @keyup.esc="inlineCreateColId = null" ref="inlineInput" />
                </div>
-               <div class="ic-bottom">
-                 <div class="ic-chip"><i class="fa-regular fa-circle"></i> {{ col.name }}</div>
-                 <div class="ic-chip"><i class="fa-solid fa-minus text-blue"></i></div>
-                 <div class="avatar-xs ms-auto ic-avatar"><i class="fa-solid fa-user"></i></div>
+               <div class="ic-extras">
+                 <!-- Due date picker -->
+                 <label class="ic-extra-label">
+                   <i class="fa-regular fa-calendar" style="color: var(--color-text-muted);"></i>
+                   <input
+                     type="date"
+                     class="ic-date-input"
+                     v-model="inlineDueDate"
+                     title="Hạn chót"
+                   />
+                 </label>
+                 <!-- Assignee picker -->
+                 <el-popover placement="top-start" trigger="click" width="220" popper-class="plane-popover" @click.stop>
+                   <template #reference>
+                     <button class="ic-assignee-btn" type="button" title="Gán người thực hiện">
+                       <i class="fa-solid fa-user-plus"></i>
+                       <span v-if="inlineAssigneeIds.length">{{ inlineAssigneeIds.length }} người</span>
+                       <span v-else>Người thực hiện</span>
+                     </button>
+                   </template>
+                   <div class="popover-content">
+                     <div class="plane-list">
+                       <label
+                         class="plane-list-item"
+                         v-for="member in projectMembers"
+                         :key="member.userId || member.id"
+                         @click.stop
+                       >
+                         <input
+                           type="checkbox"
+                           :value="member.userId || member.id"
+                           v-model="inlineAssigneeIds"
+                         />
+                         {{ member.fullName || member.name || member.email }}
+                       </label>
+                     </div>
+                   </div>
+                 </el-popover>
+               </div>
+               <div class="ic-actions">
+                 <button class="ic-submit-btn" @click="submitInlineTask(col)">
+                   <i class="fa-solid fa-check"></i> Thêm
+                 </button>
+                 <button class="ic-cancel-btn" @click="inlineCreateColId = null">
+                   <i class="fa-solid fa-xmark"></i>
+                 </button>
                </div>
             </div>
             <div class="add-btn-bottom" v-else @click="openInlineCreate(col.id)">
-               <i class="fa-solid fa-plus"></i> {{ t('workItems.newWorkItem') }}
+               <i class="fa-solid fa-plus"></i> Thêm công việc
             </div>
           </div>
         </div>
 
       </div>
+
     </div>
 
     <!-- Task Detail Modal -->
@@ -372,7 +417,7 @@
     <div v-if="showAnalyticsSidebar" class="analytics-overlay" @click.self="closeAnalyticsSidebar">
       <div class="analytics-panel" :class="{ 'slide-in': showAnalyticsSidebar, 'is-expanded': isAnalyticsExpanded }">
          <div class="ap-header">
-            <h3>{{ t('workItems.analyticsFor', { project: project?.name || t('common.project') }) }}</h3>
+            <h3>Thống kê {{ project?.name || t('Project') }}</h3>
             <div class="ap-actions">
                <button class="icon-btn" @click="toggleAnalyticsExpand"><i :class="isAnalyticsExpanded ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
                <button class="icon-btn" @click="closeAnalyticsSidebar"><i class="fa-solid fa-xmark"></i></button>
@@ -383,46 +428,46 @@
             <!-- Stats -->
             <div class="ap-stats-grid">
                <div class="stat-box">
-                  <span class="lbl">{{ t('workItems.totalWorkItems') }}</span>
+                  <span class="lbl">Tổng công việc</span>
                   <span class="val">{{ visibleTopLevelTasks.length }}</span>
                </div>
                <div class="stat-box">
-                  <span class="lbl">{{ t('workItems.startedWorkItems') }}</span>
+                  <span class="lbl">Đang thực hiện</span>
                   <span class="val">{{ visibleTopLevelTasks.filter(t => t.statusName === 'IN PROGRESS').length }}</span>
                </div>
                <div class="stat-box">
-                  <span class="lbl">{{ t('workItems.backlogWorkItems') }}</span>
+                  <span class="lbl">Chờ xử lý</span>
                   <span class="val">{{ visibleTopLevelTasks.filter(t => !t.statusName || t.statusName === 'TO DO' || t.statusName === 'TODO').length }}</span>
                </div>
                <div class="stat-box">
-                  <span class="lbl">{{ t('workItems.unstartedWorkItems') }}</span>
+                  <span class="lbl">Đang đánh giá</span>
                   <span class="val">{{ visibleTopLevelTasks.filter(t => t.statusName === 'IN REVIEW').length }}</span>
                </div>
                <div class="stat-box">
-                  <span class="lbl">{{ t('workItems.completedWorkItems') }}</span>
+                  <span class="lbl">Hoàn thành</span>
                   <span class="val">{{ visibleTopLevelTasks.filter(t => t.statusName === 'DONE').length }}</span>
                </div>
             </div>
             
             <!-- Created vs Resolved Chart Overlay -->
             <div class="ap-chart-card mt-4">
-               <h4>{{ t('workItems.createdVsResolved') }}</h4>
+               <h4>Đã tạo và đã xử lý</h4>
                <v-chart class="chart-container" :option="createdResolvedOptions" autoresize />
             </div>
 
             <!-- Customized Insights -->
             <div class="ap-chart-card mt-4">
                <div class="flex-between">
-                  <h4>{{ t('workItems.customizedInsights') }}</h4>
+                  <h4>Phân tích tùy chỉnh</h4>
                   <el-dropdown trigger="click" @command="setAnalyticsInsightMode">
                     <button class="filter-btn" type="button">
                       <i class="fa-solid fa-sliders"></i> {{ analyticsInsightLabel }} <i class="fa-solid fa-chevron-down"></i>
                     </button>
                     <template #dropdown>
                       <el-dropdown-menu class="plane-dropdown">
-                        <el-dropdown-item command="priority">{{ t('workItems.priorityDistribution') }}</el-dropdown-item>
-                        <el-dropdown-item command="status">{{ t('workItems.statusDistribution') }}</el-dropdown-item>
-                        <el-dropdown-item command="assignee">{{ t('workItems.assigneeDistribution') }}</el-dropdown-item>
+                        <el-dropdown-item command="priority">Phân bổ độ ưu tiên</el-dropdown-item>
+                        <el-dropdown-item command="status">Phân bổ trạng thái</el-dropdown-item>
+                        <el-dropdown-item command="assignee">Phân bổ người thực hiện</el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
                   </el-dropdown>
@@ -437,14 +482,14 @@
                   <span class="text-muted">{{ analyticsBreakdownRows.length }} {{ analyticsTableHeading }}</span>
                   <div class="flex-center gap-1">
                      <i class="fa-solid fa-magnifying-glass text-muted"></i>
-                     <button class="export-btn" @click="exportAnalyticsCsv()"><i class="fa-solid fa-download"></i> {{ t('workItems.exportCsv') }}</button>
+                     <button class="export-btn" @click="exportAnalyticsCsv()"><i class="fa-solid fa-download"></i> Xuất CSV</button>
                   </div>
                </div>
                <table class="ap-table">
-                  <thead><tr><th>{{ analyticsTableHeading }}</th><th style="text-align: right;">{{ t('workItems.count') }}</th></tr></thead>
+                  <thead><tr><th>{{ analyticsTableHeading }}</th><th style="text-align: right;">Số lượng</th></tr></thead>
                   <tbody>
-                     <tr v-for="row in analyticsBreakdownRows" :key="row.label">
-                       <td>{{ row.label }}</td>
+                     <tr v-for="row in analyticsBreakdownRows" :key="row.label" :style="{ '--row-color': row.color || 'var(--color-accent)' }">
+                       <td><span class="analytics-row-label"><span class="analytics-row-dot"></span>{{ row.label }}</span></td>
                        <td style="text-align: right;">{{ row.count }}</td>
                      </tr>
                   </tbody>
@@ -453,21 +498,21 @@
 
             <div class="ap-table-wrap mt-4">
                <div class="table-head">
-                  <span class="text-muted">{{ t('workItems.assigneeCount', { count: assigneeAnalyticsRows.length }) }}</span>
+                  <span class="text-muted">{{ assigneeAnalyticsRows.length }} người thực hiện</span>
                   <div class="flex-center gap-1">
                      <i class="fa-solid fa-magnifying-glass text-muted"></i>
-                     <button class="export-btn" @click="exportAnalyticsCsv('assignee')"><i class="fa-solid fa-download"></i> {{ t('workItems.exportCsv') }}</button>
+                     <button class="export-btn" @click="exportAnalyticsCsv('assignee')"><i class="fa-solid fa-download"></i> Xuất CSV</button>
                   </div>
                </div>
                <table class="ap-table">
                   <thead>
                      <tr>
-                        <th>{{ t('workItems.assignee') }}</th>
-                        <th style="text-align: right;">{{ t('workItems.backlog') }}</th>
-                        <th style="text-align: right;">{{ t('workItems.started') }}</th>
-                        <th style="text-align: right;">{{ t('workItems.unstarted') }}</th>
-                        <th style="text-align: right;">{{ t('workItems.completed') }}</th>
-                        <th style="text-align: right;">{{ t('workItems.cancelled') }}</th>
+                        <th>Người thực hiện</th>
+                        <th style="text-align: right;">Chờ xử lý</th>
+                        <th style="text-align: right;">Đang làm</th>
+                        <th style="text-align: right;">Đang đánh giá</th>
+                        <th style="text-align: right;">Hoàn thành</th>
+                        <th style="text-align: right;">Đã hủy</th>
                      </tr>
                   </thead>
                   <tbody>
@@ -489,7 +534,7 @@
 </template>
 
 <script setup>
-// AI 3: CHUYÃŠN VIÃŠN GHÃ‰P Ná»I LOGIC FRONT-TO-BACK
+// AI 3: CHUYÊN VIÊN GHÉP NỐI LOGIC FRONT-TO-BACK
 import { ref, onMounted, computed, defineAsyncComponent, watch, nextTick, onUnmounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { ElMessage } from 'element-plus'
@@ -506,15 +551,9 @@ import CalendarTab from '@/components/CalendarTab.vue'
 import TimelineTab from '@/components/TimelineTab.vue'
 import SpreadsheetTab from '@/components/SpreadsheetTab.vue'
 import FilterBar from '@/components/FilterBar.vue'
-import BacklogTab from '@/components/BacklogTab.vue'
-import ReportsTab from '@/components/ReportsTab.vue'
-import SummaryTab from '@/components/SummaryTab.vue'
-import DevelopmentTab from '@/components/DevelopmentTab.vue'
-import FormsTab from '@/components/FormsTab.vue'
-import DocsTab from '@/components/DocsTab.vue'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore';
 import { useProjectStore } from '@/store/useProjectStore';
-import { useI18n } from '@/composables/useI18n'
+import { useI18nStore } from '@/store/useI18nStore';
 
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
@@ -545,10 +584,64 @@ const assigneeSearch = ref('')
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
 const currentProjectId = computed(() => route.params.id || getScopedCurrentProjectId() || null)
 const store = useWorkTaskStore();
 const projectStore = useProjectStore()
+const i18nStore = useI18nStore()
+const tr = (en, vi) => i18nStore.locale === 'vi' ? vi : en
+const t = (key) => {
+  const map = {
+    'Project': 'Dự án',
+    'Work Items': 'Công việc',
+    'Display': 'Hiển thị',
+    'Display Properties': 'Thuộc tính hiển thị',
+    'Order by': 'Sắp xếp theo',
+    'Manual': 'Thủ công',
+    'Last created': 'Tạo gần nhất',
+    'Last updated': 'Cập nhật gần nhất',
+    'Priority': 'Độ ưu tiên',
+    'Show sub-work items': 'Hiển thị công việc con',
+    'Analytics': 'Thống kê',
+    'Add work item': 'Thêm công việc',
+    'Access Denied': 'Truy cập bị từ chối',
+    'You do not have permission to access this project.': 'Bạn không đủ quyền để truy cập dự án này.',
+    'Back to Home': 'Quay lại trang Home',
+    'List view': 'Xem danh sách',
+    'Kanban view': 'Xem Kanban',
+    'Calendar view': 'Xem lịch',
+    'Spreadsheet view': 'Xem bảng tính',
+    'Gantt chart view': 'Xem biểu đồ Gantt',
+    'Urgent': 'Khẩn cấp',
+    'High': 'Cao',
+    'Normal': 'Bình thường',
+    'Medium': 'Trung bình',
+    'Low': 'Thấp',
+    'None': 'Không',
+    'Search members': 'Tìm thành viên',
+    'New work item': 'Công việc mới',
+    'Statistics of': 'Thống kê',
+    'Total tasks': 'Tổng công việc',
+    'In progress': 'Đang thực hiện',
+    'Pending': 'Chờ xử lý',
+    'In review': 'Đang đánh giá',
+    'Completed': 'Hoàn thành',
+    'Created and resolved': 'Đã tạo và đã xử lý',
+    'Custom analysis': 'Phân tích tùy chỉnh',
+    'Priority distribution': 'Phân bổ độ ưu tiên',
+    'Status distribution': 'Phân bổ trạng thái',
+    'Assignee distribution': 'Phân bổ người thực hiện',
+    'Export CSV': 'Xuất CSV',
+    'Count': 'Số lượng',
+    'assignees': 'người thực hiện',
+    'Assignee': 'Người thực hiện',
+    'Working': 'Đang làm',
+    'Cancelled': 'Đã hủy'
+  }
+  if (i18nStore.locale === 'vi') {
+    return map[key] || key
+  }
+  return key
+}
 
 const project = ref({})
 const rawTasks = ref([])
@@ -564,28 +657,31 @@ const selectedTask = ref(null)
 const taskDetailHistory = ref([])
 const inlineCreateColId = ref(null)
 const inlineTaskTitle = ref('')
+const inlineDueDate = ref('')
+const inlineAssigneeIds = ref([])
 
 const currentTab = ref('board')
-// Jira-style project tab order. Tabs with missing backend flows render disabled connect/empty states.
-const projectTabs = [
-  { key: 'backlog', labelKey: 'projectTabs.backlog', icon: 'fa-solid fa-bars-staggered' },
-  { key: 'board', labelKey: 'projectTabs.board', icon: 'fa-solid fa-table-columns' },
-  { key: 'summary', labelKey: 'projectTabs.summary', icon: 'fa-solid fa-globe' },
-  { key: 'list', labelKey: 'projectTabs.list', icon: 'fa-solid fa-list' },
-  { key: 'development', labelKey: 'projectTabs.development', icon: 'fa-solid fa-code' },
-  { key: 'forms', labelKey: 'projectTabs.forms', icon: 'fa-solid fa-clipboard-list' },
-  { key: 'timeline', labelKey: 'projectTabs.timeline', icon: 'fa-solid fa-chart-gantt' },
-  { key: 'docs', labelKey: 'projectTabs.docs', icon: 'fa-regular fa-file-lines' },
-  { key: 'reports', labelKey: 'projectTabs.reports', icon: 'fa-solid fa-chart-line' },
-  { key: 'calendar', labelKey: 'projectTabs.calendar', icon: 'fa-regular fa-calendar' }
-]
 const searchQuery = ref('')
 const activeFilters = ref({ assignee: null })
 const activeTaskFilters = ref([])
 const displayOrder = ref('manual')
 const groupBy = ref('status')
 const analyticsInsightMode = ref('priority')
+const analyticsTheme = ref(document.documentElement.getAttribute('data-theme') || 'light')
+let analyticsThemeObserver = null
 const activeSprintFilterId = computed(() => route.query.sprintId || route.params.cycleId || null)
+
+const analyticsThemeColors = computed(() => {
+  const isDark = analyticsTheme.value === 'dark'
+  return {
+    text: isDark ? '#e5edf7' : '#0f172a',
+    muted: isDark ? '#a8b4c7' : '#64748b',
+    grid: isDark ? 'rgba(148, 163, 184, 0.22)' : 'rgba(100, 116, 139, 0.18)',
+    axis: isDark ? 'rgba(148, 163, 184, 0.36)' : 'rgba(100, 116, 139, 0.28)',
+    tooltipBg: isDark ? '#0f172a' : '#ffffff',
+    tooltipBorder: isDark ? 'rgba(148, 163, 184, 0.24)' : 'rgba(100, 116, 139, 0.18)'
+  }
+})
 
 watch(currentTab, (val) => {
   if (val === 'board') {
@@ -648,7 +744,7 @@ const recoverFromForbiddenProject = async (forbiddenProjectId) => {
     allTasks.value = []
     projectMembers.value = []
     project.value = {}
-    ElMessage.error(t('messages.noWorkItemsPermission'))
+    ElMessage.error('You do not have permission to load work items for this project.')
     return false
   }
 
@@ -686,11 +782,11 @@ const getTaskAssigneeSummary = (task) => {
   if (!ids.length) return { label: '', avatar: '' }
   if (ids.length === 1) {
     const member = projectMembers.value.find(item => (item.userId || item.id) === ids[0])
-    const label = member?.fullName || member?.name || member?.email || task.assigneeName || t('workItems.assignee')
+    const label = member?.fullName || member?.name || member?.email || task.assigneeName || 'Assignee'
     return { label, avatar: label.substring(0, 1).toUpperCase() }
   }
 
-  return { label: t('workItems.assigneeCount', { count: ids.length }), avatar: `${ids.length}` }
+  return { label: `${ids.length} assignees`, avatar: `${ids.length}` }
 }
 
 const matchesTaskFilters = (task) => {
@@ -719,12 +815,12 @@ const visibleTasks = computed(() => {
 })
 const visibleTopLevelTasks = computed(() => filteredTasksList.value.filter(task => !isSubtask(task)))
 const defaultTaskStatusOptions = computed(() => [
-  { name: 'BACKLOG', label: t('workItems.statusLabels.backlog'), color: 'var(--color-text-muted)', icon: 'fa-regular fa-circle-dashed' },
-  { name: 'TO DO', label: t('workItems.statusLabels.toDo'), color: '#D4D4D8', icon: 'fa-regular fa-circle' },
-  { name: 'IN PROGRESS', label: t('workItems.statusLabels.inProgress'), color: '#3B82F6', icon: 'fa-solid fa-circle-half-stroke' },
-  { name: 'IN REVIEW', label: t('workItems.statusLabels.inReview'), color: '#F59E0B', icon: 'fa-solid fa-eye' },
-  { name: 'DONE', label: t('workItems.statusLabels.done'), color: '#10B981', icon: 'fa-solid fa-circle-check' },
-  { name: 'CANCELLED', label: t('workItems.statusLabels.cancelled'), color: '#EF4444', icon: 'fa-regular fa-circle-xmark' }
+  { name: 'BACKLOG', label: tr('Backlog', 'Chờ xử lý'), color: '#94A3B8', icon: 'fa-regular fa-circle-dashed' },
+  { name: 'TO DO', label: tr('To Do', 'Cần làm'), color: '#A78BFA', icon: 'fa-regular fa-circle' },
+  { name: 'IN PROGRESS', label: tr('In Progress', 'Đang thực hiện'), color: '#38BDF8', icon: 'fa-solid fa-circle-half-stroke' },
+  { name: 'IN REVIEW', label: tr('In Review', 'Đang đánh giá'), color: '#F59E0B', icon: 'fa-solid fa-eye' },
+  { name: 'DONE', label: tr('Done', 'Hoàn thành'), color: '#22C55E', icon: 'fa-solid fa-circle-check' },
+  { name: 'CANCELLED', label: tr('Cancelled', 'Đã hủy'), color: '#F43F5E', icon: 'fa-regular fa-circle-xmark' }
 ])
 
 const normalizeText = (value) => `${value || ''}`.toLowerCase().trim()
@@ -768,6 +864,69 @@ const normalizeDateOnly = (value) => {
   const day = `${parsed.getDate()}`.padStart(2, '0')
   return `${year}-${month}-${day}`
 }
+const getTaskDateOnly = (task, fields) => {
+  for (const field of fields) {
+    const normalized = normalizeDateOnly(task?.[field])
+    if (normalized) return normalized
+  }
+  return null
+}
+const getTaskCreatedDate = (task) => getTaskDateOnly(task, ['createdAt', 'createdDate', 'createdOn', 'CreatedAt', 'CreatedDate'])
+const getTaskResolvedDate = (task) => {
+  if (normalizeStatus(task?.statusName) !== 'DONE') return null
+  return getTaskDateOnly(task, [
+    'completedAt',
+    'completedDate',
+    'resolvedAt',
+    'doneAt',
+    'closedAt',
+    'updatedAt',
+    'updatedDate',
+    'UpdatedAt'
+  ]) || getTaskCreatedDate(task)
+}
+const formatAnalyticsDateLabel = (dateOnly) => {
+  if (!dateOnly) return ''
+  const [year, month, day] = dateOnly.split('-').map(Number)
+  return new Date(year, month - 1, day).toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit'
+  })
+}
+const buildAnalyticsDateBuckets = (tasks) => {
+  const dates = new Set()
+  tasks.forEach(task => {
+    const createdDate = getTaskCreatedDate(task)
+    const resolvedDate = getTaskResolvedDate(task)
+    if (createdDate) dates.add(createdDate)
+    if (resolvedDate) dates.add(resolvedDate)
+  })
+
+  const sortedDates = Array.from(dates).sort()
+  const windowDates = sortedDates.length > 14 ? sortedDates.slice(-14) : sortedDates
+  const fallbackDate = normalizeDateOnly(new Date())
+  const labels = windowDates.length ? windowDates : [fallbackDate]
+  const createdCounts = new Map(labels.map(date => [date, 0]))
+  const resolvedCounts = new Map(labels.map(date => [date, 0]))
+
+  tasks.forEach(task => {
+    const createdDate = getTaskCreatedDate(task)
+    if (createdCounts.has(createdDate)) {
+      createdCounts.set(createdDate, createdCounts.get(createdDate) + 1)
+    }
+
+    const resolvedDate = getTaskResolvedDate(task)
+    if (resolvedCounts.has(resolvedDate)) {
+      resolvedCounts.set(resolvedDate, resolvedCounts.get(resolvedDate) + 1)
+    }
+  })
+
+  return {
+    labels,
+    created: labels.map(date => createdCounts.get(date) || 0),
+    resolved: labels.map(date => resolvedCounts.get(date) || 0)
+  }
+}
 const normalizeStatusLabel = (value) => {
   const status = normalizeStatus(value)
   return taskStatusOptions.value.find(item => item.name === status)?.label || status
@@ -789,6 +948,13 @@ const getPriorityIcon = (priority) => {
   if (priority === 4) return 'fa-solid fa-chevron-down text-gray-400'
   return 'fa-solid fa-ban text-gray-500'
 }
+const getPriorityColor = (priority) => {
+  if (priority === 1) return '#F43F5E'
+  if (priority === 2) return '#F97316'
+  if (priority === 3) return '#38BDF8'
+  if (priority === 4) return '#94A3B8'
+  return '#64748B'
+}
 const normalizePriority = (value) => {
   const map = { urgent: 1, high: 2, normal: 3, low: 4, none: null }
   return Object.prototype.hasOwnProperty.call(map, normalizeText(value)) ? map[normalizeText(value)] : value
@@ -801,7 +967,7 @@ const currentUserId = () => {
 }
 
 const toggleTaskStar = (task) => {
-  store.toggleTaskStar(task)
+  store.toggleTaskStar(task.id)
 }
 
 const isTaskStarred = (taskId) => {
@@ -1054,17 +1220,51 @@ const filteredTasksList = computed(() => {
 });
 
 const createdResolvedOptions = computed(() => {
-   const createdLabel = t('workItems.created')
-   const resolvedLabel = t('workItems.resolved')
+   const buckets = buildAnalyticsDateBuckets(visibleTopLevelTasks.value)
+   const colors = analyticsThemeColors.value
    return {
-      tooltip: { trigger: 'axis' },
-      legend: { data: [createdLabel, resolvedLabel], bottom: 0, textStyle: { color: 'var(--color-text-muted)' } },
-      grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-      xAxis: { type: 'category', data: ['Apr 01', 'Apr 02', 'Apr 03', 'Apr 04'], axisLine: { lineStyle: { color: '#3F3F46' } } },
-      yAxis: { type: 'value', splitLine: { lineStyle: { color: 'var(--color-border)' } } },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: colors.tooltipBg,
+        borderColor: colors.tooltipBorder,
+        borderWidth: 1,
+        textStyle: { color: colors.text }
+      },
+      legend: { data: [tr('Created', 'Đã tạo'), tr('Resolved', 'Đã xử lý')], bottom: 0, textStyle: { color: colors.muted } },
+      grid: { left: '2%', right: '3%', bottom: '16%', top: '10%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: buckets.labels.map(formatAnalyticsDateLabel),
+        axisLine: { lineStyle: { color: colors.axis } },
+        axisLabel: { color: colors.muted }
+      },
+      yAxis: {
+        type: 'value',
+        minInterval: 1,
+        splitLine: { lineStyle: { color: colors.grid } },
+        axisLabel: { color: colors.muted }
+      },
       series: [
-         { name: createdLabel, type: 'line', data: [visibleTopLevelTasks.value.length, 0, 0, 0], itemStyle: { color: '#3B82F6' }, smooth: true },
-         { name: resolvedLabel, type: 'line', data: [visibleTopLevelTasks.value.filter(t => t.statusName === 'DONE').length, 0, 0, 0], itemStyle: { color: '#10B981' }, smooth: true }
+         {
+           name: tr('Created', 'Đã tạo'),
+           type: 'line',
+           data: buckets.created,
+           symbolSize: 8,
+           lineStyle: { width: 3, color: '#38BDF8' },
+           itemStyle: { color: '#38BDF8' },
+           areaStyle: { color: 'rgba(56, 189, 248, 0.12)' },
+           smooth: true
+         },
+         {
+           name: tr('Resolved', 'Đã xử lý'),
+           type: 'line',
+           data: buckets.resolved,
+           symbolSize: 8,
+           lineStyle: { width: 3, color: '#34D399' },
+           itemStyle: { color: '#34D399' },
+           areaStyle: { color: 'rgba(52, 211, 153, 0.1)' },
+           smooth: true
+         }
       ],
       backgroundColor: 'transparent'
    }
@@ -1088,7 +1288,7 @@ const analyticsBreakdownRows = computed(() => {
       .map(([id, count]) => {
         const member = projectMembers.value.find(item => (item.userId || item.id) === id)
         return {
-          label: id === 'unassigned' ? t('workItems.unassigned') : (member?.fullName || member?.name || member?.email || t('workItems.assignee')),
+          label: id === 'unassigned' ? tr('Unassigned', 'Chưa giao') : (member?.fullName || member?.name || member?.email || tr('Assignee', 'Người thực hiện')),
           count,
           color: id === 'unassigned' ? 'var(--color-text-muted)' : '#38BDF8'
         }
@@ -1105,11 +1305,11 @@ const analyticsBreakdownRows = computed(() => {
   }
 
   return [
-    { label: t('workItems.priority.urgent'), count: visibleTopLevelTasks.value.filter(task => task.priority === 1).length, color: '#EF4444' },
-    { label: t('workItems.priority.high'), count: visibleTopLevelTasks.value.filter(task => task.priority === 2).length, color: '#F97316' },
-    { label: t('workItems.priority.normal'), count: visibleTopLevelTasks.value.filter(task => task.priority === 3).length, color: '#3B82F6' },
-    { label: t('workItems.priority.low'), count: visibleTopLevelTasks.value.filter(task => task.priority === 4).length, color: '#10B981' },
-    { label: t('workItems.priority.none'), count: visibleTopLevelTasks.value.filter(task => !task.priority).length, color: 'var(--color-text-muted)' }
+    { label: tr('Urgent', 'Khẩn cấp'), count: visibleTopLevelTasks.value.filter(task => task.priority === 1).length, color: '#EF4444' },
+    { label: tr('High', 'Cao'), count: visibleTopLevelTasks.value.filter(task => task.priority === 2).length, color: '#F97316' },
+    { label: tr('Medium', 'Trung bình'), count: visibleTopLevelTasks.value.filter(task => task.priority === 3).length, color: '#3B82F6' },
+    { label: tr('Low', 'Thấp'), count: visibleTopLevelTasks.value.filter(task => task.priority === 4).length, color: '#10B981' },
+    { label: tr('None', 'Không có'), count: visibleTopLevelTasks.value.filter(task => !task.priority).length, color: 'var(--color-text-muted)' }
   ]
 })
 
@@ -1126,7 +1326,7 @@ const assigneeAnalyticsRows = computed(() => {
         const member = projectMembers.value.find(item => (item.userId || item.id) === id)
         rows.set(id, {
           id,
-          label: id === 'unassigned' ? t('workItems.unassigned') : (member?.fullName || member?.name || member?.email || t('workItems.assignee')),
+          label: id === 'unassigned' ? tr('Unassigned', 'Chưa giao') : (member?.fullName || member?.name || member?.email || tr('Assignee', 'Người thực hiện')),
           backlog: 0,
           started: 0,
           unstarted: 0,
@@ -1146,61 +1346,81 @@ const assigneeAnalyticsRows = computed(() => {
 })
 
 const analyticsInsightLabel = computed(() => {
-  if (analyticsInsightMode.value === 'status') return t('workItems.statusDistribution')
-  if (analyticsInsightMode.value === 'assignee') return t('workItems.assigneeDistribution')
-  return t('workItems.priorityDistribution')
+  if (analyticsInsightMode.value === 'status') return tr('Status Distribution', 'Phân bổ trạng thái')
+  if (analyticsInsightMode.value === 'assignee') return tr('Assignee Distribution', 'Phân bổ người thực hiện')
+  return tr('Priority Distribution', 'Phân bổ độ ưu tiên')
 })
 const analyticsTableHeading = computed(() => {
-  if (analyticsInsightMode.value === 'status') return t('workItems.status')
-  if (analyticsInsightMode.value === 'assignee') return t('workItems.assignee')
-  return t('workItems.priorityLabel')
+  if (analyticsInsightMode.value === 'status') return tr('Status', 'Trạng thái')
+  if (analyticsInsightMode.value === 'assignee') return tr('Assignee', 'Người thực hiện')
+  return tr('Priority', 'Độ ưu tiên')
 })
 const setAnalyticsInsightMode = (mode) => {
   analyticsInsightMode.value = mode
 }
 
-const insightChartOptions = computed(() => ({
-  tooltip: { trigger: 'axis' },
-  grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-  xAxis: {
-    type: 'category',
-    data: analyticsBreakdownRows.value.map(item => item.label),
-    axisLine: { lineStyle: { color: '#3F3F46' } },
-    axisLabel: { color: 'var(--color-text-muted)' }
-  },
-  yAxis: {
-    type: 'value',
-    splitLine: { lineStyle: { color: 'var(--color-border)' } },
-    axisLabel: { color: 'var(--color-text-muted)' }
-  },
-  series: [
-    {
-      type: 'bar',
-      barWidth: '30%',
-      data: analyticsBreakdownRows.value.map(item => ({
-        value: item.count,
-        itemStyle: { color: item.color, borderRadius: [4, 4, 0, 0] }
-      }))
-    }
-  ],
-  backgroundColor: 'transparent'
-}))
+const insightChartOptions = computed(() => {
+  const colors = analyticsThemeColors.value
+  return {
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      borderWidth: 1,
+      textStyle: { color: colors.text }
+    },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: analyticsBreakdownRows.value.map(item => item.label),
+      axisLine: { lineStyle: { color: colors.axis } },
+      axisLabel: { color: colors.muted }
+    },
+    yAxis: {
+      type: 'value',
+      splitLine: { lineStyle: { color: colors.grid } },
+      axisLabel: { color: colors.muted }
+    },
+    series: [
+      {
+        type: 'bar',
+        barWidth: '30%',
+        data: analyticsBreakdownRows.value.map(item => ({
+          value: item.count,
+          itemStyle: { color: item.color, borderRadius: [4, 4, 0, 0] }
+        }))
+      }
+    ],
+    backgroundColor: 'transparent'
+  }
+})
 
 const kanbanColumns = computed(() => {
+  // Map màu nền nhạt cho từng trạng thái (theo design spec)
+  const statusBgMap = {
+    'BACKLOG':     'rgba(148, 163, 184, 0.05)',
+    'TO DO':       'rgba(167, 139, 250, 0.06)',
+    'IN PROGRESS': 'rgba(245, 158, 11, 0.06)',
+    'IN REVIEW':   'rgba(56, 189, 248, 0.06)',
+    'DONE':        'rgba(34, 197, 94, 0.05)',
+    'CANCELLED':   'rgba(244, 63, 94, 0.05)'
+  }
+
   const groups = taskStatusOptions.value.map((status, index) => ({
     id: `${status.name.toLowerCase().replace(/\s+/g, '-')}-${index}`,
     name: status.name,
     color: status.color,
     icon: status.icon,
+    bgColor: statusBgMap[status.name] || 'rgba(148, 163, 184, 0.04)',
     priorityValue: null,
     items: []
   }));
 
   const pGroups = [
-    { id: 'p1', name: 'Urgent', color: '#EF4444', icon: 'fa-solid fa-angles-up', priorityValue: 1, items: [] },
-    { id: 'p2', name: 'High', color: '#F97316', icon: 'fa-solid fa-chevron-up', priorityValue: 2, items: [] },
-    { id: 'p3', name: 'Normal', color: '#3B82F6', icon: 'fa-solid fa-minus', priorityValue: 3, items: [] },
-    { id: 'p4', name: 'Low', color: '#94A3B8', icon: 'fa-solid fa-chevron-down', priorityValue: 4, items: [] }
+    { id: 'p1', name: 'Urgent', color: '#EF4444', icon: 'fa-solid fa-angles-up', bgColor: 'rgba(239,68,68,0.05)', priorityValue: 1, items: [] },
+    { id: 'p2', name: 'High', color: '#F97316', icon: 'fa-solid fa-chevron-up', bgColor: 'rgba(249,115,22,0.05)', priorityValue: 2, items: [] },
+    { id: 'p3', name: 'Normal', color: '#3B82F6', icon: 'fa-solid fa-minus', bgColor: 'rgba(59,130,246,0.05)', priorityValue: 3, items: [] },
+    { id: 'p4', name: 'Low', color: '#94A3B8', icon: 'fa-solid fa-chevron-down', bgColor: 'rgba(148,163,184,0.05)', priorityValue: 4, items: [] }
   ];
 
   const validTasks = filteredTasksList.value || [];
@@ -1293,16 +1513,6 @@ const loadInitialData = async (options = {}) => {
       axiosClient.get(`/projects/${pid}/execution-rules`).catch(() => ({ data: { data: {} } }))
     ])
     project.value = pRes.data.data
-    if (project.value?.id) {
-      projectStore.projectDetailsById[project.value.id] = project.value
-      if (project.value.id === pid) {
-        projectStore.currentProject = project.value
-      }
-    }
-    const wId = project.value?.workspaceId || project.value?.WorkspaceId
-    if (wId) {
-      localStorage.setItem('recent_site_id', wId)
-    }
     projectMembers.value = (mRes.data.data || []).map(member => ({
       ...member,
       userId: member.userId || member.id,
@@ -1330,7 +1540,7 @@ const loadInitialData = async (options = {}) => {
     if (isForbiddenError(error)) {
       isForbidden.value = true
     } else {
-      console.error('Lá»—i load dá»± Ã¡n:', error)
+      console.error('Lỗi load dự án:', error)
     }
   }
 }
@@ -1349,7 +1559,7 @@ const fetchTasks = async (options = {}) => {
         else if (!updatedTask || !canCurrentUserSeeTask(selectedTask.value)) selectedTask.value = null;
       }
   } catch(error) {
-    console.error('Lá»—i load tasks:', error)
+    console.error('Lỗi load tasks:', error)
   }
 }
 
@@ -1373,20 +1583,18 @@ const logViewedTask = (task) => {
 }
 
 const openTaskDetail = (task) => {
-  const normalizedTask = store.normalizeTaskRecord(task, getProjectId())
-  logViewedTask(normalizedTask)
+  logViewedTask(task)
   taskDetailHistory.value = []
-  selectedTask.value = normalizedTask
+  selectedTask.value = task;
 }
 const openTaskDetailFromModal = (task, options = {}) => {
-  const normalizedTask = store.normalizeTaskRecord(task, getProjectId())
-  logViewedTask(normalizedTask)
+  logViewedTask(task)
   const previousTask = options?.fromTask || selectedTask.value
   if (previousTask?.id && previousTask.id !== task?.id) {
     const cachedPrevious = allTasks.value.find(item => item.id === previousTask.id) || previousTask
     taskDetailHistory.value = [...taskDetailHistory.value, cachedPrevious]
   }
-  selectedTask.value = normalizedTask
+  selectedTask.value = task
 }
 const goBackTaskDetail = () => {
   const history = [...taskDetailHistory.value]
@@ -1522,6 +1730,8 @@ const inlineInput = ref(null);
 const openInlineCreate = (colId) => {
    inlineCreateColId.value = colId;
    inlineTaskTitle.value = '';
+   inlineDueDate.value = '';
+   inlineAssigneeIds.value = [];
    nextTick(() => {
      if(inlineInput.value) {
         // inlineInput.value could be an array if inside v-for, or a proxy. We handle both:
@@ -1540,20 +1750,25 @@ const submitInlineTask = async (col) => {
       return;
    }
    try {
-      const pid = getProjectId()
-      await store.createTask(pid, {
+      const payload = {
          title: inlineTaskTitle.value.trim(),
          description: '',
          statusName: col.name || 'BACKLOG',
-          priority: 3,
-          sprintId: activeSprintFilterId.value || null
-      });
+         priority: 3,
+         sprintId: activeSprintFilterId.value || null
+      }
+      if (inlineDueDate.value) payload.dueDate = inlineDueDate.value
+      if (inlineAssigneeIds.value.length) payload.assigneeIds = inlineAssigneeIds.value
+      await axiosClient.post(`/projects/${getProjectId()}/WorkTasks`, payload);
       inlineTaskTitle.value = '';
+      inlineDueDate.value = '';
+      inlineAssigneeIds.value = [];
       inlineCreateColId.value = null;
-      await fetchTasks({ reset: false });
+      fetchTasks();
+      ElMessage.success('Đã tạo công việc thành công.');
    } catch (e) {
       console.error(e);
-      ElMessage.error(e.response?.data?.message || 'Khong the tao cong viec');
+      ElMessage.error(e.response?.data?.message || 'Không thể tạo công việc.');
    }
 }
 
@@ -1561,14 +1776,14 @@ const handleListTaskCreate = async (payload) => {
    const pid = getProjectId();
    if (!pid) return;
    try {
-      await store.createTask(pid, {
+      await axiosClient.post(`/projects/${pid}/WorkTasks`, {
          title: payload.title,
          description: '',
          statusName: payload.statusName || 'BACKLOG',
           priority: payload.priority || 3,
           sprintId: activeSprintFilterId.value || null
       });
-      await fetchTasks({ reset: false });
+      fetchTasks();
    } catch (error) {
       console.error(error);
       ElMessage.error(error.response?.data?.message || 'Khong the tao cong viec');
@@ -1602,15 +1817,15 @@ const handleDraggableChange = async (evt, group) => {
     element.sortOrder = newSortOrder;
     
     if (groupBy.value === 'status') {
-       element.statusName = group.name; // Cáº­p nháº­t Optimistic UI
+       element.statusName = group.name; // Cập nhật Optimistic UI
        try {
          await store.reorderTask(getProjectId(), element.id, newSortOrder, group.name);
          await fetchTasks();
        } catch (error) {
          Object.assign(element, previousTask);
          ElMessage.error(error.response?.data?.message || 'Khong the cap nhat bang Kanban');
-         console.error('Lá»—i API reorder:', error);
-         fetchTasks(); // Load láº¡i data náº¿u gáº·p lá»—i
+         console.error('Lỗi API reorder:', error);
+         fetchTasks(); // Load lại data nếu gặp lỗi
        }
     } else if (groupBy.value === 'priority') {
        element.priority = group.priorityValue;
@@ -1623,7 +1838,7 @@ const handleDraggableChange = async (evt, group) => {
         } catch (error) {
           Object.assign(element, previousTask);
           ElMessage.error(error.response?.data?.message || 'Khong the cap nhat do uu tien');
-         console.error('Lá»—i API reorder:', error);
+         console.error('Lỗi API reorder:', error);
          fetchTasks();
        }
     }
@@ -1678,11 +1893,11 @@ const hydrateFiltersFromUrl = () => {
 const exportAnalyticsCsv = (mode = analyticsInsightMode.value) => {
   const rows = mode === 'assignee'
     ? [
-        [t('workItems.assignee'), t('workItems.backlog'), t('workItems.started'), t('workItems.unstarted'), t('workItems.completed'), t('workItems.cancelled'), t('workItems.total')],
+        ['Người thực hiện', 'Chờ xử lý', 'Đang làm', 'Đang đánh giá', 'Hoàn thành', 'Đã hủy', 'Tổng'],
         ...assigneeAnalyticsRows.value.map(item => [item.label, item.backlog, item.started, item.unstarted, item.completed, item.cancelled, item.total])
       ]
     : [
-        [analyticsTableHeading.value, t('workItems.count')],
+        [analyticsTableHeading.value, 'Số lượng'],
         ...analyticsBreakdownRows.value.map(item => [item.label, item.count])
       ]
   const csv = rows.map(row => row.join(',')).join('\n')
@@ -1698,6 +1913,10 @@ const exportAnalyticsCsv = (mode = analyticsInsightMode.value) => {
 onMounted(() => {
   hydrateFiltersFromUrl()
   loadInitialData()
+  analyticsThemeObserver = new MutationObserver(() => {
+    analyticsTheme.value = document.documentElement.getAttribute('data-theme') || 'light'
+  })
+  analyticsThemeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
   window.addEventListener('global-create-task', handleGlobalCreate)
 })
 
@@ -1821,6 +2040,7 @@ watch(
 
 onUnmounted(() => {
   window.removeEventListener('global-create-task', handleGlobalCreate)
+  analyticsThemeObserver?.disconnect()
   clearTimeout(realtimeRefreshTimer)
   if (signalRTaskUpdatedHandler) {
     signalRService.off('TaskUpdated', signalRTaskUpdatedHandler)
@@ -1838,8 +2058,10 @@ onUnmounted(() => {
    PLANE.SO PROJECT KANBAN THEME
    ================================== */
 .plane-board-container {
-  background-color: var(--color-bg); 
-  height: 100vh;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--sa-bg, var(--color-bg)) 88%, var(--color-surface) 12%), var(--sa-bg, var(--color-bg)));
+  height: calc(100vh - 60px);
+  min-height: 0;
   display: flex;
   flex-direction: column;
   color: var(--color-text-primary);
@@ -1853,41 +2075,48 @@ onUnmounted(() => {
   overflow: auto;
 }
 
-/* â”€â”€ PLANE HEADER â”€â”€ */
+/* ── PLANE HEADER ── */
 .plane-space-header {
-  height: 52px;
+  min-height: 64px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 24px;
+  gap: 18px;
+  padding: 10px 24px;
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
-  background-color: var(--color-bg);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 92%, var(--sa-bg, var(--color-bg)) 8%), var(--color-surface));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 .breadcrumb {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   font-size: 14px;
   color: var(--color-text-muted);
+  min-width: 0;
+  padding: 4px 0;
 }
 .proj-icon {
-  background: var(--color-accent);
-  color: var(--color-text-primary);
-  width: 18px;
-  height: 18px;
-  border-radius: 2px;
+  background: linear-gradient(135deg, var(--sa-primary, var(--color-accent)), #22d3ee);
+  color: #ffffff;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
-  font-weight: bold;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--sa-primary, var(--color-accent)) 24%, transparent);
 }
 .proj-name {
   color: var(--color-text-primary);
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
+  letter-spacing: -0.01em;
 }
 .proj-name:hover { color: var(--color-accent); }
 .separator {
@@ -1899,174 +2128,348 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-weight: 500;
+  font-weight: 700;
 }
 .active-page i { color: var(--color-text-muted); }
 .item-count {
-  background: var(--color-border);
-  color: #38BDF8;
-  padding: 2px 8px;
-  border-radius: 2px;
+  background: var(--sa-primary-soft, color-mix(in srgb, var(--color-accent) 12%, transparent));
+  color: color-mix(in srgb, var(--sa-primary, var(--color-accent)) 82%, var(--color-text-primary));
+  padding: 3px 8px;
+  border-radius: 999px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .sh-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .view-toggles {
   display: flex;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 2px;
-  padding: 2px;
-  margin-right: 8px;
+  border-radius: 12px;
+  padding: 3px;
+  margin-right: 2px;
+  box-shadow: var(--sa-shadow-sm, var(--shadow-sm));
 }
 .toggle-btn {
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   color: var(--color-text-muted);
-  width: 28px;
-  height: 28px;
-  border-radius: 2px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
 }
-.toggle-btn:hover { color: var(--color-text-primary); }
-.toggle-btn.active {
-  background: var(--color-border);
+.toggle-btn:hover {
   color: var(--color-text-primary);
+  background: var(--color-surface-hover);
 }
-
-/* â”€â”€ JIRA TAB BAR â”€â”€ */
-.jira-tab-bar {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg);
-  flex-shrink: 0;
-  overflow-x: auto;
+.toggle-btn.active {
+  background: var(--sa-primary-soft, color-mix(in srgb, var(--color-accent) 14%, transparent));
+  color: var(--sa-primary, var(--color-accent));
+  border-color: color-mix(in srgb, var(--sa-primary, var(--color-accent)) 26%, var(--color-border));
 }
-.jira-tab {
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 12px 12px 10px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  transition: color 0.15s, border-color 0.15s;
-}
-.jira-tab i { font-size: 12px; color: var(--color-text-muted); }
-.jira-tab:hover { color: var(--color-text-primary); }
-.jira-tab:hover i { color: var(--color-text-primary); }
-.jira-tab.active {
-  color: #0c66e4;
-  border-bottom-color: #0c66e4;
-  font-weight: 600;
-}
-.jira-tab.active i { color: #0c66e4; }
-.jira-tab.add-tab { color: var(--color-text-muted); padding: 12px 10px 10px; }
-.jira-tab:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-.jira-tab:disabled:hover,
-.jira-tab:disabled:hover i {
-  color: var(--color-text-muted);
-}
-.backlog-wrapper, .reports-wrapper { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 
 .plane-toolbar-btn {
-  background: transparent;
-  border: none;
+  min-height: 38px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   color: var(--color-text-secondary);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 2px;
+  padding: 8px 13px;
+  border-radius: 10px;
   transition: background 0.2s;
   display: flex;
   align-items: center;
 }
 .plane-toolbar-btn:hover {
-  background: var(--color-border);
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
+  color: var(--color-text-primary);
 }
 .plane-toolbar-btn.active {
-  background: var(--color-border);
-  color: var(--color-text-primary);
+  background: var(--sa-primary-soft, color-mix(in srgb, var(--color-accent) 12%, transparent));
+  border-color: color-mix(in srgb, var(--sa-primary, var(--color-accent)) 28%, var(--color-border));
+  color: var(--sa-primary, var(--color-accent));
 }
 .filter-count {
   margin-left: 6px;
   min-width: 16px;
   height: 16px;
   border-radius: 999px;
-  background: #0EA5E9;
-  color: var(--color-text-primary);
+  background: var(--sa-primary, var(--color-accent));
+  color: #ffffff;
   font-size: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 .work-filter-row {
-  padding: 10px 24px;
+  padding: 12px 24px;
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg);
+  background: color-mix(in srgb, var(--color-surface) 86%, var(--sa-bg, var(--color-bg)));
   flex-shrink: 0;
 }
 
 .plane-primary-btn {
-  background: #0EA5E9;
-  color: var(--color-text-primary);
-  border: none;
-  border-radius: 2px;
-  padding: 6px 12px;
+  min-height: 38px;
+  background: linear-gradient(135deg, var(--sa-primary, var(--color-accent)), color-mix(in srgb, var(--sa-primary, var(--color-accent)) 78%, #2563eb));
+  color: #ffffff;
+  border: 1px solid color-mix(in srgb, var(--sa-primary, var(--color-accent)) 70%, transparent);
+  border-radius: 10px;
+  padding: 8px 14px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 800;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
   transition: background 0.2s;
 }
-.plane-primary-btn:hover { background: #0284C7; }
+.plane-primary-btn:hover {
+  background: linear-gradient(135deg, var(--color-accent-hover), var(--sa-primary, var(--color-accent)));
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--sa-primary, var(--color-accent)) 24%, transparent);
+}
 
 /* Kanban Board */
 .kanban-wrapper {
   display: flex;
   gap: 20px;
   flex: 1;
+  height: 100%;
+  min-height: 0;
   overflow-x: auto;
-  padding: 24px;
+  overflow-y: hidden;
+  padding: 26px 28px 32px;
+  background:
+    radial-gradient(circle at 10% 0%, color-mix(in srgb, #38bdf8 12%, transparent), transparent 30%),
+    radial-gradient(circle at 82% 6%, color-mix(in srgb, #a78bfa 10%, transparent), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 38%, transparent), transparent 260px);
 }
 
 .kanban-col {
   min-width: 320px;
   width: 320px;
+  height: 100%;
+  max-height: none;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  border-radius: 14px;
+  background: var(--col-bg, transparent);
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--col-color) 18%, var(--color-border));
 }
+
+/* Loading indicator thanh ngang */
+.kanban-loading-bar {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  box-shadow: var(--shadow-popover);
+  pointer-events: none;
+}
+
+/* Error banner */
+.kanban-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, #ef4444 8%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, #ef4444 28%, var(--color-border));
+  border-radius: 10px;
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+  align-self: flex-start;
+  width: 100%;
+  max-width: 560px;
+}
+
+.kanban-retry-btn {
+  margin-left: auto;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.2s;
+}
+.kanban-retry-btn:hover { background: #dc2626; }
+
+/* Card top right area (due date + star) */
+.card-top-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Due date badge */
+.card-due-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-surface-hover);
+  border-radius: 6px;
+  padding: 2px 7px;
+}
+.card-due-badge.card-due-overdue {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  animation: pulse-overdue 2s ease-in-out infinite;
+}
+@keyframes pulse-overdue {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Empty state per-column */
+.col-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  border: 1.5px dashed color-mix(in srgb, var(--col-color) 24%, var(--color-border));
+  border-radius: 10px;
+  margin-top: 8px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* Inline create extras row */
+.ic-extras {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+.ic-extra-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.ic-date-input {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  padding: 3px 6px;
+  outline: none;
+  cursor: pointer;
+  max-width: 120px;
+}
+.ic-date-input:focus { border-color: var(--color-accent); }
+
+.ic-assignee-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ic-assignee-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* Inline create action buttons */
+.ic-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--color-border);
+  margin-top: 4px;
+}
+.ic-submit-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.ic-submit-btn:hover { background: var(--color-accent-hover); }
+.ic-cancel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ic-cancel-btn:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
 
 .col-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-  padding: 0 4px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--col-color) 26%, var(--color-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--col-color) 15%, transparent), transparent 58%),
+    color-mix(in srgb, var(--color-bg) 58%, transparent);
 }
 
 .col-title {
@@ -2074,68 +2477,144 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 800;
   color: var(--color-text-primary);
 }
 
 .col-count {
-  background: var(--color-surface-hover);
-  color: var(--color-text-muted);
-  padding: 2px 8px;
-  border-radius: 2px;
+  background: color-mix(in srgb, var(--col-color) 16%, var(--color-surface-hover));
+  color: color-mix(in srgb, var(--col-color) 28%, var(--color-text-primary));
+  padding: 3px 8px;
+  border-radius: 8px;
   font-size: 12px;
+  font-weight: 800;
 }
 
 .add-btn {
-  color: var(--color-text-muted);
+  color: color-mix(in srgb, var(--col-color) 44%, var(--color-text-secondary));
   cursor: pointer;
   font-size: 14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 160ms ease, transform 160ms ease, color 160ms ease;
 }
-.add-btn:hover { color: var(--color-text-primary); }
+.add-btn:hover {
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--col-color) 16%, transparent);
+  transform: translateY(-1px);
+}
 
 .col-body {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-height: 0;
+  max-height: none;
   overflow-y: auto;
-  padding-right: 4px; /* for scrollbar */
+  overscroll-behavior: contain;
+  padding-right: 6px;
   position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--col-color) 42%, var(--color-border)) transparent;
+}
+
+.col-body::-webkit-scrollbar,
+.kanban-wrapper::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.col-body::-webkit-scrollbar-thumb,
+.kanban-wrapper::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--col-color, var(--color-accent)) 42%, var(--color-border));
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.col-body::-webkit-scrollbar-track,
+.kanban-wrapper::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--color-surface) 44%, transparent);
+  border-radius: 999px;
 }
 
 .chart-container {
   width: 100%;
-  height: 250px;
+  height: 230px;
 }
 
 .col-draggable {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 10px;
+  min-height: min-content;
+  padding-bottom: 16px;
 }
 
 .issue-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.72)),
+    color-mix(in srgb, var(--task-status-color) 5%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--task-status-color) 23%, var(--color-border));
+  border-radius: 12px;
   padding: 16px;
   cursor: pointer;
-  transition: all 0.2s;
+  box-shadow:
+    0 12px 28px rgba(15, 23, 42, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.74);
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 180ms ease, box-shadow 180ms ease;
+}
+.issue-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--task-status-color), color-mix(in srgb, var(--task-priority-color) 62%, var(--task-status-color)));
 }
 .issue-card:hover {
-  border-color: var(--color-border);
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--task-status-color) 48%, var(--color-border));
+  box-shadow:
+    0 18px 42px rgba(15, 23, 42, 0.12),
+    0 0 0 3px color-mix(in srgb, var(--task-status-color) 10%, transparent);
 }
 .issue-card.active-card {
-  border-color: var(--color-border);
+  border-color: color-mix(in srgb, var(--task-status-color) 72%, var(--color-border));
+  box-shadow:
+    0 20px 46px rgba(15, 23, 42, 0.13),
+    0 0 0 3px color-mix(in srgb, var(--task-status-color) 18%, transparent);
 }
 
-.issue-sequence { font-size: 11px; color: var(--color-text-muted); margin: 0; }
+[data-theme='dark'] .issue-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+    color-mix(in srgb, var(--task-status-color) 9%, var(--color-surface));
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.issue-sequence {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  color: color-mix(in srgb, var(--task-status-color) 54%, var(--color-text-muted));
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
 .issue-title {
   margin: 0;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 800;
   color: var(--color-text-primary);
-  line-height: 1.5;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
 }
 
 .issue-meta {
@@ -2168,25 +2647,42 @@ onUnmounted(() => {
 .text-red { color: #EF4444; }
 .text-green { color: #10B981; }
 
-.badge { border: 1px solid var(--color-border); border-radius: 2px; padding: 2px 6px; font-size: 11px; color: var(--color-text-muted); display: flex; align-items: center; gap: 6px; }
+.badge {
+  border: 1px solid color-mix(in srgb, var(--badge-color, var(--color-border)) 32%, var(--color-border));
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: color-mix(in srgb, var(--badge-color, var(--color-text-muted)) 38%, var(--color-text-primary));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: color-mix(in srgb, var(--badge-color, var(--color-surface-hover)) 9%, transparent);
+  font-weight: 800;
+}
 
 .add-btn-bottom { 
-  color: var(--color-text-primary); 
+  color: color-mix(in srgb, var(--col-color) 52%, var(--color-text-primary)); 
   font-size: 13px; 
-  font-weight: 500; 
+  font-weight: 800; 
   cursor: pointer; 
   display: flex; 
   align-items: center; 
   gap: 8px; 
-  padding: 8px; 
+  padding: 10px 12px; 
   margin-top: 12px; 
-  position: sticky;
-  bottom: 0;
-  background-color: var(--color-bg);
-  box-shadow: 0 -4px 10px rgba(13, 15, 17, 0.8);
-  border-radius: 2px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--col-color) 10%, transparent), transparent),
+    color-mix(in srgb, var(--color-bg) 72%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--col-color) 42%, var(--color-border));
+  border-radius: 10px;
+  transition: background 160ms ease, transform 160ms ease, border-color 160ms ease;
 }
-.add-btn-bottom:hover { color: var(--color-text-primary); background-color: var(--color-border); }
+.add-btn-bottom:hover {
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--col-color) 14%, var(--color-bg));
+  border-color: color-mix(in srgb, var(--col-color) 62%, var(--color-border));
+  transform: translateY(-1px);
+}
 
 .inline-create-box { 
   background: var(--color-surface); 
@@ -2195,9 +2691,6 @@ onUnmounted(() => {
   padding: 12px 16px; 
   margin-top: 12px; 
   box-shadow: 0 4px 12px rgba(0,0,0,0.5); 
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -2257,28 +2750,28 @@ onUnmounted(() => {
 .plane-dropdown-menu {
   position: absolute;
   top: 100%;
-  left: 0;
+  right: 0;
   margin-top: 8px;
-  background: var(--color-border);
-  border: 1px solid #333;
-  border-radius: 2px;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
   width: 260px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  z-index: 1000;
+  box-shadow: var(--shadow-popover);
+  z-index: var(--z-popover);
   color: var(--color-text-primary);
   font-size: 13px;
-  padding: 8px 0;
+  padding: 8px;
 }
-.dd-section { padding: 8px 16px; }
+.dd-section { padding: 8px; }
 .dd-section.border-top { border-top: 1px solid var(--color-border); }
-.dd-title { display: flex; justify-content: space-between; color: var(--color-text-muted); font-size: 12px; font-weight: 500; margin-bottom: 8px; }
+.dd-title { display: flex; justify-content: space-between; color: var(--color-text-muted); font-size: 12px; font-weight: 700; margin-bottom: 8px; }
 .dd-btns { display: flex; gap: 8px; flex-wrap: wrap; }
-.dd-tag { background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-primary); border-radius: 2px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
-.dd-tag.active { background: #0EA5E9; color: var(--color-text-primary); border-color: #0EA5E9; }
-.dd-tag:disabled { cursor: not-allowed; opacity: 0.75; }
+.dd-tag { background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-primary); border-radius: 999px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
+.dd-tag.active { background: var(--color-accent); color: #ffffff; border-color: var(--color-accent); }
 .dd-list { display: flex; flex-direction: column; gap: 8px; }
-.dd-item { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.dd-item input[type="radio"], .dd-item input[type="checkbox"] { accent-color: #0EA5E9; cursor: pointer; }
+.dd-item { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 7px 8px; border-radius: 8px; color: var(--color-text-secondary); }
+.dd-item:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+.dd-item input[type="radio"], .dd-item input[type="checkbox"] { accent-color: var(--color-accent); cursor: pointer; width: 14px; height: 14px; }
 
 .plane-list-view {
   display: flex;
@@ -2576,17 +3069,20 @@ onUnmounted(() => {
 .analytics-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(2, 6, 23, 0.52);
   z-index: 9999;
   display: flex;
   justify-content: flex-end;
+  backdrop-filter: blur(2px);
 }
 .analytics-panel {
-  width: 900px;
-  max-width: 90vw;
-  background: var(--color-surface);
+  width: min(860px, 92vw);
+  max-width: 92vw;
+  background:
+    linear-gradient(180deg, rgba(14, 165, 233, 0.10), transparent 280px),
+    color-mix(in srgb, var(--color-bg) 88%, #0f172a 12%);
   height: 100%;
-  box-shadow: none !important;
+  box-shadow: -24px 0 64px rgba(0, 0, 0, 0.36) !important;
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
@@ -2604,30 +3100,69 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--color-border);
+  background:
+    linear-gradient(90deg, rgba(56, 189, 248, 0.18), transparent 56%),
+    color-mix(in srgb, var(--color-surface) 82%, transparent);
 }
-.ap-header h3 { margin: 0; font-size: 16px; font-weight: 500; color: var(--color-text-primary); }
+.ap-header h3 { margin: 0; font-size: 18px; font-weight: 800; color: var(--color-text-primary); letter-spacing: 0; }
 .ap-actions { display: flex; gap: 12px; }
 .icon-btn { background: transparent; border: none; color: var(--color-text-muted); font-size: 14px; cursor: pointer; }
 .icon-btn:hover { color: var(--color-text-primary); }
 
 .ap-body {
-  padding: 24px;
+  padding: 22px 24px 30px;
   overflow-y: auto;
   flex: 1;
 }
 
 /* Stats Grid */
 .ap-stats-grid {
-  display: flex;
-  gap: 24px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
 }
-.stat-box { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 150px; }
-.stat-box .lbl { color: var(--color-text-muted); font-size: 12px; font-weight: 500; }
-.stat-box .val { color: var(--color-text-primary); font-size: 20px; font-weight: 600; }
+.stat-box {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+}
+.stat-box::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--stat-accent, #38bdf8);
+}
+.stat-box:nth-child(1) { --stat-accent: #38bdf8; }
+.stat-box:nth-child(2) { --stat-accent: #3b82f6; }
+.stat-box:nth-child(3) { --stat-accent: #94a3b8; }
+.stat-box:nth-child(4) { --stat-accent: #f59e0b; }
+.stat-box:nth-child(5) { --stat-accent: #22c55e; }
+.stat-box:hover {
+  border-color: color-mix(in srgb, var(--stat-accent) 56%, var(--color-border));
+  background: color-mix(in srgb, var(--color-surface) 86%, var(--stat-accent) 14%);
+}
+.stat-box .lbl { color: var(--color-text-muted); font-size: 11px; font-weight: 650; line-height: 1.35; }
+.stat-box .val { color: var(--color-text-primary); font-size: 24px; font-weight: 850; line-height: 1; }
 
-.ap-chart-card { margin-top: 32px; }
-.ap-chart-card h4 { margin: 0; font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
+.ap-chart-card {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 34%),
+    color-mix(in srgb, var(--color-surface) 78%, transparent);
+}
+.ap-chart-card h4 { margin: 0; font-size: 14px; font-weight: 800; color: var(--color-text-primary); }
+.chart-container { height: 260px; }
 
 .line-chart-mock {
   position: relative;
@@ -2690,16 +3225,402 @@ onUnmounted(() => {
   letter-spacing: 1px;
 }
 
-.ap-table-wrap { margin-top: 40px; }
+.ap-table-wrap {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+}
 .table-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; }
 .flex-center { display: flex; align-items: center; }
-.export-btn { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-primary); border-radius: 2px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
-.export-btn:hover { background: var(--color-border); }
+.export-btn { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-secondary); border-radius: 6px; padding: 5px 8px; font-size: 12px; cursor: pointer; }
+.export-btn:hover { background: var(--color-bg-secondary); color: var(--color-text-primary); }
 
 .ap-table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--color-text-primary); }
-.ap-table th { color: var(--color-text-muted); font-weight: 500; border-bottom: 1px solid var(--color-border); padding: 12px 16px; text-align: left; }
-.ap-table td { padding: 16px; border-bottom: 1px solid var(--color-border); }
-.ap-table tr:hover { background: var(--color-surface); }
+.ap-table th { color: var(--color-text-muted); font-weight: 650; border-bottom: 1px solid var(--color-border); padding: 10px 0; text-align: left; }
+.ap-table td { padding: 11px 0; border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent); }
+.ap-table tr:hover { background: color-mix(in srgb, var(--color-surface) 82%, transparent); }
+
+@media (max-width: 920px) {
+  .ap-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Compact density */
+.nexus-project-header {
+  min-height: 52px !important;
+  padding: 10px 16px !important;
+}
+
+.project-title,
+.breadcrumb-current {
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+}
+
+.nexus-controls-row {
+  gap: 8px !important;
+}
+
+.nexus-btn,
+.nexus-btn-primary,
+.view-btn,
+.filter-btn,
+.stats-btn {
+  min-height: 32px !important;
+  border-radius: 8px !important;
+  padding: 6px 10px !important;
+  font-size: 12.5px !important;
+}
+
+.view-toggle {
+  border-radius: 9px !important;
+  padding: 2px !important;
+}
+
+.board-wrapper,
+.kanban-wrapper {
+  padding: 18px var(--sa-page-x, 24px) 26px !important;
+}
+
+.kanban-board {
+  gap: 14px !important;
+}
+
+.kanban-column,
+.col {
+  min-width: 284px !important;
+  width: 284px !important;
+  border-radius: 10px !important;
+}
+
+.column-header,
+.col-header {
+  min-height: 48px !important;
+  padding: 10px 12px !important;
+  border-radius: 8px !important;
+}
+
+.column-title,
+.col-title {
+  font-size: 12.5px !important;
+}
+
+.work-item-card,
+.task-card {
+  border-radius: 8px !important;
+  padding: 12px !important;
+}
+
+.task-title,
+.card-title {
+  font-size: 13px !important;
+  line-height: 1.3 !important;
+  overflow-wrap: anywhere !important;
+}
+
+.col-body {
+  gap: 10px !important;
+  padding: 10px !important;
+}
+
+.list-wrapper {
+  padding: 12px var(--sa-page-x, 24px) !important;
+}
+
+.group-header,
+.task-row {
+  min-height: 38px !important;
+  padding: 8px 10px !important;
+}
+
+.ap-panel {
+  border-radius: 10px !important;
+}
+
+.ap-header {
+  padding: 14px 18px !important;
+}
+
+.ap-body {
+  padding: 16px 18px 22px !important;
+}
+
+.ap-stats-grid {
+  gap: 10px !important;
+}
+
+.stat-box,
+.ap-chart-card,
+.ap-table-wrap {
+  border-radius: 8px !important;
+  padding: 12px !important;
+}
+
+.stat-box .val {
+  font-size: 20px !important;
+}
+
+@media (max-width: 760px) {
+  .nexus-project-header {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 10px 12px !important;
+  }
+
+  .nexus-controls-row {
+    overflow-x: auto !important;
+    justify-content: flex-start !important;
+  }
+
+  .board-wrapper,
+  .kanban-wrapper,
+  .list-wrapper {
+    padding: 12px !important;
+  }
+
+  .kanban-column,
+  .col {
+    min-width: min(82vw, 284px) !important;
+    width: min(82vw, 284px) !important;
+  }
+}
+
+/* Polished list view and analytics panel */
+.list-wrapper {
+  padding: 18px var(--sa-page-x, 24px) 28px !important;
+  background:
+    radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 32%),
+    var(--color-bg);
+}
+
+.list-group {
+  overflow: hidden;
+  margin-bottom: 18px !important;
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+}
+
+.group-header {
+  min-height: 44px !important;
+  margin: 0 !important;
+  padding: 10px 14px !important;
+  background: color-mix(in srgb, var(--color-surface-hover) 58%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+}
+
+.group-name {
+  font-size: 13.5px !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.01em;
+}
+
+.group-count {
+  min-width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface-hover));
+  color: var(--color-text-primary) !important;
+  font-size: 11px !important;
+  font-weight: 850 !important;
+}
+
+.task-row {
+  min-height: 52px !important;
+  padding: 9px 12px 9px 16px !important;
+  border-bottom-color: color-mix(in srgb, var(--color-border) 70%, transparent) !important;
+  transition: background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.task-row:hover {
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface)) !important;
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.task-id {
+  min-width: 92px !important;
+  color: color-mix(in srgb, var(--color-accent) 72%, var(--color-text-primary)) !important;
+  font-weight: 850 !important;
+}
+
+.task-title {
+  font-size: 13px !important;
+  font-weight: 650;
+}
+
+.pill {
+  min-height: 28px;
+  padding: 4px 10px !important;
+  border-color: color-mix(in srgb, var(--color-border) 86%, transparent) !important;
+  background: color-mix(in srgb, var(--color-surface-hover) 62%, transparent);
+  color: var(--color-text-primary) !important;
+  font-weight: 700;
+}
+
+.add-row-placeholder {
+  padding: 12px 16px !important;
+  background: color-mix(in srgb, var(--color-surface-hover) 42%, transparent);
+}
+
+.analytics-panel {
+  background:
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 34%),
+    var(--color-bg) !important;
+}
+
+.ap-header {
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent) !important;
+}
+
+.stat-box,
+.ap-chart-card,
+.ap-table-wrap {
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent) !important;
+}
+
+.stat-box .lbl,
+.ap-table th,
+.table-head,
+.bar-lbl,
+.x-label,
+.grid-l span {
+  color: var(--color-text-muted) !important;
+}
+
+.stat-box .val,
+.ap-chart-card h4,
+.ap-table td {
+  color: var(--color-text-primary) !important;
+}
+
+/* Stronger state color system for list and analytics */
+.group-header {
+  border-left: 3px solid color-mix(in srgb, var(--color-accent) 70%, transparent);
+}
+
+.pill-status,
+.pill-priority {
+  border-color: color-mix(in srgb, var(--pill-color, var(--color-accent)) 34%, var(--color-border)) !important;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--pill-color, var(--color-accent)) 14%, transparent), transparent 70%),
+    color-mix(in srgb, var(--pill-color, var(--color-accent)) 8%, var(--color-surface)) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.pill-status i,
+.pill-priority i {
+  color: var(--pill-color, var(--color-accent)) !important;
+}
+
+.analytics-panel {
+  background:
+    radial-gradient(circle at 82% 0%, color-mix(in srgb, #22c55e 12%, transparent), transparent 30%),
+    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--color-accent) 14%, transparent), transparent 34%),
+    var(--color-bg) !important;
+}
+
+.ap-header {
+  min-height: 56px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--color-accent) 13%, transparent), transparent 58%),
+    color-mix(in srgb, var(--color-surface) 92%, transparent) !important;
+}
+
+.ap-header h3 {
+  color: var(--color-text-primary) !important;
+  font-size: 16px !important;
+  font-weight: 900 !important;
+}
+
+.ap-body {
+  background: transparent !important;
+}
+
+.stat-box {
+  position: relative;
+  overflow: hidden;
+  min-height: 72px;
+  border-left: 3px solid var(--stat-color, var(--color-accent)) !important;
+}
+
+.stat-box:nth-child(1) { --stat-color: #38bdf8; }
+.stat-box:nth-child(2) { --stat-color: #f59e0b; }
+.stat-box:nth-child(3) { --stat-color: #8b5cf6; }
+.stat-box:nth-child(4) { --stat-color: #fb7185; }
+.stat-box:nth-child(5) { --stat-color: #22c55e; }
+
+.stat-box::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--stat-color) 13%, transparent), transparent 62%);
+  pointer-events: none;
+}
+
+.stat-box .lbl,
+.stat-box .val {
+  position: relative;
+  z-index: 1;
+}
+
+.stat-box .val {
+  color: color-mix(in srgb, var(--stat-color) 38%, var(--color-text-primary)) !important;
+}
+
+.ap-chart-card {
+  border-left: 3px solid color-mix(in srgb, var(--color-accent) 76%, #22c55e) !important;
+}
+
+.ap-table-wrap {
+  overflow: hidden;
+}
+
+.ap-table tbody tr {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--row-color, var(--color-accent)) 8%, transparent), transparent 68%);
+}
+
+.analytics-row-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 750;
+}
+
+.analytics-row-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--row-color, var(--color-accent));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--row-color, var(--color-accent)) 14%, transparent);
+}
+
+[data-theme='light'] .analytics-overlay {
+  background: rgba(15, 23, 42, 0.36) !important;
+}
+
+@media (max-width: 760px) {
+  .list-wrapper {
+    padding: 12px !important;
+  }
+
+  .task-row {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .tr-right {
+    width: 100%;
+    justify-content: flex-start !important;
+  }
+}
 </style>
 
 
