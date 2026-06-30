@@ -2,8 +2,15 @@ export default [
   {
     path: '/sites',
     name: 'SitesForYou',
-    component: () => import('../views/SitesForYou.vue'),
-    meta: { requiresAuth: true }
+    component: () => import('../views/HomeSite/HomeSiteLayout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'SitesForYouContent',
+        component: () => import('../views/SitesForYou.vue')
+      }
+    ]
   },
   {
     path: '/site-selection',
@@ -19,8 +26,9 @@ export default [
     children: [
       {
         path: '',
-        redirect: '/home/teams'
+        redirect: '/home/for-you'
       },
+      { path: 'for-you', name: 'HomeForYou', component: () => import('../views/SitesForYou.vue') },
       {
         path: 'teams',
         component: () => import('../views/HomeSite/Teams/TeamsWrapper.vue'),

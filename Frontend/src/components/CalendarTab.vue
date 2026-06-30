@@ -255,7 +255,7 @@ function formatDateOnly(value) {
               :key="task.id"
               class="day-task-chip"
               :class="{ overdue: isOverdueTask(task) }"
-              :style="{ borderLeft: `3px solid ${getStatusColor(task.statusName)}` }"
+              :style="{ '--task-color': getStatusColor(task.statusName) }"
               @click="emit('open-task', task)"
               @mouseenter.stop="showTooltip($event, day.date)"
             >
@@ -290,6 +290,7 @@ function formatDateOnly(value) {
             :key="task.id"
             type="button"
             class="unscheduled-item"
+            :style="{ '--task-color': getStatusColor(task.statusName) }"
             @click="emit('open-task', task)"
           >
             <span class="unscheduled-key">{{ task.sequenceId || task.id?.substring(0, 8)?.toUpperCase() }}</span>
@@ -318,8 +319,10 @@ function formatDateOnly(value) {
 .plane-calendar {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 180px);
-  background: var(--color-bg);
+  min-height: calc(100vh - 150px);
+  background:
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 30%),
+    var(--color-bg);
   color: var(--color-text-primary);
 }
 
@@ -332,8 +335,10 @@ function formatDateOnly(value) {
 
 .cal-header {
   justify-content: space-between;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--color-border);
+  padding: 12px 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  backdrop-filter: blur(12px);
 }
 
 .cal-nav,
@@ -343,11 +348,12 @@ function formatDateOnly(value) {
 
 .nav-btn,
 .cal-btn {
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: var(--bg-secondary);
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+  border-radius: 10px;
+  background: var(--color-surface);
   color: var(--color-text-secondary);
   cursor: pointer;
+  font-weight: 800;
 }
 
 .nav-btn {
@@ -360,9 +366,18 @@ function formatDateOnly(value) {
   font-size: 13px;
 }
 
+.nav-btn:hover,
+.cal-btn:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 36%, var(--color-border));
+  color: var(--color-text-primary);
+  background: var(--color-surface-hover);
+}
+
 .cal-month-label {
   margin: 0 0 0 8px;
   font-size: 18px;
+  line-height: 1.15;
+  font-weight: 900;
 }
 
 .cal-options {
@@ -375,11 +390,11 @@ function formatDateOnly(value) {
   right: 0;
   z-index: 20;
   min-width: 220px;
-  background: var(--bg-tertiary);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 14px;
   padding: 10px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-popover);
 }
 
 .cal-option-row {
@@ -396,6 +411,8 @@ function formatDateOnly(value) {
   grid-template-columns: minmax(0, 1fr) 280px;
   flex: 1;
   min-height: 0;
+  gap: 12px;
+  padding: 12px;
 }
 
 .cal-grid {
@@ -403,46 +420,60 @@ function formatDateOnly(value) {
   grid-template-columns: repeat(7, 1fr);
   flex: 1;
   min-width: 0;
-  border-left: 1px solid var(--color-border);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 10px;
+  background: var(--color-surface);
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.07);
 }
 
 .cal-day-header {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--color-border);
   border-right: 1px solid var(--color-border);
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 900;
   text-transform: uppercase;
   text-align: right;
+  background: color-mix(in srgb, var(--color-surface-hover) 74%, transparent);
 }
 
 .cal-day-cell {
   position: relative;
-  min-height: 120px;
-  padding: 6px 8px 32px;
+  min-height: 92px;
+  padding: 7px 7px 26px;
   border-bottom: 1px solid var(--color-border);
   border-right: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 94%, var(--color-bg));
 }
 
 .cal-day-cell:hover {
-  background: var(--hover-bg);
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
 }
 
 .cal-day-cell.other-month {
-  opacity: 0.4;
+  opacity: 0.52;
+  background: color-mix(in srgb, var(--color-bg) 72%, var(--color-surface));
+}
+
+.cal-day-cell.is-today {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-accent) 58%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 7%, var(--color-surface));
 }
 
 .day-number {
   margin-bottom: 6px;
   text-align: right;
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .day-number.today-badge {
   display: inline-flex;
-  width: 26px;
-  height: 26px;
+  width: 23px;
+  height: 23px;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
@@ -458,15 +489,27 @@ function formatDateOnly(value) {
 }
 
 .day-task-chip {
-  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--task-color, var(--color-accent)) 30%, var(--color-border));
+  border-left: 3px solid var(--task-color, var(--color-accent));
+  border-radius: 7px;
   padding: 4px 6px;
-  background: var(--bg-tertiary);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--task-color, var(--color-accent)) 15%, transparent), transparent 78%),
+    color-mix(in srgb, var(--task-color, var(--color-accent)) 8%, var(--color-surface));
+  color: var(--color-text-primary);
   font-size: 11px;
+  font-weight: 800;
   cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.day-task-chip:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border));
 }
 
 .day-task-chip.overdue {
-  background: rgba(239, 68, 68, 0.12);
+  --task-color: #ef4444;
+  background: color-mix(in srgb, #ef4444 14%, var(--color-surface));
 }
 
 .chip-text {
@@ -491,14 +534,16 @@ function formatDateOnly(value) {
   left: 6px;
   right: 6px;
   bottom: 4px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
+  border: 1px dashed color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-surface) 76%, transparent);
   color: var(--color-text-muted);
   padding: 4px 6px;
   text-align: left;
   cursor: pointer;
   opacity: 0;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .cal-day-cell:hover .day-add-btn {
@@ -509,10 +554,12 @@ function formatDateOnly(value) {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border-left: 1px solid var(--color-border);
-  background: var(--bg-secondary);
-  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 10px;
+  background: var(--color-surface);
+  padding: 12px;
   min-width: 0;
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.07);
 }
 
 .unscheduled-head {
@@ -549,8 +596,8 @@ function formatDateOnly(value) {
   gap: 4px;
   width: 100%;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--bg-tertiary);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface-hover) 70%, transparent);
   color: var(--color-text-primary);
   padding: 10px;
   text-align: left;
@@ -569,8 +616,9 @@ function formatDateOnly(value) {
 
 .unscheduled-title {
   overflow: hidden;
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
   font-size: 12px;
+  font-weight: 800;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -580,18 +628,18 @@ function formatDateOnly(value) {
   z-index: 40;
   width: 240px;
   max-width: calc(100vw - 24px);
-  border: 1px solid #2d2f36;
-  border-radius: 8px;
-  background: var(--bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
   padding: 10px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-popover);
   pointer-events: none;
 }
 
 .tooltip-title {
   font-size: 12px;
-  font-weight: 600;
-  color: #ffffff;
+  font-weight: 900;
+  color: var(--color-text-primary);
   margin-bottom: 8px;
 }
 
@@ -611,7 +659,7 @@ function formatDateOnly(value) {
 
 .tooltip-text {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -624,7 +672,140 @@ function formatDateOnly(value) {
 
   .unscheduled-panel {
     border-top: 1px solid var(--color-border);
-    border-left: 0;
+  }
+}
+
+[data-theme='dark'] .cal-grid,
+[data-theme='dark'] .unscheduled-panel {
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+}
+
+/* Compact density */
+.calendar-view {
+  min-height: calc(100vh - 150px) !important;
+}
+
+.calendar-toolbar {
+  padding: 12px 16px !important;
+  gap: 10px !important;
+}
+
+.nav-btn,
+.today-btn,
+.options-btn {
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 5px 9px !important;
+  border-radius: 7px !important;
+  font-size: 12px !important;
+}
+
+.month-title {
+  font-size: 16px !important;
+}
+
+.cal-content {
+  gap: 0 !important;
+}
+
+.cal-grid,
+.unscheduled-panel {
+  border-radius: 8px !important;
+}
+
+.cal-weekday {
+  padding: 5px 0 !important;
+  font-size: 11px !important;
+}
+
+.cal-day {
+  min-height: 92px !important;
+  padding: 6px 6px 28px !important;
+}
+
+.day-number {
+  font-size: 11px !important;
+}
+
+.task-pill {
+  border-radius: 6px !important;
+  padding: 4px 6px !important;
+  font-size: 10.5px !important;
+}
+
+.unscheduled-panel {
+  padding: 12px !important;
+}
+
+.unscheduled-card {
+  border-radius: 8px !important;
+  padding: 8px !important;
+}
+
+@media (max-width: 760px) {
+  .calendar-toolbar {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    padding: 10px 12px !important;
+  }
+
+  .cal-day {
+    min-height: 76px !important;
+    padding: 5px !important;
+  }
+
+  .cal-weekday {
+    font-size: 10px !important;
+  }
+}
+
+/* Current calendar polish */
+.cal-content {
+  gap: 12px !important;
+}
+
+.cal-day-cell {
+  min-height: 82px !important;
+  padding: 6px 6px 24px !important;
+}
+
+.day-task-chip {
+  border-color: color-mix(in srgb, var(--task-color, var(--color-accent)) 30%, var(--color-border)) !important;
+  border-left: 3px solid var(--task-color, var(--color-accent)) !important;
+  border-radius: 6px !important;
+  padding: 3px 6px !important;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--task-color, var(--color-accent)) 15%, transparent), transparent 78%),
+    color-mix(in srgb, var(--task-color, var(--color-accent)) 8%, var(--color-surface)) !important;
+}
+
+.unscheduled-item {
+  border-color: color-mix(in srgb, var(--task-color, var(--color-accent)) 24%, var(--color-border)) !important;
+  border-left: 3px solid var(--task-color, var(--color-accent)) !important;
+  border-radius: 8px !important;
+  padding: 8px 9px !important;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--task-color, var(--color-accent)) 12%, transparent), transparent 78%),
+    color-mix(in srgb, var(--color-surface-hover) 58%, transparent) !important;
+}
+
+.unscheduled-item:hover {
+  border-color: color-mix(in srgb, var(--task-color, var(--color-accent)) 52%, var(--color-border)) !important;
+  background: color-mix(in srgb, var(--task-color, var(--color-accent)) 12%, var(--color-surface)) !important;
+}
+
+@media (max-width: 760px) {
+  .cal-content {
+    padding: 8px !important;
+  }
+
+  .cal-day-cell {
+    min-height: 68px !important;
+    padding: 5px !important;
+  }
+
+  .day-add-btn {
+    display: none;
   }
 }
 </style>

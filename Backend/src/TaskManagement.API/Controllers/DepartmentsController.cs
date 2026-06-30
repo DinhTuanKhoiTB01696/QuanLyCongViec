@@ -21,6 +21,29 @@ namespace TaskManagement.API.Controllers
             _context = context;
         }
 
+        private async Task AddSiteAuditAsync(Guid entityId, string action, string? oldValue = null, string? newValue = null)
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdClaim, out var auditUserId))
+            {
+                await _context.SaveChangesAsync();
+                return;
+            }
+
+            _context.SiteAuditLogs.Add(new TaskManagement.Domain.Entities.SiteAuditLog
+            {
+                EntityId = entityId,
+                EntityType = "Team",
+                Action = action,
+                UserId = auditUserId,
+                OldValue = oldValue,
+                NewValue = newValue,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            await _context.SaveChangesAsync();
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -50,25 +73,91 @@ namespace TaskManagement.API.Controllers
                 .Select(dm => new { 
                     id = dm.UserId, 
                     name = dm.User.FullName ?? dm.User.Email, 
+                    fullName = dm.User.FullName ?? dm.User.Email,
                     email = dm.User.Email,
-                    avatar = dm.User.AvatarUrl ?? (dm.User.FullName != null ? dm.User.FullName.Substring(0, 2).ToUpper() : "U"),
+                    avatarUrl = dm.User.AvatarUrl,
+                    avatar = dm.User.AvatarUrl,
                     role = "Member"
                 })
                 .ToListAsync();
 
+            var linkedGoalIds = await _context.TeamGoals
+                .Where(tg => tg.DepartmentId == id)
+                .Select(tg => tg.GoalId)
+                .ToListAsync();
+
             var goals = await _context.Goals
-                .Where(g => g.DepartmentId == id && !g.IsArchived)
-                .Select(g => new { id = g.Id, title = g.Title, status = g.Status })
+                .Where(g => (g.DepartmentId == id || linkedGoalIds.Contains(g.Id)) && !g.IsArchived)
+                .Select(g => new { id = g.Id, title = g.Title, status = g.Status, progress = g.Progress, updatedAt = g.UpdatedAt })
                 .ToListAsync();
 
             var projects = await _context.ProjectDepartmentRoles
                 .Where(pdr => pdr.DepartmentId == id)
-                .Select(pdr => new { id = pdr.ProjectId, name = pdr.Project.Name, status = "Active" })
+                .Select(pdr => new
+                {
+                    id = pdr.ProjectId,
+                    name = pdr.Project.Name,
+                    title = pdr.Project.Name,
+                    status = pdr.Project.Status ? "Active" : "Archived",
+                    roleName = pdr.RoleName,
+                    updatedAt = pdr.Project.UpdatedAt
+                })
+                .ToListAsync();
+
+            var linkedProjectIds = projects.Select(p => p.id).ToList();
+            var activityTasks = await _context.WorkTasks
+                .AsNoTracking()
+                .Include(task => task.Project)
+                .Include(task => task.TaskStatus)
+                .Include(task => task.AssignedUser)
+                .Include(task => task.Reporter)
+                .Where(task => linkedProjectIds.Contains(task.ProjectId) && !task.IsDeleted && !task.IsArchived)
+                .OrderByDescending(task => task.UpdatedAt)
+                .Take(50)
+                .Select(task => new
+                {
+                    id = task.Id,
+                    projectId = task.ProjectId,
+                    title = task.Title,
+                    sequenceId = task.SequenceId,
+                    projectName = task.Project.Name,
+                    status = task.TaskStatus.Name,
+                    priority = task.Priority,
+                    updatedAt = task.UpdatedAt,
+                    createdAt = task.CreatedAt,
+                    assignedUser = task.AssignedUser == null ? null : new
+                    {
+                        id = task.AssignedUser.Id,
+                        fullName = task.AssignedUser.FullName ?? task.AssignedUser.Email,
+                        name = task.AssignedUser.FullName ?? task.AssignedUser.Email,
+                        email = task.AssignedUser.Email,
+                        avatarUrl = task.AssignedUser.AvatarUrl
+                    },
+                    reporter = task.Reporter == null ? null : new
+                    {
+                        id = task.Reporter.Id,
+                        fullName = task.Reporter.FullName ?? task.Reporter.Email,
+                        name = task.Reporter.FullName ?? task.Reporter.Email,
+                        email = task.Reporter.Email,
+                        avatarUrl = task.Reporter.AvatarUrl
+                    }
+                })
                 .ToListAsync();
 
             var parent = department.ParentId.HasValue ? await _context.Departments
                 .Where(d => d.Id == department.ParentId.Value)
                 .Select(d => new { id = d.Id, name = d.Name })
+                .FirstOrDefaultAsync() : null;
+
+            var manager = department.ManagerId.HasValue ? await _context.Users
+                .Where(u => u.Id == department.ManagerId.Value)
+                .Select(u => new
+                {
+                    id = u.Id,
+                    name = u.FullName ?? u.Email,
+                    email = u.Email,
+                    avatarUrl = u.AvatarUrl
+                })
                 .FirstOrDefaultAsync() : null;
 
             var children = await _context.Departments
@@ -98,9 +187,11 @@ namespace TaskManagement.API.Controllers
                     description = department.Description ?? "Phòng ban / Đội nhóm trong hệ thống",
                     coverImage = department.CoverImage ?? "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200&q=80",
                     members = members,
+                    manager = manager,
                     hierarchy = new { parent = parent, children = children },
                     goals = goals,
                     projects = projects,
+                    activityTasks = activityTasks,
                     kudos = kudos
                 }
             });
@@ -112,6 +203,34 @@ namespace TaskManagement.API.Controllers
             try
             {
                 var result = await _departmentService.CreateAsync(dto);
+                var memberIds = dto.MemberIds
+                    .Where(id => id != Guid.Empty)
+                    .Distinct()
+                    .ToList();
+
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (Guid.TryParse(userIdClaim, out var userId) && !memberIds.Contains(userId))
+                    memberIds.Add(userId);
+
+                if (memberIds.Count > 0)
+                    await _departmentService.AddMembersAsync(result.Id, memberIds);
+
+                result = await _departmentService.GetByIdAsync(result.Id) ?? result;
+
+                if (Guid.TryParse(userIdClaim, out var auditUserId))
+                {
+                    _context.SiteAuditLogs.Add(new TaskManagement.Domain.Entities.SiteAuditLog
+                    {
+                        EntityId = result.Id,
+                        EntityType = "Team",
+                        Action = "Create",
+                        UserId = auditUserId,
+                        NewValue = result.Name,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    await _context.SaveChangesAsync();
+                }
+
                 return CreatedAtAction(nameof(GetById), new { id = result.Id },
                     ApiResponse<DepartmentResponseDto>.Created(result));
             }
@@ -126,7 +245,9 @@ namespace TaskManagement.API.Controllers
         {
             try
             {
+                var before = await _departmentService.GetByIdAsync(id);
                 var result = await _departmentService.UpdateAsync(id, dto);
+                await AddSiteAuditAsync(id, "Update", before?.Name, result.Name);
                 return Ok(ApiResponse<DepartmentResponseDto>.Success(result, "Cập nhật thành công."));
             }
             catch (ArgumentException ex)
@@ -144,6 +265,7 @@ namespace TaskManagement.API.Controllers
             try
             {
                 await _departmentService.ArchiveAsync(id);
+                await AddSiteAuditAsync(id, "Archive");
                 return Ok(ApiResponse<object>.Success(null!, "Phòng ban đã được vô hiệu hóa."));
             }
             catch (ArgumentException ex)
@@ -161,6 +283,7 @@ namespace TaskManagement.API.Controllers
             try
             {
                 await _departmentService.RestoreAsync(id);
+                await AddSiteAuditAsync(id, "Restore");
                 return Ok(ApiResponse<object>.Success(null!, "Phòng ban đã được khôi phục."));
             }
             catch (ArgumentException ex)
@@ -178,6 +301,7 @@ namespace TaskManagement.API.Controllers
             try
             {
                 await _departmentService.SoftDeleteAsync(id);
+                await AddSiteAuditAsync(id, "Delete");
                 return Ok(ApiResponse<object>.Success(null!, "Phòng ban đã được xóa."));
             }
             catch (ArgumentException ex)
@@ -192,6 +316,20 @@ namespace TaskManagement.API.Controllers
             try
             {
                 await _departmentService.AddMembersAsync(id, userIds);
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (Guid.TryParse(userIdClaim, out var auditUserId))
+                {
+                    _context.SiteAuditLogs.Add(new TaskManagement.Domain.Entities.SiteAuditLog
+                    {
+                        EntityId = id,
+                        EntityType = "Team",
+                        Action = "AddMember",
+                        UserId = auditUserId,
+                        NewValue = string.Join(",", userIds),
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    await _context.SaveChangesAsync();
+                }
                 return Ok(ApiResponse<object>.Success(null!, "Thêm thành viên thành công."));
             }
             catch (ArgumentException ex)
@@ -206,6 +344,7 @@ namespace TaskManagement.API.Controllers
             try
             {
                 await _departmentService.RemoveMemberAsync(id, userId);
+                await AddSiteAuditAsync(id, "RemoveMember", userId.ToString());
                 return Ok(ApiResponse<object>.Success(null!, "Xóa thành viên thành công."));
             }
             catch (ArgumentException ex)
@@ -219,6 +358,28 @@ namespace TaskManagement.API.Controllers
         {
             try
             {
+                if (parentId.HasValue)
+                {
+                    if (parentId.Value == id)
+                        return BadRequest(ApiResponse<object>.Error("Team khong the la cha cua chinh no."));
+
+                    var cursor = parentId.Value;
+                    while (true)
+                    {
+                        var parent = await _context.Departments
+                            .AsNoTracking()
+                            .Where(d => d.Id == cursor && !d.IsDeleted)
+                            .Select(d => new { d.Id, d.ParentId })
+                            .FirstOrDefaultAsync();
+
+                        if (parent == null || !parent.ParentId.HasValue) break;
+                        if (parent.ParentId.Value == id)
+                            return BadRequest(ApiResponse<object>.Error("Khong the tao vong lap phan cap team."));
+
+                        cursor = parent.ParentId.Value;
+                    }
+                }
+
                 await _departmentService.UpdateHierarchyAsync(id, parentId);
                 return Ok(ApiResponse<object>.Success(null!, "Cập nhật sơ đồ phân cấp thành công."));
             }
@@ -226,6 +387,165 @@ namespace TaskManagement.API.Controllers
             {
                 return BadRequest(ApiResponse<object>.Error(ex.Message));
             }
+        }
+
+        [HttpPut("{id}/manager/{userId}")]
+        public async Task<IActionResult> UpdateManager(Guid id, Guid userId)
+        {
+            var department = await _context.Departments.FirstOrDefaultAsync(d => d.Id == id);
+            if (department == null)
+                return NotFound(ApiResponse<object>.Error("Team không tồn tại.", 404));
+
+            var isMember = await _context.DepartmentMembers.AnyAsync(dm => dm.DepartmentId == id && dm.UserId == userId);
+            if (!isMember)
+                return BadRequest(ApiResponse<object>.Error("Người quản lý phải là thành viên của team."));
+
+            department.ManagerId = userId;
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (Guid.TryParse(userIdClaim, out var auditUserId))
+            {
+                _context.SiteAuditLogs.Add(new TaskManagement.Domain.Entities.SiteAuditLog
+                {
+                    EntityId = id,
+                    EntityType = "Team",
+                    Action = "ChangeManager",
+                    UserId = auditUserId,
+                    NewValue = userId.ToString(),
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            await _context.SaveChangesAsync();
+            return Ok(ApiResponse<object>.Success(new { department.Id, department.ManagerId }));
+        }
+
+        [HttpPost("{id}/goals/{goalId}")]
+        public async Task<IActionResult> LinkGoal(Guid id, Guid goalId)
+        {
+            var departmentExists = await _context.Departments.AnyAsync(d => d.Id == id);
+            if (!departmentExists)
+                return NotFound(ApiResponse<object>.Error("Team không tồn tại.", 404));
+
+            var goal = await _context.Goals.FirstOrDefaultAsync(g => g.Id == goalId && !g.IsArchived);
+            if (goal == null)
+                return NotFound(ApiResponse<object>.Error("Mục tiêu không tồn tại.", 404));
+
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var currentUserId = Guid.TryParse(userIdClaim, out var parsedUserId) ? parsedUserId : Guid.Empty;
+
+            var exists = await _context.TeamGoals.AnyAsync(tg => tg.DepartmentId == id && tg.GoalId == goalId);
+            if (!exists)
+            {
+                _context.TeamGoals.Add(new TaskManagement.Domain.Entities.TeamGoal
+                {
+                    DepartmentId = id,
+                    GoalId = goalId,
+                    CreatedByUserId = currentUserId == Guid.Empty ? goal.OwnerId : currentUserId,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            if (!goal.DepartmentId.HasValue)
+                goal.DepartmentId = id;
+            goal.UpdatedAt = DateTime.UtcNow;
+            if (currentUserId != Guid.Empty)
+            {
+                _context.SiteAuditLogs.Add(new TaskManagement.Domain.Entities.SiteAuditLog
+                {
+                    EntityId = id,
+                    EntityType = "Team",
+                    Action = "LinkGoal",
+                    UserId = currentUserId,
+                    NewValue = goalId.ToString(),
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            await _context.SaveChangesAsync();
+            return Ok(ApiResponse<object>.Success(new { goal.Id, goal.DepartmentId }));
+        }
+
+        [HttpDelete("{id}/goals/{goalId}")]
+        public async Task<IActionResult> UnlinkGoal(Guid id, Guid goalId)
+        {
+            var goal = await _context.Goals.FirstOrDefaultAsync(g => g.Id == goalId);
+            var links = await _context.TeamGoals
+                .Where(tg => tg.DepartmentId == id && tg.GoalId == goalId)
+                .ToListAsync();
+
+            if (goal == null && links.Count == 0)
+                return NoContent();
+
+            if (links.Count > 0)
+                _context.TeamGoals.RemoveRange(links);
+
+            if (goal != null && goal.DepartmentId == id)
+            {
+                goal.DepartmentId = null;
+                goal.UpdatedAt = DateTime.UtcNow;
+            }
+
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (Guid.TryParse(userIdClaim, out var currentUserId))
+            {
+                _context.SiteAuditLogs.Add(new TaskManagement.Domain.Entities.SiteAuditLog
+                {
+                    EntityId = id,
+                    EntityType = "Team",
+                    Action = "UnlinkGoal",
+                    UserId = currentUserId,
+                    OldValue = goalId.ToString(),
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [HttpPost("{id}/projects/{projectId}")]
+        public async Task<IActionResult> LinkProject(Guid id, Guid projectId)
+        {
+            var departmentExists = await _context.Departments.AnyAsync(d => d.Id == id);
+            if (!departmentExists)
+                return NotFound(ApiResponse<object>.Error("Team không tồn tại.", 404));
+
+            var projectExists = await _context.Projects.AnyAsync(p => p.Id == projectId && !p.IsDeleted);
+            if (!projectExists)
+                return NotFound(ApiResponse<object>.Error("Dự án không tồn tại.", 404));
+
+            const string roleName = "Team";
+            var exists = await _context.ProjectDepartmentRoles.AnyAsync(pdr =>
+                pdr.DepartmentId == id && pdr.ProjectId == projectId && pdr.RoleName == roleName);
+
+            if (!exists)
+            {
+                _context.ProjectDepartmentRoles.Add(new TaskManagement.Domain.Entities.ProjectDepartmentRole
+                {
+                    DepartmentId = id,
+                    ProjectId = projectId,
+                    RoleName = roleName,
+                    AssignedAt = DateTime.UtcNow
+                });
+            }
+
+            await AddSiteAuditAsync(id, "LinkProject", null, projectId.ToString());
+
+            return Ok(ApiResponse<object>.Success(new { departmentId = id, projectId, roleName }));
+        }
+
+        [HttpDelete("{id}/projects/{projectId}")]
+        public async Task<IActionResult> UnlinkProject(Guid id, Guid projectId)
+        {
+            var links = await _context.ProjectDepartmentRoles
+                .Where(pdr => pdr.DepartmentId == id && pdr.ProjectId == projectId)
+                .ToListAsync();
+
+            if (links.Count > 0)
+            {
+                _context.ProjectDepartmentRoles.RemoveRange(links);
+            }
+
+            await AddSiteAuditAsync(id, "UnlinkProject", projectId.ToString());
+
+            return NoContent();
         }
     }
 }

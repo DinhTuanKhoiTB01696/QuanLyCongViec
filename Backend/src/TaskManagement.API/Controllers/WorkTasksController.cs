@@ -1491,7 +1491,7 @@ namespace TaskManagement.API.Controllers
                 var comments = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
                     System.Linq.Queryable.OrderBy(
                         System.Linq.Queryable.Select(
-                            System.Linq.Queryable.Where(context.Comments, c => c.WorkTaskId == id && !c.IsDeleted),
+                            System.Linq.Queryable.Where(context.Comments, c => c.EntityId == id && c.EntityType == "WorkTask" && !c.IsDeleted),
                             c => new {
                                 c.Id,
                                 c.Content,

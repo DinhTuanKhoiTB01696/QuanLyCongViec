@@ -204,7 +204,6 @@
 
       <!-- Kanban Board Layout -->
       <div class="kanban-wrapper" v-if="currentTab === 'board'">
-
         <!-- Loading indicator -->
         <div class="kanban-loading-bar" v-if="store.loading">
           <i class="fa-solid fa-spinner fa-spin"></i>
@@ -2267,7 +2266,6 @@ onUnmounted(() => {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  border-radius: 14px;
   background: var(--col-bg, transparent);
   padding: 12px;
   border: 1px solid color-mix(in srgb, var(--col-color) 18%, var(--color-border));

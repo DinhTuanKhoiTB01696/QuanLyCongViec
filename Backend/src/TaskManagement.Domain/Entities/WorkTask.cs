@@ -58,7 +58,6 @@ namespace TaskManagement.Domain.Entities
         public ICollection<TaskAssignment> TaskAssignments { get; set; } = new List<TaskAssignment>();
         public ICollection<TaskDependency> PredecessorDependencies { get; set; } = new List<TaskDependency>();
         public ICollection<TaskDependency> SuccessorDependencies { get; set; } = new List<TaskDependency>();
-        public ICollection<Comment> Comments { get; set; } = new List<Comment>();
         public ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
         public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
         public ICollection<TimeLog> TimeLogs { get; set; } = new List<TimeLog>();

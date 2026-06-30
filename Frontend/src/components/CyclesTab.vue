@@ -2,12 +2,10 @@
 import { computed, onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSprintStore } from '@/store/useSprintStore'
-import { useI18nStore } from '@/store/useI18nStore'
+import { useI18n } from '@/composables/useI18n'
 import axiosClient from '@/api/axiosClient'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
-
-const i18nStore = useI18nStore()
-const t = (key) => i18nStore.t(key)
+import { currentTheme } from '@/utils/theme'
 
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
@@ -24,8 +22,10 @@ const props = defineProps({
 const router = useRouter()
 const route = useRoute()
 const sprintStore = useSprintStore()
+const { t } = useI18n()
 
-provide(THEME_KEY, 'dark')
+const chartTheme = computed(() => currentTheme.value === 'dark' ? 'dark' : 'light')
+provide(THEME_KEY, chartTheme)
 
 const showCreateModal = ref(false)
 const burndownCharts = ref({})
@@ -144,14 +144,14 @@ const visibleCarryOverTasks = (cycleId) => {
 const availableTargetSprints = (cycleId) => allSprints.value.filter(sprint => sprint.id !== cycleId && (sprint.state || '').toLowerCase() !== 'completed')
 
 const priorityLabel = (priority) => {
-  if (priority === 1) return t('Urgent')
-  if (priority === 2) return t('High')
-  if (priority === 3) return t('Normal')
-  if (priority === 4) return t('Low')
-  return t('None')
+  if (priority === 1) return 'Urgent'
+  if (priority === 2) return 'High'
+  if (priority === 3) return 'Normal'
+  if (priority === 4) return 'Low'
+  return 'None'
 }
 
-const assigneeLabel = (task) => task.assignedUserName || t('Unassigned')
+const assigneeLabel = (task) => task.assignedUserName || 'Unassigned'
 
 const formatDateCompact = (d) => {
   if (!d) return ''
@@ -196,10 +196,10 @@ const progressSegments = (cycle) => {
   const remaining = Math.max((cycle.taskCount || 0) - completed - started - backlog, 0)
 
   return [
-    { label: t('Completed'), value: completed, width: `${(completed / total) * 100}%`, className: 'bg-green' },
-    { label: t('Started'), value: started, width: `${(started / total) * 100}%`, className: 'bg-orange' },
-    { label: t('Backlog'), value: backlog, width: `${(backlog / total) * 100}%`, className: 'bg-lightgray' },
-    { label: t('Other'), value: remaining, width: `${(remaining / total) * 100}%`, className: 'bg-darkgray' }
+    { label: 'Completed', value: completed, width: `${(completed / total) * 100}%`, className: 'bg-green' },
+    { label: 'Started', value: started, width: `${(started / total) * 100}%`, className: 'bg-orange' },
+    { label: 'Backlog', value: backlog, width: `${(backlog / total) * 100}%`, className: 'bg-lightgray' },
+    { label: 'Other', value: remaining, width: `${(remaining / total) * 100}%`, className: 'bg-darkgray' }
   ]
 }
 
@@ -313,19 +313,38 @@ const moveCarryOverTasks = async (cycleId, targetSprintId = null) => {
   }
 }
 
+const getBurndownPalette = () => {
+  const dark = currentTheme.value === 'dark'
+  return {
+    text: dark ? '#cbd5e1' : '#475569',
+    grid: dark ? 'rgba(203, 213, 225, 0.10)' : 'rgba(71, 85, 105, 0.16)',
+    current: dark ? '#60a5fa' : '#2563eb',
+    currentArea: dark ? 'rgba(96, 165, 250, 0.18)' : 'rgba(37, 99, 235, 0.12)',
+    ideal: dark ? '#f8fafc' : '#0f172a',
+    tooltipBg: dark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255, 255, 255, 0.98)',
+    tooltipBorder: dark ? 'rgba(148, 163, 184, 0.24)' : 'rgba(148, 163, 184, 0.36)'
+  }
+}
+
 const fetchBurndowns = async () => {
   const chartEntries = {}
+  const palette = getBurndownPalette()
   await Promise.all(activeSprints.value.map(async (sprint) => {
     try {
       const res = await axiosClient.get(`/projects/${props.projectId}/sprints/${sprint.id}/burndown`)
       const burndown = res.data?.data || []
       chartEntries[sprint.id] = {
         backgroundColor: 'transparent',
-        tooltip: { trigger: 'axis' },
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: palette.tooltipBg,
+          borderColor: palette.tooltipBorder,
+          textStyle: { color: palette.ideal }
+        },
         legend: {
-          data: ['Current work items', 'Ideal work items'],
+          data: [t('cyclesTab.currentWorkItems', 'Current work items'), t('cyclesTab.idealWorkItems', 'Ideal work items')],
           bottom: 0,
-          textStyle: { color: 'var(--color-text-muted)', fontSize: 10 }
+          textStyle: { color: palette.text, fontSize: 10, fontWeight: 700 }
         },
         grid: { top: 10, left: 30, right: 10, bottom: 40 },
         xAxis: {
@@ -333,32 +352,32 @@ const fetchBurndowns = async () => {
           data: burndown.map(item => item.date),
           axisLine: { show: false },
           axisTick: { show: false },
-          axisLabel: { color: 'var(--color-text-muted)', fontSize: 9 }
+          axisLabel: { color: palette.text, fontSize: 9, fontWeight: 700 }
         },
         yAxis: {
           type: 'value',
-          splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } },
-          axisLabel: { color: 'var(--color-text-muted)', fontSize: 10 }
+          splitLine: { lineStyle: { color: palette.grid } },
+          axisLabel: { color: palette.text, fontSize: 10, fontWeight: 700 }
         },
         series: [
           {
-            name: 'Current work items',
+            name: t('cyclesTab.currentWorkItems', 'Current work items'),
             type: 'line',
             data: burndown.map(item => item.actualRemaining ?? item.remainingPoints ?? 0),
-            itemStyle: { color: '#3B82F6' },
+            itemStyle: { color: palette.current },
             lineStyle: { width: 2 },
-            areaStyle: { color: 'rgba(59,130,246,0.15)' },
+            areaStyle: { color: palette.currentArea },
             symbol: 'circle',
             symbolSize: 7,
             step: 'end',
             smooth: false
           },
           {
-            name: 'Ideal work items',
+            name: t('cyclesTab.idealWorkItems', 'Ideal work items'),
             type: 'line',
             data: burndown.map(item => item.idealRemaining ?? item.idealPoints ?? 0),
-            itemStyle: { color: 'var(--color-text-muted)' },
-            lineStyle: { type: 'dashed', width: 2 },
+            itemStyle: { color: palette.ideal },
+            lineStyle: { type: 'dashed', width: 2, color: palette.ideal },
             symbol: 'circle',
             symbolSize: 7,
             smooth: false
@@ -511,7 +530,7 @@ const isInRange = (day) => {
 }
 
 const btnDateText = computed(() => {
-  if (!newCycle.value.startDate) return t('Select date range')
+  if (!newCycle.value.startDate) return 'Chon khoang thoi gian'
   const start = formatDateCompact(newCycle.value.startDate)
   const end = newCycle.value.endDate ? formatDateCompact(newCycle.value.endDate) : '...'
   return `${start} -> ${end}`
@@ -528,6 +547,10 @@ watch(
   },
   { immediate: true }
 )
+
+watch(currentTheme, () => {
+  fetchBurndowns()
+})
 
 let cycleRefreshTimer = null
 let unsubscribeAdminRealtime = null
@@ -570,32 +593,32 @@ onUnmounted(() => {
         <div class="project-icon" style="background: #F59E0B">
           <i class="fa-solid fa-certificate"></i>
         </div>
-        <span class="view-name">{{ t('Cycles') }}</span>
+        <span class="view-name">{{ t('cyclesTab.cycles', 'Cycles') }}</span>
       </div>
 
       <div class="nexus-controls-row">
         <!-- Unified clustering: Search -> Filter -> Add Button -->
         <div class="flex items-center gap-2" v-if="showCycleSearch">
-           <input v-model="cycleSearchQuery" class="nexus-search-input" type="text" :placeholder="t('Search cycles...')" style="width: 200px" />
+           <input v-model="cycleSearchQuery" class="nexus-search-input" type="text" :placeholder="t('cyclesTab.searchCycles', 'Search cycles...')" style="width: 200px" />
         </div>
         <button class="nexus-btn-icon" type="button" @click="showCycleSearch = !showCycleSearch" :class="{ active: showCycleSearch }"><i class="fa-solid fa-magnifying-glass"></i></button>
         
         <div class="cycle-filter-wrapper">
           <button class="nexus-btn-outlined" type="button" @click="showCycleFilters = !showCycleFilters" :class="{ active: showCycleFilters || hasCycleFilters }">
-            <i class="fa-solid fa-filter"></i> {{ t('Filters') }}
+            <i class="fa-solid fa-filter"></i> {{ t('cyclesTab.filters', 'Filters') }}
           </button>
           <div class="cycle-filter-menu" v-if="showCycleFilters" @click.stop>
-            <div class="filter-title">{{ t('Progress') }}</div>
-            <label class="filter-option"><input type="radio" value="all" v-model="cycleProgressFilter" /> {{ t('All cycles') }}</label>
-            <label class="filter-option"><input type="radio" value="not-started" v-model="cycleProgressFilter" /> {{ t('Not started') }}</label>
-            <label class="filter-option"><input type="radio" value="in-progress" v-model="cycleProgressFilter" /> {{ t('IN PROGRESS') }}</label>
-            <label class="filter-option"><input type="radio" value="completed" v-model="cycleProgressFilter" /> {{ t('Completed') }}</label>
-            <button class="clear-filter-btn" type="button" @click="clearCycleFilters">{{ t('Clear filters') }}</button>
+            <div class="filter-title">{{ t('cyclesTab.progress', 'Progress') }}</div>
+            <label class="filter-option"><input type="radio" value="all" v-model="cycleProgressFilter" /> {{ t('cyclesTab.allCycles', 'All cycles') }}</label>
+            <label class="filter-option"><input type="radio" value="not-started" v-model="cycleProgressFilter" /> {{ t('cyclesTab.notStarted', 'Not started') }}</label>
+            <label class="filter-option"><input type="radio" value="in-progress" v-model="cycleProgressFilter" /> {{ t('cyclesTab.inProgress', 'In progress') }}</label>
+            <label class="filter-option"><input type="radio" value="completed" v-model="cycleProgressFilter" /> {{ t('cyclesTab.completed', 'Completed') }}</label>
+            <button class="clear-filter-btn" type="button" @click="clearCycleFilters">{{ t('cyclesTab.clearFilters', 'Clear filters') }}</button>
           </div>
         </div>
         
         <button class="nexus-btn-primary" type="button" @click="showCreateModal = true">
-          <i class="fa-solid fa-plus"></i> {{ t('Add cycle') }}
+          <i class="fa-solid fa-plus"></i> {{ t('cyclesTab.addCycle', 'Add cycle') }}
         </button>
       </div>
     </header>
@@ -605,11 +628,11 @@ onUnmounted(() => {
         <div class="cs-header" @click="toggleTab('active')">
           <i class="chevron fa-solid" :class="expandedTabs.active ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
           <i class="fa-solid fa-circle-half-stroke text-orange"></i>
-          <span class="cs-title">{{ t('Active cycle') }}</span>
+          <span class="cs-title">{{ t('cyclesTab.activeCycle', 'Active cycle') }}</span>
         </div>
 
         <div class="cs-content" v-show="expandedTabs.active">
-          <div class="empty-state text-muted" v-if="activeSprints.length === 0">{{ t('No active cycles.') }}</div>
+          <div class="empty-state text-muted" v-if="activeSprints.length === 0">{{ t('cyclesTab.noActiveCycles', 'No active cycles.') }}</div>
           <div class="cycle-card expanded" v-for="cycle in activeSprints" :key="cycle.id">
             <div class="cc-top">
               <div class="cct-left">
@@ -618,7 +641,7 @@ onUnmounted(() => {
               </div>
               <div class="cct-right">
                 <span class="detail-link cursor-pointer hover:text-white" @click.stop="openCycleBoard(cycle)">
-                  <i class="fa-solid fa-info-circle"></i> {{ t('Open board') }}
+                  <i class="fa-solid fa-info-circle"></i> {{ t('cyclesTab.openBoard', 'Open board') }}
                 </span>
                 <span class="date-range">
                   <i class="fa-regular fa-calendar"></i>
@@ -634,8 +657,8 @@ onUnmounted(() => {
             <div class="cc-grid">
               <div class="grid-panel panel-progress">
                 <div class="gp-header">
-                  <span>{{ t('Progress') }}</span>
-                  <span class="sub">{{ t('Work items') }}</span>
+                  <span>{{ t('cyclesTab.progress', 'Progress') }}</span>
+                  <span class="sub">{{ t('cyclesTab.workItems', 'Work items') }}</span>
                 </div>
                 <div class="progress-bar-container">
                   <div
@@ -657,44 +680,44 @@ onUnmounted(() => {
 
               <div class="grid-panel panel-chart">
                 <div class="gp-header">
-                  <span>{{ t('Work item burndown') }}</span>
+                  <span>{{ t('cyclesTab.workItemBurndown', 'Work item burndown') }}</span>
                   <span class="sub text-right">{{ percentLabel(cycle) }}</span>
                 </div>
                 <div class="chart-mockup" style="height: 140px;">
-                  <v-chart v-if="burndownCharts[cycle.id]" :option="burndownCharts[cycle.id]" autoresize />
-                  <div v-else class="text-muted text-xs text-center pt-8">{{ t('No burndown data yet.') }}</div>
+                  <v-chart v-if="burndownCharts[cycle.id]" :option="burndownCharts[cycle.id]" :theme="chartTheme" autoresize />
+                  <div v-else class="text-muted text-xs text-center pt-8">{{ t('cyclesTab.noBurndownData', 'No burndown data yet.') }}</div>
                 </div>
               </div>
 
               <div class="grid-panel panel-tabs">
                 <div class="tabs-header">
-                  <button class="tab-h" :class="{ active: getCyclePanelTab(cycle.id) === 'state' }" @click="setCyclePanelTab(cycle, 'state')">{{ t('Cycle state') }}</button>
-                  <button class="tab-h" :class="{ active: getCyclePanelTab(cycle.id) === 'items' }" @click="setCyclePanelTab(cycle, 'items')">{{ t('Work items') }}</button>
+                  <button class="tab-h" :class="{ active: getCyclePanelTab(cycle.id) === 'state' }" @click="setCyclePanelTab(cycle, 'state')">{{ t('cyclesTab.cycleState', 'Cycle state') }}</button>
+                  <button class="tab-h" :class="{ active: getCyclePanelTab(cycle.id) === 'items' }" @click="setCyclePanelTab(cycle, 'items')">{{ t('cyclesTab.workItems', 'Work items') }}</button>
                 </div>
                 <div class="tabs-body" v-if="getCyclePanelTab(cycle.id) === 'state'">
                   <div class="tab-row">
                     <div class="tr-user">
                       <i class="fa-solid fa-arrows-spin avatar-icon"></i> {{ cycle.state }}
                     </div>
-                    <div class="tr-stat text-muted">{{ activeItemCount(cycle) }} {{ t('items') }}</div>
+                    <div class="tr-stat text-muted">{{ activeItemCount(cycle) }} items</div>
                   </div>
                   <div class="tab-row">
                     <div class="tr-user">
-                      <i class="fa-solid fa-circle-check avatar-icon"></i> {{ t('Completed') }}
+                      <i class="fa-solid fa-circle-check avatar-icon"></i> {{ t('cyclesTab.completed', 'Completed') }}
                     </div>
                     <div class="tr-stat text-muted">{{ cycle.completedTaskCount || 0 }}</div>
                   </div>
                 </div>
                 <div class="tabs-body work-items-body" v-else>
-                  <div v-if="cycleWorkItemsLoading[cycle.id]" class="tab-empty text-muted">{{ t('Loading work items...') }}</div>
-                  <div v-else-if="cycleItemsFor(cycle.id).length === 0" class="tab-empty text-muted">{{ t('No work items in this cycle.') }}</div>
+                  <div v-if="cycleWorkItemsLoading[cycle.id]" class="tab-empty text-muted">{{ t('cyclesTab.loadingWorkItems', 'Loading work items...') }}</div>
+                  <div v-else-if="cycleItemsFor(cycle.id).length === 0" class="tab-empty text-muted">{{ t('cyclesTab.noWorkItemsInCycle', 'No work items in this cycle.') }}</div>
                   <div v-else class="cycle-work-item" v-for="item in cycleItemsFor(cycle.id)" :key="item.id">
                     <div class="work-item-main">
                       <span class="work-item-id">{{ item.sequenceId || item.id?.substring(0, 8).toUpperCase() }}</span>
                       <span class="work-item-title">{{ item.title }}</span>
                     </div>
                     <div class="work-item-meta">
-                     <span>{{ t(item.statusName || 'BACKLOG') }}</span>
+                      <span>{{ item.statusName || 'Backlog' }}</span>
                       <span>{{ priorityLabel(item.priority) }}</span>
                     </div>
                   </div>
@@ -709,12 +732,12 @@ onUnmounted(() => {
         <div class="cs-header" @click="toggleTab('upcoming')">
           <i class="chevron fa-solid" :class="expandedTabs.upcoming ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
           <i class="fa-regular fa-circle-dashed text-blue"></i>
-          <span class="cs-title">{{ t('Upcoming cycle') }}</span>
+          <span class="cs-title">{{ t('cyclesTab.upcomingCycle', 'Upcoming cycle') }}</span>
           <span class="cs-count">{{ upcomingSprints.length }}</span>
         </div>
 
         <div class="cs-content" v-show="expandedTabs.upcoming">
-          <div class="empty-state text-muted" v-if="upcomingSprints.length === 0">{{ t('No upcoming cycles.') }}</div>
+          <div class="empty-state text-muted" v-if="upcomingSprints.length === 0">{{ t('cyclesTab.noUpcomingCycles', 'No upcoming cycles.') }}</div>
           <div class="cycle-card collapsed hover-card" v-for="cycle in upcomingSprints" :key="cycle.id">
             <div class="cct-left">
               <div class="progress-ring text-muted">{{ percentLabel(cycle) }}</div>
@@ -725,11 +748,11 @@ onUnmounted(() => {
                 <i class="fa-regular fa-calendar"></i>
                 {{ formatDateCompact(cycle.startDate) }} - {{ formatDateCompact(cycle.endDate) }}
               </span>
-              <button class="btn-primary" style="margin-right: 8px;" @click.stop="startCycle(cycle)">
-                <i class="fa-solid fa-play"></i> Start cycle
+              <button class="plane-primary-btn" style="margin-right: 8px;" @click.stop="startCycle(cycle)">
+                <i class="fa-solid fa-play"></i> {{ t('cyclesTab.startCycle', 'Start cycle') }}
               </button>
               <span class="detail-link cursor-pointer hover:text-white" @click.stop="openCycleBoard(cycle)">
-                <i class="fa-solid fa-info-circle"></i> {{ t('Open board') }}
+                <i class="fa-solid fa-info-circle"></i> {{ t('cyclesTab.openBoard', 'Open board') }}
               </span>
               <button class="icon-btn" @click.stop="sprintStore.toggleFavorite(props.projectId, cycle.id)">
                 <i class="fa-solid fa-star text-orange-400" v-if="cycle.isFavorite"></i>
@@ -744,12 +767,12 @@ onUnmounted(() => {
         <div class="cs-header" @click="toggleTab('completed')">
           <i class="chevron fa-solid" :class="expandedTabs.completed ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
           <i class="fa-solid fa-circle-check text-green"></i>
-          <span class="cs-title">{{ t('Completed cycle') }}</span>
+          <span class="cs-title">{{ t('cyclesTab.completedCycle', 'Completed cycle') }}</span>
           <span class="cs-count">{{ completedSprints.length }}</span>
         </div>
 
         <div class="cs-content" v-show="expandedTabs.completed">
-          <div class="empty-state text-muted" v-if="completedSprints.length === 0">{{ t('No completed cycles yet.') }}</div>
+          <div class="empty-state text-muted" v-if="completedSprints.length === 0">{{ t('cyclesTab.noCompletedCyclesYet', 'No completed cycles yet.') }}</div>
           <div v-for="cycle in completedSprints" :key="cycle.id" class="completed-cycle-wrapper">
             <div class="cycle-card collapsed hover-card">
               <div class="cct-left">
@@ -757,9 +780,9 @@ onUnmounted(() => {
                 <span class="cycle-name">{{ cycle.name }}</span>
               </div>
               <div class="cct-right">
-                <span class="completed-badge">{{ t('Completed') }}</span>
+                <span class="completed-badge">{{ t('cyclesTab.completed', 'Completed') }}</span>
                 <span class="detail-link cursor-pointer hover:text-white" @click.stop="openCycleBoard(cycle)">
-                  <i class="fa-solid fa-info-circle"></i> {{ t('Open board') }}
+                  <i class="fa-solid fa-info-circle"></i> {{ t('cyclesTab.openBoard', 'Open board') }}
                 </span>
                 <span class="date-range">
                   <i class="fa-regular fa-calendar"></i>
@@ -772,8 +795,8 @@ onUnmounted(() => {
                   <i class="fa-solid fa-star text-orange-400" v-if="cycle.isFavorite"></i>
                   <i class="fa-regular fa-star" v-else></i>
                 </button>
-                <button class="filter-action" type="button" @click.stop="toggleCarryOverPlanner(cycle)" :class="{ active: expandedCarryOverCycleId === cycle.id }">
-                  <i class="fa-solid fa-list-check"></i> {{ t('Carry-over') }}
+                <button v-if="false" class="filter-action" type="button" @click.stop="toggleCarryOverPlanner(cycle)" :class="{ active: expandedCarryOverCycleId === cycle.id }">
+                  <i class="fa-solid fa-list-check"></i> {{ t('cyclesTab.carryOver', 'Carry-over') }}
                 </button>
               </div>
             </div>
@@ -785,7 +808,7 @@ onUnmounted(() => {
                     class="carry-over-search"
                     :value="getCarryOverFilter(cycle.id).search"
                     type="text"
-                    :placeholder="t('Search carry-over tasks')"
+                    placeholder="Search carry-over tasks"
                     @input="updateCarryOverFilter(cycle.id, { search: $event.target.value })"
                   />
                   <select
@@ -793,46 +816,46 @@ onUnmounted(() => {
                     :value="getCarryOverFilter(cycle.id).scope"
                     @change="updateCarryOverFilter(cycle.id, { scope: $event.target.value })"
                   >
-                    <option value="all">{{ t('All locations') }}</option>
-                    <option value="backlog">{{ t('Backlog only') }}</option>
-                    <option value="cycle">{{ t('Cycle only') }}</option>
+                    <option value="all">All locations</option>
+                    <option value="backlog">Backlog only</option>
+                    <option value="cycle">Cycle only</option>
                   </select>
-                  <button class="filter-action" type="button" @click="fetchCarryOverTasks(cycle.id, true)">{{ t('Refresh') }}</button>
-                  <button class="filter-action" type="button" @click="openCarryOverBoard(cycle)">{{ t('Open board') }}</button>
+                  <button class="filter-action" type="button" @click="fetchCarryOverTasks(cycle.id, true)">Refresh</button>
+                  <button class="filter-action" type="button" @click="openCarryOverBoard(cycle)">Open board</button>
                 </div>
                 <div class="carry-over-actions">
-                  <span class="text-muted">{{ carryOverSelectedCount(cycle.id) }} {{ t('selected') }}</span>
+                  <span class="text-muted">{{ carryOverSelectedCount(cycle.id) }} selected</span>
                   <select
                     class="carry-over-select"
                     :value="getCarryOverTargetSprintId(cycle.id)"
                     @change="carryOverTargetSprintId = { ...carryOverTargetSprintId, [cycle.id]: $event.target.value || null }"
                   >
-                    <option :value="null">{{ t('Move to cycle...') }}</option>
+                    <option :value="null">Move to cycle...</option>
                     <option v-for="target in availableTargetSprints(cycle.id)" :key="target.id" :value="target.id">
                       {{ target.name }}
                     </option>
                   </select>
-                  <button class="filter-action" type="button" :disabled="carryOverMoving[cycle.id]" @click="moveCarryOverTasks(cycle.id, null)">{{ t('Move to backlog') }}</button>
+                  <button class="filter-action" type="button" :disabled="carryOverMoving[cycle.id]" @click="moveCarryOverTasks(cycle.id, null)">Move to backlog</button>
                   <button
                     class="primary-action"
                     type="button"
                     :disabled="carryOverMoving[cycle.id] || !getCarryOverTargetSprintId(cycle.id)"
                     @click="moveCarryOverTasks(cycle.id, getCarryOverTargetSprintId(cycle.id))"
                   >
-                    {{ t('Move selected') }}
+                    Move selected
                   </button>
                 </div>
               </div>
 
-              <div v-if="carryOverLoading[cycle.id]" class="tab-empty text-muted">{{ t('Loading carry-over tasks...') }}</div>
-              <div v-else-if="visibleCarryOverTasks(cycle.id).length === 0" class="tab-empty text-muted">{{ t('No carry-over tasks from this completed cycle.') }}</div>
+              <div v-if="carryOverLoading[cycle.id]" class="tab-empty text-muted">Loading carry-over tasks...</div>
+              <div v-else-if="visibleCarryOverTasks(cycle.id).length === 0" class="tab-empty text-muted">No carry-over tasks from this completed cycle.</div>
               <div v-else class="carry-over-table">
                 <div class="carry-over-head">
                   <label class="carry-over-check">
                     <input type="checkbox" :checked="visibleCarryOverTasks(cycle.id).length > 0 && carryOverSelectedCount(cycle.id) === visibleCarryOverTasks(cycle.id).length" @change="toggleSelectAllCarryOver(cycle.id)" />
-                    <span>{{ t('Select all visible') }}</span>
+                    <span>Select all visible</span>
                   </label>
-                  <span class="text-muted">{{ visibleCarryOverTasks(cycle.id).length }} {{ t('tasks') }}</span>
+                  <span class="text-muted">{{ visibleCarryOverTasks(cycle.id).length }} tasks</span>
                 </div>
 
                 <div v-for="task in visibleCarryOverTasks(cycle.id)" :key="task.id" class="carry-over-row">
@@ -844,10 +867,10 @@ onUnmounted(() => {
                     <span class="work-item-title">{{ task.title }}</span>
                   </div>
                   <div class="carry-over-meta">
-                    <span>{{ t(task.statusName) }}</span>
+                    <span>{{ task.statusName }}</span>
                     <span>{{ priorityLabel(task.priority) }}</span>
                     <span>{{ assigneeLabel(task) }}</span>
-                    <span>{{ task.currentSprintName || t('BACKLOG') }}</span>
+                    <span>{{ task.currentSprintName || 'Backlog' }}</span>
                   </div>
                 </div>
               </div>
@@ -861,12 +884,12 @@ onUnmounted(() => {
       <div class="create-cycle-modal">
         <div class="cm-header">
           <div class="cm-badge"><i class="fa-solid fa-certificate text-orange"></i> CYBWF</div>
-          <h2 class="cm-title">{{ t('Create cycle') }}</h2>
+          <h2 class="cm-title">Create cycle</h2>
         </div>
 
         <div class="cm-body" :style="{ paddingBottom: showCalendar ? '300px' : '24px' }">
-          <input v-model="newCycle.name" type="text" class="cm-input" :placeholder="t('Title')" autofocus />
-          <textarea v-model="newCycle.description" class="cm-textarea" :placeholder="t('Description')" rows="4"></textarea>
+          <input v-model="newCycle.name" type="text" class="cm-input" placeholder="Title" autofocus />
+          <textarea v-model="newCycle.description" class="cm-textarea" placeholder="Description" rows="4"></textarea>
 
           <div class="dp-wrapper mt-4">
             <button class="dp-btn" @click="toggleCalendar">
@@ -877,7 +900,7 @@ onUnmounted(() => {
 
               <div class="dp-header">
                 <div class="dp-month-year">
-                  <span>{{ t(monthNames[currentMonth]) }}</span>
+                  <span>{{ monthNames[currentMonth] }}</span>
                   <span>{{ currentYear }}</span>
                 </div>
                 <div class="dp-nav">
@@ -887,7 +910,7 @@ onUnmounted(() => {
               </div>
 
               <div class="dp-grid">
-                <div class="dp-day-num headday" v-for="dayName in dayNames" :key="dayName">{{ t(dayName) }}</div>
+                <div class="dp-day-num headday" v-for="dayName in dayNames" :key="dayName">{{ dayName }}</div>
 
                 <div class="dp-day-wrapper" v-for="(day, index) in daysInMonth" :key="index">
                   <div
@@ -905,8 +928,8 @@ onUnmounted(() => {
         </div>
 
         <div class="cm-footer">
-          <button class="cm-btn-cancel" @click="showCreateModal = false">{{ t('Cancel') }}</button>
-          <button class="cm-btn-create" @click="createNewCycle">{{ t('Create cycle') }}</button>
+          <button class="cm-btn-cancel" @click="showCreateModal = false">Cancel</button>
+          <button class="cm-btn-create" @click="createNewCycle">Create Cycle</button>
         </div>
       </div>
     </div>
@@ -920,8 +943,31 @@ onUnmounted(() => {
   height: 100%;
   color: var(--color-text-primary);
   font-family: inherit;
-  background: var(--color-bg);
+  background:
+    radial-gradient(circle at 16% 0%, rgba(14, 165, 233, 0.10), transparent 30%),
+    linear-gradient(180deg, #f8fbff, #eef5fb 52%, #f8fafc);
   min-height: calc(100vh - 100px);
+}
+
+.nexus-project-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1280px;
+  width: calc(100% - 48px);
+  margin: 20px auto 0;
+  padding: 16px 18px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.065);
+}
+
+.view-name {
+  font-weight: 900;
+  font-size: 15px;
+  color: var(--color-text-primary);
 }
 
 .text-muted { color: var(--color-text-muted); }
@@ -937,25 +983,31 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--color-border);
+  max-width: 1280px;
+  width: calc(100% - 48px);
+  margin: 24px auto 0;
+  padding: 18px 20px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.065);
 }
 
 .vh-right { display: flex; align-items: center; gap: 12px; }
 .icon-action { background: transparent; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 14px; border-radius: 6px; padding: 6px 8px; }
 .icon-action:hover { color: var(--color-text-primary); }
 .icon-action.active { color: var(--color-text-primary); background: var(--color-border); }
-.filter-action { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.filter-action { background: rgba(255,255,255,0.78); border: 1px solid rgba(148, 163, 184, 0.24); color: var(--color-text-primary); padding: 8px 12px; border-radius: 12px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 800; }
 .filter-action:hover { background: var(--color-border); }
 .filter-action.active { background: var(--color-border); border-color: #3F3F46; }
 .cycle-search-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 220px;
+  width: 260px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 5px 10px;
+  border-radius: 12px;
+  padding: 7px 12px;
   background: var(--color-surface);
 }
 .cycle-search-wrapper i { color: var(--color-text-muted); font-size: 12px; }
@@ -974,19 +1026,19 @@ onUnmounted(() => {
   top: calc(100% + 8px);
   right: 0;
   width: 220px;
-  background: #1B1C20;
-  border: 1px solid #2D2F36;
-  border-radius: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
   padding: 12px;
   z-index: 20;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.16);
 }
 .filter-title { color: var(--color-text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; }
 .filter-option {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #D4D4D8;
+  color: var(--color-text-primary);
   font-size: 13px;
   padding: 6px 0;
   cursor: pointer;
@@ -995,87 +1047,45 @@ onUnmounted(() => {
   width: 100%;
   margin-top: 8px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: 10px;
   background: var(--color-surface);
-  color: #D4D4D8;
+  color: var(--color-text-primary);
   padding: 7px;
   cursor: pointer;
 }
 .clear-filter-btn:hover { background: var(--color-border); }
-.primary-action { background: #0EA5E9; color: white; border: none; border-radius: 6px; padding: 6px 16px; font-size: 13px; cursor: pointer; font-weight: 500; }
+.primary-action { background: linear-gradient(135deg, #38bdf8, #2563eb); color: white; border: none; border-radius: 12px; padding: 8px 16px; font-size: 13px; cursor: pointer; font-weight: 900; box-shadow: 0 14px 30px rgba(37, 99, 235, 0.22); }
 .primary-action:hover { background: #0284C7; }
 
-.cycles-body { padding: 24px; flex: 1; }
+.cycles-body { width: 100%; max-width: 1280px; margin: 0 auto; padding: 22px 24px 32px; flex: 1; overflow: auto; }
 .cycle-section { margin-bottom: 24px; }
-.cs-header { display: flex; align-items: center; gap: 12px; padding: 8px 0; cursor: pointer; user-select: none; }
+.cs-header { display: flex; align-items: center; gap: 12px; padding: 10px 0; cursor: pointer; user-select: none; }
 .chevron { font-size: 12px; color: var(--color-text-muted); width: 16px; text-align: center; }
-.cs-title { font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
-.cs-count { font-size: 12px; color: var(--color-text-muted); background: var(--color-border); padding: 2px 8px; border-radius: 12px; }
-.cs-content { padding-left: 28px; margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+.cs-title { font-size: 14px; font-weight: 900; color: var(--color-text-primary); }
+.cs-count { font-size: 12px; color: var(--color-text-primary); background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface-hover)); padding: 2px 8px; border-radius: 999px; font-weight: 900; }
+.cs-content { padding-left: 28px; margin-top: 10px; display: flex; flex-direction: column; gap: 12px; }
 
 .cycle-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
   overflow: hidden;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.065);
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
 }
 
-.cycle-card.hover-card:hover { 
-  border-color: var(--color-accent); 
-  background: var(--color-surface-hover); 
-  transform: translateX(4px);
-  box-shadow: var(--shadow-md);
-}
-.cycle-card.collapsed { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  padding: 16px 20px; 
-}
-.cc-top { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--color-border); }
-.cct-left, .cct-right { display: flex; align-items: center; gap: 16px; }
-.progress-ring { 
-  width: 36px; 
-  height: 36px; 
-  border-radius: 50%; 
-  border: 2.5px solid currentColor; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  font-size: 11px; 
-  font-weight: 700; 
-  flex-shrink: 0;
-}
-.cycle-name { font-size: 15px; font-weight: 700; color: var(--color-text-primary); }
-.detail-link { 
-  font-size: 13px; 
-  color: var(--color-accent); 
-  display: inline-flex; 
-  align-items: center; 
-  gap: 6px; 
-  font-weight: 600;
-  transition: color 0.2s;
-}
-.detail-link:hover {
-  color: var(--color-accent-hover);
-  text-decoration: underline;
-}
-.date-range { 
-  font-size: 12px; 
-  color: var(--color-text-secondary); 
-  display: flex; 
-  align-items: center; 
-  gap: 6px; 
-  background: var(--color-border); 
-  padding: 5px 12px; 
-  border-radius: 8px !important; 
-  font-weight: 500;
-}
+.cycle-card.hover-card:hover { border-color: rgba(14, 165, 233, 0.34); background: rgba(255, 255, 255, 0.96); box-shadow: 0 18px 42px rgba(15, 23, 42, 0.09); }
+.cycle-card.collapsed { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 16px; }
+.cc-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; border-bottom: 1px solid var(--color-border); }
+.cct-left, .cct-right { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.cct-right { flex-wrap: wrap; justify-content: flex-end; }
+.progress-ring { width: 38px; height: 38px; border-radius: 50%; border: 3px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; flex: 0 0 auto; background: color-mix(in srgb, currentColor 10%, transparent); }
+.cycle-name { font-size: 15px; font-weight: 900; color: var(--color-text-primary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.detail-link { font-size: 12px; color: var(--color-accent); display: flex; align-items: center; gap: 6px; font-weight: 900; white-space: nowrap; }
+.date-range { font-size: 12px; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px; background: var(--color-surface-hover); padding: 5px 10px; border-radius: 999px; border: 1px solid var(--color-border); font-weight: 800; white-space: nowrap; }
 .icon-btn { background: transparent; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 14px; transition: color 0.2s; }
 .icon-btn:hover { color: var(--color-text-primary); }
-.completed-badge { font-size: 12px; color: #10B981; font-weight: 700; }
+.completed-badge { font-size: 12px; color: #10B981; font-weight: 500; }
 .task-count-badge { font-size: 12px; color: #A1A1AA; display: flex; align-items: center; gap: 6px; }
 .carry-over-panel {
   margin-top: 12px;
@@ -1127,10 +1137,10 @@ onUnmounted(() => {
   padding: 4px 0;
 }
 .carry-over-row {
-  border: 1px solid #27272A;
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
   padding: 10px 12px;
-  background: #16181D;
+  background: var(--color-surface);
 }
 .carry-over-check {
   display: inline-flex;
@@ -1149,94 +1159,42 @@ onUnmounted(() => {
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
-  color: #A1A1AA;
+  color: var(--color-text-muted);
   font-size: 11px;
 }
 .carry-over-meta span {
-  background: #27272A;
+  background: var(--color-surface-hover);
   border-radius: 999px;
   padding: 4px 8px;
 }
 
-.cc-grid { 
-  display: grid; 
-  grid-template-columns: 1fr 2fr 1.5fr; 
-  background: rgba(0, 0, 0, 0.02);
-  border-top: 1px solid var(--color-border);
-}
-[data-theme='dark'] .cc-grid {
-  background: rgba(255, 255, 255, 0.01);
-}
-@media (max-width: 1024px) {
-  .cc-grid {
-    grid-template-columns: 1fr;
-  }
-  .grid-panel {
-    border-right: none !important;
-    border-bottom: 1px solid var(--color-border);
-  }
-  .grid-panel:last-child {
-    border-bottom: none;
-  }
-}
-.grid-panel { padding: 24px; border-right: 1px solid var(--color-border); }
+.cc-grid { display: grid; grid-template-columns: minmax(220px, 0.9fr) minmax(320px, 1.65fr) minmax(280px, 1.1fr); }
+.grid-panel { padding: 18px; border-right: 1px solid var(--color-border); min-width: 0; }
 .grid-panel:last-child { border-right: none; }
-.gp-header { 
-  display: flex; 
-  justify-content: space-between; 
-  font-size: 14px; 
-  font-weight: 750; 
-  color: var(--color-text-primary);
-  margin-bottom: 20px; 
-}
-.gp-header .sub { color: var(--color-text-muted); font-weight: 500; }
+.gp-header { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 900; margin-bottom: 18px; color: var(--color-text-primary); }
+.gp-header .sub { color: var(--color-text-muted); font-weight: 800; }
 
-.progress-bar-container { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--color-border); margin-bottom: 20px; }
+.progress-bar-container { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--color-border); margin-bottom: 18px; }
 .pb-segment { height: 100%; }
 .legend-list { display: flex; flex-direction: column; gap: 12px; }
-.legend-item { display: flex; align-items: center; font-size: 12px; color: var(--color-text-muted); }
+.legend-item { display: flex; align-items: center; font-size: 12px; color: var(--color-text-secondary); font-weight: 800; }
 .legend-item .dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 10px; }
-.legend-item .val { margin-left: auto; color: var(--color-text-primary); font-weight: 650; }
+.legend-item .val { margin-left: auto; color: var(--color-text-primary); }
 
-.tabs-header { display: flex; border-bottom: 1px solid var(--color-border); margin-bottom: 16px; }
-.tab-h { padding: 0 12px 8px 12px; font-size: 12.5px; color: var(--color-text-muted); border: none; border-bottom: 2px solid transparent; background: transparent; cursor: pointer; font-weight: 600; }
-.tab-h.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); font-weight: 700; }
-.tab-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 10px 12px; border-radius: 8px; background: var(--color-surface-hover); border: 1px solid var(--color-border); }
-.tr-user { display: flex; align-items: center; gap: 10px; color: var(--color-text-primary); font-weight: 600; }
-.avatar-icon { background: var(--color-border); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
-.work-items-body { display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; padding-right: 4px; }
-.tab-empty { font-size: 12px; padding: 8px 12px; color: var(--color-text-muted); }
-.cycle-work-item { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  gap: 12px; 
-  padding: 10px 14px; 
-  border: 1px solid var(--color-border); 
-  border-radius: 10px !important; 
-  background: var(--color-surface); 
-  transition: all 0.2s;
-  cursor: pointer;
-}
-.cycle-work-item:hover {
-  border-color: var(--color-accent);
-  background: var(--color-surface-hover);
-}
-.work-item-main { min-width: 0; display: flex; align-items: center; gap: 10px; }
-.work-item-id { 
-  color: var(--color-text-muted); 
-  font-size: 10.5px; 
-  font-family: monospace; 
-  font-weight: 700; 
-  background: var(--color-bg); 
-  border: 1px solid var(--color-border); 
-  padding: 2px 6px; 
-  border-radius: 4px; 
-  flex-shrink: 0; 
-}
-.work-item-title { color: var(--color-text-primary); font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.work-item-meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; color: var(--color-text-secondary); font-size: 11px; }
-.work-item-meta span { background: var(--color-border); border-radius: 6px; padding: 3px 8px; font-weight: 600; }
+.tabs-header { display: flex; border-bottom: 1px solid var(--color-border); margin-bottom: 14px; gap: 8px; overflow-x: auto; }
+.tab-h { padding: 0 8px 8px; font-size: 12px; color: var(--color-text-muted); border: none; border-bottom: 2px solid transparent; background: transparent; cursor: pointer; font-weight: 800; white-space: nowrap; }
+.tab-h.active { color: var(--color-text-primary); border-bottom-color: #38BDF8; font-weight: 900; }
+.tab-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; padding: 9px 10px; border-radius: 10px; background: color-mix(in srgb, var(--color-surface-hover) 62%, transparent); }
+.tr-user { display: flex; align-items: center; gap: 8px; color: var(--color-text-primary); }
+.avatar-icon { background: color-mix(in srgb, var(--color-accent) 12%, var(--color-border)); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: var(--color-accent); }
+.work-items-body { display: flex; flex-direction: column; gap: 8px; max-height: 150px; overflow-y: auto; padding-right: 4px; }
+.tab-empty { font-size: 12px; padding: 8px 12px; }
+.cycle-work-item { display: flex; justify-content: space-between; gap: 12px; padding: 9px 10px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); }
+.work-item-main { min-width: 0; display: flex; align-items: center; gap: 8px; }
+.work-item-id { color: var(--color-text-muted); font-size: 11px; flex-shrink: 0; }
+.work-item-title { color: var(--color-text-primary); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.work-item-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; color: var(--color-text-muted); font-size: 11px; }
+.work-item-meta span { background: var(--color-surface-hover); border-radius: 999px; padding: 3px 7px; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .modal-overlay {
   position: fixed;
@@ -1254,6 +1212,67 @@ onUnmounted(() => {
   border: 1px solid var(--color-border);
   border-radius: 12px;
   box-shadow: var(--shadow-xl);
+}
+
+[data-theme='dark'] .plane-cycles-wrapper {
+  background:
+    radial-gradient(circle at 14% 0%, rgba(14, 165, 233, 0.11), transparent 30%),
+    linear-gradient(180deg, #07111f, #0f172a 52%, #101827);
+}
+
+[data-theme='dark'] .cycles-view-header,
+[data-theme='dark'] .nexus-project-header,
+[data-theme='dark'] .cycle-card {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.78);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+}
+
+@media (max-width: 1180px) {
+  .cc-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-panel {
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .grid-panel:last-child {
+    border-bottom: none;
+  }
+}
+
+@media (max-width: 780px) {
+  .nexus-project-header,
+  .cycle-card.collapsed,
+  .cc-top {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .nexus-controls-row,
+  .cct-right {
+    justify-content: flex-start !important;
+  }
+
+  .cycles-body {
+    padding: 18px 16px 30px;
+  }
+
+  .cs-content {
+    padding-left: 0;
+  }
+}
+
+[data-theme='dark'] .filter-action {
+  background: rgba(15, 23, 42, 0.82);
+  border-color: rgba(148, 163, 184, 0.22);
+  color: #e2e8f0;
+}
+
+[data-theme='dark'] .cycle-card.hover-card:hover {
+  background: rgba(30, 41, 59, 0.90);
 }
 
 .cm-header { padding: 24px 24px 16px; }
@@ -1290,6 +1309,415 @@ onUnmounted(() => {
 .dp-day-num:hover:not(.headday):not(.disabled) { background: var(--color-surface-hover); color: var(--color-text-primary); }
 .dp-day-num.selected { background: var(--color-accent) !important; color: white !important; }
 .dp-day-num.disabled { color: var(--color-text-disabled); cursor: not-allowed; opacity: 0.5; }
+
+/* Compact density */
+.cycles-tab {
+  min-height: calc(100vh - var(--sa-topbar-height, 52px)) !important;
+}
+
+.nexus-project-header {
+  padding: 12px 16px !important;
+  border-radius: 10px !important;
+}
+
+.cycle-page-title {
+  font-size: 16px !important;
+}
+
+.icon-action,
+.filter-action,
+.primary-action,
+.cycle-search-wrapper,
+.cycle-filter-chip {
+  min-height: 32px !important;
+  border-radius: 8px !important;
+  padding: 6px 10px !important;
+  font-size: 12.5px !important;
+}
+
+.cycles-body {
+  max-width: 1160px !important;
+  padding: 16px var(--sa-page-x, 24px) 26px !important;
+}
+
+.cs-header {
+  padding: 8px 0 !important;
+}
+
+.cs-content {
+  gap: 10px !important;
+  padding-left: 22px !important;
+}
+
+.cycle-card {
+  border-radius: 10px !important;
+}
+
+.cycle-card.collapsed {
+  padding: 12px 14px !important;
+}
+
+.cc-top {
+  padding: 12px 14px !important;
+  gap: 12px !important;
+}
+
+.progress-ring {
+  width: 34px !important;
+  height: 34px !important;
+}
+
+.cycle-name {
+  font-size: 14px !important;
+}
+
+.date-range {
+  padding: 4px 8px !important;
+  font-size: 11.5px !important;
+}
+
+.cc-grid {
+  grid-template-columns: 0.8fr 1.55fr 1fr !important;
+}
+
+.grid-panel {
+  padding: 14px !important;
+}
+
+.gp-header {
+  margin-bottom: 12px !important;
+}
+
+.progress-bar-container {
+  height: 8px !important;
+  margin-bottom: 12px !important;
+}
+
+.cm-header {
+  padding: 16px 18px 12px !important;
+}
+
+.cm-title {
+  font-size: 17px !important;
+}
+
+.cm-body {
+  padding: 0 18px 18px !important;
+}
+
+@media (max-width: 780px) {
+  .cycles-body {
+    padding: 12px !important;
+  }
+
+  .cs-content {
+    padding-left: 0 !important;
+  }
+
+  .cc-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Polished cycles experience */
+.plane-cycles-wrapper {
+  background:
+    radial-gradient(circle at 14% 0%, color-mix(in srgb, var(--color-accent) 11%, transparent), transparent 34%),
+    var(--color-bg) !important;
+}
+
+.cycles-view-header,
+.nexus-project-header {
+  border-radius: 10px !important;
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+.cycle-card {
+  border-radius: 10px !important;
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+.cycle-card.expanded {
+  border-left: 3px solid #f59e0b;
+}
+
+.cycle-card.collapsed {
+  border-left: 3px solid color-mix(in srgb, var(--color-accent) 72%, #f59e0b);
+}
+
+.cycle-card.expanded {
+  position: relative;
+}
+
+.cycle-card.expanded::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, #f59e0b, #38bdf8, #22c55e);
+}
+
+.cc-top {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, #f59e0b 12%, transparent), transparent 64%),
+    color-mix(in srgb, var(--color-surface-hover) 48%, transparent);
+}
+
+.grid-panel {
+  background: color-mix(in srgb, var(--color-surface) 74%, transparent);
+}
+
+.grid-panel + .grid-panel {
+  border-left-color: color-mix(in srgb, var(--color-border) 80%, transparent) !important;
+}
+
+.gp-header,
+.cycle-name,
+.tab-row,
+.cycle-work-item {
+  color: var(--color-text-primary) !important;
+}
+
+.legend-item,
+.detail-link,
+.date-range,
+.work-item-id,
+.work-item-meta {
+  color: var(--color-text-secondary) !important;
+}
+
+.date-range,
+.tab-row,
+.cycle-work-item,
+.carry-over-row {
+  border-radius: 8px !important;
+  background: color-mix(in srgb, var(--color-surface-hover) 58%, transparent) !important;
+}
+
+.chart-mockup {
+  min-height: 150px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+  background:
+    linear-gradient(color-mix(in srgb, var(--color-text-muted) 10%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--color-text-muted) 10%, transparent) 1px, transparent 1px),
+    radial-gradient(circle at 48% 54%, color-mix(in srgb, #3b82f6 12%, transparent), transparent 40%),
+    color-mix(in srgb, var(--color-bg) 38%, transparent);
+  background-size: 100% 26px, 64px 100%, auto, auto;
+}
+
+.cs-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cs-count {
+  min-width: 22px;
+  text-align: center;
+}
+
+.empty-state.text-muted {
+  width: fit-content;
+  max-width: 100%;
+  margin: 8px 0 2px;
+  padding: 12px 14px;
+  border: 1px dashed color-mix(in srgb, var(--color-border) 86%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface-hover) 42%, transparent);
+  color: var(--color-text-secondary) !important;
+  font-weight: 650;
+}
+
+.progress-ring {
+  box-shadow:
+    inset 0 0 0 4px color-mix(in srgb, currentColor 12%, transparent),
+    0 8px 18px color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.legend-item .dot {
+  box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.tab-row,
+.cycle-work-item {
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent) !important;
+}
+
+.tab-row:hover,
+.cycle-work-item:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 32%, var(--color-border)) !important;
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface)) !important;
+}
+
+.cycle-card,
+.cycles-view-header,
+.nexus-project-header,
+.tab-row,
+.cycle-work-item,
+.date-range,
+.empty-state.text-muted {
+  transition:
+    background 220ms ease,
+    color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+
+[data-theme='dark'] .plane-cycles-wrapper,
+[data-theme='dark'] .cycles-tab {
+  color: #e5edf7 !important;
+}
+
+[data-theme='dark'] .cycles-view-header,
+[data-theme='dark'] .nexus-project-header,
+[data-theme='dark'] .cycle-card {
+  background:
+    linear-gradient(135deg, rgba(30, 41, 59, 0.90), rgba(15, 23, 42, 0.86)),
+    #111827 !important;
+  border-color: rgba(125, 211, 252, 0.20) !important;
+}
+
+[data-theme='dark'] .cc-top {
+  background:
+    linear-gradient(90deg, rgba(245, 158, 11, 0.18), rgba(56, 189, 248, 0.06) 56%, transparent),
+    rgba(30, 41, 59, 0.62) !important;
+}
+
+[data-theme='dark'] .cycle-page-title,
+[data-theme='dark'] .cs-title,
+[data-theme='dark'] .cycle-name,
+[data-theme='dark'] .gp-header,
+[data-theme='dark'] .gp-header .title,
+[data-theme='dark'] .legend-item .val,
+[data-theme='dark'] .tab-row,
+[data-theme='dark'] .cycle-work-item,
+[data-theme='dark'] .cycle-work-item .work-item-title,
+[data-theme='dark'] .cycle-status-row,
+[data-theme='dark'] .cycle-status-row strong,
+[data-theme='dark'] .progress-ring {
+  color: #f8fafc !important;
+}
+
+[data-theme='dark'] .gp-header .sub,
+[data-theme='dark'] .legend-item,
+[data-theme='dark'] .detail-link,
+[data-theme='dark'] .date-range,
+[data-theme='dark'] .work-item-id,
+[data-theme='dark'] .work-item-meta,
+[data-theme='dark'] .empty-state.text-muted,
+[data-theme='dark'] .tab-label {
+  color: #cbd5e1 !important;
+}
+
+[data-theme='dark'] .date-range,
+[data-theme='dark'] .tab-row,
+[data-theme='dark'] .cycle-work-item,
+[data-theme='dark'] .empty-state.text-muted {
+  background: rgba(30, 41, 59, 0.72) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+[data-theme='dark'] .chart-mockup {
+  background:
+    linear-gradient(rgba(203, 213, 225, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(203, 213, 225, 0.08) 1px, transparent 1px),
+    radial-gradient(circle at 48% 54%, rgba(59, 130, 246, 0.16), transparent 40%),
+    rgba(15, 23, 42, 0.64) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+[data-theme='light'] .plane-cycles-wrapper,
+[data-theme='light'] .cycles-tab {
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .cycle-page-title,
+[data-theme='light'] .cs-title,
+[data-theme='light'] .cycle-name,
+[data-theme='light'] .gp-header,
+[data-theme='light'] .legend-item .val,
+[data-theme='light'] .tab-row,
+[data-theme='light'] .cycle-work-item,
+[data-theme='light'] .cycle-work-item .work-item-title {
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .legend-item,
+[data-theme='light'] .detail-link,
+[data-theme='light'] .date-range,
+[data-theme='light'] .work-item-id,
+[data-theme='light'] .work-item-meta,
+[data-theme='light'] .empty-state.text-muted {
+  color: #475569 !important;
+}
+
+[data-theme='light'] .cycle-card,
+[data-theme='light'] .nexus-project-header,
+[data-theme='light'] .grid-panel,
+[data-theme='light'] .create-cycle-modal,
+[data-theme='light'] .cycle-filter-menu {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.88)),
+    #ffffff !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+
+[data-theme='light'] .cc-top {
+  background:
+    linear-gradient(90deg, rgba(245, 158, 11, 0.13), rgba(56, 189, 248, 0.07) 58%, transparent),
+    #f8fafc !important;
+}
+
+[data-theme='light'] .progress-ring {
+  color: #b45309 !important;
+  background: rgba(245, 158, 11, 0.10) !important;
+  text-shadow: none !important;
+}
+
+[data-theme='light'] .panel-progress .legend-item,
+[data-theme='light'] .gp-header .sub,
+[data-theme='light'] .tr-stat,
+[data-theme='light'] .tab-empty,
+[data-theme='light'] .filter-title,
+[data-theme='light'] .filter-option,
+[data-theme='light'] .clear-filter-btn {
+  color: #334155 !important;
+}
+
+[data-theme='light'] .legend-item .val,
+[data-theme='light'] .tab-h.active,
+[data-theme='light'] .tr-user,
+[data-theme='light'] .work-item-title,
+[data-theme='light'] .carry-over-main,
+[data-theme='light'] .carry-over-check {
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .chart-mockup {
+  background:
+    linear-gradient(rgba(71, 85, 105, 0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(71, 85, 105, 0.09) 1px, transparent 1px),
+    radial-gradient(circle at 48% 54%, rgba(37, 99, 235, 0.10), transparent 40%),
+    #f8fafc !important;
+  border-color: rgba(148, 163, 184, 0.28) !important;
+}
+
+[data-theme='dark'] .progress-ring {
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.24);
+}
+
+@media (max-width: 780px) {
+  .cycles-view-header,
+  .nexus-project-header {
+    width: calc(100% - 24px) !important;
+    margin-left: 12px !important;
+    margin-right: 12px !important;
+  }
+}
 </style>
 
 

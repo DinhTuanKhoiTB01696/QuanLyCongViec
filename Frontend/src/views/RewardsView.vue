@@ -144,9 +144,7 @@
           <div v-if="!leaderboard.length" class="empty">Chưa có dữ liệu xếp hạng.</div>
           <article v-for="(item, index) in leaderboard" :key="item.userId" class="leader-row">
             <span class="rank">#{{ index + 1 }}</span>
-            <span class="avatar" :style="{ backgroundColor: getAvatarBg(item.userName) }">
-              {{ getInitials(item.userName) }}
-            </span>
+            <UserAvatar :user="{ avatarColor: getAvatarBg(item.userName), initials: getInitials(item.userName), fullName: item.userName }" :size="32" :fontSize="11" class="avatar-wrapper" />
             <div class="leader-main">
               <strong>{{ item.userName || 'Thành viên' }}</strong>
               <small>{{ item.careerTitle || `Cấp độ ${item.level}` }}</small>
@@ -164,6 +162,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import NexusLayout from '@/components/layout/NexusLayout.vue'
 import axiosClient from '@/api/axiosClient'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const loading = ref(false)
 const wallet = ref({ totalPoints: 0, level: 1, nextLevelAt: 1000 })
@@ -645,6 +644,824 @@ small,
   .rewards-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+/* SprintA visual refresh */
+.rewards-page {
+  background:
+    radial-gradient(circle at 6% 0%, rgba(56, 189, 248, 0.18), transparent 32%),
+    radial-gradient(circle at 88% 8%, rgba(34, 197, 94, 0.12), transparent 30%),
+    linear-gradient(180deg, #f8fbff 0%, #eef5fb 46%, #f8fafc 100%);
+  padding: 34px clamp(20px, 3vw, 44px);
+  font-family: inherit;
+}
+
+.nexus-feature-header {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(14, 165, 233, 0.18);
+  border-radius: 18px;
+  padding: 24px;
+  margin-bottom: 22px;
+  background:
+    linear-gradient(135deg, rgba(14, 165, 233, 0.16), transparent 45%),
+    linear-gradient(100deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.76));
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.08);
+}
+
+.nexus-feature-header::after {
+  content: "";
+  position: absolute;
+  right: 24px;
+  top: 22px;
+  width: 90px;
+  height: 90px;
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, #facc15, #22c55e);
+  opacity: 0.16;
+  transform: rotate(8deg);
+}
+
+.eyebrow {
+  color: #0284c7;
+  letter-spacing: 0.08em;
+}
+
+h1 {
+  font-size: clamp(30px, 3vw, 46px);
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.muted {
+  max-width: 720px;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.refresh-btn {
+  border-color: rgba(14, 165, 233, 0.28);
+  border-radius: 11px;
+  background: #ffffff;
+  color: #0369a1;
+  font-weight: 800;
+  box-shadow: 0 10px 26px rgba(14, 165, 233, 0.13);
+}
+
+.refresh-btn:hover {
+  transform: translateY(-1px);
+  background: #e0f2fe;
+}
+
+.wallet-card,
+.panel {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(148, 163, 184, 0.34);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.78)),
+    #ffffff;
+  box-shadow:
+    0 18px 44px rgba(15, 23, 42, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: none;
+}
+
+.wallet-card::before,
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, #38bdf8, #22c55e, #facc15);
+  opacity: 0.9;
+}
+
+.wallet-card:hover,
+.panel:hover {
+  transform: translateY(-3px);
+  border-color: rgba(14, 165, 233, 0.42);
+  box-shadow: 0 24px 62px rgba(15, 23, 42, 0.1);
+}
+
+.wallet-card strong,
+.formula-cell strong {
+  color: #0f172a;
+  font-weight: 900;
+}
+
+.label,
+.panel-head span,
+.formula-cell span {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.progress-track {
+  height: 12px;
+  background: #dbeafe;
+}
+
+.progress-fill {
+  background: linear-gradient(90deg, #06b6d4, #22c55e, #facc15);
+  box-shadow: 0 0 18px rgba(34, 197, 94, 0.35);
+}
+
+.progress-text {
+  color: #0284c7;
+  font-weight: 900;
+}
+
+.panel-head {
+  background:
+    linear-gradient(90deg, rgba(14, 165, 233, 0.08), transparent),
+    rgba(255, 255, 255, 0.58);
+}
+
+.panel-head h2 {
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.formula-cell {
+  border-color: rgba(148, 163, 184, 0.28);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f8fafc, #eef6ff);
+}
+
+.formula-cell.total {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.14), #f8fafc);
+}
+
+.summary-row,
+.spotlight-row,
+.achievement-row,
+.tx-row,
+.leader-row {
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+.spotlight-row,
+.achievement-row,
+.tx-row,
+.leader-row {
+  margin: 8px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.spotlight-row:hover,
+.achievement-row:hover,
+.tx-row:hover,
+.leader-row:hover {
+  background: #ffffff;
+  border-color: rgba(14, 165, 233, 0.28);
+}
+
+.chip {
+  border: 1px solid rgba(16, 185, 129, 0.24);
+  background: rgba(16, 185, 129, 0.12);
+  font-weight: 800;
+}
+
+.chip.muted {
+  border-color: rgba(148, 163, 184, 0.24);
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.tx-icon {
+  border-radius: 12px;
+}
+
+.achievement-points,
+.tx-points {
+  color: #059669;
+  font-weight: 900;
+}
+
+[data-theme='dark'] .rewards-page {
+  background:
+    radial-gradient(circle at 6% 0%, rgba(56, 189, 248, 0.16), transparent 32%),
+    radial-gradient(circle at 88% 8%, rgba(34, 197, 94, 0.1), transparent 30%),
+    linear-gradient(180deg, #07111f 0%, #0f172a 46%, #101827 100%);
+  color: #e2e8f0;
+}
+
+[data-theme='dark'] .nexus-feature-header,
+[data-theme='dark'] .wallet-card,
+[data-theme='dark'] .panel {
+  border-color: rgba(148, 163, 184, 0.2);
+  background:
+    linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.86)),
+    #0f172a;
+  box-shadow:
+    0 22px 58px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .nexus-feature-header {
+  background:
+    linear-gradient(135deg, rgba(56, 189, 248, 0.14), transparent 45%),
+    rgba(15, 23, 42, 0.84);
+}
+
+[data-theme='dark'] h1,
+[data-theme='dark'] .panel-head h2,
+[data-theme='dark'] .wallet-card strong,
+[data-theme='dark'] .formula-cell strong,
+[data-theme='dark'] .spotlight-title,
+[data-theme='dark'] .tx-title,
+[data-theme='dark'] .leader-main strong {
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .muted,
+[data-theme='dark'] time,
+[data-theme='dark'] small,
+[data-theme='dark'] .helper-copy,
+[data-theme='dark'] .label,
+[data-theme='dark'] .panel-head span,
+[data-theme='dark'] .formula-cell span,
+[data-theme='dark'] .tx-reason,
+[data-theme='dark'] .chip.muted {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .refresh-btn {
+  border-color: rgba(56, 189, 248, 0.24);
+  background: rgba(15, 23, 42, 0.82);
+  color: #7dd3fc;
+}
+
+[data-theme='dark'] .formula-cell,
+[data-theme='dark'] .spotlight-row,
+[data-theme='dark'] .achievement-row,
+[data-theme='dark'] .tx-row,
+[data-theme='dark'] .leader-row {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.58);
+}
+
+[data-theme='dark'] .formula-cell.total {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.14), rgba(15, 23, 42, 0.58));
+}
+
+[data-theme='dark'] .panel-head {
+  border-bottom-color: rgba(148, 163, 184, 0.16);
+  background:
+    linear-gradient(90deg, rgba(56, 189, 248, 0.08), transparent),
+    rgba(15, 23, 42, 0.5);
+}
+
+[data-theme='dark'] .progress-track {
+  background: rgba(51, 65, 85, 0.92);
+}
+
+/* Compact density */
+.rewards-page {
+  padding: 18px var(--sa-page-x, 24px) 30px !important;
+  min-height: calc(100vh - var(--sa-topbar-height, 52px)) !important;
+}
+
+.nexus-feature-header {
+  border-radius: 10px !important;
+  padding: 18px !important;
+  margin-bottom: 16px !important;
+}
+
+.nexus-feature-header::after {
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 12px !important;
+}
+
+h1 {
+  font-size: clamp(24px, 2.2vw, 34px) !important;
+  line-height: 1.1 !important;
+}
+
+.muted {
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+}
+
+.wallet-band,
+.formula-band,
+.rewards-grid {
+  gap: 14px !important;
+  margin-bottom: 16px !important;
+}
+
+.wallet-card,
+.panel {
+  border-radius: 10px !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+.wallet-card {
+  padding: 16px !important;
+}
+
+.wallet-card strong,
+.formula-cell strong {
+  font-size: 26px !important;
+}
+
+.progress-track {
+  height: 8px !important;
+}
+
+.panel-head {
+  padding: 12px 16px !important;
+}
+
+.panel-head h2 {
+  font-size: 14px !important;
+}
+
+.formula-grid {
+  gap: 10px !important;
+  padding: 16px 16px 0 !important;
+}
+
+.formula-cell {
+  border-radius: 8px !important;
+  padding: 12px !important;
+}
+
+.helper-copy,
+.summary-list,
+.empty {
+  padding: 16px !important;
+}
+
+.summary-row {
+  padding: 9px 0 !important;
+}
+
+.spotlight-row,
+.achievement-row,
+.tx-row,
+.leader-row {
+  margin: 8px 14px !important;
+  padding: 12px 14px !important;
+  border-radius: 8px !important;
+  gap: 10px !important;
+}
+
+.chip {
+  border-radius: 999px !important;
+  padding: 3px 8px !important;
+}
+
+@media (max-width: 780px) {
+  .rewards-page {
+    padding: 12px !important;
+  }
+
+  .nexus-feature-header {
+    padding: 14px !important;
+  }
+
+  .wallet-band,
+  .formula-band,
+  .rewards-grid,
+  .formula-grid {
+    grid-template-columns: 1fr !important;
+    flex-direction: column !important;
+  }
+
+  .spotlight-row {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
+
+  .spotlight-side {
+    flex-wrap: wrap !important;
+  }
+}
+
+/* Premium rewards presentation */
+@keyframes rewards-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rewards-progress-glow {
+  0%, 100% { filter: saturate(1); }
+  50% { filter: saturate(1.25) brightness(1.08); }
+}
+
+.rewards-page {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(56, 189, 248, 0.18), transparent 30%),
+    radial-gradient(circle at 84% 8%, rgba(250, 204, 21, 0.13), transparent 28%),
+    linear-gradient(180deg, #06111f, #0f172a 50%, #101827) !important;
+}
+
+.nexus-feature-header,
+.wallet-card,
+.panel {
+  position: relative;
+  overflow: hidden;
+  animation: rewards-rise-in 540ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transition:
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 220ms ease,
+    border-color 220ms ease,
+    background 220ms ease !important;
+}
+
+.wallet-card:nth-child(2) { animation-delay: 80ms; }
+.wallet-card:nth-child(3) { animation-delay: 130ms; }
+.panel:nth-child(1) { animation-delay: 180ms; }
+.panel:nth-child(2) { animation-delay: 230ms; }
+.panel:nth-child(3) { animation-delay: 280ms; }
+.panel:nth-child(4) { animation-delay: 330ms; }
+
+.nexus-feature-header {
+  background:
+    radial-gradient(circle at 78% 20%, rgba(250, 204, 21, 0.14), transparent 18%),
+    linear-gradient(135deg, rgba(56, 189, 248, 0.14), rgba(15, 23, 42, 0.84) 42%),
+    rgba(15, 23, 42, 0.92) !important;
+  border-color: rgba(56, 189, 248, 0.24) !important;
+  box-shadow: 0 30px 90px rgba(2, 8, 23, 0.34) !important;
+}
+
+.nexus-feature-header::after {
+  background:
+    linear-gradient(135deg, rgba(250, 204, 21, 0.32), rgba(34, 197, 94, 0.20)) !important;
+  box-shadow: 0 18px 44px rgba(250, 204, 21, 0.16);
+}
+
+.wallet-card,
+.panel {
+  background:
+    linear-gradient(135deg, rgba(30, 41, 59, 0.94), rgba(15, 23, 42, 0.88)),
+    #0f172a !important;
+  border-color: rgba(148, 163, 184, 0.20) !important;
+  box-shadow:
+    0 22px 58px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+}
+
+.wallet-card::before,
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, #38bdf8, #2dd4bf, #facc15);
+}
+
+.wallet-card:hover,
+.panel:hover {
+  transform: translateY(-3px);
+  border-color: rgba(56, 189, 248, 0.34) !important;
+  box-shadow:
+    0 30px 80px rgba(2, 8, 23, 0.34),
+    0 0 0 1px rgba(56, 189, 248, 0.10) inset !important;
+}
+
+.wallet-card strong,
+.formula-cell strong {
+  letter-spacing: -0.025em;
+}
+
+.wallet-card strong {
+  text-shadow: 0 10px 28px rgba(56, 189, 248, 0.24);
+}
+
+.progress-track span,
+.progress-bar span,
+.level-progress span {
+  animation: rewards-progress-glow 2.8s ease-in-out infinite;
+  background: linear-gradient(90deg, #22c55e, #38bdf8, #facc15) !important;
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.22);
+}
+
+.formula-cell {
+  background:
+    linear-gradient(135deg, rgba(56, 189, 248, 0.08), transparent 64%),
+    rgba(15, 23, 42, 0.56) !important;
+}
+
+.formula-cell.total {
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, 0.16), rgba(56, 189, 248, 0.08)),
+    rgba(15, 23, 42, 0.64) !important;
+  border-color: rgba(34, 197, 94, 0.28) !important;
+}
+
+.summary-row,
+.spotlight-row,
+.achievement-row,
+.tx-row,
+.leader-row {
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+.summary-row:hover,
+.spotlight-row:hover,
+.achievement-row:hover,
+.tx-row:hover,
+.leader-row:hover {
+  transform: translateX(4px);
+  background:
+    linear-gradient(90deg, rgba(56, 189, 248, 0.10), transparent 74%),
+    rgba(15, 23, 42, 0.68) !important;
+  border-color: rgba(56, 189, 248, 0.24) !important;
+}
+
+.chip {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.nexus-feature-header,
+.wallet-card,
+.panel,
+.summary-row,
+.formula-cell,
+.spotlight-row,
+.achievement-row,
+.tx-row,
+.leader-row {
+  color: var(--color-text-primary);
+  transition:
+    background 220ms ease,
+    color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+
+.nexus-feature-header {
+  padding: 24px !important;
+}
+
+.panel-head {
+  padding: 16px 20px !important;
+  gap: 16px !important;
+}
+
+.panel-head h2 {
+  line-height: 1.25 !important;
+}
+
+.formula-grid {
+  padding: 18px 20px 0 !important;
+}
+
+.helper-copy,
+.summary-list,
+.empty {
+  padding: 18px 20px !important;
+}
+
+.summary-row {
+  padding: 12px 0 !important;
+  line-height: 1.45 !important;
+}
+
+.summary-row span {
+  min-width: 120px;
+}
+
+.formula-cell span,
+.wallet-card .label,
+.panel-head span,
+.helper-copy {
+  font-weight: 700;
+}
+
+[data-theme='light'] .rewards-page {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(56, 189, 248, 0.16), transparent 30%),
+    radial-gradient(circle at 84% 8%, rgba(250, 204, 21, 0.13), transparent 28%),
+    linear-gradient(180deg, #f8fcff 0%, #eef6fb 52%, #f8fafc 100%) !important;
+}
+
+[data-theme='light'] .nexus-feature-header {
+  background:
+    radial-gradient(circle at 78% 20%, rgba(250, 204, 21, 0.18), transparent 18%),
+    linear-gradient(135deg, rgba(255,255,255,0.98), rgba(240,249,255,0.82)),
+    #ffffff !important;
+  border-color: rgba(56, 189, 248, 0.22) !important;
+  box-shadow: 0 28px 80px rgba(14, 165, 233, 0.12) !important;
+}
+
+[data-theme='light'] .wallet-card,
+[data-theme='light'] .panel {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.98), rgba(248,250,252,0.88)),
+    #ffffff !important;
+  border-color: rgba(148, 163, 184, 0.20) !important;
+  box-shadow: 0 22px 58px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme='light'] .formula-cell {
+  background:
+    linear-gradient(135deg, rgba(56, 189, 248, 0.08), transparent 64%),
+    #f8fafc !important;
+}
+
+[data-theme='light'] .formula-cell.total {
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(56, 189, 248, 0.08)),
+    #f0fdf4 !important;
+}
+
+[data-theme='light'] .nexus-feature-header h1,
+[data-theme='light'] .wallet-card strong,
+[data-theme='light'] .formula-cell strong,
+[data-theme='light'] .panel-head h2,
+[data-theme='light'] .summary-row strong,
+[data-theme='light'] .spotlight-title,
+[data-theme='light'] .tx-title,
+[data-theme='light'] .leader-main strong {
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .muted,
+[data-theme='light'] .wallet-card .label,
+[data-theme='light'] .wallet-card .unit,
+[data-theme='light'] .formula-cell span,
+[data-theme='light'] .panel-head span,
+[data-theme='light'] .summary-row span,
+[data-theme='light'] .helper-copy,
+[data-theme='light'] .tx-reason,
+[data-theme='light'] .leader-main small {
+  color: #475569 !important;
+}
+
+[data-theme='dark'] .rewards-page {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(56, 189, 248, 0.18), transparent 30%),
+    radial-gradient(circle at 84% 8%, rgba(250, 204, 21, 0.13), transparent 28%),
+    linear-gradient(180deg, #06111f, #0f172a 50%, #101827) !important;
+}
+
+[data-theme='dark'] .nexus-feature-header h1,
+[data-theme='dark'] .wallet-card strong,
+[data-theme='dark'] .formula-cell strong,
+[data-theme='dark'] .panel-head h2,
+[data-theme='dark'] .summary-row strong,
+[data-theme='dark'] .spotlight-title,
+[data-theme='dark'] .tx-title,
+[data-theme='dark'] .leader-main strong {
+  color: #f8fafc !important;
+}
+
+[data-theme='dark'] .muted,
+[data-theme='dark'] .wallet-card .label,
+[data-theme='dark'] .wallet-card .unit,
+[data-theme='dark'] .formula-cell span,
+[data-theme='dark'] .panel-head span,
+[data-theme='dark'] .summary-row span,
+[data-theme='dark'] .helper-copy,
+[data-theme='dark'] .tx-reason,
+[data-theme='dark'] .leader-main small {
+  color: #cbd5e1 !important;
+}
+
+/* Rewards readability pass */
+.wallet-card {
+  min-width: 0;
+}
+
+.wallet-card strong,
+.formula-cell strong,
+.summary-row strong,
+.leader-points,
+.achievement-points,
+.tx-points {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.wallet-card strong {
+  display: inline-flex;
+  align-items: baseline;
+  min-height: 36px;
+  padding: 2px 8px 2px 0;
+}
+
+.formula-cell.total,
+.summary-list .summary-row:nth-child(6),
+.summary-list .summary-row:nth-child(10) {
+  position: relative;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--color-success) 10%, transparent), transparent 72%),
+    color-mix(in srgb, var(--color-surface-hover) 48%, transparent);
+}
+
+.summary-list {
+  padding: 12px 20px 16px !important;
+}
+
+.summary-row {
+  gap: 16px;
+  min-height: 38px;
+  padding: 10px 0 !important;
+}
+
+.summary-row span {
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.summary-row strong {
+  flex: 0 0 auto;
+  min-width: 54px;
+  text-align: right;
+  font-weight: 900;
+  color: var(--color-text-primary);
+}
+
+.spotlight-side {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 320px;
+}
+
+.spotlight-main small,
+.tx-reason,
+.leader-main small,
+.muted {
+  line-height: 1.45;
+}
+
+.spotlight-row,
+.achievement-row,
+.tx-row,
+.leader-row {
+  min-width: 0;
+  border-color: color-mix(in srgb, var(--color-border) 76%, transparent) !important;
+}
+
+.spotlight-row strong:first-child,
+.tx-title,
+.leader-main strong {
+  overflow-wrap: anywhere;
+}
+
+.chip:first-child,
+.leader-points,
+.achievement-points,
+.tx-points {
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+}
+
+.leader-row:nth-child(1) {
+  background:
+    linear-gradient(90deg, rgba(250, 204, 21, 0.13), transparent 68%),
+    color-mix(in srgb, var(--color-surface) 88%, transparent) !important;
+  border-color: rgba(250, 204, 21, 0.30) !important;
+}
+
+.leader-row:nth-child(2),
+.leader-row:nth-child(3) {
+  background:
+    linear-gradient(90deg, rgba(56, 189, 248, 0.10), transparent 68%),
+    color-mix(in srgb, var(--color-surface) 88%, transparent) !important;
+}
+
+[data-theme='light'] .spotlight-row,
+[data-theme='light'] .achievement-row,
+[data-theme='light'] .tx-row,
+[data-theme='light'] .leader-row {
+  background: rgba(255, 255, 255, 0.78) !important;
+}
+
+[data-theme='dark'] .spotlight-row,
+[data-theme='dark'] .achievement-row,
+[data-theme='dark'] .tx-row,
+[data-theme='dark'] .leader-row {
+  background: rgba(15, 23, 42, 0.62) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexus-feature-header,
+  .wallet-card,
+  .panel,
+  .progress-track span,
+  .progress-bar span,
+  .level-progress span {
+    animation: none !important;
+    transition: none !important;
   }
 }
 </style>

@@ -243,7 +243,10 @@ const formatText = (command) => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: var(--color-bg);
+  background:
+    radial-gradient(circle at 16% 0%, rgba(56, 189, 248, 0.12), transparent 34%),
+    radial-gradient(circle at 86% 0%, rgba(34, 197, 94, 0.10), transparent 28%),
+    linear-gradient(180deg, #f8fbff, #eef5fb 54%, #f8fafc);
   color: var(--color-text-primary);
 }
 
@@ -251,8 +254,11 @@ const formatText = (command) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--color-border);
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.74);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
 }
 .st-left {
   display: flex;
@@ -295,7 +301,7 @@ const formatText = (command) => {
 .st-body {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: 28px;
 }
 
 .stickies-grid {
@@ -306,14 +312,15 @@ const formatText = (command) => {
 }
 
 .sticky-card {
-  border-radius: 2px;
+  border-radius: 18px;
   height: 280px;
   display: flex;
   flex-direction: column;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.10);
   transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s;
   animation: slideInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1px solid rgba(0,0,0,0.1);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  overflow: hidden;
 }
 
 [data-theme="dark"] .sticky-card {
@@ -321,7 +328,7 @@ const formatText = (command) => {
 }
 
 .sticky-card:hover { 
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 28px 64px rgba(15, 23, 42, 0.15);
   transform: translateY(-2px);
 }
 
@@ -365,6 +372,7 @@ const formatText = (command) => {
   align-items: center;
   padding: 12px 16px;
   opacity: 0;
+  background: linear-gradient(180deg, transparent, rgba(15, 23, 42, 0.10));
   transition: opacity 0.2s;
 }
 .sticky-card:hover .sticky-footer, .sticky-card:focus-within .sticky-footer { opacity: 1; }
@@ -426,6 +434,93 @@ const formatText = (command) => {
   background-color: var(--color-surface) !important;
   border: 1px solid #2D2F36 !important;
   border-radius: 8px !important;
+}
+
+.nexus-search-input {
+  min-width: 220px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(255, 255, 255, 0.9);
+  color: #0f172a;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .stickies-wrapper {
+  background:
+    radial-gradient(circle at 16% 0%, rgba(56, 189, 248, 0.14), transparent 34%),
+    radial-gradient(circle at 86% 0%, rgba(34, 197, 94, 0.10), transparent 28%),
+    linear-gradient(180deg, #07111f, #0f172a 54%, #101827);
+}
+
+[data-theme="dark"] .st-header {
+  border-bottom-color: rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.78);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+[data-theme="dark"] .nexus-search-input {
+  border-color: rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.82);
+  color: #e2e8f0;
+}
+
+/* Compact density */
+.st-header {
+  padding: 12px 16px !important;
+  min-height: 54px !important;
+}
+
+.st-body {
+  padding: 18px var(--sa-page-x, 24px) !important;
+}
+
+.stickies-grid {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+  gap: 14px !important;
+}
+
+.sticky-card {
+  height: 210px !important;
+  border-radius: 10px !important;
+}
+
+.sticky-toolbar {
+  min-height: 34px !important;
+  padding: 6px 8px !important;
+}
+
+.sticky-input {
+  padding: 12px !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+.nexus-search-input {
+  min-width: 180px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  font-size: 12.5px !important;
+}
+
+@media (max-width: 700px) {
+  .st-header {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .st-body {
+    padding: 12px !important;
+  }
+
+  .stickies-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sticky-card {
+    height: 180px !important;
+  }
 }
 </style>
 

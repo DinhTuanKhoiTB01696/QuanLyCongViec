@@ -11,7 +11,7 @@
       <div class="bt-left">
         <div class="search-wrap">
           <i class="fa-solid fa-magnifying-glass"></i>
-          <input v-model="search" type="text" placeholder="Search backlog" />
+          <input v-model="search" type="text" :placeholder="t('workItems.backlog.searchPlaceholder', 'Search backlog')" />
         </div>
         <div class="avatar-stack">
           <i class="fa-regular fa-user stack-anon"></i>
@@ -23,11 +23,11 @@
             :title="m.label"
           >{{ m.initials }}</span>
         </div>
-        <button class="bt-btn" type="button" disabled title="[CẦN FLOW] Bộ lọc Backlog nâng cao chưa hỗ trợ"><i class="fa-solid fa-bars-staggered"></i> Filter</button>
+        <button class="bt-btn" type="button" disabled :title="t('workItems.backlog.filterNeedsFlow')"><i class="fa-solid fa-bars-staggered"></i> {{ t('workItems.summary.filter', 'Filter') }}</button>
       </div>
       <div class="bt-right">
-        <button class="bt-icon" type="button" disabled title="[CẦN FLOW] Cài đặt hiển thị Backlog chưa hỗ trợ"><i class="fa-solid fa-sliders"></i></button>
-        <button class="bt-icon" type="button" disabled title="[CẦN FLOW] Menu Backlog chưa hỗ trợ"><i class="fa-solid fa-ellipsis"></i></button>
+        <button class="bt-icon" type="button" disabled :title="t('workItems.backlog.displayNeedsFlow')"><i class="fa-solid fa-sliders"></i></button>
+        <button class="bt-icon" type="button" disabled :title="t('workItems.backlog.menuNeedsFlow')"><i class="fa-solid fa-ellipsis"></i></button>
       </div>
     </div>
 
@@ -43,7 +43,7 @@
           />
           <i class="grp-chevron fa-solid" :class="collapsed[group.key] ? 'fa-chevron-right' : 'fa-chevron-down'"></i>
           <span class="grp-name">{{ group.name }}</span>
-          <span class="grp-count">({{ group.items.length }} work items)</span>
+          <span class="grp-count">({{ t('workItems.backlog.workItemsCount', { count: group.items.length }) }})</span>
           <div class="grp-spacer"></div>
           <div class="grp-badges">
             <span class="cat-badge todo">{{ group.counts.todo }}</span>
@@ -70,7 +70,7 @@
             <span class="row-title">{{ task.title }}</span>
 
             <div class="row-right" @click.stop>
-              <i v-if="hasSubtasks(task)" class="fa-solid fa-sitemap subtask-icon" title="Has subtasks"></i>
+              <i v-if="hasSubtasks(task)" class="fa-solid fa-sitemap subtask-icon" :title="t('workItems.backlog.hasSubtasks', 'Has subtasks')"></i>
 
               <span v-if="task.dueDate" class="due-chip">
                 <i class="fa-regular fa-calendar"></i> {{ formatDue(task.dueDate) }}
@@ -97,12 +97,12 @@
           </div>
 
           <div class="bk-create" @click="$emit('create-task', group.defaultStatus)">
-            <i class="fa-solid fa-plus"></i> Create
+            <i class="fa-solid fa-plus"></i> {{ t('workItems.backlog.create', 'Create') }}
           </div>
         </div>
 
         <div class="group-footer" v-if="!collapsed[group.key]">
-          <span class="visible-note">{{ group.items.length }} of {{ group.items.length }} work items visible</span>
+          <span class="visible-note">{{ t('workItems.backlog.visibleCount', { visible: group.items.length, total: group.items.length }) }}</span>
         </div>
       </div>
     </div>
@@ -111,6 +111,9 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useI18n } from '@/composables/useI18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   tasks: { type: Array, default: () => [] },
@@ -145,9 +148,9 @@ const getAssigneeIds = (task) => Array.from(new Set([
 
 const assigneeAvatar = (task) => {
   const ids = getAssigneeIds(task)
-  if (!ids.length) return { initials: '', label: 'Unassigned', color: 'transparent' }
+  if (!ids.length) return { initials: '', label: t('workItems.unassigned', 'Unassigned'), color: 'transparent' }
   const member = (props.projectMembers || []).find(m => (m.userId || m.id) === ids[0])
-  const label = member?.fullName || member?.name || member?.email || task.assigneeName || 'Assignee'
+  const label = member?.fullName || member?.name || member?.email || task.assigneeName || t('workItems.assignee', 'Assignee')
   return { initials: initialsOf(label), label, color: colorFor(label) }
 }
 
@@ -199,8 +202,8 @@ const groups = computed(() => {
   const board = filtered.filter(task => !isBacklogStatus(task))
   const backlog = filtered.filter(isBacklogStatus)
   return [
-    { key: 'board', name: 'Board', items: board, counts: buildCounts(board), defaultStatus: 'TO DO' },
-    { key: 'backlog', name: 'Backlog', items: backlog, counts: buildCounts(backlog), defaultStatus: 'BACKLOG' }
+    { key: 'board', name: t('projectTabs.board', 'Board'), items: board, counts: buildCounts(board), defaultStatus: 'TO DO' },
+    { key: 'backlog', name: t('projectTabs.backlog', 'Backlog'), items: backlog, counts: buildCounts(backlog), defaultStatus: 'BACKLOG' }
   ]
 })
 

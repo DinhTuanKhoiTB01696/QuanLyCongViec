@@ -59,6 +59,12 @@ namespace TaskManagement.Infrastructure.Services
 
         public async Task<DepartmentResponseDto> CreateAsync(CreateDepartmentDto dto)
         {
+            var normalizedName = dto.Name.Trim().ToLower();
+            var duplicateExists = await _context.Departments
+                .AnyAsync(d => d.Name.Trim().ToLower() == normalizedName && !d.IsDeleted);
+            if (duplicateExists)
+                throw new ArgumentException("Tên team đã tồn tại.");
+
             // Validate ManagerId nếu có
             if (dto.ManagerId.HasValue)
             {
@@ -70,8 +76,10 @@ namespace TaskManagement.Infrastructure.Services
             var department = new Department
             {
                 Id = Guid.NewGuid(),
-                Name = dto.Name,
+                Name = dto.Name.Trim(),
                 ManagerId = dto.ManagerId,
+                Description = dto.Description,
+                CoverImage = dto.CoverImage,
                 IsActive = true,
                 IsDeleted = false,
                 CreatedAt = DateTime.UtcNow

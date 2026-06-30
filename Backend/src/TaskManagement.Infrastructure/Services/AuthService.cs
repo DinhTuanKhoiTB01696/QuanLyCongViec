@@ -118,6 +118,7 @@ namespace TaskManagement.Infrastructure.Services
                 Id = user.Id,
                 Email = user.Email,
                 FullName = user.FullName,
+                AvatarUrl = user.AvatarUrl,
                 SystemRoles = roles.ToArray()
             };
 
@@ -240,6 +241,7 @@ namespace TaskManagement.Infrastructure.Services
                 Id = user.Id,
                 Email = user.Email,
                 FullName = user.FullName,
+                AvatarUrl = user.AvatarUrl,
                 SystemRoles = roles.ToArray()
             };
 
@@ -390,6 +392,7 @@ namespace TaskManagement.Infrastructure.Services
                 Id = user.Id,
                 Email = user.Email,
                 FullName = user.FullName,
+                AvatarUrl = user.AvatarUrl,
                 SystemRoles = roles.ToArray()
             };
 
@@ -461,6 +464,11 @@ namespace TaskManagement.Infrastructure.Services
 
         public async Task RegisterAsync(RegisterRequestDto request)
         {
+            if (!_otpService.ValidateOtp(request.Email, request.OtpCode))
+            {
+                throw new InvalidOperationException("Mã OTP không hợp lệ hoặc đã hết hạn.");
+            }
+
             var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email && !u.IsDeleted);
             if (existingUser != null && !string.IsNullOrEmpty(existingUser.PasswordHash))
             {

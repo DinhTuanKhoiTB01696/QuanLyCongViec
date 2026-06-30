@@ -4,6 +4,7 @@ import en from './locales/en'
 
 const STORAGE_KEY = 'app_language'
 const LEGACY_STORAGE_KEY = 'admin_locale'
+const SPRINTA_STORAGE_KEY = 'sprinta_locale'
 const SUPPORTED_LANGUAGES = ['vi', 'en']
 const dictionaries = { vi, en }
 
@@ -15,6 +16,9 @@ const readInitialLanguage = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) return normalizeLanguage(stored)
+
+    const sprinta = localStorage.getItem(SPRINTA_STORAGE_KEY)
+    if (sprinta) return normalizeLanguage(sprinta)
 
     const legacy = localStorage.getItem(LEGACY_STORAGE_KEY)
     return normalizeLanguage(legacy || 'vi')
@@ -28,6 +32,8 @@ export const language = ref(readInitialLanguage())
 const persistLanguage = (nextLanguage) => {
   try {
     localStorage.setItem(STORAGE_KEY, nextLanguage)
+    localStorage.setItem(LEGACY_STORAGE_KEY, nextLanguage)
+    localStorage.setItem(SPRINTA_STORAGE_KEY, nextLanguage)
   } catch {
     // Ignore storage failures so rendering never crashes.
   }

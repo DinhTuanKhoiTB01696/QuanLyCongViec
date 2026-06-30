@@ -1,3 +1,4 @@
+﻿using TaskManagement.Application.DTOs.Common;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -107,7 +108,7 @@ namespace TaskManagement.Infrastructure.Services
         }
 
         /// <summary>
-        /// 5.2 Chống N+1: Dùng .Include().Select() gom data trong 1 câu SQL
+        /// 5.2 Chá»‘ng N+1: DĂ¹ng .Include().Select() gom data trong 1 cĂ¢u SQL
         /// </summary>
         public async Task<List<ProjectResponseDto>> GetAllAsync()
         {
@@ -129,10 +130,15 @@ namespace TaskManagement.Infrastructure.Services
                     Name = p.Name,
                     Key = p.Identifier,
                     Description = p.Description,
+                    Why = p.Why,
+                    SuccessCriteria = p.SuccessCriteria,
+                    TrackedLinkUrl = p.TrackedLinkUrl,
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
                     Status = p.Status,
+                    LatestUpdateStatus = p.Updates.OrderByDescending(update => update.CreatedAt).Select(update => update.NewStatus ?? update.Status).FirstOrDefault(),
                     CreatorName = p.Creator != null ? p.Creator.FullName : string.Empty,
+                    CreatorAvatarUrl = p.Creator != null ? p.Creator.AvatarUrl : null,
                     DepartmentId = p.DepartmentId,
                     DepartmentName = p.Department != null ? p.Department.Name : null,
                     ActiveMemberCount = p.ProjectMembers.Count(m => m.Status == true),
@@ -146,6 +152,11 @@ namespace TaskManagement.Infrastructure.Services
                         .Where(pm => pm.Status && (pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PM" || pm.ProjectRole == "PROJECT_MANAGER"))
                         .OrderBy(pm => pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
                         .Select(pm => pm.User != null ? pm.User.FullName : string.Empty)
+                        .FirstOrDefault(),
+                    LeadAvatarUrl = p.ProjectMembers
+                        .Where(pm => pm.Status && (pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PM" || pm.ProjectRole == "PROJECT_MANAGER"))
+                        .OrderBy(pm => pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
+                        .Select(pm => pm.User != null ? pm.User.AvatarUrl : null)
                         .FirstOrDefault(),
                     Cover = p.NavigationConfig,
                     CreatedAt = p.CreatedAt,
@@ -202,10 +213,15 @@ namespace TaskManagement.Infrastructure.Services
                     Name = p.Name,
                     Key = p.Identifier,
                     Description = p.Description,
+                    Why = p.Why,
+                    SuccessCriteria = p.SuccessCriteria,
+                    TrackedLinkUrl = p.TrackedLinkUrl,
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
                     Status = p.Status,
+                    LatestUpdateStatus = p.Updates.OrderByDescending(update => update.CreatedAt).Select(update => update.NewStatus ?? update.Status).FirstOrDefault(),
                     CreatorName = p.Creator != null ? p.Creator.FullName : string.Empty,
+                    CreatorAvatarUrl = p.Creator != null ? p.Creator.AvatarUrl : null,
                     DepartmentId = p.DepartmentId,
                     DepartmentName = p.Department != null ? p.Department.Name : null,
                     ActiveMemberCount = p.ProjectMembers.Count(m => m.Status == true),
@@ -219,6 +235,11 @@ namespace TaskManagement.Infrastructure.Services
                         .Where(pm => pm.Status && (pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PM" || pm.ProjectRole == "PROJECT_MANAGER"))
                         .OrderBy(pm => pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
                         .Select(pm => pm.User != null ? pm.User.FullName : string.Empty)
+                        .FirstOrDefault(),
+                    LeadAvatarUrl = p.ProjectMembers
+                        .Where(pm => pm.Status && (pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PM" || pm.ProjectRole == "PROJECT_MANAGER"))
+                        .OrderBy(pm => pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
+                        .Select(pm => pm.User != null ? pm.User.AvatarUrl : null)
                         .FirstOrDefault(),
                     Cover = p.NavigationConfig,
                     CreatedAt = p.CreatedAt,
@@ -276,10 +297,15 @@ namespace TaskManagement.Infrastructure.Services
                     Name = p.Name,
                     Key = p.Identifier,
                     Description = p.Description,
+                    Why = p.Why,
+                    SuccessCriteria = p.SuccessCriteria,
+                    TrackedLinkUrl = p.TrackedLinkUrl,
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
                     Status = p.Status,
+                    LatestUpdateStatus = p.Updates.OrderByDescending(update => update.CreatedAt).Select(update => update.NewStatus ?? update.Status).FirstOrDefault(),
                     CreatorName = p.Creator != null ? p.Creator.FullName : string.Empty,
+                    CreatorAvatarUrl = p.Creator != null ? p.Creator.AvatarUrl : null,
                     DepartmentId = p.DepartmentId,
                     DepartmentName = p.Department != null ? p.Department.Name : null,
                     ActiveMemberCount = p.ProjectMembers.Count(m => m.Status),
@@ -326,7 +352,9 @@ namespace TaskManagement.Infrastructure.Services
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
                     Status = p.Status,
+                    LatestUpdateStatus = p.Updates.OrderByDescending(update => update.CreatedAt).Select(update => update.NewStatus ?? update.Status).FirstOrDefault(),
                     CreatorName = p.Creator != null ? p.Creator.FullName : string.Empty,
+                    CreatorAvatarUrl = p.Creator != null ? p.Creator.AvatarUrl : null,
                     DepartmentId = p.DepartmentId,
                     DepartmentName = p.Department != null ? p.Department.Name : null,
                     ActiveMemberCount = p.ProjectMembers.Count(m => m.Status == true),
@@ -340,6 +368,11 @@ namespace TaskManagement.Infrastructure.Services
                         .Where(pm => pm.Status && (pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PM" || pm.ProjectRole == "PROJECT_MANAGER"))
                         .OrderBy(pm => pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
                         .Select(pm => pm.User != null ? pm.User.FullName : string.Empty)
+                        .FirstOrDefault(),
+                    LeadAvatarUrl = p.ProjectMembers
+                        .Where(pm => pm.Status && (pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" || pm.ProjectRole == "PM" || pm.ProjectRole == "PROJECT_MANAGER"))
+                        .OrderBy(pm => pm.ProjectRole == "Project Lead" || pm.ProjectRole == "PROJECT_LEAD" ? 0 : 1)
+                        .Select(pm => pm.User != null ? pm.User.AvatarUrl : null)
                         .FirstOrDefault(),
                     Cover = p.NavigationConfig,
                     CreatedAt = p.CreatedAt,
@@ -357,15 +390,15 @@ namespace TaskManagement.Infrastructure.Services
 
         public async Task<ProjectResponseDto> CreateAsync(Guid creatorId, CreateProjectDto dto)
         {
-            // Validate DepartmentId nếu có
+            // Validate DepartmentId náº¿u cĂ³
             if (dto.DepartmentId.HasValue)
             {
                 var deptExists = await _context.Departments.AnyAsync(d => d.Id == dto.DepartmentId.Value);
                 if (!deptExists)
-                    throw new ArgumentException("Phòng ban không tồn tại.");
+                    throw new ArgumentException("PhĂ²ng ban khĂ´ng tá»“n táº¡i.");
             }
 
-            // Resolve WorkspaceId: user phải thuộc ít nhất 1 workspace
+            // Resolve WorkspaceId: user pháº£i thuá»™c Ă­t nháº¥t 1 workspace
             var workspaceMembership = await _context.WorkspaceMembers
                 .FirstOrDefaultAsync(wm => wm.UserId == creatorId && wm.IsActive);
             
@@ -398,7 +431,7 @@ namespace TaskManagement.Infrastructure.Services
                 workspaceId = defaultWorkspace.Id;
             }
 
-            // Generate Identifier: lấy 3-4 ký tự đầu viết hoa từ tên project
+            // Generate Identifier: láº¥y 3-4 kĂ½ tá»± Ä‘áº§u viáº¿t hoa tá»« tĂªn project
             string identifier = string.IsNullOrWhiteSpace(dto.Key) ? GenerateIdentifier(dto.Name) : NormalizeIdentifier(dto.Key);
             // Ensure unique within workspace
             int suffix = 1;
@@ -432,7 +465,7 @@ namespace TaskManagement.Infrastructure.Services
                     .AnyAsync(wm => wm.WorkspaceId == workspaceId && wm.UserId == leadUserId.Value && wm.IsActive);
 
                 if (!leadIsWorkspaceMember)
-                    throw new ArgumentException("Lead phải là thành viên đang hoạt động trong workspace.");
+                    throw new ArgumentException("Lead pháº£i lĂ  thĂ nh viĂªn Ä‘ang hoáº¡t Ä‘á»™ng trong workspace.");
             }
 
             navConfig = BuildProjectUiConfig(navConfig, dto.Cover, dto.Icon);
@@ -467,12 +500,12 @@ namespace TaskManagement.Infrastructure.Services
                 new TaskManagement.Domain.Entities.TaskStatus { Id = Guid.NewGuid(), ProjectId = project.Id, Name = "DONE", Position = 3 }
             );
 
-            // Tự động sinh TaskType dựa theo Template
+            // Tá»± Ä‘á»™ng sinh TaskType dá»±a theo Template
             if (templateType == "IT_SERVICE")
             {
                 _context.TaskTypes.AddRange(
-                    new TaskManagement.Domain.Entities.TaskType { Id = Guid.NewGuid(), ProjectId = project.Id, Name = "Ticket lỗi", ColorCode = "#FF0000" },
-                    new TaskManagement.Domain.Entities.TaskType { Id = Guid.NewGuid(), ProjectId = project.Id, Name = "Yêu cầu thiết bị", ColorCode = "#00FF00" }
+                    new TaskManagement.Domain.Entities.TaskType { Id = Guid.NewGuid(), ProjectId = project.Id, Name = "Ticket lá»—i", ColorCode = "#FF0000" },
+                    new TaskManagement.Domain.Entities.TaskType { Id = Guid.NewGuid(), ProjectId = project.Id, Name = "YĂªu cáº§u thiáº¿t bá»‹", ColorCode = "#00FF00" }
                 );
             }
             else if (templateType == "SOFTWARE_DEV")
@@ -529,6 +562,16 @@ namespace TaskManagement.Infrastructure.Services
             };
             _context.SystemAuditLogs.Add(auditLog);
 
+            _context.SiteAuditLogs.Add(new SiteAuditLog
+            {
+                EntityId = project.Id,
+                EntityType = "Project",
+                Action = "Create",
+                NewValue = project.Name,
+                UserId = creatorId,
+                CreatedAt = DateTime.UtcNow
+            });
+
             await _context.SaveChangesAsync();
 
             return (await GetByIdAsync(project.Id))!;
@@ -538,18 +581,21 @@ namespace TaskManagement.Infrastructure.Services
         {
             var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
             if (project == null)
-                throw new ArgumentException("Dự án không tồn tại.");
+                throw new ArgumentException("Dá»± Ă¡n khĂ´ng tá»“n táº¡i.");
 
-            // Validate DepartmentId nếu có
+            // Validate DepartmentId náº¿u cĂ³
             if (dto.DepartmentId.HasValue)
             {
                 var deptExists = await _context.Departments.AnyAsync(d => d.Id == dto.DepartmentId.Value);
                 if (!deptExists)
-                    throw new ArgumentException("Phòng ban không tồn tại.");
+                    throw new ArgumentException("PhĂ²ng ban khĂ´ng tá»“n táº¡i.");
             }
 
             project.Name = dto.Name;
             project.Description = dto.Description;
+            project.Why = dto.Why;
+            project.SuccessCriteria = dto.SuccessCriteria;
+            project.TrackedLinkUrl = dto.TrackedLinkUrl;
             project.StartDate = dto.StartDate;
             project.EndDate = dto.EndDate;
             project.DepartmentId = dto.DepartmentId;
@@ -561,13 +607,13 @@ namespace TaskManagement.Infrastructure.Services
         }
 
         /// <summary>
-        /// 5.1 Archive: Set Status = false (ẩn khỏi danh sách active, vẫn xem được lịch sử)
+        /// 5.1 Archive: Set Status = false (áº©n khá»i danh sĂ¡ch active, váº«n xem Ä‘Æ°á»£c lá»‹ch sá»­)
         /// </summary>
         public async Task ArchiveAsync(Guid id)
         {
             var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
             if (project == null)
-                throw new ArgumentException("Dự án không tồn tại.");
+                throw new ArgumentException("Dá»± Ă¡n khĂ´ng tá»“n táº¡i.");
 
             project.IsArchived = true;
             project.Status = false;
@@ -579,7 +625,7 @@ namespace TaskManagement.Infrastructure.Services
         {
             var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
             if (project == null)
-                throw new ArgumentException("Dự án không tồn tại.");
+                throw new ArgumentException("Dá»± Ă¡n khĂ´ng tá»“n táº¡i.");
 
             project.IsArchived = false;
             project.Status = true;
@@ -588,13 +634,13 @@ namespace TaskManagement.Infrastructure.Services
         }
 
         /// <summary>
-        /// 5.1 Soft Delete: Set IsDeleted = true, Global Query Filter sẽ tự ẩn
+        /// 5.1 Soft Delete: Set IsDeleted = true, Global Query Filter sáº½ tá»± áº©n
         /// </summary>
         public async Task SoftDeleteAsync(Guid id)
         {
             var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
             if (project == null)
-                throw new ArgumentException("Dự án không tồn tại.");
+                throw new ArgumentException("Dá»± Ă¡n khĂ´ng tá»“n táº¡i.");
 
             project.IsDeleted = true;
             project.UpdatedAt = DateTime.UtcNow;
@@ -619,7 +665,7 @@ namespace TaskManagement.Infrastructure.Services
         }
 
         /// <summary>
-        /// Generate a short identifier from project name (e.g., "My Project" → "MP")
+        /// Generate a short identifier from project name (e.g., "My Project" â†’ "MP")
         /// </summary>
         private static string GenerateIdentifier(string name)
         {
@@ -694,6 +740,7 @@ namespace TaskManagement.Infrastructure.Services
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
                     Status = p.Status,
+                    LatestUpdateStatus = p.Updates.OrderByDescending(update => update.CreatedAt).Select(update => update.NewStatus ?? update.Status).FirstOrDefault(),
                     CreatorName = p.Creator != null ? p.Creator.FullName : string.Empty,
                     DepartmentId = p.DepartmentId,
                     DepartmentName = p.Department != null ? p.Department.Name : null,
@@ -728,7 +775,7 @@ namespace TaskManagement.Infrastructure.Services
         {
             var project = await _context.Projects.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == id);
             if (project == null)
-                throw new ArgumentException("Dự án không tồn tại.");
+                throw new ArgumentException("Dá»± Ă¡n khĂ´ng tá»“n táº¡i.");
 
             project.IsDeleted = false;
             project.Status = true;
@@ -740,7 +787,7 @@ namespace TaskManagement.Infrastructure.Services
         {
             var project = await _context.Projects.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == id);
             if (project == null)
-                throw new ArgumentException("Dự án không tồn tại.");
+                throw new ArgumentException("Dá»± Ă¡n khĂ´ng tá»“n táº¡i.");
 
             var tasks = await _context.WorkTasks.IgnoreQueryFilters().Where(wt => wt.ProjectId == id).ToListAsync();
             var taskIds = tasks.Select(t => t.Id).ToList();
@@ -753,7 +800,7 @@ namespace TaskManagement.Infrastructure.Services
                 var dependencies = await _context.TaskDependencies.Where(td => taskIds.Contains(td.PredecessorTaskId) || taskIds.Contains(td.PredecessorTaskId)).ToListAsync();
                 _context.TaskDependencies.RemoveRange(dependencies);
 
-                var comments = await _context.Comments.Where(c => taskIds.Contains(c.WorkTaskId)).ToListAsync();
+                var comments = await _context.Comments.Where(c => c.EntityType == "WorkTask" && taskIds.Contains(c.EntityId)).ToListAsync();
                 _context.Comments.RemoveRange(comments);
 
                 var attachments = await _context.Attachments.Where(a => taskIds.Contains(a.WorkTaskId)).ToListAsync();
@@ -810,5 +857,267 @@ namespace TaskManagement.Infrastructure.Services
             _context.Projects.Remove(project);
             await _context.SaveChangesAsync();
         }
-    }
+    
+        public async Task<IEnumerable<TabItemDto>> GetLessonsAsync(Guid id)
+        {
+            var items = await _context.ProjectLessons
+                .Include(x => x.Creator)
+                .Where(x => x.ProjectId == id)
+                .OrderByDescending(x => x.CreatedAt)
+                .ToListAsync();
+
+            return items.Select(x => new TabItemDto
+            {
+                Id = x.Id,
+                Text = x.Text,
+                CreatorId = x.CreatorId,
+                CreatorName = x.Creator?.FullName ?? x.Creator?.Email ?? "Unknown",
+                CreatedAt = x.CreatedAt
+            });
+        }
+
+        public async Task<TabItemDto> AddLessonAsync(Guid id, CreateTabItemDto dto, Guid userId)
+        {
+            var project = await _context.Projects.FindAsync(id);
+            if (project == null) throw new Exception("Project not found");
+
+            var item = new TaskManagement.Domain.Entities.ProjectLesson
+            {
+                ProjectId = id,
+                Text = dto.Text,
+                CreatorId = userId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.ProjectLessons.Add(item);
+            _context.SiteAuditLogs.Add(new SiteAuditLog
+            {
+                EntityId = id,
+                EntityType = "Project",
+                Action = "AddLesson",
+                NewValue = item.Text,
+                UserId = userId,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
+
+            var creator = await _context.Users.FindAsync(userId);
+
+            return new TabItemDto
+            {
+                Id = item.Id,
+                Text = item.Text,
+                CreatorId = item.CreatorId,
+                CreatorName = creator?.FullName ?? creator?.Email ?? "Unknown",
+                CreatedAt = item.CreatedAt
+            };
+        }
+
+        public async Task<IEnumerable<TabItemDto>> GetRisksAsync(Guid id)
+        {
+            var items = await _context.ProjectRisks
+                .Include(x => x.Creator)
+                .Where(x => x.ProjectId == id)
+                .OrderByDescending(x => x.CreatedAt)
+                .ToListAsync();
+
+            return items.Select(x => new TabItemDto
+            {
+                Id = x.Id,
+                Text = x.Text,
+                Title = x.Severity,
+                CreatorId = x.CreatorId,
+                CreatorName = x.Creator?.FullName ?? x.Creator?.Email ?? "Unknown",
+                CreatedAt = x.CreatedAt
+            });
+        }
+
+        public async Task<TabItemDto> AddRiskAsync(Guid id, CreateTabItemDto dto, Guid userId)
+        {
+            var project = await _context.Projects.FindAsync(id);
+            if (project == null) throw new Exception("Project not found");
+
+            var item = new TaskManagement.Domain.Entities.ProjectRisk
+            {
+                ProjectId = id,
+                Text = dto.Text,
+                Severity = dto.Severity ?? "Medium",
+                CreatorId = userId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.ProjectRisks.Add(item);
+            _context.SiteAuditLogs.Add(new SiteAuditLog
+            {
+                EntityId = id,
+                EntityType = "Project",
+                Action = "AddRisk",
+                NewValue = item.Text,
+                UserId = userId,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
+
+            var creator = await _context.Users.FindAsync(userId);
+
+            return new TabItemDto
+            {
+                Id = item.Id,
+                Text = item.Text,
+                Title = item.Severity,
+                CreatorId = item.CreatorId,
+                CreatorName = creator?.FullName ?? creator?.Email ?? "Unknown",
+                CreatedAt = item.CreatedAt
+            };
+        }
+
+        public async Task<IEnumerable<TabItemDto>> GetDecisionsAsync(Guid id)
+        {
+            var items = await _context.ProjectDecisions
+                .Include(x => x.Creator)
+                .Where(x => x.ProjectId == id)
+                .OrderByDescending(x => x.CreatedAt)
+                .ToListAsync();
+
+            return items.Select(x => new TabItemDto
+            {
+                Id = x.Id,
+                Text = x.Text,
+                CreatorId = x.CreatorId,
+                CreatorName = x.Creator?.FullName ?? x.Creator?.Email ?? "Unknown",
+                CreatedAt = x.CreatedAt
+            });
+        }
+
+        public async Task<TabItemDto> AddDecisionAsync(Guid id, CreateTabItemDto dto, Guid userId)
+        {
+            var project = await _context.Projects.FindAsync(id);
+            if (project == null) throw new Exception("Project not found");
+
+            var item = new TaskManagement.Domain.Entities.ProjectDecision
+            {
+                ProjectId = id,
+                Text = dto.Text,
+                CreatorId = userId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.ProjectDecisions.Add(item);
+            _context.SiteAuditLogs.Add(new SiteAuditLog
+            {
+                EntityId = id,
+                EntityType = "Project",
+                Action = "AddDecision",
+                NewValue = item.Text,
+                UserId = userId,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
+
+            var creator = await _context.Users.FindAsync(userId);
+
+            return new TabItemDto
+            {
+                Id = item.Id,
+                Text = item.Text,
+                CreatorId = item.CreatorId,
+                CreatorName = creator?.FullName ?? creator?.Email ?? "Unknown",
+                CreatedAt = item.CreatedAt
+            };
+        }
+
+        public async Task<IEnumerable<TabItemDto>> GetUpdatesAsync(Guid id)
+        {
+            var items = await _context.ProjectUpdates
+                .Include(x => x.Creator)
+                .Where(x => x.ProjectId == id)
+                .OrderByDescending(x => x.CreatedAt)
+                .ToListAsync();
+
+            return items.Select(x => new TabItemDto
+            {
+                Id = x.Id,
+                Text = x.Content,
+                Title = x.Status,
+                CreatorId = x.CreatorId,
+                CreatorName = x.Creator?.FullName ?? x.Creator?.Email ?? "Unknown",
+                CreatorEmail = x.Creator?.Email,
+                CreatorAvatarUrl = x.Creator?.AvatarUrl,
+                OldStatus = x.OldStatus,
+                NewStatus = x.NewStatus,
+                PreviousStatus = x.OldStatus,
+                CreatedAt = x.CreatedAt
+            });
+        }
+
+        public async Task<TabItemDto> AddUpdateAsync(Guid id, CreateTabItemDto dto, Guid userId)
+        {
+            var project = await _context.Projects.FindAsync(id);
+            if (project == null) throw new Exception("Project not found");
+
+            var latestStatus = await _context.ProjectUpdates
+                .Where(x => x.ProjectId == id)
+                .OrderByDescending(x => x.CreatedAt)
+                .Select(x => x.NewStatus ?? x.Status)
+                .FirstOrDefaultAsync();
+            var oldStatus = latestStatus ?? "Pending";
+            var requestedStatus = string.IsNullOrWhiteSpace(dto.Status) ? dto.Title : dto.Status;
+            var newStatus = string.IsNullOrWhiteSpace(requestedStatus) ? oldStatus : requestedStatus;
+
+            var item = new TaskManagement.Domain.Entities.ProjectUpdate
+            {
+                ProjectId = id,
+                Content = dto.Text,
+                Status = newStatus,
+                OldStatus = oldStatus,
+                NewStatus = newStatus,
+                CreatorId = userId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.ProjectUpdates.Add(item);
+            _context.SiteAuditLogs.Add(new SiteAuditLog
+            {
+                EntityId = project.Id,
+                EntityType = "Project",
+                Action = "AddUpdate",
+                NewValue = item.Content,
+                UserId = userId,
+                CreatedAt = DateTime.UtcNow
+            });
+            if (!string.Equals(oldStatus, newStatus, StringComparison.Ordinal))
+            {
+                _context.SiteAuditLogs.Add(new SiteAuditLog
+                {
+                    EntityId = project.Id,
+                    EntityType = "Project",
+                    Action = "StatusChanged",
+                    OldValue = oldStatus,
+                    NewValue = newStatus,
+                    UserId = userId,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            project.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            var creator = await _context.Users.FindAsync(userId);
+
+            return new TabItemDto
+            {
+                Id = item.Id,
+                Text = item.Content,
+                Title = item.Status,
+                CreatorId = item.CreatorId,
+                CreatorName = creator?.FullName ?? creator?.Email ?? "Unknown",
+                CreatorEmail = creator?.Email,
+                CreatorAvatarUrl = creator?.AvatarUrl,
+                OldStatus = item.OldStatus,
+                NewStatus = item.NewStatus,
+                PreviousStatus = item.OldStatus,
+                CreatedAt = item.CreatedAt
+            };
+        }
 }
+}
+

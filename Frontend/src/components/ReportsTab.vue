@@ -346,39 +346,48 @@ const rangeEnd = computed(() => Math.min(page.value * PAGE_SIZE, filteredRows.va
 </script>
 
 <style scoped>
-.reports-tab { flex: 1; min-height: 0; overflow: auto; padding: 16px 24px 40px; background: var(--color-bg); }
+.reports-tab {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 18px 24px 42px;
+  background:
+    radial-gradient(circle at 14% 0%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 30%),
+    var(--color-bg);
+  color: var(--color-text-primary);
+}
 .reports-head { margin-bottom: 16px; }
 .more-reports-btn {
   background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-primary);
-  padding: 6px 12px; border-radius: 4px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 12px; border-radius: 10px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-weight: 800;
 }
 .more-reports-btn:hover { background: var(--color-border); }
 .more-reports-btn:disabled { opacity: .55; cursor: not-allowed; }
 
 .summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px; }
-.sum-card { display: flex; align-items: center; gap: 12px; border: 1px solid var(--color-border); border-radius: 6px; padding: 14px 16px; background: var(--color-surface); }
-.sum-icon { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; flex-shrink: 0; }
+.sum-card { display: flex; align-items: center; gap: 12px; border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent); border-radius: 14px; padding: 14px 16px; background: color-mix(in srgb, var(--color-surface) 94%, transparent); box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06); min-width: 0; }
+.sum-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; flex-shrink: 0; }
 .sum-icon.green { background: #22a06b; } .sum-icon.blue { background: #0c66e4; } .sum-icon.orange { background: #e56910; } .sum-icon.red { background: #e2483d; }
-.sum-text { display: flex; flex-direction: column; }
-.sum-val { font-weight: 700; color: var(--color-text-primary); font-size: 14px; }
+.sum-text { display: flex; flex-direction: column; min-width: 0; }
+.sum-val { font-weight: 800; color: var(--color-text-primary); font-size: 14px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sum-sub { color: var(--color-text-muted); font-size: 12px; }
 
 .chart-row { display: grid; gap: 16px; margin-bottom: 16px; }
 .chart-row.three { grid-template-columns: repeat(3, 1fr); }
 .chart-row.two { grid-template-columns: repeat(2, 1fr); }
-.chart-card { border: 1px solid var(--color-border); border-radius: 6px; padding: 16px; background: var(--color-surface); position: relative; }
-.chart-card h4 { margin: 0 0 8px; font-size: 14px; color: var(--color-text-primary); }
+.chart-card { border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent); border-radius: 14px; padding: 16px; background: color-mix(in srgb, var(--color-surface) 94%, transparent); position: relative; box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06); overflow: hidden; }
+.chart-card h4 { margin: 0 0 8px; font-size: 14px; color: var(--color-text-primary); font-weight: 900; }
 .donut { height: 240px; }
 .bar, .line { height: 240px; }
 .data-note { position: absolute; bottom: 8px; right: 12px; font-size: 10px; color: var(--color-text-muted); }
 
-.details-card { border: 1px solid var(--color-border); border-radius: 6px; padding: 16px; background: var(--color-surface); }
-.details-card h4 { margin: 0 0 12px; font-size: 14px; color: var(--color-text-primary); }
-.details-search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--color-border); border-radius: 4px; padding: 6px 10px; max-width: 280px; margin-bottom: 12px; color: var(--color-text-muted); }
+.details-card { border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent); border-radius: 14px; padding: 16px; background: color-mix(in srgb, var(--color-surface) 94%, transparent); box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06); overflow: hidden; }
+.details-card h4 { margin: 0 0 12px; font-size: 14px; color: var(--color-text-primary); font-weight: 900; }
+.details-search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--color-border); border-radius: 10px; padding: 6px 10px; max-width: 320px; margin-bottom: 12px; color: var(--color-text-muted); background: var(--color-surface-hover); }
 .details-search input { background: transparent; border: none; outline: none; color: var(--color-text-primary); font-size: 13px; width: 100%; }
 .details-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .details-table th { text-align: left; padding: 8px 12px; color: var(--color-text-muted); font-weight: 600; border-bottom: 1px solid var(--color-border); }
-.details-table td { padding: 10px 12px; color: var(--color-text-primary); border-bottom: 1px solid var(--color-border); cursor: pointer; }
+.details-table td { padding: 10px 12px; color: var(--color-text-primary); border-bottom: 1px solid var(--color-border); cursor: pointer; max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .details-table tbody tr:hover { background: var(--color-bg); }
 .key-cell { color: #0c66e4; }
 .empty-cell { text-align: center; color: var(--color-text-muted); cursor: default; }
@@ -388,4 +397,28 @@ const rangeEnd = computed(() => Math.min(page.value * PAGE_SIZE, filteredRows.va
 .pager button:disabled { opacity: .4; cursor: not-allowed; }
 .page-num { font-size: 13px; color: var(--color-text-primary); }
 .showing { font-size: 12px; color: var(--color-text-muted); }
+
+[data-theme='dark'] .sum-card,
+[data-theme='dark'] .chart-card,
+[data-theme='dark'] .details-card {
+  background: rgba(15, 23, 42, 0.78);
+  border-color: rgba(148, 163, 184, 0.18);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+}
+
+@media (max-width: 1100px) {
+  .summary-cards,
+  .chart-row.three,
+  .chart-row.two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .summary-cards,
+  .chart-row.three,
+  .chart-row.two {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

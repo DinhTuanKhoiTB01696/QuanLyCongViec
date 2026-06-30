@@ -8,8 +8,8 @@ namespace TaskManagement.Infrastructure.Services
     {
         private readonly IMemoryCache _cache;
 
-        // Bảng ký tự dùng để tạo OTP: chữ hoa + chữ thường + số
-        private const string OtpCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        // Bảng ký tự dùng để tạo OTP: chỉ dùng chữ số (0-9) để có mã OTP 6 số
+        private const string OtpCharacters = "0123456789";
         private const int OtpLength = 6;
         private const int OtpExpirationMinutes = 5; // OTP hết hạn sau 5 phút
 

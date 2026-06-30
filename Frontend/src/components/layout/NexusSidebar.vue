@@ -4,7 +4,7 @@
       <div class="sidebar-top-action">
         <button class="new-work-btn" @click="triggerCreateTask">
           <i class="fa-solid fa-pen-to-square"></i>
-          <span>{{ t('shell.newWorkItem') }}</span>
+          <span>{{ t('New work item') }}</span>
         </button>
       </div>
 
@@ -12,7 +12,7 @@
         <li class="nav-item">
           <router-link to="/dashboard" class="nav-link" :class="{ active: $route.path === '/dashboard' && !$route.query.tab }" exact>
             <i class="fa-solid fa-house"></i>
-            <span>{{ t('shell.forYou') }}</span>
+            <span>{{ t('For you') }}</span>
           </router-link>
         </li>
         <li class="nav-item">
@@ -21,14 +21,15 @@
             placement="right-start"
             :width="320"
             trigger="click"
-            popper-style="padding: 0; border-radius: 8px; box-shadow: var(--shadow-lg);"
+            popper-class="sidebar-quick-popover"
+            popper-style="padding: 0;"
             :teleported="true"
             @show="onRecentShow"
           >
             <template #reference>
               <div class="nav-link" :class="{ active: $route.path === '/dashboard' && $route.query.tab === 'viewed' }" style="cursor: pointer;">
                 <i class="fa-solid fa-clock-rotate-left"></i>
-                <span>{{ t('shell.recent') }}</span>
+                <span>{{ t('Recent') }}</span>
                 <i class="fa-solid fa-chevron-right" style="font-size:10px; margin-left:auto;"></i>
               </div>
             </template>
@@ -41,14 +42,15 @@
             placement="right-start"
             :width="340"
             trigger="click"
-            popper-style="padding: 0; border-radius: 8px; box-shadow: var(--shadow-lg);"
+            popper-class="sidebar-quick-popover"
+            popper-style="padding: 0;"
             :teleported="true"
             @show="onStarredShow"
           >
             <template #reference>
               <div class="nav-link" :class="{ active: $route.path === '/dashboard' && $route.query.tab === 'starred' }" style="cursor: pointer;">
                 <i class="fa-regular fa-star"></i>
-                <span>{{ t('shell.starred') }}</span>
+                <span>{{ t('Starred') }}</span>
                 <i class="fa-solid fa-chevron-right" style="font-size:10px; margin-left:auto;"></i>
               </div>
             </template>
@@ -58,36 +60,36 @@
         <li class="nav-item">
           <router-link to="/your-work" class="nav-link">
             <i class="fa-regular fa-user"></i>
-            <span>{{ t('shell.yourWork') }}</span>
+            <span>{{ t('Your work') }}</span>
           </router-link>
         </li>
         <li class="nav-item">
           <router-link to="/stickies" class="nav-link">
             <i class="fa-solid fa-note-sticky"></i>
-            <span>{{ t('shell.stickies') }}</span>
+            <span>{{ t('Stickies') }}</span>
           </router-link>
         </li>
         <li class="nav-item">
           <router-link to="/rewards" class="nav-link">
             <i class="fa-solid fa-trophy"></i>
-            <span>{{ t('shell.rewards') }}</span>
+            <span>{{ t('Rewards') }}</span>
           </router-link>
         </li>
       </ul>
 
       <!-- Workspace Division -->
-      <div class="nav-section-title">{{ t('shell.workspace') }}</div>
+      <div class="nav-section-title">{{ t('Workspace') }}</div>
       <ul class="nav-menu">
         <li class="nav-item">
           <router-link to="/spaces" class="nav-link">
             <i class="fa-solid fa-briefcase"></i>
-            <span>{{ t('shell.projects') }}</span>
+            <span>{{ t('Projects') }}</span>
           </router-link>
         </li>
         <li class="nav-item">
           <div class="nav-link" :class="{ 'dropdown-active': showMorePanel }" @click="showMorePanel = !showMorePanel">
             <i class="fa-solid fa-ellipsis"></i>
-            <span>{{ showMorePanel ? t('shell.hide') : t('shell.more') }}</span>
+            <span>{{ showMorePanel ? t('Hide') : t('More') }}</span>
           </div>
         </li>
       </ul>
@@ -99,21 +101,21 @@
             <li class="nav-item sub-item">
               <router-link to="/views" class="nav-link">
                 <i class="fa-solid fa-layer-group"></i>
-                <span>{{ t('shell.views') }}</span>
+                <span>{{ t('Views') }}</span>
                 <i class="fa-solid fa-thumbtack pin-icon"></i>
               </router-link>
             </li>
             <li class="nav-item sub-item">
               <router-link to="/analytics" class="nav-link">
                 <i class="fa-solid fa-chart-simple"></i>
-                <span>{{ t('shell.analytics') }}</span>
+                <span>{{ t('Analytics') }}</span>
                 <i class="fa-solid fa-thumbtack pin-icon"></i>
               </router-link>
             </li>
             <li class="nav-item sub-item">
               <router-link to="/archives" class="nav-link">
                 <i class="fa-solid fa-box-archive"></i>
-                <span>{{ t('shell.archives') }}</span>
+                <span>{{ t('Archives') }}</span>
                 <i class="fa-solid fa-thumbtack pin-icon"></i>
               </router-link>
             </li>
@@ -123,7 +125,7 @@
 
       <!-- Projects Division -->
       <div class="nav-section-title flex-between">
-        {{ t('shell.projects') }}
+        {{ t('Projects') }}
         <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
       </div>
       <ul class="nav-menu">
@@ -143,7 +145,7 @@
           <li v-for="child in project.children" v-show="project.expanded" :key="child.id" class="nav-item sub-item">
             <router-link :to="child.route" class="nav-link" active-class="active">
               <i :class="childIcon(child.key)"></i>
-              <span>{{ sidebarChildLabel(child) }}</span>
+              <span>{{ t(child.label) }}</span>
             </router-link>
           </li>
         </template>
@@ -153,7 +155,7 @@
     <!-- Bottom Actions -->
     <div class="sidebar-bottom">
       <a href="#" class="community-link">
-        <i class="fa-regular fa-comment"></i> {{ t('shell.community') }}
+        <i class="fa-regular fa-comment"></i> {{ t('Community') }}
       </a>
     </div>
   </aside>
@@ -167,13 +169,14 @@ import { useSprintStore } from '@/store/useSprintStore'
 import { useProjectStore } from '@/store/useProjectStore'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/projectContext'
+import { useI18nStore } from '@/store/useI18nStore'
 import RecentDropdown from '@/components/RecentDropdown.vue'
 import StarredDropdown from '@/components/StarredDropdown.vue'
-import { useI18n } from '@/composables/useI18n'
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
+const i18nStore = useI18nStore()
+const t = (key) => i18nStore.t(key)
 const showMorePanel = ref(false)
 const projectStore = useProjectStore()
 
@@ -297,14 +300,6 @@ const childIcon = (key) => ({
   'pages': 'fa-regular fa-file-lines'
 }[key] || 'fa-solid fa-chevron-right')
 
-const sidebarChildLabel = (child) => ({
-  'work-items': t('shell.workItems'),
-  'cycles': t('shell.cycles'),
-  'modules': t('shell.modules'),
-  'views': t('shell.views'),
-  'pages': t('shell.pages')
-}[child.key] || child.label)
-
 const projectIcon = (project) => project.icon || project.name?.charAt(0)?.toUpperCase() || 'P'
 const projectColor = (project) => {
   const colors = ['#579dff', '#c97cf4', '#00b8d9', '#22a06b', '#f5cd47']
@@ -317,7 +312,7 @@ const triggerCreateTask = async () => {
     : await projectStore.fetchAllProjects()
 
   if (!projects.length) {
-    ElMessage.warning(t('messages.createProjectFirst'))
+    ElMessage.warning('Create a project before creating a work item.')
     await router.push('/spaces')
     return
   }
@@ -340,50 +335,59 @@ const triggerCreateTask = async () => {
 
 <style scoped>
 .plane-sidebar {
-  width: 250px;
-  background-color: var(--color-bg);
+  width: var(--sa-sidebar-width, 224px);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--sa-sidebar) 88%, #ffffff 12%), var(--sa-sidebar)),
+    var(--sa-sidebar);
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 999;
-  height: 100vh;
+  height: 100%;
   position: relative;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.55);
 }
 
 .plane-sidebar.collapsed { width: 0; border-right: none; overflow: hidden; }
 
-.sidebar-scrollable { flex: 1; overflow-y: auto; padding: 16px 12px; }
+.sidebar-scrollable { flex: 1; overflow-y: auto; padding: 12px 10px; }
 
-.sidebar-top-action { margin-bottom: 20px; }
+.sidebar-top-action { margin-bottom: 12px; }
 
 .new-work-btn {
   width: 100%;
-  background: var(--color-surface);
+  background: var(--sa-surface);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border);
-  border-radius: 2px;
-  padding: 8px;
+  border-radius: var(--sa-radius-md);
+  min-height: 32px;
+  padding: 6px 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: var(--sa-shadow-sm);
 }
 
-.new-work-btn:hover { background: var(--color-surface-hover); border-color: var(--color-accent); }
+.new-work-btn:hover {
+  background: color-mix(in srgb, var(--sa-primary-soft) 44%, var(--sa-surface));
+  border-color: color-mix(in srgb, var(--sa-primary) 38%, var(--sa-border));
+  color: var(--sa-text);
+}
 
 .nav-section-title {
   font-size: 11px;
-  color: var(--color-text-muted);
+  color: color-mix(in srgb, var(--sa-text-muted) 82%, var(--sa-text));
   text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  margin: 20px 8px 8px;
+  font-weight: 800;
+  letter-spacing: 0.075em;
+  margin: 16px 8px 7px;
 }
 
 .flex-between { display: flex; justify-content: space-between; align-items: center; padding-right: 4px; }
@@ -393,24 +397,44 @@ const triggerCreateTask = async () => {
 .nav-link {
   display: flex;
   align-items: center;
-  padding: 8px 10px;
+  min-height: 32px;
+  padding: 6px 8px;
   color: var(--color-text-secondary);
-  font-size: 13.5px;
-  font-weight: 500;
-  border-radius: 2px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 8px;
   text-decoration: none;
   cursor: pointer;
   transition: all 0.2s;
+  border: 1px solid transparent;
 }
 
-.nav-link i:first-child { width: 16px; font-size: 14px; margin-right: 12px; text-align: center; }
+.nav-link i:first-child {
+  width: 16px;
+  font-size: 13px;
+  margin-right: 8px;
+  text-align: center;
+  color: color-mix(in srgb, var(--sa-primary) 42%, var(--color-text-secondary));
+}
 
-.nav-link:hover { background-color: var(--color-surface-hover); color: var(--color-text-primary); }
+.nav-link:hover {
+  background-color: color-mix(in srgb, var(--sa-surface-soft) 80%, var(--sa-surface));
+  color: var(--color-text-primary);
+  border-color: color-mix(in srgb, var(--sa-border) 70%, transparent);
+}
 
 .nav-link.active {
-  background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
-  color: var(--color-accent);
-  font-weight: 700;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--sa-primary-soft) 82%, var(--sa-surface)), color-mix(in srgb, var(--sa-primary-soft) 42%, var(--sa-surface)));
+  color: color-mix(in srgb, var(--sa-primary) 78%, #0f172a);
+  border-color: color-mix(in srgb, var(--sa-primary) 24%, var(--sa-border));
+  font-weight: 800;
+  box-shadow: inset 3px 0 0 var(--sa-primary);
+}
+
+.nav-link.active i:first-child,
+.nav-link:hover i:first-child {
+  color: var(--sa-primary);
 }
 
 .fav-icon { color: #f59e0b; }
@@ -421,7 +445,7 @@ const triggerCreateTask = async () => {
   left: 250px;
   width: 250px;
   height: 100vh;
-  background-color: var(--color-bg);
+  background-color: var(--sa-sidebar);
   border-right: 1px solid var(--color-border);
   padding: 16px 12px;
   z-index: 998;
@@ -431,25 +455,71 @@ const triggerCreateTask = async () => {
 .pin-icon { margin-left: auto; font-size: 11px; color: var(--color-text-muted); opacity: 0; }
 .nav-link:hover .pin-icon { opacity: 1; }
 
-.proj-folder { color: var(--color-text-primary); margin-bottom: 2px; }
-
-.proj-icon {
-  width: 20px; height: 20px; border-radius: 2px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: #fff; margin-right: 10px;
+.proj-folder {
+  color: var(--color-text-primary);
+  margin-bottom: 2px;
 }
 
-.sub-item .nav-link { padding-left: 28px; }
+.proj-folder.active {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--sa-primary-soft) 86%, var(--sa-surface)), color-mix(in srgb, var(--sa-primary-soft) 48%, var(--sa-surface)));
+  border-color: color-mix(in srgb, var(--sa-primary) 28%, var(--sa-border));
+}
 
-.sidebar-bottom { padding: 16px; border-top: 1px solid var(--color-border); }
+.proj-icon {
+  width: 20px; height: 20px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; color: #fff; margin-right: 8px;
+  box-shadow: 0 6px 14px rgb(15 23 42 / 0.12);
+}
+
+.sub-item .nav-link {
+  padding-left: 28px;
+  min-height: 30px;
+  font-size: 12px;
+}
+
+.sidebar-bottom {
+  padding: 10px;
+  border-top: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--sa-sidebar) 84%, var(--sa-surface));
+}
 
 .community-link {
   display: flex; align-items: center; gap: 8px;
-  color: var(--color-text-secondary); font-size: 13px; text-decoration: none;
-  padding: 6px; border-radius: 2px; transition: all 0.2s;
+  color: var(--color-text-secondary); font-size: 12.5px; text-decoration: none;
+  padding: 6px 8px; border-radius: 8px; transition: all 0.2s;
 }
 
 .community-link:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+
+[data-theme='dark'] .plane-sidebar {
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+[data-theme='dark'] .nav-link {
+  color: #b8c7db;
+}
+
+[data-theme='dark'] .nav-link i:first-child {
+  color: #8fc8f5;
+}
+
+[data-theme='dark'] .nav-link.active,
+[data-theme='dark'] .proj-folder.active {
+  color: #7dd3fc;
+  background:
+    linear-gradient(90deg, rgba(56, 189, 248, 0.18), rgba(56, 189, 248, 0.08));
+  border-color: rgba(56, 189, 248, 0.32);
+}
+
+[data-theme='light'] .nav-link {
+  color: #334155;
+}
+
+[data-theme='light'] .nav-link i:first-child {
+  color: #3b7196;
+}
 
 .ms-auto { margin-left: auto; }
 
@@ -459,4 +529,19 @@ const triggerCreateTask = async () => {
 .sidebar-scrollable::-webkit-scrollbar { width: 4px; }
 .sidebar-scrollable::-webkit-scrollbar-thumb { background: transparent; border-radius: 10px; }
 .sidebar-scrollable:hover::-webkit-scrollbar-thumb { background: var(--color-border); }
+
+@media (max-width: 768px) {
+  .plane-sidebar {
+    width: min(82vw, 250px);
+  }
+
+  .sidebar-scrollable {
+    padding: 10px 8px;
+  }
+
+  .nav-link {
+    min-height: 30px;
+    font-size: 12px;
+  }
+}
 </style>

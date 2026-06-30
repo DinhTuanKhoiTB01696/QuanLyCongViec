@@ -32,7 +32,7 @@ export const useActivityStore = defineStore('activityStore', {
         // Default to last 30 days if no timeFilter provided
         if (!params.timeFilter) params.timeFilter = '30d'
         
-        const res = await axiosClient.get('/auditlogs', { params })
+        const res = await axiosClient.get('/site-auditlogs', { params })
         if (res.data && res.data.data) {
           this.activities = (res.data.data.items || []).map(item => this.normalizeActivity(item))
           this.total = res.data.data.total || 0

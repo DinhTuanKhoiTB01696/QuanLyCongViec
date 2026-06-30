@@ -135,21 +135,25 @@ const viewAllRecent = () => {
 .jd-content {
   display: flex;
   flex-direction: column;
-  background: var(--color-surface, #ffffff);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 96%, var(--color-accent) 4%), var(--color-surface));
   color: var(--color-text-primary, #172b4d);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  border-radius: 16px;
+  overflow: hidden;
+  min-width: 320px;
 }
 
 .jd-header {
-  padding: 12px 16px 8px;
+  padding: 16px 16px 8px;
 }
 .jd-header h3 {
   margin: 0;
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   color: var(--color-text-muted, #6b778c);
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
 }
 
 .jd-search {
@@ -173,9 +177,9 @@ const viewAllRecent = () => {
   box-sizing: border-box !important;
   border: 1px solid var(--color-border, #dfe1e6) !important;
   border-radius: 16px !important;
-  padding: 7px 10px 7px 30px !important;
+  padding: 7px 10px 7px 32px !important;
   font-size: 13px !important;
-  height: 34px !important;
+  height: 38px !important;
   outline: none !important;
   background: var(--color-surface-hover, #f4f5f7) !important;
   color: var(--color-text-primary, #172b4d) !important;
@@ -192,6 +196,7 @@ const viewAllRecent = () => {
   flex: 1;
   overflow-y: auto;
   max-height: 320px;
+  padding: 0 8px 8px;
 }
 
 .jd-empty {
@@ -217,12 +222,14 @@ const viewAllRecent = () => {
 .jd-item {
   display: flex;
   align-items: center;
-  padding: 8px 16px;
+  padding: 10px 10px;
   cursor: pointer;
-  transition: background 0.1s;
+  border-radius: 12px;
+  transition: background 0.16s ease, transform 0.16s ease;
 }
 .jd-item:hover {
-  background: var(--color-surface-hover, #f4f5f7);
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface-hover));
+  transform: translateX(2px);
 }
 
 .jd-item-icon {
@@ -239,7 +246,7 @@ const viewAllRecent = () => {
 
 .jd-item-title {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 800;
   color: var(--color-text-primary, #172b4d);
   white-space: nowrap;
   overflow: hidden;
@@ -255,7 +262,7 @@ const viewAllRecent = () => {
 }
 
 .jd-footer {
-  padding: 8px 16px;
+  padding: 10px 14px;
   border-top: 1px solid var(--color-border, #ebecf0);
 }
 
@@ -266,13 +273,19 @@ const viewAllRecent = () => {
   border: none;
   color: var(--color-accent, #0c66e4);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 800;
   padding: 8px;
-  border-radius: 3px;
+  border-radius: 10px;
   cursor: pointer;
 }
 .jd-footer button:hover {
   background: var(--color-surface-hover, #f4f5f7);
-  text-decoration: underline;
+  text-decoration: none;
+}
+
+[data-theme='dark'] .jd-content {
+  background:
+    linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.98)),
+    #0f172a;
 }
 </style>

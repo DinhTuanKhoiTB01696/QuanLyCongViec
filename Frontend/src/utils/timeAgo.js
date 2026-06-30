@@ -1,44 +1,44 @@
 /**
- * Shared utility: Vietnamese relative time formatter
- * Handles null, undefined, 0001-01-01 (C# default), and future dates gracefully.
- *
- * @param {string|null|undefined} dateStr  - Primary date string (e.g. updatedAt)
- * @param {string|null|undefined} fallback - Fallback date string (e.g. createdAt)
- * @returns {string} Vietnamese relative time
- *
- * Examples:
- *   timeAgo(task.updatedAt, task.createdAt)
- *   timeAgo(task.createdAt)
+ * Shared utility: Vietnamese relative time formatter.
+ * Treat ISO-like strings without timezone as local time to avoid a 7-hour
+ * offset when the backend stores local DateTime values.
  */
 export const timeAgo = (dateStr, fallback = null) => {
-  // Resolve a usable date string
-  const resolve = (s) => {
-    if (!s) return null
-    let str = String(s).trim()
-    // C# default DateTime / min value
-    if (str.startsWith('0001-01-01') || str.startsWith('0001-01-01T')) return null
+  const resolve = (value) => {
+    if (!value) return null
 
-    // Check if it is an ISO string lacking a timezone designator
-    if ((str.includes('T') || str.includes(' ')) && !str.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(str)) {
-      str = str.replace(' ', 'T')
-      str = `${str}Z`
+    const raw = String(value).trim()
+    if (!raw || raw.startsWith('0001-01-01')) return null
+
+    const normalized = raw.replace(' ', 'T')
+    const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(normalized)
+    const localIso = normalized.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,7}))?)?/)
+
+    if (!hasTimezone && localIso) {
+      const [, year, month, day, hour, minute, second = '0', fraction = '0'] = localIso
+      const ms = Number(fraction.padEnd(3, '0').slice(0, 3))
+      const localDate = new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hour),
+        Number(minute),
+        Number(second),
+        ms
+      )
+      if (Number.isNaN(localDate.getTime()) || localDate.getFullYear() <= 1970) return null
+      return localDate
     }
 
-    const d = new Date(str)
-    if (isNaN(d.getTime())) return null
-    // Clearly bogus dates (year 1 to 1971 = likely default/epoch)
-    if (d.getFullYear() <= 1970) return null
-    return d
+    const parsed = new Date(normalized)
+    if (Number.isNaN(parsed.getTime()) || parsed.getFullYear() <= 1970) return null
+    return parsed
   }
 
   const date = resolve(dateStr) ?? resolve(fallback)
-
   if (!date) return 'Vừa xong'
 
-  const now = new Date()
-  const diffMs = now - date
-
-  // Future date → show "Vừa xong" (clock skew tolerance)
+  const diffMs = Date.now() - date.getTime()
   if (diffMs < 0) return 'Vừa xong'
 
   const seconds = Math.floor(diffMs / 1000)

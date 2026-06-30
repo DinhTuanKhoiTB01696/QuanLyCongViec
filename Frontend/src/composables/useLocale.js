@@ -1,16 +1,16 @@
 import { language, setLanguage } from '@/i18n'
-import { useI18nStore } from '@/store/useI18nStore'
+
+const persistLocale = (locale) => {
+  localStorage.setItem('app_language', locale)
+  localStorage.setItem('admin_locale', locale)
+  localStorage.setItem('sprinta_locale', locale)
+}
 
 export const useLocale = () => {
   const toggleLocale = () => {
-    const next = language.value === 'vi' ? 'en' : 'vi'
-    setLanguage(next)
-    try {
-      const i18nStore = useI18nStore()
-      i18nStore.setLocale(next)
-    } catch (e) {
-      // Pinia might not be active yet
-    }
+    const nextLocale = language.value === 'vi' ? 'en' : 'vi'
+    setLanguage(nextLocale)
+    persistLocale(nextLocale)
   }
 
   const t = (en, vi) => {

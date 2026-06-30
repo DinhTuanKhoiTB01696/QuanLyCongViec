@@ -44,22 +44,35 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18nStore } from '@/store/useI18nStore'
+import { useActivityStore } from '@/store/useActivityStore'
 
 const i18nStore = useI18nStore()
 const t = i18nStore.t
+const activityStore = useActivityStore()
 
 const searchQuery = ref('')
 const filterType = ref('all')
 
-const logs = ref([
-  { id: 1, actor: 'Tua Nguyen', action: 'created project', target: 'SprintA Redesign', type: 'Project', time: '10 minutes ago', actionClass: 'bg-green-100 text-green-600', icon: 'fa-solid fa-plus', category: 'create' },
-  { id: 2, actor: 'Tua Nguyen', action: 'archived team', target: 'Legacy Devs', type: 'Team', time: '2 hours ago', actionClass: 'bg-orange-100 text-orange-600', icon: 'fa-solid fa-box-archive', category: 'archive' },
-  { id: 3, actor: 'System Admin', action: 'created goal', target: 'Q3 Revenue Target', type: 'Goal', time: '1 day ago', actionClass: 'bg-green-100 text-green-600', icon: 'fa-solid fa-plus', category: 'create' },
-  { id: 4, actor: 'John Doe', action: 'restored project', target: 'Old Marketing', type: 'Project', time: '2 days ago', actionClass: 'bg-blue-100 text-blue-600', icon: 'fa-solid fa-rotate-left', category: 'restore' },
-  { id: 5, actor: 'Jane Smith', action: 'created team', target: 'Design Ops', type: 'Team', time: '3 days ago', actionClass: 'bg-green-100 text-green-600', icon: 'fa-solid fa-plus', category: 'create' }
-])
+const logs = computed(() => {
+  if (!activityStore.activities.length) return []
+  return activityStore.activities.map(activity => {
+    const raw = activity.raw || {}
+    const category = (raw.action || raw.eventType || '').toLowerCase()
+    return {
+      id: activity.id,
+      actor: raw.user || raw.userName || raw.actorName || 'System',
+      action: raw.action || raw.eventType || activity.text,
+      target: raw.entityName || raw.resource || raw.targetType || activity.bold || '',
+      type: raw.entityType || raw.targetType || 'Activity',
+      time: activity.time,
+      actionClass: category.includes('archive') ? 'bg-orange-100 text-orange-600' : category.includes('restore') ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600',
+      icon: category.includes('archive') ? 'fa-solid fa-box-archive' : category.includes('restore') ? 'fa-solid fa-rotate-left' : 'fa-solid fa-clock-rotate-left',
+      category: category.includes('archive') ? 'archive' : category.includes('restore') ? 'restore' : category.includes('create') ? 'create' : 'update'
+    }
+  })
+})
 
 const filteredLogs = computed(() => {
   return logs.value.filter(log => {
@@ -68,6 +81,10 @@ const filteredLogs = computed(() => {
     const matchesFilter = filterType.value === 'all' || log.category === filterType.value
     return matchesSearch && matchesFilter
   })
+})
+
+onMounted(async () => {
+  await activityStore.fetchRecentActivities({ limit: 100 })
 })
 </script>
 

@@ -9,6 +9,9 @@ namespace TaskManagement.Application.DTOs.Project
         public string Name { get; set; } = string.Empty;
 
         public string? Description { get; set; }
+        public string? Why { get; set; }
+        public string? SuccessCriteria { get; set; }
+        public string? TrackedLinkUrl { get; set; }
 
         [Required(ErrorMessage = "Ngày bắt đầu là bắt buộc.")]
         public DateTime StartDate { get; set; }

@@ -142,7 +142,7 @@ const isPasswordChangeLocked = computed(() => {
 })
 
 const passwordEligibleLabel = computed(() => {
-  if (!profileData.value.canChangePasswordAt) return t('now', 'ngay bây giờ')
+  if (!profileData.value.canChangePasswordAt) return 'now'
   return new Date(profileData.value.canChangePasswordAt).toLocaleString()
 })
 
@@ -197,6 +197,7 @@ const fetchProfile = async () => {
       email: data.email || '',
       collaboration: data.collaborationRules || '',
       avatarUrl: data.avatarUrl || '',
+      avatarColor: data.avatarColor || '',
       coverUrl: data.coverUrl || '',
       lastPasswordChangedAt: data.lastPasswordChangedAt || '',
       canChangePasswordAt: data.canChangePasswordAt || '',

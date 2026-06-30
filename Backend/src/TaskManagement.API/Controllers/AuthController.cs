@@ -237,6 +237,7 @@ namespace TaskManagement.API.Controllers
                             id = result.Response.Id,
                             fullName = result.Response.FullName,
                             email = result.Response.Email,
+                            avatarUrl = result.Response.AvatarUrl,
                             systemRoles = result.Response.SystemRoles
                         }
                     }
@@ -535,6 +536,7 @@ namespace TaskManagement.API.Controllers
                         Id = user.Id,
                         Email = user.Email,
                         FullName = user.FullName,
+                        AvatarUrl = user.AvatarUrl,
                         SystemRoles = roles.ToArray()
                     }
                 });
