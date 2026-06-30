@@ -4,8 +4,12 @@
       <h1>{{ t('Recent') }}</h1>
 
       <div class="tabs">
-        <button class="tab-btn" :class="{ active: activeTab === 'worked' }" @click="activeTab = 'worked'">{{ t('Worked on') }}</button>
-        <button class="tab-btn" :class="{ active: activeTab === 'viewed' }" @click="activeTab = 'viewed'">{{ t('Viewed') }}</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'worked' }" @click="activeTab = 'worked'">
+          {{ t('Worked on') }}
+        </button>
+        <button class="tab-btn" :class="{ active: activeTab === 'viewed' }" @click="activeTab = 'viewed'">
+          {{ t('Viewed') }}
+        </button>
       </div>
     </header>
 
@@ -28,17 +32,17 @@
             </div>
             <div class="item-meta">
               <span class="status-badge done">DONE</span>
-              <span class="time-ago">{{ act.time }}</span>
+              <span class="time-ago">{{ formatActivityTime(act) }}</span>
             </div>
           </div>
         </div>
 
         <div v-if="filteredItems.length === 0" class="empty-state">
-          Không có hoạt động nào gần đây.
+          {{ labels.empty }}
         </div>
       </div>
       <div v-else class="empty-state">
-        Đang tải dữ liệu...
+        {{ labels.loading }}
       </div>
     </div>
   </div>
@@ -61,16 +65,39 @@ const searchQuery = ref('')
 const recentViews = ref([])
 const recentLoading = ref(false)
 
+const labels = computed(() => i18nStore.locale === 'vi'
+  ? { empty: 'Không có hoạt động nào gần đây.', loading: 'Đang tải dữ liệu...' }
+  : { empty: 'No recent activity.', loading: 'Loading data...' })
+
+const formatDateTime = (value) => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const formatActivityTime = (activity) => {
+  if (activity?._ts) return formatDateTime(activity._ts)
+  const parsed = Date.parse(activity?.time)
+  if (!Number.isNaN(parsed)) return formatDateTime(parsed)
+  return activity?.time || ''
+}
+
 const fetchRecentViews = async () => {
   recentLoading.value = true
   try {
     const res = await axiosClient.get('/recentviews', { params: { limit: 50 } })
-    recentViews.value = (res.data?.data || []).map(item => ({
+    recentViews.value = (res.data?.data || []).map((item) => ({
       id: item.id,
       icon: item.icon || 'fa-regular fa-eye',
       text: item.subtitle || item.entityType || '',
       bold: item.title,
-      time: new Date(item.viewedAt).toLocaleString(),
+      time: formatDateTime(item.viewedAt),
       _ts: Date.parse(item.viewedAt) || Date.now(),
       url: item.url
     }))
@@ -94,35 +121,26 @@ const filteredItems = computed(() => {
   const source = activeTab.value === 'worked' ? activityStore.activities : recentViews.value
   const q = searchQuery.value.trim().toLowerCase()
   if (!q) return source
-  return source.filter(item => `${item.bold || ''} ${item.text || ''}`.toLowerCase().includes(q))
+  return source.filter((item) => `${item.bold || ''} ${item.text || ''}`.toLowerCase().includes(q))
 })
 
 const groupedActivities = computed(() => {
-  const groups = {
-    today: [],
-    thisWeek: [],
-    older: []
-  }
-
+  const groups = { today: [], thisWeek: [], older: [] }
   const now = Date.now()
   const oneDay = 24 * 60 * 60 * 1000
   const oneWeek = 7 * oneDay
 
-  filteredItems.value.forEach(act => {
-    const age = now - act._ts
-    if (age < oneDay) {
-      groups.today.push(act)
-    } else if (age < oneWeek) {
-      groups.thisWeek.push(act)
-    } else {
-      groups.older.push(act)
-    }
+  filteredItems.value.forEach((act) => {
+    const age = now - (act._ts || Date.parse(act.time) || now)
+    if (age < oneDay) groups.today.push(act)
+    else if (age < oneWeek) groups.thisWeek.push(act)
+    else groups.older.push(act)
   })
 
   const result = []
-  if (groups.today.length > 0) result.push({ label: 'Today', items: groups.today })
-  if (groups.thisWeek.length > 0) result.push({ label: 'This week', items: groups.thisWeek })
-  if (groups.older.length > 0) result.push({ label: 'Older', items: groups.older })
+  if (groups.today.length) result.push({ label: 'Today', items: groups.today })
+  if (groups.thisWeek.length) result.push({ label: 'This week', items: groups.thisWeek })
+  if (groups.older.length) result.push({ label: 'Older', items: groups.older })
   return result
 })
 
@@ -133,44 +151,185 @@ const goToItem = (item) => {
 
 <style scoped>
 .recent-page {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: #172B4D;
-  background-color: #FFFFFF;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: var(--home-bg, #ffffff);
+  color: var(--home-text, #172b4d);
 }
 
-.page-header { padding: 32px 40px 0; border-bottom: 1px solid #DFE1E6; }
-.page-header h1 { font-size: 24px; font-weight: 500; color: #172B4D; margin: 0 0 24px 0; }
-.tabs { display: flex; gap: 24px; }
-.tab-btn { background: transparent; border: none; padding: 0 0 12px 0; font-size: 14px; font-weight: 500; color: #5E6C84; cursor: pointer; position: relative; }
-.tab-btn:hover { color: #172B4D; }
-.tab-btn.active { color: #0052CC; }
-.tab-btn.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background-color: #0052CC; }
-.page-content { padding: 24px 40px; max-width: 1000px; }
-.filter-container { margin-bottom: 24px; }
-.search-input-wrapper { position: relative; width: 240px; }
-.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #5E6C84; font-size: 14px; }
-.search-input { width: 100%; padding: 6px 12px 6px 44px; border: 2px solid #DFE1E6; border-radius: 3px; background-color: #FFFFFF; color: #091E42; font-size: 14px; outline: none; transition: background-color 0.2s, border-color 0.2s; box-sizing: border-box; }
-.search-input:hover { background-color: #FAFBFC; }
-.search-input:focus { background-color: #FFFFFF; border-color: #4C9AFF; }
-.audit-list { display: flex; flex-direction: column; gap: 32px; }
-.time-group { display: flex; flex-direction: column; }
-.time-label { font-size: 12px; font-weight: 600; color: #5E6C84; margin: 0 0 12px 0; }
-.audit-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #DFE1E6; gap: 16px; }
-.audit-item:last-child { border-bottom: none; }
-.audit-item.clickable { cursor: pointer; }
-.audit-item.clickable:hover { background: #FAFBFC; }
-.item-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 12px; }
-.item-icon.square { border-radius: 3px; }
-.light-blue { background: #E6FCFF; color: #00B8D9; }
-.item-details { flex: 1; }
-.item-title { font-size: 14px; font-weight: 500; color: #172B4D; margin-bottom: 2px; }
-.item-path { font-size: 12px; color: #5E6C84; }
-.item-meta { display: flex; align-items: center; gap: 16px; }
-.status-badge { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
-.status-badge.done { background: #E3FCEF; color: #006644; }
-.time-ago { font-size: 12px; color: #5E6C84; min-width: 80px; text-align: right; }
-.empty-state { text-align: center; color: #5E6C84; margin-top: 40px; padding: 16px; }
+.page-header {
+  padding: 32px 40px 0;
+  border-bottom: 1px solid var(--home-border, #dfe1e6);
+}
+
+.page-header h1 {
+  margin: 0 0 24px;
+  color: var(--home-text, #172b4d);
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.tab-btn {
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  padding: 10px 14px;
+  background: transparent;
+  color: var(--home-muted, #5e6c84);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tab-btn:hover,
+.tab-btn.active {
+  background: var(--home-panel, #ffffff);
+  border-color: var(--home-border, #dfe1e6);
+  color: var(--home-accent, #0052cc);
+}
+
+.tab-btn.active {
+  box-shadow: inset 0 -2px 0 var(--home-accent, #0052cc);
+}
+
+.page-content {
+  max-width: 1040px;
+  padding: 32px 40px;
+}
+
+.filter-container {
+  margin-bottom: 24px;
+}
+
+.search-input-wrapper {
+  position: relative;
+  width: min(100%, 320px);
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--home-muted, #5e6c84);
+  font-size: 14px;
+}
+
+.search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px 10px 40px;
+  border: 1px solid var(--home-border, #dfe1e6);
+  border-radius: 8px;
+  outline: none;
+  background: var(--home-panel, #ffffff);
+  color: var(--home-text, #091e42);
+  font-size: 14px;
+}
+
+.search-input:focus {
+  border-color: var(--home-accent, #4c9aff);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14);
+}
+
+.audit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.time-label {
+  margin: 0 0 12px;
+  color: var(--home-muted, #5e6c84);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.audit-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--home-border, #dfe1e6);
+  border-radius: 10px;
+  background: var(--home-panel, #ffffff);
+  margin-bottom: 10px;
+}
+
+.audit-item.clickable {
+  cursor: pointer;
+}
+
+.audit-item.clickable:hover {
+  background: var(--home-panel-strong, #fafbfc);
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
+.item-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.light-blue {
+  background: rgba(56, 189, 248, 0.18);
+  color: var(--home-accent, #00b8d9);
+}
+
+.item-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-title {
+  margin-bottom: 2px;
+  color: var(--home-text, #172b4d);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.item-path {
+  color: var(--home-muted, #5e6c84);
+  font-size: 12px;
+}
+
+.item-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.status-badge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.16);
+  color: #00875a;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.time-ago {
+  min-width: 128px;
+  color: var(--home-muted, #5e6c84);
+  text-align: right;
+  font-size: 12px;
+}
+
+.empty-state {
+  padding: 40px 16px;
+  border: 1px dashed var(--home-border, #dfe1e6);
+  border-radius: 12px;
+  color: var(--home-muted, #5e6c84);
+  text-align: center;
+}
 </style>

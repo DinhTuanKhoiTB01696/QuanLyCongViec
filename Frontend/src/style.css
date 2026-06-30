@@ -371,6 +371,20 @@ label, .el-form-item__label, .field-label {
   color: #f8fafc !important;
 }
 
+.app-topbar .user-avatar-trigger,
+.app-topbar .user-avatar-trigger *,
+.app-topbar .user-trigger-text,
+.app-topbar .trigger-arrow {
+  color: rgba(226, 239, 255, 0.94) !important;
+}
+
+.app-topbar .user-avatar-trigger:hover,
+.app-topbar .user-avatar-trigger:hover *,
+.app-topbar .user-avatar-trigger:hover .user-trigger-text,
+.app-topbar .user-avatar-trigger:hover .trigger-arrow {
+  color: #ffffff !important;
+}
+
 .app-topbar input,
 .app-topbar input::placeholder,
 .app-topbar .search-icon {
@@ -1071,5 +1085,928 @@ textarea {
   .toolbar-actions,
   .reports-actions {
     gap: 6px !important;
+  }
+}
+
+/* Site selection welcome screen */
+.start-page-wrapper {
+  background:
+    radial-gradient(circle at 18% 10%, color-mix(in srgb, var(--home-accent) 16%, transparent), transparent 30%),
+    radial-gradient(circle at 78% 24%, color-mix(in srgb, var(--home-warning) 10%, transparent), transparent 24%),
+    linear-gradient(180deg, var(--home-bg), var(--home-bg-2)) !important;
+  color: var(--home-text) !important;
+}
+
+.start-header {
+  height: 72px !important;
+  background: color-mix(in srgb, var(--home-panel-strong) 90%, transparent) !important;
+  border-bottom: 1px solid var(--home-border) !important;
+  box-shadow: var(--home-shadow-soft) !important;
+  backdrop-filter: blur(14px);
+}
+
+.atlassian-brand-block {
+  background: linear-gradient(135deg, #0ea5e9, #2563eb) !important;
+}
+
+.app-logo .logo-text,
+.user-name-text,
+.welcome-title,
+.pickup-text,
+.site-name-bold,
+.site-list-item-url,
+.explore-section p,
+.logged-in-text strong {
+  color: var(--home-text) !important;
+}
+
+.start-content {
+  width: min(920px, calc(100vw - 32px)) !important;
+  margin: 0 auto !important;
+  padding-top: clamp(42px, 6vh, 72px) !important;
+  align-items: stretch !important;
+}
+
+.welcome-container {
+  margin-bottom: 24px !important;
+  text-align: center !important;
+}
+
+.welcome-title {
+  font-size: clamp(34px, 4.2vw, 58px) !important;
+  line-height: 1.05 !important;
+  letter-spacing: 0 !important;
+}
+
+.card-section {
+  max-width: 760px !important;
+  margin: 0 auto !important;
+  padding: 22px !important;
+  border: 1px solid var(--home-border) !important;
+  border-radius: 22px !important;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--home-panel-strong) 95%, var(--home-accent) 5%), var(--home-panel)) !important;
+  box-shadow: var(--home-shadow) !important;
+  overflow: hidden;
+}
+
+.card-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 7% 12%, color-mix(in srgb, var(--home-accent) 16%, transparent), transparent 28%),
+    radial-gradient(circle at 94% 84%, color-mix(in srgb, var(--home-accent-2) 12%, transparent), transparent 30%);
+  pointer-events: none;
+}
+
+.card-section > * {
+  position: relative;
+  z-index: 1;
+}
+
+.card-header-row {
+  margin-bottom: 14px !important;
+}
+
+.recent-site-card {
+  min-height: 94px !important;
+  padding: 18px !important;
+  border-radius: 16px !important;
+}
+
+.site-avatar-square {
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 16px !important;
+  background: linear-gradient(135deg, #0ea5e9, #22c55e) !important;
+  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.22) !important;
+}
+
+.pill-btn.orange {
+  color: #111827 !important;
+  background: linear-gradient(135deg, #fbbf24, #fb923c) !important;
+  border-radius: 999px !important;
+  font-weight: 850 !important;
+  box-shadow: 0 12px 26px rgba(245, 158, 11, 0.22) !important;
+}
+
+.different-site-link,
+.create-site-link,
+.join-link {
+  color: var(--home-accent) !important;
+  font-weight: 800 !important;
+}
+
+.explore-section {
+  margin-top: 34px !important;
+  padding: 18px !important;
+  border: 1px solid var(--home-border) !important;
+  border-radius: 18px !important;
+  background: color-mix(in srgb, var(--home-panel) 82%, transparent) !important;
+}
+
+.explore-section p {
+  margin-bottom: 12px !important;
+}
+
+.explore-btn {
+  border-color: var(--home-border-strong) !important;
+  color: var(--home-muted) !important;
+  background: var(--home-panel-strong) !important;
+}
+
+@media (max-width: 720px) {
+  .start-header {
+    height: 64px !important;
+    padding-right: 12px !important;
+  }
+
+  .atlassian-brand-block {
+    width: 52px !important;
+  }
+
+  .app-logo {
+    margin-left: 12px !important;
+  }
+
+  .header-right {
+    gap: 10px !important;
+  }
+
+  .user-profile {
+    display: none !important;
+  }
+
+  .card-section {
+    padding: 16px !important;
+  }
+
+  .recent-site-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+  }
+}
+
+/* SprintA Home workspace refresh: shared light/dark visual system */
+:root {
+  --home-bg: #f6f9fd;
+  --home-bg-2: #eef6fb;
+  --home-panel: rgba(255, 255, 255, 0.92);
+  --home-panel-strong: #ffffff;
+  --home-panel-soft: rgba(239, 248, 255, 0.72);
+  --home-border: rgba(148, 163, 184, 0.24);
+  --home-border-strong: rgba(14, 165, 233, 0.24);
+  --home-text: #0f1f35;
+  --home-muted: #64748b;
+  --home-soft-text: #475569;
+  --home-accent: #0ea5e9;
+  --home-accent-2: #22c55e;
+  --home-warning: #f59e0b;
+  --home-danger: #ef4444;
+  --home-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+  --home-shadow-soft: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme='dark'] {
+  --home-bg: #07111f;
+  --home-bg-2: #0f172a;
+  --home-panel: rgba(15, 23, 42, 0.84);
+  --home-panel-strong: #111c2d;
+  --home-panel-soft: rgba(30, 41, 59, 0.72);
+  --home-border: rgba(148, 163, 184, 0.18);
+  --home-border-strong: rgba(56, 189, 248, 0.28);
+  --home-text: #f8fafc;
+  --home-muted: #a9bad2;
+  --home-soft-text: #cbd5e1;
+  --home-accent: #38bdf8;
+  --home-accent-2: #34d399;
+  --home-warning: #fbbf24;
+  --home-danger: #f87171;
+  --home-shadow: 0 22px 56px rgba(0, 0, 0, 0.30);
+  --home-shadow-soft: 0 14px 36px rgba(0, 0, 0, 0.22);
+}
+
+.home-site-container,
+.main-content,
+.recent-page,
+.starred-page,
+.notifications-page,
+.status-page,
+.people-wrapper,
+.goals-wrapper,
+.projects-wrapper {
+  background:
+    radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--home-accent) 14%, transparent), transparent 30%),
+    radial-gradient(circle at 92% 8%, color-mix(in srgb, var(--home-accent-2) 10%, transparent), transparent 28%),
+    linear-gradient(180deg, var(--home-bg), var(--home-bg-2) 54%, var(--home-bg)) !important;
+  color: var(--home-text) !important;
+}
+
+.home-content-wrapper {
+  background: transparent !important;
+}
+
+.sidebar {
+  width: 240px !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--home-panel-strong) 94%, var(--home-accent) 6%), var(--home-panel-strong)) !important;
+  border-right: 1px solid var(--home-border) !important;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.26) !important;
+}
+
+[data-theme='dark'] .sidebar {
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+.site-switcher,
+.nav-item {
+  border-radius: 10px !important;
+}
+
+.site-switcher:hover,
+.nav-item:hover {
+  background: color-mix(in srgb, var(--home-accent) 10%, transparent) !important;
+}
+
+.site-name,
+.nav-item,
+.nav-item span,
+.page-header h1,
+.module-header h1,
+.header-main h1,
+.section-header h2,
+.item-title,
+.card-content h3,
+.team-name-card,
+.goal-title,
+.project-title,
+.empty-state h2,
+.empty-state h3,
+.empty-text-main {
+  color: var(--home-text) !important;
+}
+
+.site-subtitle,
+.dropdown-icon,
+.nav-icon,
+.item-path,
+.time-ago,
+.card-content p,
+.team-meta,
+.stat-desc,
+.stats-subtitle,
+.empty-state,
+.empty-state p,
+.empty-text-sub,
+.results-count,
+.following-text,
+.updated-text,
+.toggle-label,
+.notif-time,
+.notif-meta,
+.item-type-label,
+.item-time {
+  color: var(--home-muted) !important;
+}
+
+.nav-item.router-link-active,
+.nav-item.active-nav {
+  color: var(--home-accent) !important;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--home-accent) 18%, transparent), color-mix(in srgb, var(--home-accent-2) 8%, transparent)) !important;
+  box-shadow: inset 3px 0 0 var(--home-accent) !important;
+}
+
+.nav-item.router-link-active .nav-icon,
+.nav-item.active-nav .nav-icon {
+  color: var(--home-accent) !important;
+}
+
+.page-header,
+.module-header,
+.header-main {
+  padding: 22px clamp(18px, 2.4vw, 34px) 0 !important;
+  background: transparent !important;
+  border-bottom-color: var(--home-border) !important;
+}
+
+.page-header h1,
+.module-header h1,
+.header-main h1 {
+  font-size: clamp(24px, 2.1vw, 34px) !important;
+  line-height: 1.08 !important;
+  font-weight: 900 !important;
+  letter-spacing: 0 !important;
+}
+
+.page-content,
+.module-content,
+.notifications-layout {
+  padding: 22px clamp(18px, 2.4vw, 34px) 36px !important;
+  max-width: 1280px !important;
+}
+
+.tabs,
+.tabs-nav {
+  gap: 6px !important;
+  border-bottom: 1px solid var(--home-border) !important;
+}
+
+.tab-btn,
+.tab-link {
+  min-height: 38px !important;
+  padding: 0 14px !important;
+  border-radius: 10px 10px 0 0 !important;
+  color: var(--home-muted) !important;
+  border: 1px solid transparent !important;
+  border-bottom: 2px solid transparent !important;
+  font-weight: 750 !important;
+  outline: none !important;
+}
+
+.tab-btn:hover,
+.tab-link:hover {
+  color: var(--home-text) !important;
+  background: color-mix(in srgb, var(--home-accent) 8%, transparent) !important;
+}
+
+.tab-btn:focus,
+.tab-link:focus,
+.tab-btn:focus-visible,
+.tab-link:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--home-accent) 55%, transparent) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+}
+
+.tab-btn.active,
+.tab-link.active {
+  color: var(--home-accent) !important;
+  background: color-mix(in srgb, var(--home-accent) 12%, var(--home-panel)) !important;
+  border-color: var(--home-border) !important;
+  border-bottom-color: var(--home-accent) !important;
+}
+
+.filter-container,
+.filter-controls,
+.list-controls,
+.list-controls-section,
+.task-toolbar,
+.table-toolbar,
+.main-header {
+  background: var(--home-panel) !important;
+  border: 1px solid var(--home-border) !important;
+  border-radius: 14px !important;
+  padding: 10px !important;
+  box-shadow: var(--home-shadow-soft) !important;
+  backdrop-filter: blur(14px);
+}
+
+.filter-controls,
+.list-controls,
+.table-toolbar {
+  align-items: center !important;
+}
+
+.search-input-wrapper,
+.search-box-wrapper,
+.search-box-full {
+  position: relative !important;
+}
+
+.search-input,
+.filter-select,
+.jira-select,
+.secondary-btn,
+.filter-chip,
+.clear-filters-btn,
+.small-btn {
+  height: 38px !important;
+  border: 1px solid var(--home-border) !important;
+  border-radius: 10px !important;
+  background: var(--home-panel-strong) !important;
+  color: var(--home-text) !important;
+  font-weight: 650 !important;
+}
+
+.search-input {
+  padding-left: 38px !important;
+}
+
+.search-icon {
+  color: var(--home-muted) !important;
+  z-index: 1;
+}
+
+.search-input:hover,
+.filter-select:hover,
+.jira-select:hover,
+.secondary-btn:hover,
+.filter-chip:hover,
+.clear-filters-btn:hover,
+.small-btn:hover {
+  border-color: var(--home-border-strong) !important;
+  background: color-mix(in srgb, var(--home-accent) 8%, var(--home-panel-strong)) !important;
+}
+
+.search-input:focus,
+.filter-select:focus,
+.jira-select:focus {
+  border-color: var(--home-accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--home-accent) 16%, transparent) !important;
+}
+
+.primary-btn,
+.pill-btn.blue {
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb) !important;
+  box-shadow: 0 14px 28px rgba(14, 165, 233, 0.24) !important;
+  font-weight: 800 !important;
+}
+
+.primary-btn:hover,
+.pill-btn.blue:hover {
+  filter: brightness(1.05);
+}
+
+.starred-card,
+.team-card,
+.stat-card,
+.tracked-item,
+.item-card-inner,
+.recent-site-card,
+.site-list-item,
+.people-card,
+.empty-state-large,
+.empty-state-banner,
+.notifications-main,
+.filters-sidebar,
+.sidebar-section,
+.table-container {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--home-panel-strong) 94%, var(--home-accent) 6%), var(--home-panel)) !important;
+  border: 1px solid var(--home-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--home-shadow-soft) !important;
+  color: var(--home-text) !important;
+}
+
+.starred-card,
+.team-card,
+.recent-site-card,
+.site-list-item,
+.people-card,
+.tracked-item,
+.notification-item,
+.audit-item {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease !important;
+}
+
+.starred-card:hover,
+.team-card:hover,
+.recent-site-card:hover,
+.site-list-item:hover,
+.people-card:hover,
+.tracked-item:hover,
+.notification-item:hover,
+.audit-item.clickable:hover {
+  transform: translateY(-2px) !important;
+  border-color: var(--home-border-strong) !important;
+  box-shadow: var(--home-shadow) !important;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--home-accent) 9%, var(--home-panel-strong)), var(--home-panel)) !important;
+}
+
+.team-card-cover {
+  background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2)) !important;
+}
+
+.jira-table {
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  overflow: hidden !important;
+  background: var(--home-panel) !important;
+  border: 1px solid var(--home-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--home-shadow-soft) !important;
+}
+
+.jira-table th {
+  padding: 12px 14px !important;
+  background: color-mix(in srgb, var(--home-accent) 8%, var(--home-panel-strong)) !important;
+  color: var(--home-muted) !important;
+  border-bottom: 1px solid var(--home-border) !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.02em !important;
+  text-transform: uppercase !important;
+}
+
+.jira-table td {
+  padding: 13px 14px !important;
+  color: var(--home-soft-text) !important;
+  border-bottom: 1px solid var(--home-border) !important;
+}
+
+.jira-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--home-accent) 8%, transparent) !important;
+}
+
+.empty-state,
+.empty-state-grid,
+.empty-table-state,
+.loading-state {
+  background:
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--home-accent) 12%, transparent), transparent 38%),
+    var(--home-panel) !important;
+  border: 1px dashed var(--home-border-strong) !important;
+  border-radius: 18px !important;
+  color: var(--home-muted) !important;
+  padding: 54px 24px !important;
+  box-shadow: var(--home-shadow-soft) !important;
+}
+
+.empty-icon-wrapper,
+.empty-illustration,
+.empty-icon-wrapper-large {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--home-accent) 18%, transparent), color-mix(in srgb, var(--home-accent-2) 12%, transparent)) !important;
+  color: var(--home-accent) !important;
+  border: 1px solid var(--home-border-strong) !important;
+}
+
+.status-badge,
+.item-status-badge {
+  border-radius: 999px !important;
+  padding: 4px 9px !important;
+  font-weight: 850 !important;
+}
+
+.status-on-track,
+.green-badge {
+  background: color-mix(in srgb, var(--home-accent-2) 16%, transparent) !important;
+  color: var(--home-accent-2) !important;
+}
+
+.status-default,
+.status-pending,
+.status-archived {
+  background: color-mix(in srgb, var(--home-muted) 12%, transparent) !important;
+  color: var(--home-muted) !important;
+}
+
+.status-at-risk,
+.orange-badge {
+  background: color-mix(in srgb, var(--home-warning) 18%, transparent) !important;
+  color: var(--home-warning) !important;
+}
+
+.status-off-track,
+.red-badge {
+  background: color-mix(in srgb, var(--home-danger) 16%, transparent) !important;
+  color: var(--home-danger) !important;
+}
+
+.status-done,
+.blue-badge {
+  background: color-mix(in srgb, var(--home-accent) 16%, transparent) !important;
+  color: var(--home-accent) !important;
+}
+
+.progress-bar-bg {
+  background: color-mix(in srgb, var(--home-muted) 18%, transparent) !important;
+}
+
+.progress-bar-fill {
+  background: linear-gradient(90deg, var(--home-accent), var(--home-accent-2)) !important;
+}
+
+.modal-content,
+.jira-dialog,
+.jira-modal {
+  background: var(--home-panel-strong) !important;
+  border: 1px solid var(--home-border) !important;
+  border-radius: 18px !important;
+  color: var(--home-text) !important;
+  box-shadow: var(--home-shadow) !important;
+}
+
+.modal-header,
+.modal-footer,
+.jira-dialog-footer {
+  border-color: var(--home-border) !important;
+}
+
+.modal-header h2,
+.dialog-title h2,
+.jira-modal-title {
+  color: var(--home-text) !important;
+}
+
+/* Home site remaining pages: keep light/dark readable and consistent */
+.teams-dashboard,
+.teams-wrapper,
+.goals-wrapper,
+.projects-wrapper,
+.recent-page,
+.starred-page,
+.status-page {
+  background:
+    radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--home-accent-2) 9%, transparent), transparent 28%),
+    var(--home-bg) !important;
+  color: var(--home-text) !important;
+}
+
+.empty-state-banner,
+.dashboard-section,
+.table-container,
+.list-controls-section,
+.list-controls,
+.table-toolbar,
+.team-card,
+.tracked-item,
+.starred-card,
+.filter-controls,
+.empty-state-large,
+.empty-state,
+.jira-table {
+  background: var(--home-panel) !important;
+  border-color: var(--home-border) !important;
+  color: var(--home-text) !important;
+}
+
+.empty-state-banner,
+.list-controls-section,
+.filter-controls,
+.table-toolbar,
+.empty-state-large {
+  border: 1px solid var(--home-border) !important;
+  border-radius: 14px !important;
+}
+
+.module-header,
+.page-header,
+.tabs-nav {
+  background: transparent !important;
+  border-color: var(--home-border) !important;
+  color: var(--home-text) !important;
+}
+
+.header-content h1,
+.page-header h1,
+.empty-banner-text h2,
+.section-header h2,
+.team-name,
+.team-name-text,
+.goal-title,
+.project-title,
+.owner-name,
+.empty-state h2,
+.empty-state h3,
+.empty-text-main,
+.item-name,
+.item-user-name,
+.sidebar-item-name,
+.results-count,
+.stats-subtitle {
+  color: var(--home-text) !important;
+}
+
+.empty-banner-text p,
+.team-meta,
+.person-role,
+.progress-text,
+.label-badge,
+.target-date-badge,
+.following-text,
+.updated-text,
+.empty-state p,
+.empty-text-sub,
+.required-note,
+.recaptcha-text,
+.item-type-label,
+.item-time,
+.stat-desc,
+.time-label {
+  color: var(--home-muted) !important;
+}
+
+.tab-btn,
+.tab-link,
+.secondary-btn,
+.small-btn,
+.filter-btn,
+.view-toggles .icon-btn,
+.toggle-btn,
+.cancel-btn,
+.icon-btn,
+.icon-btn-header,
+.refresh-emoji-btn {
+  background: var(--home-panel) !important;
+  border-color: var(--home-border) !important;
+  color: var(--home-text) !important;
+}
+
+.tab-btn.active,
+.tab-link.active,
+.router-link-active.tab-link,
+.filter-btn:hover,
+.secondary-btn:hover,
+.small-btn:hover,
+.icon-btn:hover,
+.toggle-btn.active,
+.view-toggles .icon-btn.active {
+  background: color-mix(in srgb, var(--home-accent) 14%, var(--home-panel)) !important;
+  border-color: color-mix(in srgb, var(--home-accent) 60%, var(--home-border)) !important;
+  color: var(--home-accent) !important;
+}
+
+.stat-label.gray,
+.stat-number.gray,
+.gray.stat-label,
+.gray.stat-number {
+  background: transparent !important;
+  color: var(--home-muted) !important;
+  padding: 0 !important;
+}
+
+.stat-card .stat-label {
+  display: inline-flex !important;
+  width: max-content !important;
+  max-width: 100% !important;
+  align-items: center !important;
+  line-height: 1.2 !important;
+}
+
+.app-topbar .icon-btn,
+.app-topbar .theme-toggle-btn,
+.app-topbar .notification-btn,
+.app-topbar .settings-btn,
+.app-topbar .bot-btn,
+.app-topbar .flag-btn {
+  background: rgba(255, 255, 255, 0.055) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(226, 239, 255, 0.94) !important;
+  box-shadow: none !important;
+}
+
+.app-topbar .icon-btn i,
+.app-topbar .icon-btn svg,
+.app-topbar .theme-toggle-btn i,
+.app-topbar .notification-btn i,
+.app-topbar .settings-btn i,
+.app-topbar .bot-btn i,
+.app-topbar .flag-btn i {
+  color: inherit !important;
+}
+
+.app-topbar .icon-btn:hover,
+.app-topbar .theme-toggle-btn:hover,
+.app-topbar .notification-btn:hover,
+.app-topbar .settings-btn:hover,
+.app-topbar .bot-btn:hover,
+.app-topbar .flag-btn:hover {
+  background: rgba(56, 189, 248, 0.14) !important;
+  border-color: rgba(56, 189, 248, 0.42) !important;
+  color: #ffffff !important;
+}
+
+.app-topbar .theme-toggle-btn.active {
+  background: rgba(56, 189, 248, 0.18) !important;
+  border-color: rgba(56, 189, 248, 0.55) !important;
+  color: #e0f2fe !important;
+}
+
+.search-input,
+.jira-input,
+.form-group input,
+.jira-select,
+.filter-select,
+.owner-input-wrapper,
+.tags-input-container,
+.text-input,
+select.secondary-btn {
+  background: var(--home-panel-strong) !important;
+  border-color: var(--home-border) !important;
+  color: var(--home-text) !important;
+}
+
+.search-input::placeholder,
+.jira-input::placeholder,
+.form-group input::placeholder,
+.text-input::placeholder {
+  color: var(--home-muted) !important;
+  opacity: 0.82 !important;
+}
+
+.search-input:focus,
+.jira-input:focus,
+.form-group input:focus,
+.filter-select:focus,
+.text-input:focus {
+  border-color: var(--home-accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--home-accent) 16%, transparent) !important;
+}
+
+.jira-table th {
+  background: color-mix(in srgb, var(--home-accent) 9%, var(--home-panel)) !important;
+  color: var(--home-text) !important;
+  border-color: var(--home-border) !important;
+}
+
+.jira-table td {
+  color: var(--home-text) !important;
+  border-color: var(--home-border) !important;
+}
+
+.jira-table tbody tr:hover td {
+  background: var(--home-panel-strong) !important;
+}
+
+.item-card-inner,
+.item-message,
+.sidebar-section,
+.member-dropdown,
+.dropdown-menu,
+.tag-chip {
+  background: var(--home-panel-strong) !important;
+  border-color: var(--home-border) !important;
+  color: var(--home-text) !important;
+}
+
+.mock-illustration,
+.empty-illustration,
+.empty-icon-wrapper,
+.empty-icon-wrapper-large {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--home-accent) 18%, transparent), color-mix(in srgb, var(--home-accent-2) 12%, transparent)) !important;
+}
+
+.filter-chips {
+  position: relative !important;
+  z-index: 3 !important;
+  align-items: center !important;
+}
+
+.table-toolbar,
+.table-container {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.project-title-cell,
+.goal-title-cell,
+.team-name-cell,
+.owner-cell,
+.manager-cell {
+  min-width: 0 !important;
+}
+
+.project-title,
+.goal-title,
+.team-name-text,
+.owner-name {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 220px !important;
+  }
+
+  .page-content,
+  .module-content,
+  .notifications-layout {
+    padding: 16px 14px 28px !important;
+  }
+
+  .notifications-layout,
+  .page-content {
+    flex-direction: column !important;
+  }
+
+  .filters-sidebar,
+  .sidebar-column {
+    width: 100% !important;
+    border-left: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  .filter-controls,
+  .list-controls,
+  .table-toolbar,
+  .main-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .search-input-wrapper,
+  .search-box-wrapper {
+    width: 100% !important;
   }
 }

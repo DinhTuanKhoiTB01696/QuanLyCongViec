@@ -1,6 +1,6 @@
 import { ref, watch } from 'vue'
 
-const EXCLUDED_ROUTES = ['/', '/login', '/register', '/AcceptInvite']
+const EXCLUDED_ROUTES = ['/AcceptInvite']
 
 const getInitialTheme = () => {
   const savedTheme = localStorage.getItem('theme')

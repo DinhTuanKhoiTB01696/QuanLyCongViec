@@ -4,9 +4,13 @@
       <div class="container nav-content">
         <router-link to="/" class="logo">
           <img :src="logoImg" alt="SprintA Logo" class="custom-logo" />
-          <span class="logo-text">SprintA</span>
+          <span>SprintA</span>
         </router-link>
         <div class="nav-actions">
+          <button class="theme-toggle" type="button" aria-label="Toggle theme" @click="toggleTheme()">
+            <Sun v-if="currentTheme === 'dark'" :size="18" />
+            <Moon v-else :size="18" />
+          </button>
           <router-link class="nav-link" to="/login">{{ t('auth.nav.login') }}</router-link>
           <router-link class="nav-primary" to="/register">{{ t('auth.nav.register') }}</router-link>
         </div>
@@ -14,13 +18,63 @@
     </header>
 
     <main class="auth-container">
-      <section class="auth-card">
-        <h1 class="auth-title">{{ requires2FA ? t('auth.otp.title') : t('auth.login.title') }}</h1>
-        <p class="auth-subtitle">
-          {{ requires2FA
-            ? t('auth.otp.subtitle')
-            : t('auth.login.subtitle') }}
+      <section class="auth-marketing">
+        <div class="eyebrow">
+          <Sparkles :size="16" />
+          SprintA workspace
+        </div>
+        <h1>Đăng nhập để tiếp tục quản lý sprint, báo cáo và công việc trong một bảng điều khiển.</h1>
+        <p>
+          Một trải nghiệm gọn hơn cho đội nhóm: theo dõi việc đang mở, chu kỳ, tải công việc và cảnh báo quá hạn
+          với giao diện thích ứng sáng tối.
         </p>
+
+        <div class="mini-dashboard">
+          <div class="mini-header">
+            <span></span>
+            <strong>Today overview</strong>
+          </div>
+          <div class="mini-metrics">
+            <article>
+              <CheckCircle2 :size="18" />
+              <strong>13</strong>
+              <span>Tasks</span>
+            </article>
+            <article>
+              <KanbanSquare :size="18" />
+              <strong>4</strong>
+              <span>Boards</span>
+            </article>
+            <article>
+              <BarChart3 :size="18" />
+              <strong>86%</strong>
+              <span>Health</span>
+            </article>
+          </div>
+          <div class="chart-lines">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+
+        <div class="benefit-grid">
+          <span><ShieldCheck :size="16" /> OTP & bảo mật</span>
+          <span><Zap :size="16" /> Tạo việc nhanh</span>
+          <span><BarChart3 :size="16" /> Báo cáo rõ</span>
+        </div>
+      </section>
+
+      <section class="auth-card">
+        <div class="card-head">
+          <span class="card-kicker">{{ requires2FA ? 'Two-factor' : 'Welcome back' }}</span>
+          <h2>{{ requires2FA ? t('auth.otp.title') : t('auth.login.title') }}</h2>
+          <p>
+            {{ requires2FA
+              ? t('auth.otp.subtitle')
+              : t('auth.login.subtitle') }}
+          </p>
+        </div>
 
         <el-form v-if="requires2FA" class="auth-form" @submit.prevent="handleLogin2FA" label-position="top">
           <el-form-item :label="t('auth.otp.codeLabel')">
@@ -32,7 +86,8 @@
           </el-button>
 
           <p class="auth-footer-text">
-            {{ t('auth.otp.backPrompt') }} <button type="button" class="link-btn" @click="requires2FA = false">{{ t('auth.otp.backLink') }}</button>
+            {{ t('auth.otp.backPrompt') }}
+            <button type="button" class="link-btn" @click="requires2FA = false">{{ t('auth.otp.backLink') }}</button>
           </p>
         </el-form>
 
@@ -83,19 +138,31 @@
       </section>
     </main>
 
-    <div class="auth-bottom">
-      <p>© 2026 SprintA. {{ t('auth.footer.rights') }}</p>
-    </div>
+    <footer class="auth-bottom">
+      <p>&copy; 2026 SprintA. {{ t('auth.footer.rights') }}</p>
+    </footer>
   </div>
 </template>
 
 <script setup>
-  import { reactive, ref } from 'vue'
-  import { useRouter } from 'vue-router'
-  import axiosClient from '../api/axiosClient'
-  import { saveAuthSession } from '@/utils/authSession'
-  import { useI18n } from '@/composables/useI18n'
-  import logoImg from '../assets/logo_QLCV.png'
+import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import {
+  BarChart3,
+  CheckCircle2,
+  KanbanSquare,
+  Moon,
+  ShieldCheck,
+  Sparkles,
+  Sun,
+  Zap
+} from 'lucide-vue-next'
+import axiosClient from '../api/axiosClient'
+import { saveAuthSession } from '@/utils/authSession'
+import { useI18n } from '@/composables/useI18n'
+import { currentTheme, toggleTheme } from '@/utils/theme'
+import logoImg from '../assets/logo_QLCV.png'
 import googleIcon from '../assets/Icongoogle.png'
 import githubIcon from '../assets/Icongithub.png'
 
@@ -202,109 +269,307 @@ const handleGitHubLogin = () => {
 
 <style scoped>
 .auth-page {
+  --auth-bg: #f6f9ff;
+  --auth-surface: rgba(255, 255, 255, 0.88);
+  --auth-surface-strong: #ffffff;
+  --auth-text: #07142f;
+  --auth-muted: #607086;
+  --auth-border: rgba(40, 65, 105, 0.14);
+  --auth-shadow: 0 28px 70px rgba(23, 47, 91, 0.14);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  color: var(--auth-text);
   background:
-    radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 26%),
-    var(--color-bg);
+    radial-gradient(circle at 14% 8%, rgba(34, 211, 238, 0.18), transparent 30%),
+    radial-gradient(circle at 90% 12%, rgba(99, 102, 241, 0.16), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, var(--auth-bg) 100%);
 }
 
-.auth-navbar {
-  min-height: 80px;
-  display: flex;
-  align-items: center;
+:global([data-theme='dark'] .auth-page) {
+  --auth-bg: #071222;
+  --auth-surface: rgba(13, 25, 45, 0.78);
+  --auth-surface-strong: #101c32;
+  --auth-text: #f7fbff;
+  --auth-muted: #a8b8cf;
+  --auth-border: rgba(148, 181, 222, 0.2);
+  --auth-shadow: 0 30px 80px rgba(0, 0, 0, 0.38);
+  background:
+    radial-gradient(circle at 14% 8%, rgba(34, 211, 238, 0.17), transparent 30%),
+    radial-gradient(circle at 88% 10%, rgba(139, 92, 246, 0.18), transparent 28%),
+    linear-gradient(180deg, #07101e 0%, var(--auth-bg) 100%);
 }
 
 .container {
-  width: min(1180px, calc(100% - 32px));
+  width: min(1240px, calc(100% - 40px));
   margin: 0 auto;
+}
+
+.auth-navbar {
+  border-bottom: 1px solid var(--auth-border);
+  background: color-mix(in srgb, var(--auth-surface-strong) 84%, transparent);
+  backdrop-filter: blur(18px);
 }
 
 .nav-content,
 .nav-actions,
+.logo,
+.auth-container,
+.benefit-grid,
 .social-login {
   display: flex;
   align-items: center;
 }
 
 .nav-content {
+  min-height: 68px;
   justify-content: space-between;
-  gap: 24px;
-}
-
-.nav-actions,
-.social-login {
-  gap: 12px;
+  gap: 20px;
 }
 
 .logo {
-  display: inline-flex;
-  align-items: center;
-  color: inherit;
+  gap: 8px;
+  color: var(--auth-text);
+  font-size: 22px;
+  font-weight: 900;
   text-decoration: none;
 }
 
 .custom-logo {
-  height: 56px;
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
 }
 
-.logo-text {
-  margin-left: -8px;
-  font-size: 24px;
-  font-weight: 900;
-  color: var(--color-text-primary);
+.nav-actions {
+  gap: 10px;
 }
 
-.nav-link,
-.nav-primary {
+.theme-toggle,
+.nav-primary,
+.nav-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 2px;
+  min-height: 38px;
+  border: 0;
+  border-radius: 14px;
   text-decoration: none;
-  font-weight: 700;
-  transition: all 0.2s;
+  font-weight: 850;
+}
+
+.theme-toggle {
+  width: 38px;
+  color: var(--auth-text);
+  border: 1px solid var(--auth-border);
+  background: var(--auth-surface);
+  cursor: pointer;
 }
 
 .nav-link {
-  padding: 10px 14px;
-  color: var(--color-text-secondary);
+  color: var(--auth-muted);
+  padding: 0 12px;
 }
 
 .nav-primary {
-  padding: 10px 18px;
   color: #ffffff;
-  background: var(--color-accent);
+  padding: 0 18px;
+  background: linear-gradient(135deg, #00c2ff, #3662ff);
+  box-shadow: 0 14px 30px rgba(54, 98, 255, 0.26);
 }
 
 .auth-container {
+  width: min(1240px, calc(100% - 40px));
   flex: 1;
+  align-items: stretch;
+  gap: 24px;
+  margin: 0 auto;
+  padding: 36px 0;
+}
+
+.auth-marketing,
+.auth-card {
+  border: 1px solid var(--auth-border);
+  border-radius: 28px;
+  background: var(--auth-surface);
+  box-shadow: var(--auth-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.auth-marketing {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  padding: 30px;
+}
+
+.auth-marketing::after {
+  content: '';
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  right: -90px;
+  top: -80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(45, 212, 191, 0.28), transparent 68%);
+}
+
+.eyebrow {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: #0369a1;
+  background: rgba(14, 165, 233, 0.12);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+:global([data-theme='dark'] .eyebrow) {
+  color: #7dd3fc;
+  background: rgba(14, 165, 233, 0.16);
+}
+
+.auth-marketing h1 {
+  position: relative;
+  z-index: 1;
+  max-width: 620px;
+  margin: 18px 0 12px;
+  color: var(--auth-text);
+  font-size: clamp(28px, 2.6vw, 40px);
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.auth-marketing p,
+.card-head p,
+.auth-footer-text {
+  color: var(--auth-muted);
+  line-height: 1.6;
+}
+
+.auth-marketing p {
+  position: relative;
+  z-index: 1;
+  max-width: 600px;
+  margin: 0;
+  font-size: 16px;
+}
+
+.mini-dashboard {
+  position: relative;
+  z-index: 1;
+  margin-top: 24px;
+  padding: 14px;
+  border: 1px solid var(--auth-border);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--auth-surface-strong) 82%, transparent);
+}
+
+.mini-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 32px 16px 48px;
+  gap: 10px;
+  color: var(--auth-text);
+  font-weight: 900;
+}
+
+.mini-header span {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.12);
+}
+
+.mini-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.mini-metrics article {
+  padding: 14px;
+  border-radius: 18px;
+  color: var(--auth-text);
+  border: 1px solid var(--auth-border);
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(99, 102, 241, 0.08));
+}
+
+.mini-metrics strong,
+.mini-metrics span {
+  display: block;
+}
+
+.mini-metrics strong {
+  margin-top: 8px;
+  font-size: 24px;
+}
+
+.mini-metrics span {
+  color: var(--auth-muted);
+  font-weight: 800;
+}
+
+.chart-lines {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.chart-lines span {
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22d3ee, #3662ff 62%, transparent 62%);
+}
+
+.chart-lines span:nth-child(2) {
+  background: linear-gradient(90deg, #f59e0b, #8b5cf6 48%, transparent 48%);
+}
+
+.chart-lines span:nth-child(3) {
+  background: linear-gradient(90deg, #22c55e, #22d3ee 78%, transparent 78%);
+}
+
+.benefit-grid {
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.benefit-grid span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--auth-border);
+  border-radius: 999px;
+  color: var(--auth-text);
+  background: var(--auth-surface-strong);
+  font-weight: 850;
 }
 
 .auth-card {
-  width: min(100%, 520px);
-  padding: 32px;
-  border-radius: 2px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-md);
+  width: min(100%, 470px);
+  padding: 30px;
 }
 
-.auth-title {
-  margin: 0;
-  font-size: 32px;
-  color: var(--color-text-primary);
+.card-head h2 {
+  margin: 8px 0 8px;
+  color: var(--auth-text);
+  font-size: 28px;
+  line-height: 1.1;
 }
 
-.auth-subtitle {
-  margin: 10px 0 0;
-  color: var(--color-text-secondary);
-  line-height: 1.6;
+.card-kicker {
+  color: #0ea5e9;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .auth-form,
@@ -312,34 +577,77 @@ const handleGitHubLogin = () => {
   margin-top: 24px;
 }
 
-.remember-action {
-  margin-bottom: 18px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+:deep(.el-form-item__label) {
+  color: var(--auth-text);
+  font-weight: 800;
 }
 
-.forgot-link {
-  color: #2563eb;
-  text-decoration: none;
-  font-size: 14px;
+:deep(.el-input__wrapper),
+.auth-card :deep(.el-input__wrapper) {
+  min-height: 44px !important;
+  padding: 0 14px !important;
+  border: 0 !important;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--auth-surface-strong) 96%, transparent);
+  box-shadow: 0 0 0 1px var(--auth-border) inset !important;
 }
-.forgot-link:hover {
-  text-decoration: underline;
+
+:deep(.el-input) {
+  --el-input-bg-color: transparent;
+  --el-input-border-color: transparent;
+  --el-input-hover-border-color: transparent;
+  --el-input-focus-border-color: transparent;
+}
+
+:deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px #38bdf8 inset, 0 0 0 4px rgba(14, 165, 233, 0.12) !important;
+}
+
+:deep(.el-input__inner),
+.auth-card :deep(.el-input__inner) {
+  height: 44px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  color: var(--auth-text);
+  font-weight: 700;
+}
+
+.remember-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.forgot-link,
+.auth-footer-text a,
+.link-btn {
+  color: #0ea5e9;
+  font-weight: 850;
+  text-decoration: none;
 }
 
 .auth-btn {
   width: 100%;
+  min-height: 46px;
+  border: 0;
+  border-radius: 14px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #00c2ff, #3662ff);
 }
 
 .divider {
   position: relative;
   margin: 22px 0 18px;
   text-align: center;
-  color: var(--color-text-muted);
+  color: var(--auth-muted);
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .divider::before {
@@ -349,15 +657,18 @@ const handleGitHubLogin = () => {
   right: 0;
   top: 50%;
   height: 1px;
-  background: var(--color-border);
-  z-index: 0;
+  background: var(--auth-border);
 }
 
 .divider span {
   position: relative;
   z-index: 1;
   padding: 0 10px;
-  background: var(--color-surface);
+  background: var(--auth-surface);
+}
+
+.social-login {
+  gap: 12px;
 }
 
 .social-btn-wrapper,
@@ -367,6 +678,8 @@ const handleGitHubLogin = () => {
 
 .social-btn {
   width: 100%;
+  min-height: 44px;
+  border-radius: 14px;
 }
 
 .social-icon {
@@ -377,42 +690,68 @@ const handleGitHubLogin = () => {
 
 .auth-footer-text {
   margin: 20px 0 0;
-  color: var(--color-text-secondary);
   text-align: center;
 }
 
 .link-btn {
   border: none;
   background: transparent;
-  color: #2563eb;
   cursor: pointer;
   font: inherit;
   padding: 0;
 }
 
 .auth-bottom {
-  padding: 0 0 32px;
+  padding: 0 16px 26px;
   text-align: center;
-  color: var(--color-text-muted);
+  color: var(--auth-muted);
   font-size: 14px;
 }
 
-@media (max-width: 640px) {
-  .container {
-    width: min(100% - 24px, 1180px);
-  }
-
-  .nav-content,
-  .nav-actions,
-  .social-login {
+@media (max-width: 960px) {
+  .auth-container {
     flex-direction: column;
-    align-items: stretch;
   }
 
   .auth-card {
-    padding: 24px;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .container,
+  .auth-container {
+    width: min(100% - 24px, 1180px);
+  }
+
+  .logo span,
+  .nav-link {
+    display: none;
+  }
+
+  .nav-content {
+    min-height: 66px;
+  }
+
+  .auth-container {
+    padding: 28px 0;
+  }
+
+  .auth-marketing,
+  .auth-card {
+    padding: 22px;
+    border-radius: 22px;
+  }
+
+  .mini-metrics,
+  .social-login {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .remember-action {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>
-
-

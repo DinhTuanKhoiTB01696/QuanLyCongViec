@@ -24,7 +24,7 @@
     <main class="start-content">
       <div class="welcome-container">
         <h1 class="welcome-title">
-          {{ t('siteSelection.welcomeBack') }}<template v-if="userName"> <span class="highlight-wrapper">{{ userName }}.
+          {{ t('siteSelection.welcomeBack') }}<template v-if="userName"> <span class="highlight-wrapper">&nbsp;{{ userName }}.
             <svg class="squiggly-line" width="100%" height="12" viewBox="0 0 100 12" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M0 6 Q 12 0, 25 6 T 50 6 T 75 6 T 100 6" stroke="#FFAB00" stroke-width="3" stroke-linecap="round" fill="none"/>
             </svg>
@@ -104,7 +104,7 @@
       <div class="jira-modal">
         <div class="jira-modal-body">
           <h1 class="jira-modal-title text-center">
-            {{ t('siteSelection.welcomeBack') }}<template v-if="userName"> <span class="highlight-wrapper">{{ userName }}
+            {{ t('siteSelection.welcomeBack') }}<template v-if="userName"> <span class="highlight-wrapper">&nbsp;{{ userName }}
               <svg class="squiggly-line" width="100%" height="12" viewBox="0 0 100 12" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M0 6 Q 12 0, 25 6 T 50 6 T 75 6 T 100 6" stroke="#FFAB00" stroke-width="3" stroke-linecap="round" fill="none"/>
               </svg>
@@ -152,7 +152,7 @@
       <div class="jira-modal join-modal">
         <div class="jira-modal-body">
           <h1 class="jira-modal-title text-center">
-            {{ t('siteSelection.welcomeBack') }}<template v-if="userName"> <span class="highlight-wrapper">{{ userName }}
+            {{ t('siteSelection.welcomeBack') }}<template v-if="userName"> <span class="highlight-wrapper">&nbsp;{{ userName }}
               <svg class="squiggly-line" width="100%" height="12" viewBox="0 0 100 12" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M0 6 Q 12 0, 25 6 T 50 6 T 75 6 T 100 6" stroke="#FFAB00" stroke-width="3" stroke-linecap="round" fill="none"/>
               </svg>

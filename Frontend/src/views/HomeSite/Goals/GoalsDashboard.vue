@@ -2,16 +2,16 @@
   <div class="goals-wrapper">
     <header class="module-header">
       <div class="header-content">
-        <h1>Mục tiêu</h1>
+        <h1>{{ labels.title }}</h1>
         <div class="header-actions">
-          <button class="primary-btn" @click="openCreateModal">Tạo mục tiêu</button>
+          <button class="primary-btn" @click="openCreateModal">{{ labels.createGoal }}</button>
         </div>
       </div>
       
       <div class="tabs-nav">
-        <button class="tab-btn" :class="{ active: currentTab === 'all' }" @click="currentTab = 'all'">Thư mục mục tiêu</button>
-        <button class="tab-btn" :class="{ active: currentTab === 'following' }" @click="currentTab = 'following'">Đang theo dõi</button>
-        <button class="tab-btn" :class="{ active: currentTab === 'archived' }" @click="currentTab = 'archived'">Đã lưu trữ</button>
+        <button class="tab-btn" :class="{ active: currentTab === 'all' }" @click="currentTab = 'all'">{{ labels.goalDirectory }}</button>
+        <button class="tab-btn" :class="{ active: currentTab === 'following' }" @click="currentTab = 'following'">{{ labels.following }}</button>
+        <button class="tab-btn" :class="{ active: currentTab === 'archived' }" @click="currentTab = 'archived'">{{ labels.archived }}</button>
       </div>
     </header>
 
@@ -21,11 +21,11 @@
         <div class="empty-state-banner">
           <div class="empty-banner-content">
             <div class="empty-banner-text">
-              <h2>Mục tiêu của bạn</h2>
-              <p>Bạn chưa được gán cho hoặc là cộng tác viên trên bất kỳ mục tiêu nào.</p>
+              <h2>{{ labels.yourGoals }}</h2>
+              <p>{{ labels.noAssignedGoals }}</p>
               <div class="empty-banner-actions">
-                <button class="primary-btn" @click="openCreateModal">Tạo mục tiêu</button>
-                <a href="#" class="secondary-btn">Tìm hiểu thêm</a>
+                <button class="primary-btn" @click="openCreateModal">{{ labels.createGoal }}</button>
+                <a href="#" class="secondary-btn">{{ labels.learnMore }}</a>
               </div>
             </div>
             <div class="empty-banner-illustration">
@@ -42,21 +42,21 @@
         <div class="list-controls">
           <div class="search-box-wrapper">
             <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input type="text" v-model="searchQuery" placeholder="Tìm kiếm" class="search-input" />
+            <input type="text" v-model="searchQuery" :placeholder="labels.search" class="search-input" />
           </div>
           <div class="filter-actions">
-            <button class="filter-btn" v-if="currentTab === 'following'" style="background-color: #E6FCFF; color: #0052CC; border: 1px solid #4C9AFF;">Đang theo dõi <i class="fa-solid fa-xmark"></i></button>
+            <button class="active-filter-pill" v-if="currentTab === 'following'">{{ labels.following }} <i class="fa-solid fa-xmark"></i></button>
             
             
             
           </div>
           <div class="filter-chips" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; width: 100%;">
-            <DropdownFilter label="Trạng thái" :options="statusOptions" v-model="filters.status" />
-            <DropdownFilter label="Chủ sở hữu" :options="ownerOptions" v-model="filters.owner" />
-            <DropdownFilter label="Tiến độ" :options="progressOptions" v-model="filters.progress" />
-            <DropdownFilter label="Yêu thích" :options="booleanOptions" v-model="filters.favorite" />
-            <DropdownFilter label="Theo dõi" :options="booleanOptions" v-model="filters.following" />
-            <button v-if="hasActiveFilters" class="clear-filters-btn" @click="clearFilters">Xóa lọc</button>
+            <DropdownFilter :label="labels.status" :options="statusOptions" v-model="filters.status" />
+            <DropdownFilter :label="labels.owner" :options="ownerOptions" v-model="filters.owner" />
+            <DropdownFilter :label="labels.progress" :options="progressOptions" v-model="filters.progress" />
+            <DropdownFilter :label="labels.favorite" :options="booleanOptions" v-model="filters.favorite" />
+            <DropdownFilter :label="labels.follow" :options="booleanOptions" v-model="filters.following" />
+            <button v-if="hasActiveFilters" class="clear-filters-btn" @click="clearFilters">{{ labels.clearFilters }}</button>
           </div>
 
         </div>
@@ -65,14 +65,14 @@
           <table class="jira-table" v-if="filteredGoals.length > 0">
             <thead>
               <tr>
-                <th class="col-title">Mục tiêu</th>
-                <th class="col-status">Trạng thái</th>
-                <th class="col-progress">Tiến độ</th>
-                <th class="col-created">Ngày tạo</th>
-     <th class="col-updated">Ngày cập nhật</th>
-     <th class="col-star">Yêu thích</th>
-     <th class="col-watch">Theo dõi</th>
-                <th class="col-owner">Chủ sở hữu</th>
+                <th class="col-title">{{ labels.goal }}</th>
+                <th class="col-status">{{ labels.status }}</th>
+                <th class="col-progress">{{ labels.progress }}</th>
+                <th class="col-created">{{ labels.createdDate }}</th>
+     <th class="col-updated">{{ labels.updatedDate }}</th>
+     <th class="col-star">{{ labels.favorite }}</th>
+     <th class="col-watch">{{ labels.follow }}</th>
+                <th class="col-owner">{{ labels.owner }}</th>
               </tr>
             </thead>
             <tbody>
@@ -103,12 +103,12 @@
                   <i :class="goal.isStarred ? 'fa-solid fa-star text-yellow-400' : 'fa-regular fa-star text-gray-400'" style="cursor: pointer;"></i>
                 </td>
                 <td @click.stop="toggleWatch(goal)">
-                  <span :class="goal.isFollowing ? 'text-blue-500' : 'text-gray-500'" style="cursor: pointer;">{{ goal.isFollowing ? 'Đang theo dõi' : 'Theo dõi' }}</span>
+                  <span :class="goal.isFollowing ? 'text-blue-500' : 'text-gray-500'" style="cursor: pointer;">{{ goal.isFollowing ? labels.following : labels.follow }}</span>
                 </td>
                 <td>
                   <div class="owner-cell">
                     <UserAvatar :user="{ id: goal.ownerId, fullName: goal.ownerName, avatarColor: goal.ownerColor, avatarUrl: goal.ownerAvatarUrl }" :size="24" :fontSize="10" />
-                    <span class="owner-name">{{ goal.owner || 'Chưa gán' }}</span>
+                    <span class="owner-name">{{ goal.owner || labels.unassigned }}</span>
                   </div>
                 </td>
               </tr>
@@ -119,8 +119,8 @@
             <div class="empty-icon-wrapper">
               <i class="fa-solid fa-bullseye"></i>
             </div>
-            <h3>Không tìm thấy mục tiêu nào</h3>
-            <p>Không có mục tiêu nào khớp với bộ lọc của bạn.</p>
+            <h3>{{ labels.noGoals }}</h3>
+            <p>{{ labels.noGoalsDesc }}</p>
           </div>
         </div>
         
@@ -135,22 +135,22 @@
       <div class="modal-content" style="width: 500px; padding: 0;">
         <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
           <h2 style="display: flex; align-items: center; gap: 8px;">
-             <i class="fa-solid fa-bullseye" style="color: #6B778C;"></i> Tạo mục tiêu
+             <i class="fa-solid fa-bullseye" style="color: #6B778C;"></i> {{ labels.createGoal }}
           </h2>
         </div>
         <div class="modal-body" style="padding-top: 12px;">
-          <p style="font-size: 11px; color: #6B778C; margin: 0 0 16px 0;">Các trường bắt buộc được đánh dấu sao <span class="required">*</span></p>
+          <p style="font-size: 11px; color: #6B778C; margin: 0 0 16px 0;">{{ labels.requiredNote }} <span class="required">*</span></p>
           
           <div class="form-group">
-            <label>Tên <span class="required">*</span></label>
+            <label>{{ labels.name }} <span class="required">*</span></label>
             <input type="text" v-model="newGoal.title" @blur="isTitleTouched = true" :class="{'error-input': isTitleTouched && !newGoal.title}" />
             <div v-if="isTitleTouched && !newGoal.title" style="color: #DE350B; font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
-               <i class="fa-solid fa-circle-exclamation"></i> Bạn phải đặt tên mục tiêu
+               <i class="fa-solid fa-circle-exclamation"></i> {{ labels.nameRequired }}
             </div>
           </div>
           
           <div class="form-group">
-            <label>Loại <span class="required">*</span></label>
+            <label>{{ labels.type }} <span class="required">*</span></label>
             <div style="position: relative; display: flex; align-items: center; gap: 8px; background: #FAFBFC; padding: 8px 12px; border: 1px solid #DFE1E6; border-radius: 3px; cursor: default;">
                <i class="fa-solid fa-bullseye" style="color: #6B778C; font-size: 14px;"></i>
                <span style="color: #172B4D; font-size: 14px;">Objective</span>
@@ -158,11 +158,11 @@
           </div>
           
           <div class="form-group" style="position: relative;">
-            <label>Ngày mục tiêu</label>
+            <label>{{ labels.targetDate }}</label>
             <el-date-picker
               v-model="newGoal.date"
               type="date"
-              placeholder="Chọn ngày"
+              :placeholder="labels.chooseDate"
               format="MMM DD, YYYY"
               value-format="YYYY-MM-DD"
               style="width: 100%"
@@ -171,7 +171,7 @@
           </div>
           
           <div class="form-group" style="position: relative;">
-            <label>Chủ sở hữu <span class="required">*</span></label>
+            <label>{{ labels.owner }} <span class="required">*</span></label>
             <div class="owner-input-wrapper" @click="isOwnerDropdownOpen = !isOwnerDropdownOpen" style="position: relative; border: 2px solid #DFE1E6; border-radius: 3px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; background: white;">
                <UserAvatar :user="{ avatarColor: newGoal.ownerAvatarColor, initials: newGoal.ownerAvatar, fullName: newGoal.ownerName, avatarUrl: newGoal.ownerAvatarUrl }" :size="24" :fontSize="11" />
                <span style="font-size: 14px; color: #172B4D;">{{ newGoal.ownerName }}</span>
@@ -186,8 +186,8 @@
           </div>
         </div>
         <div class="modal-footer" style="padding: 16px 24px;">
-          <button class="cancel-btn" @click="isCreateModalOpen = false">Hủy</button>
-          <button class="primary-btn" @click="submitCreateGoal">Tạo</button>
+          <button class="cancel-btn" @click="isCreateModalOpen = false">{{ labels.cancel }}</button>
+          <button class="primary-btn" @click="submitCreateGoal">{{ labels.create }}</button>
         </div>
       </div>
     </div>
@@ -201,6 +201,7 @@ import { useGoalStore } from '@/store/useGoalStore'
 import { useStarredStore } from '@/store/useStarredStore'
 import { useFollowerStore } from '@/store/useFollowerStore'
 import { usePeopleStore } from '@/store/usePeopleStore'
+import { useI18nStore } from '@/store/useI18nStore'
 import axiosClient from '@/api/axiosClient'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import DropdownFilter from '@/components/common/DropdownFilter.vue'
@@ -212,9 +213,90 @@ const goalStore = useGoalStore()
 const starredStore = useStarredStore()
 const followerStore = useFollowerStore()
 const peopleStore = usePeopleStore()
+const i18nStore = useI18nStore()
 
 const currentTab = ref('all')
 const searchQuery = ref('')
+const isVi = computed(() => i18nStore.locale === 'vi')
+const labels = computed(() => isVi.value
+  ? {
+      title: 'Mục tiêu',
+      createGoal: 'Tạo mục tiêu',
+      goalDirectory: 'Thư mục mục tiêu',
+      following: 'Đang theo dõi',
+      archived: 'Đã lưu trữ',
+      yourGoals: 'Mục tiêu của bạn',
+      noAssignedGoals: 'Bạn chưa được gán hoặc cộng tác trên bất kỳ mục tiêu nào.',
+      learnMore: 'Tìm hiểu thêm',
+      search: 'Tìm kiếm',
+      status: 'Trạng thái',
+      owner: 'Chủ sở hữu',
+      progress: 'Tiến độ',
+      favorite: 'Yêu thích',
+      follow: 'Theo dõi',
+      clearFilters: 'Xóa lọc',
+      goal: 'Mục tiêu',
+      createdDate: 'Ngày tạo',
+      updatedDate: 'Ngày cập nhật',
+      unassigned: 'Chưa gán',
+      noGoals: 'Không tìm thấy mục tiêu nào',
+      noGoalsDesc: 'Không có mục tiêu nào khớp với bộ lọc của bạn.',
+      notStarted: 'Chưa bắt đầu (0%)',
+      inProgress: 'Đang tiến hành (>0%)',
+      completeProgress: 'Hoàn thành (100%)',
+      pending: 'Đang chờ cập nhật',
+      onTrack: 'Đúng tiến độ',
+      atRisk: 'Có rủi ro',
+      offTrack: 'Trễ tiến độ',
+      completed: 'Đã hoàn tất',
+      requiredNote: 'Các trường bắt buộc được đánh dấu sao',
+      name: 'Tên',
+      nameRequired: 'Bạn phải đặt tên mục tiêu',
+      type: 'Loại',
+      targetDate: 'Ngày mục tiêu',
+      chooseDate: 'Chọn ngày',
+      cancel: 'Hủy',
+      create: 'Tạo'
+    }
+  : {
+      title: 'Goals',
+      createGoal: 'Create goal',
+      goalDirectory: 'Goal directory',
+      following: 'Following',
+      archived: 'Archived',
+      yourGoals: 'Your goals',
+      noAssignedGoals: 'You are not assigned or collaborating on any goals yet.',
+      learnMore: 'Learn more',
+      search: 'Search',
+      status: 'Status',
+      owner: 'Owner',
+      progress: 'Progress',
+      favorite: 'Favorite',
+      follow: 'Follow',
+      clearFilters: 'Clear filters',
+      goal: 'Goal',
+      createdDate: 'Created date',
+      updatedDate: 'Updated date',
+      unassigned: 'Unassigned',
+      noGoals: 'No goals found',
+      noGoalsDesc: 'No goals match your filters.',
+      notStarted: 'Not started (0%)',
+      inProgress: 'In progress (>0%)',
+      completeProgress: 'Completed (100%)',
+      pending: 'Pending update',
+      onTrack: 'On track',
+      atRisk: 'At risk',
+      offTrack: 'Off track',
+      completed: 'Completed',
+      requiredNote: 'Required fields are marked with an asterisk',
+      name: 'Name',
+      nameRequired: 'You must name this goal',
+      type: 'Type',
+      targetDate: 'Target date',
+      chooseDate: 'Choose date',
+      cancel: 'Cancel',
+      create: 'Create'
+    })
 const filters = ref({
   status: '',
   progress: '',
@@ -235,15 +317,15 @@ const statusOptions = computed(() => {
   return Array.from(new Set(statuses.map(translateStatus)));
 })
 const ownerOptions = computed(() => uniqueValues(g => g.owner))
-const progressOptions = [
-  { label: 'Chưa bắt đầu (0%)', value: '0' },
-  { label: 'Đang tiến hành (>0%)', value: 'in_progress' },
-  { label: 'Hoàn thành (100%)', value: '100' }
-]
-const booleanOptions = [
-  { label: 'Có', value: 'true' },
-  { label: 'Không', value: 'false' }
-]
+const progressOptions = computed(() => [
+  { label: labels.value.notStarted, value: '0' },
+  { label: labels.value.inProgress, value: 'in_progress' },
+  { label: labels.value.completeProgress, value: '100' }
+])
+const booleanOptions = computed(() => [
+  { label: isVi.value ? 'Có' : 'Yes', value: 'true' },
+  { label: isVi.value ? 'Không' : 'No', value: 'false' }
+])
 
 const clearFilters = () => {
   filters.value = {
@@ -366,14 +448,26 @@ const getStatusClass = (status) => {
 }
 
 const translateStatus = (status) => {
-  if (!status) return 'Đang chờ cập nhật'
+  if (!status) return labels.value.pending
   const map = {
-    'on track': 'Đúng tiến độ',
-    'at risk': 'Có rủi ro',
-    'off track': 'Trễ tiến độ',
-    'pending': 'Đang chờ cập nhật',
-    'completed': 'Đã hoàn tất',
-    'archived': 'Đã lưu trữ'
+    'on track': labels.value.onTrack,
+    'đúng tiến độ': labels.value.onTrack,
+    'dung tien do': labels.value.onTrack,
+    'at risk': labels.value.atRisk,
+    'có rủi ro': labels.value.atRisk,
+    'co rui ro': labels.value.atRisk,
+    'off track': labels.value.offTrack,
+    'trễ tiến độ': labels.value.offTrack,
+    'tre tien do': labels.value.offTrack,
+    'pending': labels.value.pending,
+    'đang chờ cập nhật': labels.value.pending,
+    'dang cho cap nhat': labels.value.pending,
+    'completed': labels.value.completed,
+    'đã hoàn tất': labels.value.completed,
+    'da hoan tat': labels.value.completed,
+    'archived': labels.value.archived,
+    'đã lưu trữ': labels.value.archived,
+    'da luu tru': labels.value.archived
   }
   return map[status.toLowerCase()] || status
 }
@@ -616,6 +710,7 @@ const toggleWatch = async (goal) => {
   align-items: center;
   gap: 16px;
   margin-bottom: 24px;
+  flex-wrap: wrap;
 }
 
 .search-box-wrapper {
@@ -656,6 +751,31 @@ const toggleWatch = async (goal) => {
 .filter-actions {
   display: flex;
   gap: 8px;
+  flex: 0 0 auto;
+  min-width: max-content;
+}
+
+.active-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: max-content;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--home-accent, #0052cc) 62%, var(--home-border, #dfe1e6));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--home-accent, #0052cc) 12%, var(--home-panel, #ffffff));
+  color: var(--home-accent, #0052cc);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.active-filter-pill i {
+  font-size: 11px;
 }
 
 .filter-btn {

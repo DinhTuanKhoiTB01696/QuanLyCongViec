@@ -1,5 +1,28 @@
 import { defineStore } from 'pinia'
 import { setLanguage } from '@/i18n'
+import viMessages from '@/i18n/locales/vi'
+import enMessages from '@/i18n/locales/en'
+
+const nestedDictionary = {
+  vi: viMessages,
+  en: enMessages
+}
+
+const resolvePath = (source, key) => {
+  return key.split('.').reduce((current, part) => {
+    if (current && Object.prototype.hasOwnProperty.call(current, part)) {
+      return current[part]
+    }
+    return undefined
+  }, source)
+}
+
+const interpolate = (value, params = {}) => {
+  if (typeof value !== 'string') return value
+  return value.replace(/\{(\w+)\}/g, (_, token) => {
+    return Object.prototype.hasOwnProperty.call(params, token) ? `${params[token]}` : `{${token}}`
+  })
+}
 
 const dictionary = {
   en: {
@@ -507,10 +530,14 @@ export const useI18nStore = defineStore('i18n', {
     locale: localStorage.getItem('app_language') || localStorage.getItem('sprinta_locale') || localStorage.getItem('admin_locale') || 'vi'
   }),
   getters: {
-    t: (state) => (key) => {
+    t: (state) => (key, params = {}) => {
       const texts = dictionary[state.locale]
-      if (texts && texts[key]) return texts[key]
-      return key
+      if (texts && texts[key]) return interpolate(texts[key], params)
+
+      const nestedTexts = nestedDictionary[state.locale] || nestedDictionary.vi
+      const fallbackTexts = nestedDictionary.vi
+      const value = resolvePath(nestedTexts, key) ?? resolvePath(fallbackTexts, key)
+      return interpolate(value ?? key, params)
     }
   },
   actions: {

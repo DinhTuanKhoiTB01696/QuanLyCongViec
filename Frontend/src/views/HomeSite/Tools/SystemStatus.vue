@@ -1,30 +1,40 @@
 <template>
   <div class="status-page">
-    <div class="page-header">
+    <header class="page-header">
       <div class="header-main">
-        <h1>Cập nhật trạng thái</h1>
+        <h1>{{ labels.title }}</h1>
         <select class="secondary-btn" v-model="rangeDays">
-          <option :value="7">7 ngay</option>
-          <option :value="14">14 ngay</option>
-          <option :value="30">30 ngay</option>
-          <option :value="90">90 ngay</option>
+          <option :value="7">7 {{ labels.days }}</option>
+          <option :value="14">14 {{ labels.days }}</option>
+          <option :value="30">30 {{ labels.days }}</option>
+          <option :value="90">90 {{ labels.days }}</option>
         </select>
       </div>
       <div class="tabs">
-        <button class="tab-btn" :class="{ active: currentTab === 'projects' }" @click="currentTab = 'projects'">Projects</button>
-        <button class="tab-btn" :class="{ active: currentTab === 'goals' }" @click="currentTab = 'goals'">Goals</button>
+        <button class="tab-btn" :class="{ active: currentTab === 'projects' }" @click="currentTab = 'projects'">
+          {{ labels.projects }}
+        </button>
+        <button class="tab-btn" :class="{ active: currentTab === 'goals' }" @click="currentTab = 'goals'">
+          {{ labels.goals }}
+        </button>
       </div>
-    </div>
+    </header>
 
-    <div class="page-content">
-      <div class="main-column">
+    <main class="page-content">
+      <section class="main-column">
         <div class="timeline-header">
-          <button class="icon-btn" @click="shiftRange(-1)"><i class="fa-solid fa-arrow-left"></i></button>
+          <button class="icon-btn" @click="shiftRange(-1)" :aria-label="labels.previous">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
           <h2 class="timeline-title">{{ rangeLabel }}</h2>
-          <button class="icon-btn" @click="shiftRange(1)"><i class="fa-solid fa-arrow-right"></i></button>
+          <button class="icon-btn" @click="shiftRange(1)" :aria-label="labels.next">
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
         </div>
 
-        <p class="stats-subtitle">Ban dang theo doi {{ filteredItems.length }} {{ itemType }} trong khoang thoi gian nay.</p>
+        <p class="stats-subtitle">
+          {{ labels.followingPrefix }} {{ filteredItems.length }} {{ itemType }} {{ labels.followingSuffix }}
+        </p>
 
         <div class="stats-grid">
           <div class="stat-card" v-for="stat in stats" :key="stat.key">
@@ -37,7 +47,7 @@
         </div>
 
         <div class="tracked-items-list" v-if="!isLoading">
-          <div class="tracked-item" v-for="item in filteredItems" :key="item.id">
+          <article class="tracked-item" v-for="item in filteredItems" :key="item.id">
             <div class="item-header">
               <span class="item-icon"><i :class="currentTab === 'projects' ? 'fa-solid fa-rocket' : 'fa-solid fa-bullseye'"></i></span>
               <div class="item-name-col">
@@ -50,24 +60,24 @@
                 <div class="item-user">
                   <div class="item-avatar">{{ getInitials(item.ownerName || 'U') }}</div>
                   <div class="item-user-info">
-                    <span class="item-user-name">{{ item.ownerName || 'Chưa gắn' }}</span>
+                    <span class="item-user-name">{{ item.ownerName || labels.unassigned }}</span>
                     <span class="item-time">{{ formatDate(item.updatedAt || item.createdAt) }}</span>
                   </div>
                 </div>
                 <div class="item-status-badge" :class="statusColor(item.status)">{{ normalizeStatus(item.status) }}</div>
               </div>
-              <div class="item-message">Tiến độ hiện tại: {{ item.progress ?? (item.isArchived ? 100 : 0) }}%</div>
+              <div class="item-message">{{ labels.currentProgress }} {{ item.progress ?? (item.isArchived ? 100 : 0) }}%</div>
             </div>
-          </div>
+          </article>
 
-          <div v-if="filteredItems.length === 0" class="empty-state">Không có dữ liệu trạng thái trong khoảng thời gian này.</div>
+          <div v-if="filteredItems.length === 0" class="empty-state">{{ labels.noData }}</div>
         </div>
-        <div v-else class="empty-state">Đang tải dữ liệu...</div>
-      </div>
+        <div v-else class="empty-state">{{ labels.loading }}</div>
+      </section>
 
-      <div class="sidebar-column">
+      <aside class="sidebar-column">
         <div class="sidebar-section">
-          <h3>{{ itemTypeCapitalized }} moi</h3>
+          <h3>{{ itemTypeCapitalized }} {{ labels.newSuffix }}</h3>
           <div class="sidebar-item" v-for="item in newestItems" :key="item.id">
             <div class="sidebar-item-left">
               <span class="sidebar-item-icon"><i :class="currentTab === 'projects' ? 'fa-solid fa-rocket' : 'fa-solid fa-bullseye'"></i></span>
@@ -75,15 +85,17 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </aside>
+    </main>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import axiosClient from '@/api/axiosClient'
+import { useI18nStore } from '@/store/useI18nStore'
 
+const i18nStore = useI18nStore()
 const currentTab = ref('projects')
 const rangeDays = ref(7)
 const rangeOffset = ref(0)
@@ -91,31 +103,92 @@ const dashboardItems = ref([])
 const dashboardStats = ref(null)
 const isLoading = ref(false)
 
-const itemType = computed(() => currentTab.value === 'projects' ? 'du an' : 'muc tieu')
-const itemTypeCapitalized = computed(() => currentTab.value === 'projects' ? 'Dự án' : 'Mục tiêu')
+const labels = computed(() => i18nStore.locale === 'vi'
+  ? {
+      title: 'Cập nhật trạng thái',
+      days: 'ngày',
+      projects: 'Dự án',
+      goals: 'Mục tiêu',
+      previous: 'Khoảng trước',
+      next: 'Khoảng sau',
+      projectType: 'dự án',
+      goalType: 'mục tiêu',
+      followingPrefix: 'Bạn đang theo dõi',
+      followingSuffix: 'trong khoảng thời gian này.',
+      newest: 'Mới tạo',
+      updated: 'Mới cập nhật',
+      risk: 'Có rủi ro',
+      pending: 'Đang chờ xử lý',
+      done: 'Đã hoàn tất',
+      lastDays: 'Trong 7 ngày gần đây',
+      changed: 'Có thay đổi gần đây',
+      needsAttention: 'Cần chú ý',
+      noClearUpdate: 'Chưa có cập nhật rõ',
+      finished: 'Đã kết thúc',
+      unassigned: 'Chưa gắn',
+      currentProgress: 'Tiến độ hiện tại:',
+      noData: 'Không có dữ liệu trạng thái trong khoảng thời gian này.',
+      loading: 'Đang tải dữ liệu...',
+      newSuffix: 'mới',
+      active: 'Đang thực hiện',
+      archived: 'Đã lưu trữ'
+    }
+  : {
+      title: 'Status updates',
+      days: 'days',
+      projects: 'Projects',
+      goals: 'Goals',
+      previous: 'Previous range',
+      next: 'Next range',
+      projectType: 'projects',
+      goalType: 'goals',
+      followingPrefix: 'You are tracking',
+      followingSuffix: 'in this time range.',
+      newest: 'New',
+      updated: 'Updated',
+      risk: 'At risk',
+      pending: 'Pending',
+      done: 'Completed',
+      lastDays: 'In the last 7 days',
+      changed: 'Changed recently',
+      needsAttention: 'Needs attention',
+      noClearUpdate: 'No clear update',
+      finished: 'Finished',
+      unassigned: 'Unassigned',
+      currentProgress: 'Current progress:',
+      noData: 'No status data in this time range.',
+      loading: 'Loading data...',
+      newSuffix: 'new',
+      active: 'Active',
+      archived: 'Archived'
+    })
+
+const itemType = computed(() => currentTab.value === 'projects' ? labels.value.projectType : labels.value.goalType)
+const itemTypeCapitalized = computed(() => currentTab.value === 'projects' ? labels.value.projects : labels.value.goals)
 
 const rangeStart = computed(() => {
   const date = new Date()
   date.setDate(date.getDate() - rangeDays.value * (rangeOffset.value + 1))
   return date
 })
+
 const rangeEnd = computed(() => {
   const date = new Date()
   date.setDate(date.getDate() - rangeDays.value * rangeOffset.value)
   return date
 })
-const rangeLabel = computed(() => `${rangeStart.value.toLocaleDateString('vi-VN')} - ${rangeEnd.value.toLocaleDateString('vi-VN')}`)
 
+const rangeLabel = computed(() => `${rangeStart.value.toLocaleDateString('vi-VN')} - ${rangeEnd.value.toLocaleDateString('vi-VN')}`)
 const filteredItems = computed(() => dashboardItems.value || [])
 
 const stats = computed(() => {
   const serverStats = dashboardStats.value || {}
   return [
-    { key: 'newest', label: 'Moi tao', color: 'green', count: serverStats.newest || 0, description: 'Trong 7 ngay gan day' },
-    { key: 'updated', label: 'Moi cap nhat', color: 'blue', count: serverStats.updated || 0, description: 'Co thay doi gan day' },
-    { key: 'risk', label: 'Co rui ro', color: 'orange', count: serverStats.risk || 0, description: 'Can chu y' },
-    { key: 'pending', label: 'Đang chờ xử lý', color: 'gray', count: serverStats.pending || 0, description: 'Chưa có cập nhật rõ' },
-    { key: 'done', label: 'Đã hoàn tất', color: 'blue', count: serverStats.done || 0, description: 'Đã kết thúc' }
+    { key: 'newest', label: labels.value.newest, color: 'green', count: serverStats.newest || 0, description: labels.value.lastDays },
+    { key: 'updated', label: labels.value.updated, color: 'blue', count: serverStats.updated || 0, description: labels.value.changed },
+    { key: 'risk', label: labels.value.risk, color: 'orange', count: serverStats.risk || 0, description: labels.value.needsAttention },
+    { key: 'pending', label: labels.value.pending, color: 'gray', count: serverStats.pending || 0, description: labels.value.noClearUpdate },
+    { key: 'done', label: labels.value.done, color: 'blue', count: serverStats.done || 0, description: labels.value.finished }
   ]
 })
 
@@ -124,20 +197,20 @@ const newestItems = computed(() => [...(dashboardItems.value || [])]
   .slice(0, 5))
 
 const normalizeStatus = (status) => {
-  if (status === true) return 'Đang thực hiện'
-  if (status === false) return 'Đã lưu trữ'
-  return status || 'Đang chờ xử lý'
+  if (status === true) return labels.value.active
+  if (status === false) return labels.value.archived
+  return status || labels.value.pending
 }
 
 const statusColor = (status) => {
   const normalized = normalizeStatus(status).toLowerCase()
-  if (normalized.includes('risk') || normalized.includes('rui ro')) return 'orange-badge'
-  if (normalized.includes('off') || normalized.includes('khong')) return 'red-badge'
-  if (normalized.includes('complete') || normalized.includes('hoan') || normalized.includes('done')) return 'blue-badge'
+  if (normalized.includes('risk') || normalized.includes('rủi ro')) return 'orange-badge'
+  if (normalized.includes('off') || normalized.includes('không')) return 'red-badge'
+  if (normalized.includes('complete') || normalized.includes('hoàn') || normalized.includes('done')) return 'blue-badge'
   return 'green-badge'
 }
 
-const getInitials = (value = '') => value.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'U'
+const getInitials = (value = '') => value.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'U'
 const formatDate = (value) => value ? new Date(value).toLocaleString('vi-VN') : ''
 const shiftRange = (direction) => { rangeOffset.value = Math.max(0, rangeOffset.value + direction) }
 
@@ -167,42 +240,272 @@ onMounted(fetchStatusDashboard)
 </script>
 
 <style scoped>
-.status-page { color: #172B4D; background: #fff; min-height: 100vh; }
-.page-header { padding: 32px 40px 0; border-bottom: 1px solid #DFE1E6; }
-.header-main { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.header-main h1 { font-size: 24px; font-weight: 500; margin: 0; }
-.secondary-btn { background: #F4F5F7; border: 0; padding: 6px 12px; border-radius: 3px; color: #42526E; }
-.tabs { display: flex; gap: 24px; }
-.tab-btn { background: transparent; border: 0; padding: 0 0 12px; color: #5E6C84; cursor: pointer; }
-.tab-btn.active { color: #0052CC; border-bottom: 2px solid #0052CC; }
-.page-content { display: flex; padding: 32px 40px; gap: 40px; }
-.main-column { flex: 1; max-width: 850px; }
-.timeline-header { display: flex; justify-content: center; align-items: center; gap: 24px; margin-bottom: 24px; }
-.timeline-title { font-size: 20px; font-weight: 500; color: #5E6C84; margin: 0; }
-.icon-btn { border: 1px solid #DFE1E6; background: transparent; border-radius: 3px; width: 32px; height: 32px; cursor: pointer; }
-.stats-subtitle { font-size: 14px; font-weight: 600; margin: 0 0 16px; }
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 40px; }
-.stat-card { border: 1px solid #DFE1E6; border-radius: 3px; padding: 12px 16px; display: flex; gap: 12px; }
-.stat-number { font-size: 24px; font-weight: 600; }
-.green { color: #00875A; } .orange { color: #FF991F; } .red { color: #DE350B; } .gray { color: #5E6C84; } .blue { color: #0052CC; }
-.stat-label { font-size: 12px; font-weight: 700; }
-.stat-desc { font-size: 11px; color: #5E6C84; }
-.tracked-items-list { display: flex; flex-direction: column; gap: 16px; }
-.tracked-item { display: flex; flex-direction: column; gap: 8px; }
-.item-header, .item-user, .sidebar-item-left { display: flex; align-items: center; gap: 8px; }
-.item-name-col, .item-user-info { display: flex; flex-direction: column; }
-.item-type-label, .item-time { color: #5E6C84; font-size: 12px; }
-.item-name { font-weight: 600; }
-.item-card-inner { border: 1px solid #DFE1E6; border-radius: 3px; padding: 16px; margin-left: 24px; display: flex; flex-direction: column; gap: 12px; }
-.item-body { display: flex; justify-content: space-between; align-items: center; }
-.item-avatar { width: 32px; height: 32px; border-radius: 50%; background: #00875A; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
-.item-status-badge { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
-.green-badge { background: #E3FCEF; color: #006644; } .orange-badge { background: #FFFAE6; color: #974F0C; } .red-badge { background: #FFEBE6; color: #BF2600; } .blue-badge { background: #DEEBFF; color: #0052CC; }
-.item-message { background: #FAFBFC; border: 1px solid #DFE1E6; border-radius: 3px; padding: 12px; font-size: 14px; }
-.sidebar-column { width: 300px; border-left: 1px solid #DFE1E6; padding-left: 32px; }
-.sidebar-section { display: flex; flex-direction: column; gap: 12px; }
-.sidebar-section h3 { margin: 0; font-size: 14px; }
-.sidebar-item { display: flex; justify-content: space-between; align-items: center; }
-.sidebar-item-name { font-size: 14px; }
-.empty-state { padding: 32px; text-align: center; color: #5E6C84; border: 1px dashed #DFE1E6; border-radius: 3px; }
+.status-page {
+  min-height: 100vh;
+  background: var(--home-bg, #ffffff);
+  color: var(--home-text, #172b4d);
+}
+
+.page-header {
+  padding: 32px 40px 0;
+  border-bottom: 1px solid var(--home-border, #dfe1e6);
+}
+
+.header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.header-main h1 {
+  margin: 0;
+  color: var(--home-text, #172b4d);
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.secondary-btn,
+.icon-btn {
+  border: 1px solid var(--home-border, #dfe1e6);
+  border-radius: 8px;
+  background: var(--home-panel, #ffffff);
+  color: var(--home-text, #42526e);
+  cursor: pointer;
+}
+
+.secondary-btn {
+  padding: 8px 12px;
+  font-weight: 700;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.tab-btn {
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  padding: 10px 14px;
+  background: transparent;
+  color: var(--home-muted, #5e6c84);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab-btn.active,
+.tab-btn:hover {
+  background: var(--home-panel, #ffffff);
+  border-color: var(--home-border, #dfe1e6);
+  color: var(--home-accent, #0052cc);
+}
+
+.page-content {
+  display: grid;
+  grid-template-columns: minmax(0, 850px) minmax(240px, 320px);
+  gap: 32px;
+  padding: 32px 40px;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.timeline-title {
+  margin: 0;
+  color: var(--home-muted, #5e6c84);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+}
+
+.icon-btn:hover,
+.secondary-btn:hover {
+  border-color: rgba(56, 189, 248, 0.6);
+  background: var(--home-panel-strong, #fafbfc);
+}
+
+.stats-subtitle {
+  margin: 0 0 16px;
+  color: var(--home-text, #172b4d);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 34px;
+}
+
+.stat-card,
+.item-card-inner,
+.sidebar-section {
+  border: 1px solid var(--home-border, #dfe1e6);
+  border-radius: 12px;
+  background: var(--home-panel, #ffffff);
+}
+
+.stat-card {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+}
+
+.stat-number {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.green { color: #10b981; }
+.orange { color: #f59e0b; }
+.red { color: #ef4444; }
+.gray { color: var(--home-muted, #5e6c84); }
+.blue { color: var(--home-accent, #0052cc); }
+
+.stat-label {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.stat-desc,
+.item-type-label,
+.item-time {
+  color: var(--home-muted, #5e6c84);
+  font-size: 12px;
+}
+
+.tracked-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tracked-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-header,
+.item-user,
+.sidebar-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.item-icon,
+.sidebar-item-icon {
+  color: var(--home-accent, #0052cc);
+}
+
+.item-name-col,
+.item-user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.item-name,
+.item-user-name,
+.sidebar-item-name {
+  color: var(--home-text, #172b4d);
+  font-weight: 800;
+}
+
+.item-card-inner {
+  margin-left: 24px;
+  padding: 16px;
+}
+
+.item-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.item-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #00875a;
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.item-status-badge {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.green-badge { background: rgba(34, 197, 94, 0.14); color: #10b981; }
+.orange-badge { background: rgba(245, 158, 11, 0.16); color: #f59e0b; }
+.red-badge { background: rgba(239, 68, 68, 0.16); color: #ef4444; }
+.blue-badge { background: rgba(59, 130, 246, 0.16); color: #3b82f6; }
+
+.item-message {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--home-border, #dfe1e6);
+  border-radius: 10px;
+  background: var(--home-panel-strong, #fafbfc);
+  color: var(--home-text, #172b4d);
+}
+
+.sidebar-column {
+  border-left: 1px solid var(--home-border, #dfe1e6);
+  padding-left: 28px;
+}
+
+.sidebar-section {
+  padding: 16px;
+}
+
+.sidebar-section h3 {
+  margin: 0 0 12px;
+  color: var(--home-text, #172b4d);
+  font-size: 14px;
+}
+
+.sidebar-item {
+  padding: 8px 0;
+}
+
+.empty-state {
+  padding: 32px;
+  border: 1px dashed var(--home-border, #dfe1e6);
+  border-radius: 12px;
+  color: var(--home-muted, #5e6c84);
+  text-align: center;
+}
+
+@media (max-width: 980px) {
+  .page-content {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar-column {
+    border-left: 0;
+    padding-left: 0;
+  }
+}
 </style>

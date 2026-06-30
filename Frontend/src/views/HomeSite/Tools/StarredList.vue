@@ -1,45 +1,45 @@
 <template>
   <div class="starred-page">
     <header class="page-header">
-      <h1>Gan sao</h1>
+      <h1>{{ labels.title }}</h1>
     </header>
 
     <div class="page-content">
       <div class="filter-controls">
         <div class="search-input-wrapper">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input v-model="searchQuery" type="text" placeholder="Tim kiem theo tieu de" class="search-input" />
+          <input v-model="searchQuery" type="text" :placeholder="labels.search" class="search-input" />
         </div>
         <select v-model="typeFilter" class="filter-select">
-          <option value="">Tất cả loại</option>
-          <option value="Project">Project</option>
-          <option value="Goal">Goal</option>
-          <option value="Team">Team</option>
-          <option value="User">User</option>
+          <option value="">{{ labels.allTypes }}</option>
+          <option value="project">{{ labels.project }}</option>
+          <option value="goal">{{ labels.goal }}</option>
+          <option value="team">{{ labels.team }}</option>
+          <option value="user">{{ labels.user }}</option>
         </select>
       </div>
 
-      <div v-if="starredStore.loading" class="empty-state">Đang tải dữ liệu...</div>
+      <div v-if="starredStore.loading" class="empty-state">{{ labels.loading }}</div>
 
       <div class="starred-grid" v-else-if="filteredStarredItems.length > 0">
         <div class="starred-card" v-for="item in filteredStarredItems" :key="item.id" @click="openItem(item)">
-          <div class="card-icon" :class="(item.itemType || 'default').toLowerCase()">
-            <i class="fa-solid" :class="getIcon(item.itemType)"></i>
+          <div class="card-icon" :class="normalizeType(item)">
+            <i class="fa-solid" :class="getIcon(item)"></i>
           </div>
           <div class="card-content">
-            <h3>{{ item.itemName || 'Untitled' }}</h3>
-            <p>{{ item.itemType || 'Item' }}</p>
+            <h3>{{ item.itemName || item.name || item.title || labels.untitled }}</h3>
+            <p>{{ typeLabel(item) }}</p>
           </div>
-          <button class="unstar-btn" @click.stop="starredStore.toggleStar(item.itemType, item.itemId)" title="Bo gan sao">
+          <button class="unstar-btn" @click.stop="unstar(item)" :title="labels.unstar">
             <i class="fa-solid fa-star"></i>
           </button>
         </div>
       </div>
 
-      <div class="empty-state" v-else>
+      <div class="empty-state hero-empty" v-else>
         <div class="empty-illustration"><i class="fa-regular fa-star"></i></div>
-        <h2>Chưa có mục nào được gắn sao</h2>
-        <p>Nhung muc ban gan sao se xuat hien o day de truy cap nhanh.</p>
+        <h2>{{ labels.emptyTitle }}</h2>
+        <p>{{ labels.emptyDesc }}</p>
       </div>
     </div>
   </div>
@@ -49,68 +49,273 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStarredStore } from '@/store/useStarredStore'
+import { useI18nStore } from '@/store/useI18nStore'
 
 const router = useRouter()
 const starredStore = useStarredStore()
+const i18nStore = useI18nStore()
 const searchQuery = ref('')
 const typeFilter = ref('')
+
+const labels = computed(() => i18nStore.locale === 'vi'
+  ? {
+      title: 'Gắn sao',
+      search: 'Tìm kiếm theo tiêu đề',
+      allTypes: 'Tất cả loại',
+      loading: 'Đang tải dữ liệu...',
+      project: 'Dự án',
+      goal: 'Mục tiêu',
+      team: 'Nhóm',
+      user: 'Người dùng',
+      item: 'Mục',
+      untitled: 'Chưa có tiêu đề',
+      unstar: 'Bỏ gắn sao',
+      emptyTitle: 'Chưa có mục nào được gắn sao',
+      emptyDesc: 'Những mục bạn gắn sao sẽ xuất hiện ở đây để truy cập nhanh.'
+    }
+  : {
+      title: 'Starred',
+      search: 'Search by title',
+      allTypes: 'All types',
+      loading: 'Loading data...',
+      project: 'Project',
+      goal: 'Goal',
+      team: 'Team',
+      user: 'User',
+      item: 'Item',
+      untitled: 'Untitled',
+      unstar: 'Unstar',
+      emptyTitle: 'No starred items yet',
+      emptyDesc: 'Items you star will appear here for quick access.'
+    })
 
 onMounted(async () => {
   await starredStore.fetchStarredItems()
 })
 
+const normalizeType = (item) => String(item?.itemType || item?.type || item?.entityType || 'item').toLowerCase()
+
+const getTargetId = (item) => item?.itemId || item?.entityId || item?.targetId || item?.projectId || item?.goalId || item?.teamId || item?.userId
+
 const filteredStarredItems = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
-  return (starredStore.starredItems || []).filter(item => {
-    const matchesType = !typeFilter.value || item.itemType === typeFilter.value
-    const matchesSearch = !q || `${item.itemName || ''} ${item.itemType || ''}`.toLowerCase().includes(q)
+  return (starredStore.starredItems || []).filter((item) => {
+    const type = normalizeType(item)
+    const matchesType = !typeFilter.value || type === typeFilter.value
+    const matchesSearch = !q || `${item.itemName || ''} ${item.name || ''} ${item.title || ''} ${type}`.toLowerCase().includes(q)
     return matchesType && matchesSearch
   })
 })
 
-const getIcon = (type) => {
-  if (type === 'Project') return 'fa-rocket'
-  if (type === 'Goal') return 'fa-bullseye'
-  if (type === 'Team') return 'fa-users'
-  if (type === 'User') return 'fa-user'
+const getIcon = (item) => {
+  const type = normalizeType(item)
+  if (type === 'project') return 'fa-rocket'
+  if (type === 'goal') return 'fa-bullseye'
+  if (type === 'team') return 'fa-users'
+  if (type === 'user') return 'fa-user'
   return 'fa-file-lines'
 }
 
+const typeLabel = (item) => {
+  const type = normalizeType(item)
+  if (type === 'project') return labels.value.project
+  if (type === 'goal') return labels.value.goal
+  if (type === 'team') return labels.value.team
+  if (type === 'user') return labels.value.user
+  return labels.value.item
+}
+
 const openItem = (item) => {
-  if (item.itemType === 'Project') router.push(`/home/projects/${item.itemId}`)
-  if (item.itemType === 'Goal') router.push(`/home/goals/${item.itemId}`)
-  if (item.itemType === 'Team') router.push(`/home/teams/${item.itemId}`)
-  if (item.itemType === 'User') router.push(`/home/profile/${item.itemId}`)
+  const id = getTargetId(item)
+  const type = normalizeType(item)
+  if (type === 'project') return router.push(id ? `/home/projects/${id}` : '/home/projects')
+  if (type === 'goal') return router.push(id ? `/home/goals/${id}` : '/home/goals')
+  if (type === 'team') return router.push(id ? `/home/teams/${id}` : '/home/teams')
+  if (type === 'user') return router.push(id ? `/home/people/${id}` : '/home/teams')
+}
+
+const unstar = async (item) => {
+  const id = getTargetId(item)
+  if (!id) return
+  await starredStore.toggleStar(item.itemType || item.type || item.entityType || 'Project', id)
 }
 </script>
 
 <style scoped>
-.starred-page { color: #172B4D; background: #fff; min-height: 100vh; }
-.page-header { padding: 32px 40px 0; }
-.page-header h1 { font-size: 24px; font-weight: 500; margin: 0 0 24px; }
-.page-content { padding: 0 40px 40px; border-top: 1px solid #DFE1E6; }
-.filter-controls { display: flex; gap: 12px; padding: 24px 0; }
-.search-input-wrapper { position: relative; width: 260px; }
-.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #5E6C84; font-size: 14px; }
-.search-input, .filter-select { height: 36px; border: 1px solid #DFE1E6; border-radius: 3px; background: #fff; color: #091E42; font-size: 14px; outline: none; }
-.search-input { width: 100%; padding: 8px 12px 8px 36px; box-sizing: border-box; }
-.filter-select { padding: 0 12px; }
-.search-input:focus, .filter-select:focus { border-color: #4C9AFF; }
-.starred-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
-.starred-card { display: flex; align-items: center; gap: 16px; padding: 16px; border: 1px solid #DFE1E6; border-radius: 3px; background: #fff; cursor: pointer; }
-.starred-card:hover { box-shadow: 0 4px 8px rgba(9,30,66,0.1); border-color: #B3D4FF; }
-.card-icon { width: 40px; height: 40px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; }
-.card-icon.project { background: #0052CC; }
-.card-icon.goal { background: #36B37E; }
-.card-icon.team { background: #6554C0; }
-.card-icon.user { background: #00B8D9; }
-.card-icon.default { background: #FFAB00; }
-.card-content { flex: 1; overflow: hidden; }
-.card-content h3 { margin: 0 0 4px; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card-content p { margin: 0; font-size: 12px; color: #5E6C84; }
-.unstar-btn { background: transparent; border: 0; color: #FFC400; cursor: pointer; padding: 8px; font-size: 16px; }
-.empty-state { padding: 48px 0; text-align: center; color: #5E6C84; }
-.empty-illustration { color: #FFC400; font-size: 48px; margin-bottom: 16px; }
-.empty-state h2 { color: #172B4D; font-size: 20px; margin: 0 0 8px; }
-.empty-state p { margin: 0; }
+.starred-page {
+  min-height: 100vh;
+  background: var(--home-bg, #ffffff);
+  color: var(--home-text, #172b4d);
+}
+
+.page-header {
+  padding: 32px 40px 0;
+}
+
+.page-header h1 {
+  margin: 0 0 24px;
+  color: var(--home-text, #172b4d);
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.page-content {
+  padding: 20px 40px 40px;
+  border-top: 1px solid var(--home-border, #dfe1e6);
+}
+
+.filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: min(100%, 1040px);
+  margin-bottom: 18px;
+  padding: 12px;
+  border: 1px solid var(--home-border, #dfe1e6);
+  border-radius: 12px;
+  background: var(--home-panel, #ffffff);
+}
+
+.search-input-wrapper {
+  position: relative;
+  width: min(100%, 300px);
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--home-muted, #5e6c84);
+  font-size: 14px;
+}
+
+.search-input,
+.filter-select {
+  height: 38px;
+  border: 1px solid var(--home-border, #dfe1e6);
+  border-radius: 8px;
+  background: var(--home-panel-strong, #ffffff);
+  color: var(--home-text, #091e42);
+  font-size: 14px;
+  outline: none;
+}
+
+.search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px 8px 38px;
+}
+
+.filter-select {
+  padding: 0 12px;
+}
+
+.search-input:focus,
+.filter-select:focus {
+  border-color: var(--home-accent, #4c9aff);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14);
+}
+
+.starred-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  width: min(100%, 1040px);
+}
+
+.starred-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--home-border, #dfe1e6);
+  border-radius: 12px;
+  background: var(--home-panel, #ffffff);
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.starred-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(56, 189, 248, 0.55);
+  box-shadow: 0 16px 38px rgba(2, 6, 23, 0.12);
+}
+
+.card-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex: 0 0 auto;
+}
+
+.card-icon.project { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
+.card-icon.goal { background: linear-gradient(135deg, #10b981, #0f766e); }
+.card-icon.team { background: linear-gradient(135deg, #8b5cf6, #4f46e5); }
+.card-icon.user { background: linear-gradient(135deg, #06b6d4, #0284c7); }
+.card-icon.item { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+
+.card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-content h3 {
+  margin: 0 0 4px;
+  overflow: hidden;
+  color: var(--home-text, #172b4d);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.card-content p {
+  margin: 0;
+  color: var(--home-muted, #5e6c84);
+  font-size: 12px;
+}
+
+.unstar-btn {
+  border: 0;
+  border-radius: 9px;
+  background: rgba(245, 158, 11, 0.14);
+  color: #fbbf24;
+  cursor: pointer;
+  padding: 9px;
+  font-size: 16px;
+}
+
+.empty-state {
+  width: min(100%, 1040px);
+  padding: 48px 20px;
+  border: 1px dashed var(--home-border, #dfe1e6);
+  border-radius: 16px;
+  color: var(--home-muted, #5e6c84);
+  text-align: center;
+}
+
+.hero-empty {
+  margin-top: 8px;
+}
+
+.empty-illustration {
+  margin-bottom: 16px;
+  color: #fbbf24;
+  font-size: 52px;
+}
+
+.empty-state h2 {
+  margin: 0 0 8px;
+  color: var(--home-text, #172b4d);
+  font-size: 20px;
+}
+
+.empty-state p {
+  margin: 0;
+}
 </style>
