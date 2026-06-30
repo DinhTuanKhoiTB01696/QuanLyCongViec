@@ -64,6 +64,12 @@
           </router-link>
         </li>
         <li class="nav-item">
+          <router-link to="/priority" class="nav-link">
+            <i class="fa-solid fa-fire" style="color: #f97316;"></i>
+            <span>{{ t('Daily Focus') }}</span>
+          </router-link>
+        </li>
+        <li class="nav-item">
           <router-link to="/stickies" class="nav-link">
             <i class="fa-solid fa-note-sticky"></i>
             <span>{{ t('Stickies') }}</span>

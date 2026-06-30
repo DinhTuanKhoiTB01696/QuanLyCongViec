@@ -43,6 +43,11 @@ export default [
     path: '/archives',
     name: 'Archives',
     component: () => import('../views/GlobalArchivesView.vue')
-  }
+  },
   // Recent route ĐÃ XÓA - Module chỉ chứa dữ liệu Mock, không có giá trị nghiệp vụ
+  {
+    path: '/priority',
+    name: 'DailyFocus',
+    component: () => import('../views/DailyFocusView.vue')
+  }
 ]
