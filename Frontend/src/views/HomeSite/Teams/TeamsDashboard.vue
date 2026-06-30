@@ -1,15 +1,18 @@
 <template>
   <div class="teams-dashboard">
     <div class="dashboard-content">
-      <!-- Empty State matching Team1_Tab1_ForYou1.jpeg -->
       <div v-if="teams.length === 0" class="empty-state-banner">
         <div class="empty-banner-content">
           <div class="empty-banner-text">
-            <h2>Đội ngũ của bạn</h2>
-            <p>Nơi hội tụ các thành viên, nỗ lực và tài nguyên.</p>
+            <h2>{{ t('homeSite.teams.yourTeams') }}</h2>
+            <p>{{ t('homeSite.teams.emptyDescription') }}</p>
             <div class="empty-banner-actions">
-              <button class="primary-btn" @click="openCreateTeamModal">Bắt đầu một đội ngũ</button>
-              <router-link to="/home/teams/list" class="secondary-btn">Duyệt xem các đội ngũ</router-link>
+              <button class="primary-btn" @click="openCreateTeamModal">
+                {{ t('homeSite.teams.startTeam') }}
+              </button>
+              <router-link to="/home/teams/list" class="secondary-btn">
+                {{ t('homeSite.teams.browseTeams') }}
+              </router-link>
             </div>
           </div>
           <div class="empty-banner-illustration">
@@ -20,73 +23,75 @@
         </div>
       </div>
 
-      <!-- Content when user has teams -->
       <div v-else class="teams-sections">
-
-
         <section class="dashboard-section">
           <div class="section-header" style="margin-bottom: 24px;">
-            <h2 style="font-size: 16px; margin-bottom: 16px; color: #172B4D; font-weight: 500;">Đội ngũ của bạn</h2>
-            
+            <h2 style="font-size: 16px; margin-bottom: 16px; color: #172B4D; font-weight: 500;">
+              {{ t('homeSite.teams.yourTeams') }}
+            </h2>
+
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div class="search-box" style="position: relative; width: 300px;">
                 <i class="fa-solid fa-magnifying-glass search-icon" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #6B778C; z-index: 1;"></i>
-                <input type="text" placeholder="Tìm kiếm các đội ngũ" class="search-input" style="width: 100%; padding: 8px 12px 8px 36px !important; border: 1px solid #DFE1E6; border-radius: 3px; outline: none; font-size: 14px; color: #172B4D; height: 36px; transition: border-color 0.2s;" />
+                <input
+                  v-model="teamSearch"
+                  type="text"
+                  :placeholder="t('homeSite.teams.searchTeams')"
+                  class="search-input"
+                  style="width: 100%; padding: 8px 12px 8px 36px !important; border: 1px solid #DFE1E6; border-radius: 3px; outline: none; font-size: 14px; color: #172B4D; height: 36px; transition: border-color 0.2s;"
+                />
               </div>
-              
+
               <div class="view-toggle">
-                <button class="toggle-btn" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'" title="Chế độ lưới">
+                <button class="toggle-btn" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'" :title="t('homeSite.teams.gridView')">
                   <i class="fa-solid fa-table-cells-large"></i>
                 </button>
-                <button class="toggle-btn" :class="{ active: viewMode === 'table' }" @click="viewMode = 'table'" title="Chế độ danh sách">
+                <button class="toggle-btn" :class="{ active: viewMode === 'table' }" @click="viewMode = 'table'" :title="t('homeSite.teams.tableView')">
                   <i class="fa-solid fa-list"></i>
                 </button>
               </div>
             </div>
           </div>
-          
+
           <div class="team-cards-grid" v-if="viewMode === 'grid'">
-            <div class="team-card" v-for="team in teams" :key="team.id" @click="goToTeam(team.id)">
+            <div class="team-card" v-for="team in filteredTeams" :key="team.id" @click="goToTeam(team.id)">
               <div class="team-card-cover" :style="{ backgroundColor: '#0052cc' }"></div>
               <div class="team-card-content">
                 <div class="team-avatar">{{ team.avatarText }}</div>
                 <h3 class="team-name">{{ team.name }}</h3>
-                <p class="team-meta">{{ team.memberCount }} thành viên</p>
+                <p class="team-meta">{{ t('homeSite.teams.membersCount', { count: team.memberCount }) }}</p>
               </div>
             </div>
           </div>
-          
-
-        
 
           <table v-if="viewMode === 'table'" class="jira-table">
-                  <thead>
+            <thead>
               <tr>
-                  <th style="width: 25%">Đội ngũ</th>
-                  <th style="width: 20%">Loại đội ngũ</th>
-                  <th style="width: 20%">Người quản lý</th>
-                  <th style="width: 10%">Thành viên</th>
-                  <th style="width: 10%">Đội ngũ gốc</th>
-                  <th style="width: 15%">Đội ngũ con <i class="fa-solid fa-arrow-down" style="font-size: 10px; margin-left: 4px;"></i></th>
+                <th style="width: 25%">{{ t('homeSite.teams.team') }}</th>
+                <th style="width: 20%">{{ t('homeSite.teams.teamType') }}</th>
+                <th style="width: 20%">{{ t('homeSite.teams.manager') }}</th>
+                <th style="width: 10%">{{ t('homeSite.teams.members') }}</th>
+                <th style="width: 10%">{{ t('homeSite.teams.parentTeam') }}</th>
+                <th style="width: 15%">{{ t('homeSite.teams.childTeams') }} <i class="fa-solid fa-arrow-down" style="font-size: 10px; margin-left: 4px;"></i></th>
               </tr>
             </thead>
-                  <tbody>
-              <tr v-for="team in (viewMode === 'table' && teams ? teams : teams)" :key="team.id" @click="goToTeam(team.id)">
+            <tbody>
+              <tr v-for="team in filteredTeams" :key="team.id" @click="goToTeam(team.id)">
                 <td>
                   <div class="team-name-cell">
                     <div class="team-avatar-small" :style="{ backgroundColor: '#0052cc' }">{{ team.avatarText }}</div>
                     <span class="team-name-text">{{ team.name }}</span>
                   </div>
                 </td>
-                <td style="white-space: nowrap;">{{ team.type }}</td>
+                <td style="white-space: nowrap;">{{ team.typeLabel }}</td>
                 <td>
-                  <div v-if="team.managerName !== 'Chưa có'" class="manager-cell" style="display: flex; align-items: center; gap: 8px;">
+                  <div v-if="team.managerName !== noManagerLabel" class="manager-cell" style="display: flex; align-items: center; gap: 8px;">
                     <UserAvatar :user="{ fullName: team.managerName, email: team.managerEmail }" :size="24" :fontSize="10" />
                     <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;">{{ team.managerName }}</span>
                   </div>
                   <div v-else style="color: #5E6C84; display: flex; align-items: center; gap: 6px;">
                     <div style="width: 24px; height: 24px; border-radius: 50%; background: #DFE1E6; display: flex; align-items: center; justify-content: center; color: #172B4D; font-size: 10px; font-weight: bold;">?</div>
-                    <span>Chưa có</span>
+                    <span>{{ noManagerLabel }}</span>
                   </div>
                 </td>
                 <td>{{ team.memberCount }}</td>
@@ -94,70 +99,78 @@
                 <td>{{ team.childrenCount }}</td>
               </tr>
             </tbody>
-      <tbody v-if="teams.length === 0">
-        <tr>
-          <td colspan="3" class="empty-table-state">
-            Không tìm thấy đội ngũ nào.
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            <tbody v-if="filteredTeams.length === 0">
+              <tr>
+                <td colspan="6" class="empty-table-state">
+                  {{ t('homeSite.teams.noTeamsFound') }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </section>
       </div>
     </div>
 
-    <!-- Create Team Popover -->
     <div class="modal-overlay invisible-backdrop" v-if="isCreateModalOpen" @click.self="isCreateModalOpen = false; isMemberDropdownOpen = false">
       <div class="modal-content side-popover">
         <div class="popover-header">
           <button class="icon-btn-small" @click="isCreateModalOpen = false"><i class="fa-solid fa-arrow-left"></i></button>
-          <span class="popover-title"><i class="fa-solid fa-user-group"></i> Đội ngũ</span>
+          <span class="popover-title"><i class="fa-solid fa-user-group"></i> {{ t('homeSite.teams.title') }}</span>
         </div>
         <div class="popover-body">
-          <p class="required-subtitle">Các trường bắt buộc được đánh dấu bằng dấu sao <span class="required">*</span></p>
+          <p class="required-subtitle">
+            {{ t('homeSite.teams.requiredFields') }} <span class="required">*</span>
+          </p>
 
           <div class="form-group">
-            <label>Tên <span class="required">*</span></label>
+            <label>{{ t('homeSite.teams.name') }} <span class="required">*</span></label>
             <input type="text" v-model="newTeamData.name" />
           </div>
 
           <div class="form-group" style="position: relative;">
-            <label>Thêm thành viên đội <span class="required">*</span></label>
+            <label>{{ t('homeSite.teams.addTeamMembers') }} <span class="required">*</span></label>
             <div class="tags-input-container" @click="focusMemberInput">
               <div class="tag-chip" v-for="member in newTeamData.members" :key="member.id">
-                 <UserAvatar :user="{ ...member, fullName: member.name, avatarColor: member.color }" :size="20" :fontSize="10" />
-                 {{ member.name }}
-                 <i class="fa-solid fa-xmark remove-tag" @click.stop="removeMember(member.id)"></i>
+                <UserAvatar :user="{ ...member, fullName: member.name, avatarColor: member.color }" :size="20" :fontSize="10" />
+                {{ member.name }}
+                <i class="fa-solid fa-xmark remove-tag" @click.stop="removeMember(member.id)"></i>
               </div>
-              <input type="text" ref="memberInputRef" placeholder="Nhập tên" v-model="memberSearchQuery" @focus="isMemberDropdownOpen = true" />
+              <input type="text" ref="memberInputRef" :placeholder="t('homeSite.teams.enterName')" v-model="memberSearchQuery" @focus="isMemberDropdownOpen = true" />
             </div>
-            <!-- Member Dropdown -->
             <div class="member-dropdown" v-if="isMemberDropdownOpen">
               <div class="member-dropdown-item" v-for="user in filteredUsers" :key="user.id" @click="addMember(user)">
                 <UserAvatar :user="{ ...user, fullName: user.name, avatarColor: user.color }" :size="20" :fontSize="10" />
                 <span>{{ user.name }}</span>
               </div>
-              <div class="member-dropdown-empty" v-if="filteredUsers.length === 0">Không tìm thấy thành viên</div>
+              <div class="member-dropdown-empty" v-if="filteredUsers.length === 0">
+                {{ t('homeSite.teams.noMembersFound') }}
+              </div>
             </div>
           </div>
 
           <div class="form-group">
-            <label>Loại <span class="required">*</span></label>
+            <label>{{ t('homeSite.teams.type') }} <span class="required">*</span></label>
             <div class="select-wrapper">
               <select v-model="newTeamData.type" class="jira-select">
-                <option value="Đội ngũ chính thức">Đội ngũ chính thức</option>
-                <option value="Nhóm">Nhóm</option>
+                <option :value="TEAM_TYPE_OFFICIAL">{{ t('homeSite.teams.officialTeam') }}</option>
+                <option :value="TEAM_TYPE_GROUP">{{ t('homeSite.teams.group') }}</option>
               </select>
             </div>
           </div>
-          
+
           <div class="recaptcha-text">
-            Trang web này được bảo vệ bằng reCAPTCHA và được điều chỉnh theo <a href="#">Chính sách Quyền riêng tư <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px;"></i></a> và <a href="#">Điều khoản dịch vụ <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px;"></i></a> của Google.
+            {{ t('homeSite.teams.recaptchaPrefix') }}
+            <a href="#">{{ t('homeSite.teams.privacyPolicy') }} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px;"></i></a>
+            {{ t('homeSite.teams.and') }}
+            <a href="#">{{ t('homeSite.teams.termsOfService') }} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px;"></i></a>
+            {{ t('homeSite.teams.googleSuffix') }}
           </div>
         </div>
         <div class="popover-footer">
-          <button class="cancel-btn" @click="isCreateModalOpen = false">Hủy</button>
-          <button class="primary-btn" :disabled="!newTeamData.name || newTeamData.members.length === 0 || isCreating" @click="submitCreateTeam">Tạo</button>
+          <button class="cancel-btn" @click="isCreateModalOpen = false">{{ t('common.cancel') }}</button>
+          <button class="primary-btn" :disabled="!newTeamData.name || newTeamData.members.length === 0 || isCreating" @click="submitCreateTeam">
+            {{ isCreating ? t('common.creating') : t('common.create') }}
+          </button>
         </div>
       </div>
     </div>
@@ -172,24 +185,38 @@ import { usePeopleStore } from '@/store/usePeopleStore'
 import { getStoredUser } from '@/utils/permissions'
 import { getAvatarColor, getInitials } from '@/utils/avatarHelper'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import { useI18nStore } from '@/store/useI18nStore'
+
+const TEAM_TYPE_OFFICIAL = 'Đội ngũ chính thức'
+const TEAM_TYPE_GROUP = 'Nhóm'
 
 const router = useRouter()
 const teamStore = useTeamStore()
 const peopleStore = usePeopleStore()
+const i18nStore = useI18nStore()
+const t = i18nStore.t
 
 const isCreateModalOpen = ref(false)
 const isCreating = ref(false)
+const teamSearch = ref('')
 const memberSearchQuery = ref('')
 const isMemberDropdownOpen = ref(false)
 const memberInputRef = ref(null)
 const viewMode = ref('grid')
 
+const noManagerLabel = computed(() => t('homeSite.teams.noManager'))
+
 const newTeamData = reactive({
   name: '',
   description: '',
-  type: 'Đội ngũ chính thức',
+  type: TEAM_TYPE_OFFICIAL,
   members: []
 })
+
+const translateTeamType = (type) => {
+  if (type === TEAM_TYPE_GROUP || String(type).toLowerCase() === 'group') return t('homeSite.teams.group')
+  return t('homeSite.teams.officialTeam')
+}
 
 const filteredUsers = computed(() => {
   const allUsers = peopleStore.users.map(u => ({
@@ -220,20 +247,30 @@ const removeMember = (id) => {
   newTeamData.members = newTeamData.members.filter(m => m.id !== id)
 }
 
-const teams = computed(() => teamStore.allTeams.map(t => ({
-  id: t.id,
-  name: t.name,
-  avatarText: t.name ? t.name.substring(0, 2).toUpperCase() : 'T',
-  memberCount: t.memberCount ?? t.members?.length ?? t.users?.length ?? 0,
-  childrenCount: t.children?.length || t.subDepartments?.length || 0,
-  manager: t.manager || t.managerId,
-  managerName: t.manager?.fullName || t.manager?.name || 'Chưa có',
-  managerEmail: t.manager?.email || '',
-  parentTeamName: t.parentDepartment?.name || t.parent?.name || 'Không có đội ngũ gốc',
-    parentCount: (t.parentDepartment || t.parent || t.parentId) ? 1 : 0,
-  type: t.type || 'Đội ngũ chính thức',
-  coverImage: t.coverImage || ''
-})))
+const teams = computed(() => teamStore.allTeams.map(team => {
+  const type = team.type || TEAM_TYPE_OFFICIAL
+  return {
+    id: team.id,
+    name: team.name,
+    avatarText: team.name ? team.name.substring(0, 2).toUpperCase() : 'T',
+    memberCount: team.memberCount ?? team.members?.length ?? team.users?.length ?? 0,
+    childrenCount: team.children?.length || team.subDepartments?.length || 0,
+    manager: team.manager || team.managerId,
+    managerName: team.manager?.fullName || team.manager?.name || noManagerLabel.value,
+    managerEmail: team.manager?.email || '',
+    parentTeamName: team.parentDepartment?.name || team.parent?.name || t('homeSite.teams.noParentTeam'),
+    parentCount: (team.parentDepartment || team.parent || team.parentId) ? 1 : 0,
+    type,
+    typeLabel: translateTeamType(type),
+    coverImage: team.coverImage || ''
+  }
+}))
+
+const filteredTeams = computed(() => {
+  const query = teamSearch.value.trim().toLowerCase()
+  if (!query) return teams.value
+  return teams.value.filter(team => `${team.name} ${team.typeLabel} ${team.managerName}`.toLowerCase().includes(query))
+})
 
 onMounted(() => {
   teamStore.fetchAllTeams()
@@ -249,13 +286,9 @@ const goToTeam = (id) => {
   router.push(`/home/teams/${id}`)
 }
 
-const goToPerson = (id) => {
-  router.push(`/home/people/${id}`)
-}
-
 const openCreateTeamModal = () => {
-  const sessionUser = getStoredUser();
-  const storeUser = sessionUser ? (peopleStore.users.find(u => u.id === sessionUser.id) || sessionUser) : null;
+  const sessionUser = getStoredUser()
+  const storeUser = sessionUser ? (peopleStore.users.find(u => u.id === sessionUser.id) || sessionUser) : null
   const currentMemberObj = storeUser ? {
     id: storeUser.id,
     name: storeUser.fullName || storeUser.name || sessionUser.fullName || sessionUser.email,
@@ -263,11 +296,11 @@ const openCreateTeamModal = () => {
     initials: getInitials(storeUser.fullName || sessionUser.fullName, storeUser.email || sessionUser.email),
     color: getAvatarColor(storeUser.email || sessionUser.email || storeUser.id || sessionUser.id),
     avatarUrl: storeUser.avatarUrl || sessionUser.avatarUrl
-  } : null;
-  
+  } : null
+
   newTeamData.name = ''
   newTeamData.description = ''
-  newTeamData.type = 'Đội ngũ chính thức'
+  newTeamData.type = TEAM_TYPE_OFFICIAL
   newTeamData.members = currentMemberObj ? [currentMemberObj] : []
   isCreateModalOpen.value = true
   isMemberDropdownOpen.value = false
@@ -304,7 +337,6 @@ const submitCreateTeam = async () => {
   flex-direction: column;
 }
 
-/* Empty State Banner matching the screenshot */
 .empty-state-banner {
   background-color: #FAFBFC;
   border-radius: 8px;
@@ -362,6 +394,12 @@ const submitCreateTeam = async () => {
   background-color: #0047B3;
 }
 
+.primary-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.cancel-btn,
 .secondary-btn {
   background-color: rgba(9, 30, 66, 0.04);
   color: #42526E;
@@ -375,6 +413,7 @@ const submitCreateTeam = async () => {
   transition: background-color 0.2s;
 }
 
+.cancel-btn:hover,
 .secondary-btn:hover {
   background-color: rgba(9, 30, 66, 0.08);
 }
@@ -400,14 +439,9 @@ const submitCreateTeam = async () => {
   color: #0052CC;
 }
 
-/* Filled State */
 .dashboard-section {
   display: flex;
   flex-direction: column;
-}
-
-.mt-32 {
-  margin-top: 32px;
 }
 
 .section-header h2 {
@@ -417,62 +451,6 @@ const submitCreateTeam = async () => {
   margin: 0 0 16px 0;
 }
 
-/* People List */
-.people-list {
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
-
-.person-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background-color: #FFFFFF;
-  border: 1px solid #DFE1E6;
-  border-radius: 3px;
-  cursor: pointer;
-  min-width: 200px;
-  transition: background-color 0.2s, box-shadow 0.2s;
-}
-
-.person-card:hover {
-  background-color: #FAFBFC;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-.person-avatar {
-  width: 32px;
-  height: 32px;
-  background-color: #0052CC;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.person-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.person-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #172B4D;
-}
-
-.person-role {
-  font-size: 12px;
-  color: #5E6C84;
-}
-
-/* Team Cards */
 .team-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -536,7 +514,6 @@ const submitCreateTeam = async () => {
   color: #5E6C84;
 }
 
-/* Modal/Popover Styles */
 .modal-overlay.invisible-backdrop {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -546,7 +523,7 @@ const submitCreateTeam = async () => {
 
 .side-popover {
   position: absolute;
-  top: 60px; /* Below topbar */
+  top: 60px;
   right: 16px;
   width: 380px;
   background-color: #FFFFFF;
@@ -633,7 +610,6 @@ const submitCreateTeam = async () => {
   border-color: #4C9AFF;
 }
 
-/* Tags Input */
 .tags-input-container {
   display: flex;
   flex-wrap: wrap;
@@ -674,18 +650,6 @@ const submitCreateTeam = async () => {
   font-weight: 500;
 }
 
-.member-avatar-micro {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: bold;
-}
-
 .remove-tag {
   color: #5E6C84;
   cursor: pointer;
@@ -697,7 +661,6 @@ const submitCreateTeam = async () => {
   color: #DE350B;
 }
 
-/* Member Dropdown */
 .member-dropdown {
   position: absolute;
   top: 100%;
@@ -737,7 +700,6 @@ const submitCreateTeam = async () => {
   color: #5E6C84;
 }
 
-/* Select */
 .select-wrapper {
   position: relative;
 }
@@ -759,7 +721,6 @@ const submitCreateTeam = async () => {
   border-color: #4C9AFF;
 }
 
-/* Recaptcha */
 .recaptcha-text {
   font-size: 11px;
   color: #5E6C84;
@@ -783,7 +744,6 @@ const submitCreateTeam = async () => {
   gap: 8px;
 }
 
-/* View Toggle */
 .view-toggle {
   display: flex;
   border: 1px solid #DFE1E6;
@@ -810,7 +770,6 @@ const submitCreateTeam = async () => {
   color: #0052CC;
 }
 
-/* Table CSS */
 .jira-table {
   width: 100%;
   border-collapse: collapse;
@@ -830,24 +789,6 @@ const submitCreateTeam = async () => {
   cursor: pointer;
 }
 
-.sort-icon {
-  margin-left: 4px;
-  font-size: 12px;
-  color: #5E6C84;
-}
-
-.col-team {
-  width: 50%;
-}
-
-.col-members {
-  width: 25%;
-}
-
-.col-children {
-  width: 25%;
-}
-
 .jira-table td {
   padding: 12px;
   font-size: 14px;
@@ -860,7 +801,7 @@ const submitCreateTeam = async () => {
   background-color: #FAFBFC;
 }
 
-.team-cell {
+.team-name-cell {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -879,12 +820,12 @@ const submitCreateTeam = async () => {
   font-weight: bold;
 }
 
-.team-name {
+.team-name-text {
   font-weight: 500;
   color: #0052CC;
 }
 
-.team-name:hover {
+.team-name-text:hover {
   text-decoration: underline;
 }
 
@@ -893,5 +834,4 @@ const submitCreateTeam = async () => {
   padding: 40px !important;
   color: #5E6C84 !important;
 }
-
 </style>

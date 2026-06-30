@@ -4,14 +4,14 @@
       <div class="header-content">
         <h1>{{ pageTitle }}</h1>
         <div class="header-actions">
-          <button class="primary-btn" @click="openCreateModal">Tạo dự án</button>
+          <button class="primary-btn" @click="openCreateModal">{{ labels.createProject }}</button>
         </div>
       </div>
       
       <div class="tabs-nav">
-        <button class="tab-btn" :class="{ active: currentTab === 'all' }" @click="currentTab = 'all'">Tất cả dự án</button>
-        <button class="tab-btn" :class="{ active: currentTab === 'following' }" @click="currentTab = 'following'">Đang theo dõi</button>
-        <button class="tab-btn" :class="{ active: currentTab === 'archived' }" @click="currentTab = 'archived'">Đã lưu trữ</button>
+        <button class="tab-btn" :class="{ active: currentTab === 'all' }" @click="currentTab = 'all'">{{ labels.allProjects }}</button>
+        <button class="tab-btn" :class="{ active: currentTab === 'following' }" @click="currentTab = 'following'">{{ labels.following }}</button>
+        <button class="tab-btn" :class="{ active: currentTab === 'archived' }" @click="currentTab = 'archived'">{{ labels.archived }}</button>
       </div>
     </header>
 
@@ -19,42 +19,42 @@
       <div class="list-controls-section">
         <div class="search-box-full">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="text" v-model="searchQuery" placeholder="Tìm kiếm dự án" class="search-input" />
+          <input type="text" v-model="searchQuery" :placeholder="labels.searchProjects" class="search-input" />
         </div>
         
                 <div class="filter-chips" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; width: 100%;">
-          <DropdownFilter label="Trạng thái" :options="statusOptions" v-model="filters.status" />
-          <DropdownFilter label="Chủ sở hữu" :options="ownerOptions" v-model="filters.owner" />
-          <DropdownFilter label="Theo dõi" :options="booleanOptions" v-model="filters.following" />
-          <DropdownFilter label="Yêu thích" :options="booleanOptions" v-model="filters.starred" />
-          <button v-if="hasActiveFilters" class="clear-filters-btn" @click="clearFilters" style="padding: 6px 12px; border-radius: 16px; border: 1px solid #DFE1E6; background: #fff; cursor: pointer; color: #5E6C84; font-size: 14px;">Xóa lọc</button>
+          <DropdownFilter :label="labels.status" :options="statusOptions" v-model="filters.status" />
+          <DropdownFilter :label="labels.owner" :options="ownerOptions" v-model="filters.owner" />
+          <DropdownFilter :label="labels.follow" :options="booleanOptions" v-model="filters.following" />
+          <DropdownFilter :label="labels.favorite" :options="booleanOptions" v-model="filters.starred" />
+          <button v-if="hasActiveFilters" class="clear-filters-btn" @click="clearFilters" style="padding: 6px 12px; border-radius: 16px; border: 1px solid #DFE1E6; background: #fff; cursor: pointer; color: #5E6C84; font-size: 14px;">{{ labels.clearFilters }}</button>
         </div>
       </div>
 
       <div class="table-toolbar mt-24">
-        <div class="results-count">Đang hiển thị {{ filteredProjects.length }} dự án</div>
+        <div class="results-count">{{ labels.showing }} {{ filteredProjects.length }} {{ labels.projectsLower }}</div>
         <div class="toolbar-actions">
           <div class="view-toggles">
-            <button class="icon-btn active"><i class="fa-solid fa-list-ul"></i></button>
-            <button class="icon-btn"><i class="fa-solid fa-bars-staggered"></i></button>
+            <button class="icon-btn" :class="{ active: viewMode === 'table' }" :title="labels.listView" @click="viewMode = 'table'"><i class="fa-solid fa-list-ul"></i></button>
+            <button class="icon-btn" :class="{ active: viewMode === 'cards' }" :title="labels.horizontalView" @click="viewMode = 'cards'"><i class="fa-solid fa-bars-staggered"></i></button>
           </div>
-          <button class="secondary-btn small-btn">Sắp xếp theo đang theo dõi <i class="fa-solid fa-chevron-down"></i></button>
-          <button class="secondary-btn small-btn"><i class="fa-solid fa-table-columns"></i> Cột</button>
+          <button class="secondary-btn small-btn">{{ labels.sortByFollowing }} <i class="fa-solid fa-chevron-down"></i></button>
+          <button class="secondary-btn small-btn"><i class="fa-solid fa-table-columns"></i> {{ labels.columns }}</button>
           <button class="icon-btn"><i class="fa-solid fa-ellipsis"></i></button>
         </div>
       </div>
 
       <div class="table-container mt-16" v-if="!isLoading">
-        <table class="jira-table" v-if="filteredProjects.length > 0">
+        <table class="jira-table" v-if="filteredProjects.length > 0 && viewMode === 'table'">
           <thead>
             <tr>
-              <th class="col-name">Tên</th>
-              <th class="col-status">Trạng thái</th>
-              <th class="col-date">Ngày mục tiêu</th>
-              <th class="col-owner">Chủ sở hữu</th>
-              <th class="col-following">Đang theo dõi</th>
-                <th class="col-star" style="width: 100px;">Có gắn sao</th>
-              <th class="col-updated">Cập nhật lần cuối</th>
+              <th class="col-name">{{ labels.name }}</th>
+              <th class="col-status">{{ labels.status }}</th>
+              <th class="col-date">{{ labels.targetDate }}</th>
+              <th class="col-owner">{{ labels.owner }}</th>
+              <th class="col-following">{{ labels.following }}</th>
+                <th class="col-star" style="width: 100px;">{{ labels.starred }}</th>
+              <th class="col-updated">{{ labels.lastUpdated }}</th>
               <th class="actions-col"></th>
             </tr>
           </thead>
@@ -67,8 +67,8 @@
                 </div>
               </td>
               <td>
-                <span class="status-badge" :class="getStatusClass(proj.status || 'ĐÚNG TIẾN ĐỘ')">
-                  {{ proj.status || 'ĐÚNG TIẾN ĐỘ' }} <i class="fa-solid fa-chevron-down ms-1" v-if="proj.status !== 'ĐÃ HOÀN TẤT'"></i>
+                <span class="status-badge" :class="getStatusClass(proj.status || labels.pending)">
+                  {{ translateStatus(proj.status || labels.pending) }} <i class="fa-solid fa-chevron-down ms-1" v-if="!isCompletedStatus(proj.status)"></i>
                 </span>
               </td>
               <td>
@@ -80,7 +80,7 @@
                 <UserAvatar :user="{ id: proj.ownerId, fullName: proj.owner || proj.ownerName || proj.creatorName, avatarUrl: proj.ownerAvatarUrl, avatarColor: proj.ownerColor }" :size="24" :fontSize="10" class="owner-avatar-micro" />
               </td>
               <td @click.stop="toggleFollow(proj.id)">
-                <span class="following-text" style="cursor: pointer;">{{ proj.isFollowing ? 'Đang theo dõi' : 'Theo dõi' }}</span>
+                <span class="following-text" style="cursor: pointer;">{{ proj.isFollowing ? labels.following : labels.follow }}</span>
               </td>
               <td @click.stop="toggleStar(proj.id)">
                 <i :class="proj.isStarred ? 'fa-solid fa-star text-yellow-400' : 'fa-regular fa-star text-gray-400'" style="cursor: pointer;"></i>
@@ -95,12 +95,39 @@
           </tbody>
         </table>
         
+        <div class="project-card-list" v-else-if="filteredProjects.length > 0">
+          <article class="project-row-card" v-for="proj in filteredProjects" :key="proj.id" @click="goToProject(proj.id)">
+            <div class="project-row-main">
+              <div class="project-row-icon">{{ proj.icon || '😎' }}</div>
+              <div class="project-row-text">
+                <h3>{{ proj.title }}</h3>
+                <p>{{ proj.owner || proj.ownerName || labels.noOwner }}</p>
+              </div>
+            </div>
+            <div class="project-row-meta">
+              <span class="status-badge" :class="getStatusClass(proj.status || labels.pending)">
+                {{ translateStatus(proj.status || labels.pending) }}
+              </span>
+              <span class="target-date-badge">
+                <i class="fa-regular fa-calendar"></i> {{ formatDate(proj.startDate || proj.createdAt) }}
+              </span>
+              <button class="row-action-btn" @click.stop="toggleFollow(proj.id)">
+                <i class="fa-regular fa-eye"></i>
+                {{ proj.isFollowing ? labels.following : labels.follow }}
+              </button>
+              <button class="row-action-btn icon-only" @click.stop="toggleStar(proj.id)">
+                <i :class="proj.isStarred ? 'fa-solid fa-star text-yellow-400' : 'fa-regular fa-star text-gray-400'"></i>
+              </button>
+            </div>
+          </article>
+        </div>
+
         <div class="empty-state-large" v-else>
           <div class="empty-icon-wrapper-large">
             <i class="fa-solid fa-magnifying-glass"></i>
           </div>
-          <p class="empty-text-main">Chúng tôi không tìm được dự án nào phù hợp với nội dung tìm kiếm của bạn.</p>
-          <p class="empty-text-sub">Hãy thử thay đổi tiêu chí tìm kiếm hoặc <a href="#">xóa tất cả bộ lọc</a>.</p>
+          <p class="empty-text-main">{{ labels.noProjects }}</p>
+          <p class="empty-text-sub">{{ labels.tryFilters }} <a href="#" @click.prevent="clearFilters">{{ labels.clearAllFilters }}</a>.</p>
         </div>
       </div>
       
@@ -116,20 +143,20 @@
           <button class="icon-btn-header" @click="isCreateModalOpen = false"><i class="fa-solid fa-arrow-left"></i></button>
           <div class="dialog-title">
             <span class="dialog-icon"><i class="fa-solid fa-rocket"></i></span>
-            <h2>Dự án</h2>
+            <h2>{{ labels.project }}</h2>
           </div>
         </div>
         
         <div class="jira-dialog-body">
-          <p class="required-note">Các trường bắt buộc được đánh dấu bằng dấu sao <span class="required">*</span></p>
+          <p class="required-note">{{ labels.requiredNote }} <span class="required">*</span></p>
           
           <div class="form-group mt-16">
-            <label>Tên <span class="required">*</span></label>
+            <label>{{ labels.name }} <span class="required">*</span></label>
             <input type="text" v-model="newProject.title" class="jira-input" />
           </div>
           
           <div class="form-group mt-16">
-            <label>Chọn một biểu tượng cảm xúc</label>
+            <label>{{ labels.chooseEmoji }}</label>
             <div class="emoji-picker-control">
               <button class="emoji-btn">{{ newProject.icon }}</button>
               <button class="refresh-emoji-btn" @click="cycleEmoji"><i class="fa-solid fa-arrows-rotate"></i></button>
@@ -137,14 +164,14 @@
           </div>
           
           <div class="form-group mt-16">
-            <label>Liên kết tới quy mô lớn SprintA hiện có</label>
-            <input type="text" placeholder="Tìm kiếm quy mô lớn" class="jira-input" />
+            <label>{{ labels.linkScale }}</label>
+            <input type="text" :placeholder="labels.searchScale" class="jira-input" />
           </div>
           
           <div class="form-group mt-16 privacy-group">
             <div class="privacy-info">
-              <label>Kiểm soát quyền riêng tư</label>
-              <p>Chỉ những người đóng góp hoặc những người bạn chia sẻ mới có thể xem dự án riêng tư.</p>
+              <label>{{ labels.privacy }}</label>
+              <p>{{ labels.privacyDesc }}</p>
             </div>
             <div class="toggle-switch" :class="{ 'active': newProject.isPrivate }" @click="newProject.isPrivate = !newProject.isPrivate">
               <div class="toggle-knob"></div>
@@ -153,8 +180,8 @@
         </div>
         
         <div class="jira-dialog-footer">
-          <button class="cancel-btn" @click="isCreateModalOpen = false">Hủy</button>
-          <button class="primary-btn" :disabled="!newProject.title" @click="submitCreateProject">Tạo</button>
+          <button class="cancel-btn" @click="isCreateModalOpen = false">{{ labels.cancel }}</button>
+          <button class="primary-btn" :disabled="!newProject.title" @click="submitCreateProject">{{ labels.create }}</button>
         </div>
       </div>
     </div>
@@ -167,6 +194,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useHomeProjectStore } from '@/store/useHomeProjectStore'
 import { useStarredStore } from '@/store/useStarredStore'
 import { useFollowerStore } from '@/store/useFollowerStore'
+import { useI18nStore } from '@/store/useI18nStore'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import DropdownFilter from '@/components/common/DropdownFilter.vue'
 
@@ -174,20 +202,120 @@ const router = useRouter()
 const projectStore = useHomeProjectStore()
 const starredStore = useStarredStore()
 const followerStore = useFollowerStore()
+const i18nStore = useI18nStore()
 
 const currentTab = ref('all')
 const searchQuery = ref('')
+const viewMode = ref('table')
+const isVi = computed(() => i18nStore.locale === 'vi')
+const labels = computed(() => isVi.value
+  ? {
+      title: 'Dự án',
+      createProject: 'Tạo dự án',
+      allProjects: 'Tất cả dự án',
+      following: 'Đang theo dõi',
+      archived: 'Đã lưu trữ',
+      searchProjects: 'Tìm kiếm dự án',
+      status: 'Trạng thái',
+      owner: 'Chủ sở hữu',
+      follow: 'Theo dõi',
+      favorite: 'Yêu thích',
+      clearFilters: 'Xóa lọc',
+      showing: 'Đang hiển thị',
+      projectsLower: 'dự án',
+      listView: 'Danh sách',
+      horizontalView: 'Dạng ngang',
+      sortByFollowing: 'Sắp xếp theo đang theo dõi',
+      columns: 'Cột',
+      name: 'Tên',
+      targetDate: 'Ngày mục tiêu',
+      starred: 'Có gắn sao',
+      lastUpdated: 'Cập nhật lần cuối',
+      pending: 'Đang chờ xử lý',
+      completed: 'Đã hoàn tất',
+      onTrack: 'Đúng tiến độ',
+      atRisk: 'Có rủi ro',
+      offTrack: 'Trễ tiến độ',
+      noOwner: 'Chưa có chủ sở hữu',
+      noProjects: 'Chúng tôi không tìm được dự án nào phù hợp với nội dung tìm kiếm của bạn.',
+      tryFilters: 'Hãy thử thay đổi tiêu chí tìm kiếm hoặc',
+      clearAllFilters: 'xóa tất cả bộ lọc'
+      ,
+      project: 'Dự án',
+      requiredNote: 'Các trường bắt buộc được đánh dấu bằng dấu sao',
+      chooseEmoji: 'Chọn một biểu tượng cảm xúc',
+      linkScale: 'Liên kết tới quy mô lớn SprintA hiện có',
+      searchScale: 'Tìm kiếm quy mô lớn',
+      privacy: 'Kiểm soát quyền riêng tư',
+      privacyDesc: 'Chỉ những người đóng góp hoặc những người bạn chia sẻ mới có thể xem dự án riêng tư.',
+      cancel: 'Hủy',
+      create: 'Tạo'
+    }
+  : {
+      title: 'Projects',
+      createProject: 'Create project',
+      allProjects: 'All projects',
+      following: 'Following',
+      archived: 'Archived',
+      searchProjects: 'Search projects',
+      status: 'Status',
+      owner: 'Owner',
+      follow: 'Follow',
+      favorite: 'Favorite',
+      clearFilters: 'Clear filters',
+      showing: 'Showing',
+      projectsLower: 'projects',
+      listView: 'List view',
+      horizontalView: 'Horizontal cards',
+      sortByFollowing: 'Sort by following',
+      columns: 'Columns',
+      name: 'Name',
+      targetDate: 'Target date',
+      starred: 'Starred',
+      lastUpdated: 'Last updated',
+      pending: 'Pending',
+      completed: 'Completed',
+      onTrack: 'On track',
+      atRisk: 'At risk',
+      offTrack: 'Off track',
+      noOwner: 'No owner',
+      noProjects: 'We could not find any projects matching your search.',
+      tryFilters: 'Try changing the filters or',
+      clearAllFilters: 'clear all filters'
+      ,
+      project: 'Project',
+      requiredNote: 'Required fields are marked with an asterisk',
+      chooseEmoji: 'Choose an emoji',
+      linkScale: 'Link to an existing SprintA scale',
+      searchScale: 'Search scale',
+      privacy: 'Privacy control',
+      privacyDesc: 'Only contributors or people you share with can view a private project.',
+      cancel: 'Cancel',
+      create: 'Create'
+    })
 const translateStatus = (status) => {
-  if (!status) return 'Đang chờ xử lý'
-  if (status === true || status === 'true') return 'Đang chờ xử lý'
-  if (status === false || status === 'false') return 'Đã lưu trữ'
+  if (!status) return labels.value.pending
+  if (status === true || status === 'true') return labels.value.pending
+  if (status === false || status === 'false') return labels.value.archived
   const map = {
-    'on track': 'Đúng tiến độ',
-    'at risk': 'Có rủi ro',
-    'off track': 'Trễ tiến độ',
-    'pending': 'Đang chờ xử lý',
-    'completed': 'Đã hoàn tất',
-    'archived': 'Đã lưu trữ'
+    'on track': labels.value.onTrack,
+    'đúng tiến độ': labels.value.onTrack,
+    'dung tien do': labels.value.onTrack,
+    'at risk': labels.value.atRisk,
+    'có rủi ro': labels.value.atRisk,
+    'co rui ro': labels.value.atRisk,
+    'off track': labels.value.offTrack,
+    'trễ tiến độ': labels.value.offTrack,
+    'tre tien do': labels.value.offTrack,
+    'pending': labels.value.pending,
+    'đang chờ xử lý': labels.value.pending,
+    'dang cho xu ly': labels.value.pending,
+    'completed': labels.value.completed,
+    'đã hoàn tất': labels.value.completed,
+    'da hoan tat': labels.value.completed,
+    'archived': labels.value.archived,
+    'đã lưu trữ': labels.value.archived,
+    'da luu tru': labels.value.archived
   }
   return map[status.toString().toLowerCase()] || status
 }
@@ -211,10 +339,10 @@ const statusOptions = computed(() => {
 });
 const ownerOptions = computed(() => uniqueValues(p => p.owner))
 
-const booleanOptions = [
-  { label: 'Có', value: 'true' },
-  { label: 'Không', value: 'false' }
-]
+const booleanOptions = computed(() => [
+  { label: isVi.value ? 'Có' : 'Yes', value: 'true' },
+  { label: isVi.value ? 'Không' : 'No', value: 'false' }
+])
 
 const clearFilters = () => {
   filters.value = {
@@ -272,9 +400,9 @@ const isFollowing = computed(() => currentTab.value === 'following')
 const isArchived = computed(() => currentTab.value === 'archived')
 
 const pageTitle = computed(() => {
-  if (isFollowing.value) return 'Đang theo dõi'
-  if (isArchived.value) return 'Đã lưu trữ'
-  return 'Dự án'
+  if (isFollowing.value) return labels.value.following
+  if (isArchived.value) return labels.value.archived
+  return labels.value.title
 })
 
 onMounted(async () => {
@@ -331,7 +459,7 @@ const filteredProjects = computed(() => {
     return list.map(p => ({
     ...p,
     key: p.key || (p.title ? p.title.substring(0, 3).toUpperCase() : 'PRJ'),
-    status: p.status === true ? 'ĐANG CHỜ XỬ LÝ' : (p.status === false ? 'ĐÃ LƯU TRỮ' : (p.status || 'ĐANG CHỜ XỬ LÝ')),
+    status: p.status === true ? labels.value.pending : (p.status === false ? labels.value.archived : (p.status || labels.value.pending)),
     isStarred: starredStore.starredItems?.some(i => i.itemId === p.id) || false,
     isFollowing: followerStore.followedItems?.some(i => i.entityId === p.id) || false
   }))
@@ -372,6 +500,11 @@ const getStatusClass = (status) => {
   if (value.includes('done') || value.includes('complete') || value.includes('hoan') || value.includes('hoàn')) return 'status-done'
   if (value.includes('on track') || value.includes('active') || value.includes('dung') || value.includes('đúng')) return 'status-on-track'
   return 'status-default'
+}
+
+const isCompletedStatus = (status) => {
+  const value = String(status || '').toLowerCase()
+  return value.includes('complete') || value.includes('done') || value.includes('hoàn') || value.includes('hoan')
 }
 
 </script>
@@ -1274,6 +1407,123 @@ const getStatusClass = (status) => {
 }
 .clear-filters-btn:hover {
   background: #E6FCFF;
+}
+
+.project-card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 14px;
+}
+
+.project-row-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px;
+  border: 1px solid var(--home-border, #dfe1e6);
+  border-radius: 14px;
+  background: var(--home-panel, #ffffff);
+  color: var(--home-text, #172b4d);
+  cursor: pointer;
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.project-row-card:hover {
+  border-color: color-mix(in srgb, var(--home-accent, #0052cc) 58%, var(--home-border, #dfe1e6));
+  box-shadow: var(--home-shadow, 0 16px 40px rgba(15, 23, 42, 0.10));
+  transform: translateY(-1px);
+}
+
+.project-row-main,
+.project-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.project-row-main {
+  flex: 1 1 auto;
+}
+
+.project-row-meta {
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.project-row-icon {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--home-accent, #0052cc) 16%, var(--home-panel-strong, #f8fafc));
+  font-size: 18px;
+  flex: 0 0 auto;
+}
+
+.project-row-text {
+  min-width: 0;
+}
+
+.project-row-text h3 {
+  margin: 0 0 4px;
+  color: var(--home-text, #172b4d);
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-row-text p {
+  margin: 0;
+  color: var(--home-muted, #5e6c84);
+  font-size: 12px;
+}
+
+.row-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--home-border, #dfe1e6);
+  border-radius: 999px;
+  background: var(--home-panel-strong, #f8fafc);
+  color: var(--home-text, #172b4d);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.row-action-btn:hover {
+  border-color: color-mix(in srgb, var(--home-accent, #0052cc) 56%, var(--home-border, #dfe1e6));
+  color: var(--home-accent, #0052cc);
+}
+
+.row-action-btn.icon-only {
+  width: 32px;
+  justify-content: center;
+  padding: 0;
+}
+
+@media (max-width: 900px) {
+  .project-card-list {
+    grid-template-columns: 1fr;
+  }
+
+  .project-row-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .project-row-meta {
+    justify-content: flex-start;
+  }
 }
 </style>
 

@@ -13,10 +13,18 @@
         <section class="dashboard-section">
           <div class="section-header">
             <h2>{{ t('Your apps') }}</h2>
-            <a href="#" class="view-all-link">{{ t('View all apps') }} &rarr;</a>
+            <a href="#" class="view-all-link" @click.prevent="router.push('/site-selection')">{{ t('View all apps') }} &rarr;</a>
           </div>
           <div class="apps-container">
-            <div class="app-card" v-for="site in filteredSites.slice(0, 4)" :key="site.id" @click="goToSite(site.id)">
+            <div
+              class="app-card"
+              v-for="site in filteredSites.slice(0, 4)"
+              :key="site.id"
+              role="button"
+              tabindex="0"
+              @click="goToSite(site)"
+              @keydown.enter.prevent="goToSite(site)"
+            >
               <div class="app-icon">
                 <div class="jira-icon-wrapper">
                   <i class="fa-brands fa-jira"></i>
@@ -42,13 +50,21 @@
             <h2>{{ t('Frequently accessed') }}</h2>
           </div>
           <div class="recent-access-container">
-            <div class="recent-access-card" v-for="project in recentProjects" :key="project.id" @click="router.push(`/home/projects/${project.id}`)">
+            <div
+              class="recent-access-card"
+              v-for="project in recentProjects"
+              :key="project.id"
+              role="button"
+              tabindex="0"
+              @click="goToProject(project)"
+              @keydown.enter.prevent="goToProject(project)"
+            >
               <div class="recent-icon purple">
                 <i class="fa-solid fa-rocket"></i>
               </div>
               <div class="recent-info">
                 <div class="recent-title">{{ project.name || project.title }}</div>
-                <div class="recent-subtitle">Dự án • {{ project.owner || 'Homesite' }}</div>
+                <div class="recent-subtitle">{{ homeLabels.project }} • {{ project.owner || homeLabels.homeSite }}</div>
               </div>
             </div>
           </div>
@@ -94,7 +110,7 @@
           <div class="modal-body">
             <div class="form-group">
               <label>{{ t('Site Name') }} <span class="required">*</span></label>
-              <input type="text" v-model="newSiteName" :placeholder="t('e.g. My Awesome Team')" class="text-input" :class="{ 'error': errorMessage }" />
+              <input type="text" v-model="newSiteName" :placeholder="homeLabels.sitePlaceholder" class="text-input" :class="{ 'error': errorMessage }" />
               <div v-if="errorMessage" class="error-message">
                 <i class="fa-solid fa-triangle-exclamation"></i> {{ errorMessage }}
               </div>
@@ -130,14 +146,32 @@ const activityStore = useActivityStore()
 const t = (key) => i18nStore.t(key)
 
 const currentUser = getStoredUser()
-const userName = currentUser?.fullName || currentUser?.username || currentUser?.email || 'bạn'
+const homeLabels = computed(() => i18nStore.locale === 'vi'
+  ? {
+      project: 'Dự án',
+      homeSite: 'Homesite',
+      you: 'bạn',
+      sitePlaceholder: 'VD: Nhóm sản phẩm của tôi',
+      siteNameRequired: 'Bạn cần nhập tên site',
+      createFailed: 'Không thể tạo site'
+    }
+  : {
+      project: 'Project',
+      homeSite: 'Homesite',
+      you: 'you',
+      sitePlaceholder: 'e.g. My product team',
+      siteNameRequired: 'Site name is required',
+      createFailed: 'Failed to create site'
+    })
+const userName = computed(() => currentUser?.fullName || currentUser?.username || currentUser?.email || homeLabels.value.you)
 
 // Format current date in Vietnamese
 const currentDate = computed(() => {
-  return new Intl.DateTimeFormat('vi-VN', {
+  return new Intl.DateTimeFormat(i18nStore.locale === 'vi' ? 'vi-VN' : 'en-US', {
     weekday: 'long',
     day: 'numeric',
-    month: 'long'
+    month: 'long',
+    year: 'numeric'
   }).format(new Date())
 })
 
@@ -187,7 +221,7 @@ const recentProjects = computed(() => {
       id: item.entityId,
       name: item.title,
       title: item.title,
-      owner: item.subtitle || 'Homesite',
+      owner: item.subtitle || homeLabels.value.homeSite,
       updatedAt: item.viewedAt
     }))
 
@@ -200,9 +234,18 @@ const recentProjects = computed(() => {
 
 const miniActivities = computed(() => (activityStore.activities || []).slice(0, 5))
 
-const goToSite = (id) => {
-  siteStore.setRecentSite(siteStore.sites.find(s => s.id === id) || { id })
+const goToSite = (siteOrId) => {
+  const id = typeof siteOrId === 'object' ? siteOrId?.id : siteOrId
+  if (!id) return
+  const site = typeof siteOrId === 'object' ? siteOrId : siteStore.sites.find(s => s.id === id)
+  siteStore.setRecentSite(site || { id })
   router.push(`/space/${id}`)
+}
+
+const goToProject = (project) => {
+  const id = project?.id || project?.entityId || project?.projectId
+  if (!id) return
+  router.push(`/home/projects/${id}`)
 }
 
 const openCreateModal = () => {
@@ -213,7 +256,7 @@ const openCreateModal = () => {
 
 const submitCreateSite = async () => {
   if (!newSiteName.value.trim()) {
-    errorMessage.value = 'Site name is required'
+    errorMessage.value = homeLabels.value.siteNameRequired
     return
   }
   isCreating.value = true
@@ -223,7 +266,7 @@ const submitCreateSite = async () => {
     isCreateModalVisible.value = false
     goToSite(site.id)
   } catch (error) {
-    errorMessage.value = error.message || 'Failed to create site'
+    errorMessage.value = error.message || homeLabels.value.createFailed
   } finally {
     isCreating.value = false
   }
@@ -600,4 +643,93 @@ const submitCreateSite = async () => {
 .primary-btn:disabled { background-color: #EBECF0; color: #A5ADBA; cursor: not-allowed; }
 .secondary-btn { background: #F4F5F7; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; }
 .secondary-btn:hover { background: #EBECF0; }
+
+/* Theme-aware home refresh */
+.jira-for-you-page {
+  background: var(--home-bg, #ffffff);
+  color: var(--home-text, #172b4d);
+}
+
+.welcome-banner {
+  background-color: transparent;
+  background-image:
+    linear-gradient(135deg, rgba(14, 165, 233, 0.16), rgba(34, 197, 94, 0.10)),
+    url('data:image/svg+xml;utf8,<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid2" width="44" height="44" patternUnits="userSpaceOnUse"><path d="M 44 0 L 0 0 0 44" fill="none" stroke="rgba(14,165,233,0.14)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grid2)"/><path d="M 620 115 L 700 48 L 790 104 L 900 28" stroke="%230ea5e9" stroke-width="3" fill="none" /><circle cx="900" cy="28" r="4" fill="%230ea5e9" /></svg>');
+  border: 1px solid var(--home-border, #dfe1e6);
+  border-radius: 12px;
+  box-shadow: 0 18px 45px rgba(2, 6, 23, 0.10);
+}
+
+[data-theme='dark'] .welcome-banner {
+  background-image:
+    radial-gradient(circle at 8% 12%, rgba(20, 184, 166, 0.18), transparent 28%),
+    linear-gradient(135deg, rgba(14, 165, 233, 0.18), rgba(15, 23, 42, 0.92)),
+    url('data:image/svg+xml;utf8,<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid3" width="44" height="44" patternUnits="userSpaceOnUse"><path d="M 44 0 L 0 0 0 44" fill="none" stroke="rgba(125,211,252,0.10)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grid3)"/><path d="M 620 115 L 700 48 L 790 104 L 900 28" stroke="%237dd3fc" stroke-width="3" fill="none" /><circle cx="900" cy="28" r="4" fill="%237dd3fc" /></svg>');
+}
+
+.date-text,
+.welcome-text,
+.section-header h2,
+.app-name,
+.recent-title,
+.item-title,
+.modal-header h2 {
+  color: var(--home-text, #172b4d);
+}
+
+.app-url,
+.recent-subtitle,
+.view-all-link,
+.time-label,
+.item-path,
+.time-ago,
+.form-group label {
+  color: var(--home-muted, #5e6c84);
+}
+
+.content-container {
+  width: min(100%, 1120px);
+  max-width: none;
+}
+
+.app-card,
+.recent-access-card,
+.audit-item,
+.modal-dialog {
+  background: var(--home-panel, #ffffff);
+  border-color: var(--home-border, #dfe1e6);
+}
+
+.app-card:hover,
+.recent-access-card:hover,
+.audit-item:hover {
+  background: var(--home-panel-strong, #fafbfc);
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
+.tabs {
+  background: var(--home-panel-strong, #f4f5f7);
+  border: 1px solid var(--home-border, #dfe1e6);
+}
+
+.tab-btn {
+  color: var(--home-muted, #5e6c84);
+}
+
+.tab-btn.active {
+  background: var(--home-panel, #ffffff);
+  color: var(--home-text, #172b4d);
+}
+
+.view-all-btn,
+.secondary-btn,
+.text-input {
+  background: var(--home-panel, #ffffff);
+  border-color: var(--home-border, #dfe1e6);
+  color: var(--home-text, #172b4d);
+}
+
+.text-input:focus {
+  background: var(--home-panel, #ffffff);
+}
 </style>

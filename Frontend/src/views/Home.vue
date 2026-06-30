@@ -1,142 +1,243 @@
 <script setup>
 import {
-  CheckCircle,
-  Layout,
-  Users,
-  TrendingUp,
+  ArrowRight,
+  BarChart3,
+  Bot,
+  CalendarCheck,
+  CheckCircle2,
+  Facebook,
   Github,
-  Twitter,
   Instagram,
-  Facebook
+  KanbanSquare,
+  Layers3,
+  Moon,
+  Play,
+  ShieldCheck,
+  Sparkles,
+  Sun,
+  Twitter,
+  Users,
+  Zap
 } from 'lucide-vue-next'
 
 import dashboardPreview from '../assets/task_management_dashboard_preview_1773375713763.png'
 import focusImage from '../assets/modern_desk_setup_product_design_1773375736492.png'
+import motionGif from '../assets/Motion_graphics_animation_the_cyan_and_blue.gif'
 import logoImg from '../assets/logo_QLCV.png'
-import { useI18n } from '@/composables/useI18n'
+import { currentTheme, toggleTheme } from '@/utils/theme'
 
-const { t } = useI18n()
+const promoVideoSrc = ''
 
-const featureConfig = [
-  {
-    titleKey: 'landing.features.work.title',
-    descKey: 'landing.features.work.desc',
-    icon: CheckCircle,
-    color: '#0061ff',
-    bg: '#eff6ff'
-  },
-  {
-    titleKey: 'landing.features.kanban.title',
-    descKey: 'landing.features.kanban.desc',
-    icon: Layout,
-    color: '#7c3aed',
-    bg: '#f5f3ff'
-  },
-  {
-    titleKey: 'landing.features.team.title',
-    descKey: 'landing.features.team.desc',
-    icon: Users,
-    color: '#0ea5e9',
-    bg: '#f0f9ff'
-  },
-  {
-    titleKey: 'landing.features.reports.title',
-    descKey: 'landing.features.reports.desc',
-    icon: TrendingUp,
-    color: '#16a34a',
-    bg: '#f0fdf4'
-  }
+const modules = [
+  { icon: KanbanSquare, title: 'Kanban & Tasks', text: 'Quản lý backlog, trạng thái, deadline và người phụ trách trong một luồng rõ ràng.' },
+  { icon: CalendarCheck, title: 'Sprint / Chu kỳ', text: 'Lập kế hoạch sprint, theo dõi burndown và điểm tiến độ theo từng ngày.' },
+  { icon: BarChart3, title: 'Reports', text: 'Tổng hợp hiệu suất, cảnh báo quá hạn, tải công việc và phân bổ ưu tiên.' },
+  { icon: Bot, title: 'Trợ lý AI', text: 'Tạo việc nhanh, gợi ý mô tả và hỗ trợ đội nhóm bớt thao tác lặp lại.' },
+  { icon: Users, title: 'Team workspace', text: 'Không gian cho nhóm, dự án, mục tiêu và phân quyền theo vai trò.' },
+  { icon: ShieldCheck, title: 'Bảo mật & OTP', text: 'Đăng nhập, đăng ký và xác thực OTP được gom vào trải nghiệm gọn gàng.' }
+]
+
+const stats = [
+  { value: '4x', label: 'nhìn rõ tiến độ hơn' },
+  { value: '1', label: 'workspace cho toàn đội' },
+  { value: '24/7', label: 'sẵn sàng theo dõi' }
+]
+
+const timeline = [
+  'Tạo dự án và chia việc theo priority',
+  'Kéo task qua board, sprint và cycle',
+  'Xem báo cáo, thưởng điểm và cảnh báo quá hạn'
 ]
 </script>
 
 <template>
-  <div class="landing-page" data-theme="light">
+  <div class="landing-page">
     <header class="navbar">
       <div class="container nav-content">
-        <a href="/" class="logo">
+        <router-link to="/" class="logo">
           <img :src="logoImg" alt="SprintA Logo" class="custom-logo" />
-          <span class="logo-text">SprintA</span>
-        </a>
+          <span>SprintA</span>
+        </router-link>
+
+        <nav class="nav-center" aria-label="Public navigation">
+          <a href="#features">Tính năng</a>
+          <a href="#video">Video</a>
+          <a href="#workflow">Quy trình</a>
+        </nav>
 
         <div class="nav-actions">
-          <router-link class="nav-link" to="/login">{{ t('landing.login') }}</router-link>
-          <router-link class="nav-primary" to="/register">{{ t('landing.register') }}</router-link>
+          <button class="theme-toggle" type="button" aria-label="Toggle theme" @click="toggleTheme()">
+            <Sun v-if="currentTheme === 'dark'" :size="18" />
+            <Moon v-else :size="18" />
+          </button>
+          <router-link class="nav-link" to="/login">Đăng nhập</router-link>
+          <router-link class="nav-primary" to="/register">Dùng thử</router-link>
         </div>
       </div>
     </header>
 
-    <section class="hero-section">
-      <div class="container hero-grid">
-        <div class="hero-copy">
-          <div class="new-badge">{{ t('landing.badge') }}</div>
-          <h1 class="hero-title">{{ t('landing.heroTitle') }}</h1>
-          <p class="hero-sub">
-            {{ t('landing.heroSubtitle') }}
-          </p>
-          <div class="hero-btns">
-            <router-link class="hero-primary" to="/login">{{ t('landing.login') }}</router-link>
-            <router-link class="hero-secondary" to="/register">{{ t('landing.register') }}</router-link>
-          </div>
-        </div>
+    <main>
+      <section class="hero-section">
+        <div class="hero-orbit orbit-one"></div>
+        <div class="hero-orbit orbit-two"></div>
 
-        <div class="dashboard-preview">
-          <img :src="dashboardPreview" alt="Dashboard Preview" />
-        </div>
-      </div>
-    </section>
-
-    <section class="features-section">
-      <div class="container">
-        <div class="section-copy">
-          <h2 class="section-title">{{ t('landing.featuresTitle') }}</h2>
-          <p class="section-sub">{{ t('landing.featuresSubtitle') }}</p>
-        </div>
-
-        <div class="feature-grid">
-          <article v-for="feature in featureConfig" :key="feature.titleKey" class="feature-card">
-            <div class="icon-wrap" :style="{ backgroundColor: feature.bg }">
-              <component :is="feature.icon" :size="22" :color="feature.color" />
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <div class="eyebrow">
+              <Sparkles :size="16" />
+              SprintA Agile Workspace
             </div>
-            <h3>{{ t(feature.titleKey) }}</h3>
-            <p>{{ t(feature.descKey) }}</p>
-          </article>
-        </div>
-      </div>
-    </section>
+            <h1>Một workspace nổi bật để quản lý dự án, sprint và báo cáo như Jira nhưng dễ dùng hơn.</h1>
+            <p>
+              SprintA gom task, chu kỳ, bảng công việc, báo cáo và phần thưởng vào một trải nghiệm hiện đại,
+              có chuyển sáng tối đúng màu và đủ không gian để giới thiệu sản phẩm cho khách hàng mới.
+            </p>
 
-    <section class="focus-section">
-      <div class="container focus-grid">
-        <div class="focus-copy">
-          <h2 class="section-title">{{ t('landing.focusTitle') }}</h2>
-          <p class="section-sub">
-            {{ t('landing.focusSubtitle') }}
-          </p>
-          <div class="hero-btns">
-            <router-link class="hero-primary" to="/login">{{ t('landing.login') }}</router-link>
-            <router-link class="hero-secondary" to="/register">{{ t('landing.register') }}</router-link>
+            <div class="hero-actions">
+              <router-link class="primary-cta" to="/register">
+                Bắt đầu miễn phí
+                <ArrowRight :size="18" />
+              </router-link>
+              <router-link class="secondary-cta" to="/login">
+                Đăng nhập
+              </router-link>
+            </div>
+
+            <div class="stat-row">
+              <article v-for="stat in stats" :key="stat.label">
+                <strong>{{ stat.value }}</strong>
+                <span>{{ stat.label }}</span>
+              </article>
+            </div>
+          </div>
+
+          <div class="hero-visual" aria-label="SprintA dashboard preview">
+            <div class="preview-shell">
+              <div class="preview-topbar">
+                <span></span>
+                <span></span>
+                <span></span>
+                <small>Dashboard live</small>
+              </div>
+              <img :src="dashboardPreview" alt="SprintA dashboard preview" />
+            </div>
+
+            <div class="floating-card card-progress">
+              <CheckCircle2 :size="18" />
+              <div>
+                <strong>86%</strong>
+                <span>Sprint health</span>
+              </div>
+            </div>
+
+            <div class="floating-card card-ai">
+              <Bot :size="18" />
+              <div>
+                <strong>AI gợi ý</strong>
+                <span>Tạo task nhanh</span>
+              </div>
+            </div>
           </div>
         </div>
+      </section>
 
-        <div class="focus-image">
-          <img :src="focusImage" alt="Focus workspace" />
+      <section id="features" class="feature-strip">
+        <div class="container">
+          <div class="section-heading">
+            <span class="eyebrow small">Product suite</span>
+            <h2>Đủ tính năng để người mới nhìn vào là muốn bấm thử.</h2>
+            <p>Thay vì một trang chào đơn sắc, landing mới show ngay giá trị chính: quản lý việc, sprint, báo cáo, AI, đội nhóm và điểm thưởng.</p>
+          </div>
+
+          <div class="module-grid">
+            <article v-for="module in modules" :key="module.title" class="module-card">
+              <div class="module-icon">
+                <component :is="module.icon" :size="22" />
+              </div>
+              <h3>{{ module.title }}</h3>
+              <p>{{ module.text }}</p>
+            </article>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <section id="video" class="video-section">
+        <div class="container video-grid">
+          <div class="video-copy">
+            <span class="eyebrow small">Showcase video</span>
+            <h2>Chừa sẵn một khung video quảng cáo sản phẩm.</h2>
+            <p>
+              Một khu vực hero media riêng để đặt video giới thiệu sản phẩm, show quy trình tạo việc,
+              kéo board, chạy sprint và xem báo cáo trong cùng một câu chuyện liền mạch.
+            </p>
+            <div class="timeline">
+              <div v-for="(item, index) in timeline" :key="item" class="timeline-item">
+                <span>{{ index + 1 }}</span>
+                <p>{{ item }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="video-frame">
+            <video v-if="promoVideoSrc" :src="promoVideoSrc" controls playsinline></video>
+            <div v-else class="video-placeholder">
+              <img :src="motionGif" alt="SprintA motion preview" />
+              <button type="button" class="play-button" aria-label="Play product video">
+                <Play :size="26" fill="currentColor" />
+              </button>
+              <div class="video-caption">
+                <strong>SprintA product film</strong>
+                <span>Demo workspace, sprint, report và AI automation</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="workflow" class="workflow-section">
+        <div class="container workflow-grid">
+          <div class="workflow-visual">
+            <img :src="focusImage" alt="Modern workspace" />
+            <div class="workflow-badge">
+              <Zap :size="18" />
+              Fast onboarding
+            </div>
+          </div>
+
+          <div class="workflow-copy">
+            <span class="eyebrow small">From idea to done</span>
+            <h2>Khách vừa vào là thấy ngay SprintA giải quyết việc gì.</h2>
+            <p>
+              Bố cục mới giống một SaaS hiện đại: headline rõ, CTA mạnh, preview sản phẩm lớn,
+              module tính năng nhiều màu và animation nhẹ để trang có sức sống hơn.
+            </p>
+            <div class="workflow-pills">
+              <span><Layers3 :size="16" /> Projects</span>
+              <span><KanbanSquare :size="16" /> Boards</span>
+              <span><CalendarCheck :size="16" /> Sprints</span>
+              <span><BarChart3 :size="16" /> Reports</span>
+            </div>
+            <router-link class="primary-cta compact" to="/register">
+              Tạo tài khoản
+              <ArrowRight :size="18" />
+            </router-link>
+          </div>
+        </div>
+      </section>
+    </main>
 
     <footer class="footer">
       <div class="container footer-row">
-        <div>
-          <a href="/" class="logo footer-logo">
-            <img :src="logoImg" alt="SprintA Logo" class="custom-logo" />
-            <span class="logo-text">SprintA</span>
-          </a>
-          <p class="footer-about">{{ t('landing.footerAbout') }}</p>
-        </div>
+        <router-link to="/" class="logo footer-logo">
+          <img :src="logoImg" alt="SprintA Logo" class="custom-logo" />
+          <span>SprintA</span>
+        </router-link>
+        <p>Quản lý dự án, sprint và hiệu suất đội nhóm trong một workspace sáng rõ.</p>
         <div class="socials">
-          <Twitter :size="20" />
-          <Github :size="20" />
-          <Instagram :size="20" />
-          <Facebook :size="20" />
+          <Twitter :size="18" />
+          <Github :size="18" />
+          <Instagram :size="18" />
+          <Facebook :size="18" />
         </div>
       </div>
     </footer>
@@ -145,270 +246,731 @@ const featureConfig = [
 
 <style scoped>
 .landing-page {
+  --page-bg: #f6f9ff;
+  --page-surface: rgba(255, 255, 255, 0.86);
+  --page-surface-strong: #ffffff;
+  --page-text: #08142f;
+  --page-muted: #5d6b82;
+  --page-border: rgba(34, 60, 111, 0.14);
+  --page-glow: rgba(24, 181, 255, 0.2);
+  --page-shadow: 0 26px 70px rgba(35, 64, 112, 0.14);
   min-height: 100vh;
-  height: auto;
-  width: 100%;
   overflow-x: hidden;
-  overflow-y: auto;
+  color: var(--page-text);
   background:
-    radial-gradient(circle at top left, rgba(59, 130, 246, 0.08), transparent 32%),
-    linear-gradient(180deg, var(--color-bg) 0%, var(--color-surface-hover) 100%);
-  color: var(--color-text-primary);
+    radial-gradient(circle at 12% 4%, rgba(39, 210, 255, 0.2), transparent 28%),
+    radial-gradient(circle at 85% 12%, rgba(124, 58, 237, 0.16), transparent 26%),
+    linear-gradient(180deg, #ffffff 0%, var(--page-bg) 44%, #eef7ff 100%);
+}
+
+:global([data-theme='dark'] .landing-page) {
+  --page-bg: #071222;
+  --page-surface: rgba(13, 25, 45, 0.78);
+  --page-surface-strong: #101c32;
+  --page-text: #f6fbff;
+  --page-muted: #a9b9cf;
+  --page-border: rgba(149, 181, 222, 0.2);
+  --page-glow: rgba(35, 211, 255, 0.16);
+  --page-shadow: 0 30px 80px rgba(0, 0, 0, 0.38);
+  background:
+    radial-gradient(circle at 12% 4%, rgba(20, 184, 166, 0.22), transparent 28%),
+    radial-gradient(circle at 88% 8%, rgba(59, 130, 246, 0.2), transparent 28%),
+    linear-gradient(180deg, #07101e 0%, #0a1425 46%, #09111f 100%);
+}
+
+.container {
+  width: min(1280px, calc(100% - 40px));
+  margin: 0 auto;
 }
 
 .navbar {
   position: sticky;
   top: 0;
-  z-index: 1000;
-  background: color-mix(in srgb, var(--color-surface), transparent 10%);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.container {
-  width: min(1180px, calc(100% - 32px));
-  margin: 0 auto;
+  z-index: 30;
+  border-bottom: 1px solid var(--page-border);
+  background: color-mix(in srgb, var(--page-surface-strong) 82%, transparent);
+  backdrop-filter: blur(18px);
 }
 
 .nav-content,
+.nav-center,
 .nav-actions,
-.hero-grid,
-.focus-grid,
+.logo,
+.hero-actions,
+.stat-row,
 .footer-row,
-.hero-btns {
+.socials,
+.workflow-pills {
   display: flex;
   align-items: center;
 }
 
-.nav-content,
-.footer-row {
-  justify-content: space-between;
-  gap: 24px;
-}
-
 .nav-content {
-  min-height: 80px;
+  min-height: 68px;
+  justify-content: space-between;
+  gap: 20px;
 }
 
 .logo {
-  display: inline-flex;
-  align-items: center;
-  color: inherit;
+  gap: 8px;
+  color: var(--page-text);
+  font-size: 22px;
+  font-weight: 900;
   text-decoration: none;
 }
 
 .custom-logo {
-  height: 56px;
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
 }
 
-.logo-text {
-  margin-left: -8px;
-  font-size: 24px;
-  font-weight: 900;
-  color: var(--color-text-primary);
+.nav-center {
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--page-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--page-surface) 74%, transparent);
 }
 
-.nav-actions,
-.hero-btns {
-  gap: 12px;
+.nav-center a,
+.nav-link {
+  color: var(--page-muted);
+  text-decoration: none;
+  font-weight: 700;
 }
 
-.nav-link,
+.nav-center a {
+  padding: 8px 13px;
+  border-radius: 999px;
+}
+
+.nav-center a:hover {
+  color: var(--page-text);
+  background: color-mix(in srgb, #2fb8ff 10%, transparent);
+}
+
+.nav-actions {
+  gap: 10px;
+}
+
+.theme-toggle,
 .nav-primary,
-.hero-primary,
-.hero-secondary {
+.primary-cta,
+.secondary-cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
+  border: 0;
   text-decoration: none;
-  font-weight: 700;
-  transition: all 0.2s ease;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.theme-toggle {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  color: var(--page-text);
+  border: 1px solid var(--page-border);
+  background: var(--page-surface);
 }
 
 .nav-link {
-  color: var(--color-text-secondary);
-  padding: 10px 14px;
+  padding: 10px 12px;
 }
 
 .nav-primary,
-.hero-primary {
-  background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%);
-  color: var(--color-text-primary);
+.primary-cta {
+  gap: 8px;
+  color: #ffffff;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #00c2ff 0%, #3662ff 52%, #8b5cf6 100%);
+  box-shadow: 0 16px 34px rgba(54, 98, 255, 0.28);
 }
 
 .nav-primary {
   padding: 10px 18px;
 }
 
-.hero-section,
-.features-section,
-.focus-section {
-  padding: 56px 0;
+.hero-section {
+  position: relative;
+  padding: 46px 0 44px;
+}
+
+.hero-orbit {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+.orbit-one {
+  left: -120px;
+  top: 110px;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.22), transparent 68%);
+  animation: drift 9s ease-in-out infinite;
+}
+
+.orbit-two {
+  right: -90px;
+  top: 22px;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.18), transparent 70%);
+  animation: drift 11s ease-in-out infinite reverse;
 }
 
 .hero-grid,
-.focus-grid {
-  justify-content: space-between;
-  gap: 40px;
-}
-
-.hero-grid,
-.focus-grid,
-.feature-grid {
+.video-grid,
+.workflow-grid {
   display: grid;
+  grid-template-columns: minmax(0, 0.88fr) minmax(420px, 1.12fr);
+  gap: 34px;
+  align-items: center;
 }
 
-.hero-grid,
-.focus-grid {
-  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+.hero-copy {
+  position: relative;
+  z-index: 1;
 }
 
-.hero-copy,
-.focus-copy,
-.section-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.new-badge {
+.eyebrow {
   width: fit-content;
-  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
-  color: var(--color-accent);
-  font-size: 13px;
-  font-weight: 800;
+  color: #0369a1;
+  background: rgba(14, 165, 233, 0.12);
+  font-size: 12px;
+  font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.hero-title,
-.section-title {
+:global([data-theme='dark'] .eyebrow) {
+  color: #7dd3fc;
+  background: rgba(14, 165, 233, 0.16);
+}
+
+.eyebrow.small {
+  margin-bottom: 14px;
+}
+
+.hero-copy h1,
+.section-heading h2,
+.video-copy h2,
+.workflow-copy h2 {
   margin: 0;
-  line-height: 1.1;
+  line-height: 1.02;
+  letter-spacing: 0;
+  color: var(--page-text);
 }
 
-.hero-title {
-  font-size: clamp(36px, 5vw, 64px);
-  max-width: 720px;
+.hero-copy h1 {
+  max-width: 600px;
+  margin-top: 16px;
+  font-size: clamp(34px, 3.2vw, 52px);
+  line-height: 1.08;
 }
 
-.hero-sub,
-.section-sub,
-.footer-about,
-.feature-card p {
-  color: var(--color-text-muted);
-  line-height: 1.7;
+.hero-copy p,
+.section-heading p,
+.video-copy p,
+.workflow-copy p,
+.module-card p,
+.footer p,
+.timeline-item p {
+  color: var(--page-muted);
+  line-height: 1.65;
 }
 
-.hero-primary,
-.hero-secondary {
-  min-width: 148px;
-  padding: 14px 22px;
+.hero-copy p {
+  max-width: 590px;
+  margin: 14px 0 0;
+  font-size: 16px;
 }
 
-.hero-secondary {
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-primary);
+.hero-actions {
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 22px;
 }
 
-.dashboard-preview,
-.focus-image {
+.primary-cta,
+.secondary-cta {
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 14px;
+}
+
+.secondary-cta {
+  color: var(--page-text);
+  border: 1px solid var(--page-border);
+  background: var(--page-surface);
+}
+
+.stat-row {
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.stat-row article {
+  min-width: 128px;
+  padding: 12px 14px;
+  border: 1px solid var(--page-border);
+  border-radius: 16px;
+  background: var(--page-surface);
+}
+
+.stat-row strong {
+  display: block;
+  font-size: 24px;
+}
+
+.stat-row span {
+  color: var(--page-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.hero-visual {
+  position: relative;
+  min-height: 430px;
+}
+
+.preview-shell {
+  overflow: hidden;
+  border: 1px solid var(--page-border);
+  border-radius: 22px;
+  background: var(--page-surface-strong);
+  box-shadow: var(--page-shadow);
+  transform: perspective(1200px) rotateY(-7deg) rotateX(4deg);
+  animation: riseIn 720ms cubic-bezier(0.2, 0.8, 0.2, 1) both, floaty 7s ease-in-out 1s infinite;
+}
+
+.preview-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--page-border);
+}
+
+.preview-topbar span {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #f43f5e;
+}
+
+.preview-topbar span:nth-child(2) {
+  background: #f59e0b;
+}
+
+.preview-topbar span:nth-child(3) {
+  background: #22c55e;
+}
+
+.preview-topbar small {
+  margin-left: auto;
+  color: var(--page-muted);
+  font-weight: 800;
+}
+
+.preview-shell img {
+  width: 100%;
+  display: block;
+}
+
+.floating-card {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--page-border);
+  border-radius: 18px;
+  color: var(--page-text);
+  background: color-mix(in srgb, var(--page-surface-strong) 88%, transparent);
+  box-shadow: var(--page-shadow);
+  backdrop-filter: blur(14px);
+  animation: floaty 6s ease-in-out infinite;
+}
+
+.floating-card strong,
+.floating-card span {
+  display: block;
+}
+
+.floating-card strong {
+  font-size: 18px;
+}
+
+.floating-card span {
+  color: var(--page-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.card-progress {
+  left: -12px;
+  bottom: 44px;
+}
+
+.card-ai {
+  right: -4px;
+  top: 76px;
+  animation-delay: 900ms;
+}
+
+.feature-strip,
+.video-section,
+.workflow-section {
+  padding: 52px 0;
+}
+
+.section-heading {
+  max-width: 760px;
+}
+
+.section-heading h2,
+.video-copy h2,
+.workflow-copy h2 {
+  font-size: clamp(28px, 3vw, 44px);
+}
+
+.section-heading p {
+  margin: 16px 0 0;
+  font-size: 17px;
+}
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 30px;
+}
+
+.module-card {
+  position: relative;
+  min-height: 188px;
+  padding: 20px;
+  border: 1px solid var(--page-border);
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--page-surface-strong) 92%, transparent), var(--page-surface)),
+    radial-gradient(circle at top right, var(--page-glow), transparent 42%);
+  box-shadow: 0 18px 42px rgba(20, 42, 85, 0.08);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.module-card:hover {
+  transform: translateY(-6px);
+  border-color: color-mix(in srgb, #22d3ee 42%, var(--page-border));
+  box-shadow: var(--page-shadow);
+}
+
+.module-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #06b6d4, #2563eb);
+}
+
+.module-card h3 {
+  margin: 14px 0 8px;
+  font-size: 19px;
+}
+
+.video-grid {
+  padding: 34px;
+  border: 1px solid var(--page-border);
+  border-radius: 32px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--page-surface-strong) 88%, transparent), var(--page-surface)),
+    radial-gradient(circle at 82% 18%, rgba(45, 212, 191, 0.18), transparent 36%);
+  box-shadow: var(--page-shadow);
+}
+
+.timeline {
+  display: grid;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--page-border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--page-surface-strong) 74%, transparent);
+}
+
+.timeline-item span {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  color: #ffffff;
+  font-weight: 900;
+  background: linear-gradient(135deg, #0ea5e9, #7c3aed);
+}
+
+.timeline-item p {
+  margin: 0;
+  font-weight: 800;
+}
+
+.video-frame {
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  border-radius: 28px;
+  border: 1px solid var(--page-border);
+  background: #071222;
+  box-shadow: 0 24px 60px rgba(2, 8, 23, 0.26);
+}
+
+.video-frame video,
+.video-placeholder,
+.video-placeholder img {
+  width: 100%;
+  height: 100%;
+}
+
+.video-placeholder {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.video-placeholder img {
+  object-fit: cover;
+  opacity: 0.74;
+}
+
+.play-button {
+  position: absolute;
+  width: 78px;
+  height: 78px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #06b6d4, #3662ff);
+  box-shadow: 0 18px 40px rgba(6, 182, 212, 0.34);
+}
+
+.video-caption {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: 22px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 18px;
+  color: #ffffff;
+  background: rgba(5, 10, 24, 0.66);
+  backdrop-filter: blur(14px);
+}
+
+.video-caption strong,
+.video-caption span {
+  display: block;
+}
+
+.video-caption span {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.workflow-grid {
+  grid-template-columns: minmax(380px, 0.9fr) minmax(0, 1.1fr);
+}
+
+.workflow-visual {
   position: relative;
 }
 
-.dashboard-preview img,
-.focus-image img {
+.workflow-visual img {
   width: 100%;
   display: block;
   border-radius: 28px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.14);
+  border: 1px solid var(--page-border);
+  box-shadow: var(--page-shadow);
 }
 
-.feature-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 20px;
-  margin-top: 32px;
-}
-
-.feature-card {
-  padding: 24px;
-  border-radius: 24px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
-}
-
-.icon-wrap {
-  width: 52px;
-  height: 52px;
+.workflow-badge {
+  position: absolute;
+  left: 22px;
+  bottom: 22px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 18px;
-  margin-bottom: 18px;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  color: #ffffff;
+  font-weight: 900;
+  background: rgba(15, 23, 42, 0.76);
+  backdrop-filter: blur(12px);
 }
 
-.feature-card h3 {
-  margin: 0 0 10px;
-  font-size: 20px;
+.workflow-pills {
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 24px 0;
+}
+
+.workflow-pills span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  color: var(--page-text);
+  border: 1px solid var(--page-border);
+  background: var(--page-surface);
+  font-weight: 850;
+}
+
+.primary-cta.compact {
+  width: fit-content;
 }
 
 .footer {
-  padding: 28px 0 42px;
-  border-top: 1px solid #e5e7eb;
+  padding: 28px 0 38px;
+  border-top: 1px solid var(--page-border);
 }
 
-.footer-about {
-  max-width: 520px;
+.footer-row {
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.footer p {
+  margin: 0;
 }
 
 .socials {
-  display: flex;
-  gap: 14px;
-  color: var(--color-text-muted);
+  gap: 12px;
+  color: var(--page-muted);
 }
 
-@media (max-width: 960px) {
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.98) perspective(1200px) rotateY(-7deg) rotateX(4deg);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(1200px) rotateY(-7deg) rotateX(4deg);
+  }
+}
+
+@keyframes floaty {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes drift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(34px, 22px, 0);
+  }
+}
+
+@media (max-width: 1020px) {
+  .nav-center {
+    display: none;
+  }
+
   .hero-grid,
-  .focus-grid,
-  .feature-grid {
+  .video-grid,
+  .workflow-grid {
     grid-template-columns: 1fr;
   }
 
-  .hero-grid,
-  .focus-grid {
-    gap: 28px;
+  .hero-visual {
+    min-height: auto;
   }
 
-  .nav-content,
+  .preview-shell {
+    transform: none;
+  }
+
+  .floating-card {
+    position: static;
+    margin-top: 12px;
+  }
+
+  .module-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .container {
+    width: min(100% - 24px, 1180px);
+  }
+
+  .nav-content {
+    min-height: auto;
+    padding: 12px 0;
+  }
+
+  .logo span {
+    display: none;
+  }
+
+  .nav-link {
+    display: none;
+  }
+
+  .hero-section {
+    padding: 50px 0 42px;
+  }
+
+  .hero-copy h1 {
+    font-size: 40px;
+  }
+
+  .module-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .video-grid {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
   .footer-row {
     flex-direction: column;
     align-items: flex-start;
   }
 }
 
-@media (max-width: 640px) {
-  .container {
-    width: min(100% - 24px, 1180px);
-  }
-
-  .nav-actions,
-  .hero-btns {
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .nav-link,
-  .nav-primary,
-  .hero-primary,
-  .hero-secondary {
-    width: 100%;
+@media (prefers-reduced-motion: reduce) {
+  .preview-shell,
+  .floating-card,
+  .hero-orbit {
+    animation: none;
   }
 }
 </style>

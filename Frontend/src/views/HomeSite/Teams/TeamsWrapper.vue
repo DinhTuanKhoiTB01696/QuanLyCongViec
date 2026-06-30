@@ -2,17 +2,27 @@
   <div class="teams-wrapper">
     <header class="module-header">
       <div class="header-content">
-        <h1>Đội ngũ</h1>
+        <h1>{{ t('homeSite.teams.title') }}</h1>
         <div class="header-actions">
-          <button class="primary-btn">Bắt đầu một đội ngũ</button>
+          <button class="primary-btn" @click="openCreateTeam">
+            {{ t('homeSite.teams.startTeam') }}
+          </button>
         </div>
       </div>
-      
+
       <div class="tabs-nav">
-        <router-link to="/home/teams" class="tab-link" exact-active-class="active">Dành cho bạn</router-link>
-        <router-link to="/home/teams/list" class="tab-link" active-class="active">Tất cả các đội ngũ</router-link>
-        <router-link to="/home/teams/kudos" class="tab-link" active-class="active">Khen ngợi</router-link>
-        <router-link to="/home/people" class="tab-link">Mọi người</router-link>
+        <router-link to="/home/teams" class="tab-link" exact-active-class="active">
+          {{ t('homeSite.teams.forYou') }}
+        </router-link>
+        <router-link to="/home/teams/list" class="tab-link" active-class="active">
+          {{ t('homeSite.teams.allTeams') }}
+        </router-link>
+        <router-link to="/home/teams/kudos" class="tab-link" active-class="active">
+          {{ t('homeSite.teams.kudos') }}
+        </router-link>
+        <router-link to="/home/people" class="tab-link">
+          {{ t('homeSite.teams.everyone') }}
+        </router-link>
       </div>
     </header>
 
@@ -21,6 +31,17 @@
     </div>
   </div>
 </template>
+
+<script setup>
+import { useI18nStore } from '@/store/useI18nStore'
+
+const i18nStore = useI18nStore()
+const t = i18nStore.t
+
+const openCreateTeam = () => {
+  window.dispatchEvent(new CustomEvent('global-create-click'))
+}
+</script>
 
 <style scoped>
 .teams-wrapper {

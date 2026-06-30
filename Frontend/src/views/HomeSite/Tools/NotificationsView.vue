@@ -1,38 +1,42 @@
 <template>
   <div class="notifications-page">
     <div class="page-header">
-      <h1>Thông báo</h1>
+      <h1>{{ t('homeSite.notifications.title') }}</h1>
     </div>
 
     <div class="notifications-layout">
       <aside class="filters-sidebar">
         <button class="filter-btn" :class="{ active: filter === 'all' }" @click="filter = 'all'">
           <i class="fa-regular fa-square-check"></i>
-          Tất cả
+          {{ t('homeSite.notifications.all') }}
         </button>
         <button class="filter-btn" :class="{ active: filter === 'unread' }" @click="filter = 'unread'">
           <i class="fa-regular fa-bell"></i>
-          Chưa đọc
+          {{ t('homeSite.notifications.unread') }}
         </button>
       </aside>
 
       <main class="notifications-main">
         <div class="main-header">
-          <h2>Mới nhất</h2>
+          <h2>{{ t('homeSite.notifications.latest') }}</h2>
           <div class="header-actions">
-            <button class="text-action-btn" @click="markAllAsRead">Đánh dấu tất cả là đã đọc</button>
+            <button class="text-action-btn" @click="markAllAsRead">
+              {{ t('homeSite.notifications.markAllRead') }}
+            </button>
             <label class="toggle-wrapper">
-              <span class="toggle-label">Chỉ hiển thị chưa đọc</span>
+              <span class="toggle-label">{{ t('homeSite.notifications.unreadOnly') }}</span>
               <input type="checkbox" v-model="showUnreadOnly">
             </label>
           </div>
         </div>
 
-        <div v-if="loading" class="empty-state">Đang tải thông báo...</div>
-        <div v-else-if="visibleNotifications.length === 0" class="empty-state">Không có thông báo nào.</div>
+        <div v-if="loading" class="empty-state">{{ t('homeSite.notifications.loading') }}</div>
+        <div v-else-if="visibleNotifications.length === 0" class="empty-state">
+          {{ t('homeSite.notifications.empty') }}
+        </div>
 
         <div v-else class="notifications-list">
-          <div class="time-group-title">Mới nhất</div>
+          <div class="time-group-title">{{ t('homeSite.notifications.latest') }}</div>
           <button
             class="notification-item"
             v-for="notification in visibleNotifications"
@@ -50,7 +54,7 @@
                 <span class="notif-time">{{ formatTime(notification.createdAt) }}</span>
               </div>
               <div class="notif-link">{{ notification.content }}</div>
-              <div class="notif-meta">{{ notification.notificationType || 'Notification' }}</div>
+              <div class="notif-meta">{{ notification.notificationType || t('homeSite.notifications.notification') }}</div>
             </div>
             <div v-if="!notification.isRead" class="notif-status unread"></div>
           </button>
@@ -65,8 +69,11 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import { useI18nStore } from '@/store/useI18nStore'
 
 const router = useRouter()
+const i18nStore = useI18nStore()
+const t = i18nStore.t
 const notifications = ref([])
 const loading = ref(false)
 const filter = ref('all')
@@ -106,7 +113,7 @@ const openNotification = async (notification) => {
 
 const formatTime = (value) => {
   if (!value) return ''
-  return new Date(value).toLocaleString('vi-VN')
+  return new Date(value).toLocaleString(i18nStore.locale === 'vi' ? 'vi-VN' : 'en-US')
 }
 
 watch([filter, showUnreadOnly], fetchNotifications)
