@@ -21,6 +21,6 @@ app.use(ElementPlus)
 app.use(router)
 app.use(VueApexCharts)
 app.use(vue3GoogleLogin, {
-  clientId: '1008910270642-b5ic5oo3sb2rnemts5dp9sfaq025cud8.apps.googleusercontent.com'
+  clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '1008910270642-b5ic5oo3sb2rnemts5dp9sfaq025cud8.apps.googleusercontent.com'
 })
 app.mount('#app')

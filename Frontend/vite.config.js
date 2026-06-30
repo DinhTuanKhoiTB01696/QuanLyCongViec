@@ -36,8 +36,8 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 3000,
-    strictPort: true,
+    port: 5173,
+    strictPort: false,
     allowedHosts: ['sprinta.io.vn'],
     proxy: {
       '/api': {

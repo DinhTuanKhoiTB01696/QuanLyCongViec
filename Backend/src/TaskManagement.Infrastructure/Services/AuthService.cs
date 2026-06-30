@@ -255,6 +255,14 @@ namespace TaskManagement.Infrastructure.Services
             var clientSecret = gitHubConfig["ClientSecret"] ?? throw new InvalidOperationException("GitHub ClientSecret chưa được cấu hình.");
 
             // Bước 1: Đổi authorization code lấy access_token từ GitHub
+            if (string.IsNullOrWhiteSpace(clientId))
+                throw new InvalidOperationException("GitHub ClientId is not configured.");
+
+            if (string.IsNullOrWhiteSpace(clientSecret))
+                throw new InvalidOperationException("GitHub ClientSecret is not configured.");
+
+            var frontendBaseUrl = (_configuration["Frontend:BaseUrl"] ?? "http://localhost:5173").TrimEnd('/');
+
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SprintA", "1.0"));
@@ -263,7 +271,8 @@ namespace TaskManagement.Infrastructure.Services
             {
                 { "client_id", clientId },
                 { "client_secret", clientSecret },
-                { "code", request.Code }
+                { "code", request.Code },
+                { "redirect_uri", $"{frontendBaseUrl}/auth/github/callback" }
             };
 
             var tokenResponse = await httpClient.PostAsync(
