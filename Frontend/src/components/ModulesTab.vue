@@ -1820,4 +1820,44 @@ onUnmounted(() => {
     justify-self: flex-start;
   }
 }
+.modules-toolbar-meta {
+  padding: 0 4px !important;
+  margin: -2px 0 6px !important;
+  font-size: 12px !important;
+}
+
+.modules-list,
+.modules-grid {
+  min-height: 0 !important;
+  overflow: auto !important;
+}
+
+.module-row {
+  min-height: 56px !important;
+  padding: 10px 12px !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05) !important;
+}
+
+.module-row:hover {
+  transform: translateX(2px) !important;
+}
+
+.m-progress-ring {
+  width: 38px !important;
+  height: 38px !important;
+  font-size: 12px !important;
+}
+
+.module-copy h3,
+.module-title {
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+}
+
+.module-copy p,
+.module-meta {
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
 </style>

@@ -70,6 +70,9 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<AIFeedback> AIFeedbacks { get; set; }
         public DbSet<AITrainingDataset> AITrainingDatasets { get; set; }
         public DbSet<TaskVectorEmbedding> TaskVectorEmbeddings { get; set; }
+        public DbSet<IntegrationAccount> IntegrationAccounts { get; set; }
+        public DbSet<InboxItem> InboxItems { get; set; }
+        public DbSet<SyncHistory> SyncHistories { get; set; }
 
         // Group 6: Time Tracking
         public DbSet<TimeLog> TimeLogs { get; set; }
@@ -164,6 +167,11 @@ namespace TaskManagement.Infrastructure.Data
             modelBuilder.Entity<ProjectMember>().HasIndex(pm => pm.UserId);
             modelBuilder.Entity<TaskDraft>().HasIndex(td => new { td.UserId, td.UpdatedAt });
             modelBuilder.Entity<TaskDraft>().HasIndex(td => new { td.UserId, td.ProjectId, td.UpdatedAt });
+            modelBuilder.Entity<IntegrationAccount>().HasIndex(ia => new { ia.UserId, ia.Provider }).IsUnique();
+            modelBuilder.Entity<InboxItem>().HasIndex(ii => new { ii.UserId, ii.Provider, ii.ExternalId }).IsUnique();
+            modelBuilder.Entity<InboxItem>().HasIndex(ii => new { ii.UserId, ii.Source, ii.CreatedAt });
+            modelBuilder.Entity<InboxItem>().HasIndex(ii => new { ii.UserId, ii.IsRead });
+            modelBuilder.Entity<SyncHistory>().HasIndex(sh => new { sh.UserId, sh.Provider, sh.StartedAt });
 
             // =============================================
             // 3. Relationships - Group 1: System & Access
@@ -401,6 +409,42 @@ namespace TaskManagement.Infrastructure.Data
                 .WithMany(u => u.SystemAuditLogs)
                 .HasForeignKey(sal => sal.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<IntegrationAccount>()
+                .HasOne(ia => ia.User)
+                .WithMany()
+                .HasForeignKey(ia => ia.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<InboxItem>()
+                .HasOne(ii => ii.User)
+                .WithMany()
+                .HasForeignKey(ii => ii.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<InboxItem>()
+                .HasOne(ii => ii.IntegrationAccount)
+                .WithMany(ia => ia.InboxItems)
+                .HasForeignKey(ii => ii.IntegrationAccountId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<InboxItem>()
+                .HasOne(ii => ii.CreatedTask)
+                .WithMany()
+                .HasForeignKey(ii => ii.CreatedTaskId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<SyncHistory>()
+                .HasOne(sh => sh.User)
+                .WithMany()
+                .HasForeignKey(sh => sh.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SyncHistory>()
+                .HasOne(sh => sh.IntegrationAccount)
+                .WithMany(ia => ia.SyncHistories)
+                .HasForeignKey(sh => sh.IntegrationAccountId)
+                .OnDelete(DeleteBehavior.NoAction);
 
             // =============================================
             // 7. Relationships - Group 5: Gamification

@@ -12,7 +12,7 @@ using TaskManagement.Infrastructure.Data;
 namespace TaskManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260701042357_PlaneRenovation")]
+    [Migration("20260701082137_PlaneRenovation")]
     partial class PlaneRenovation
     {
         /// <inheritdoc />
@@ -597,6 +597,74 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.ToTable("GoalUpdates");
                 });
 
+            modelBuilder.Entity("TaskManagement.Domain.Entities.InboxItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedTaskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("EndsAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ExternalId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid?>("IntegrationAccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Location")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("StartsAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedTaskId");
+
+                    b.HasIndex("IntegrationAccountId");
+
+                    b.HasIndex("UserId", "IsRead");
+
+                    b.HasIndex("UserId", "Provider", "ExternalId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "Source", "CreatedAt");
+
+                    b.ToTable("InboxItems");
+                });
+
             modelBuilder.Entity("TaskManagement.Domain.Entities.Intake", b =>
                 {
                     b.Property<Guid>("Id")
@@ -647,6 +715,60 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.HasIndex("SubmittedById");
 
                     b.ToTable("Intakes");
+                });
+
+            modelBuilder.Entity("TaskManagement.Domain.Entities.IntegrationAccount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AccessToken")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("AccessTokenExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("AccountEmail")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ExternalAccountId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastSyncedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Scopes")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Provider")
+                        .IsUnique();
+
+                    b.ToTable("IntegrationAccounts");
                 });
 
             modelBuilder.Entity("TaskManagement.Domain.Entities.IssueLabel", b =>
@@ -1690,6 +1812,47 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.ToTable("StickyNotes");
                 });
 
+            modelBuilder.Entity("TaskManagement.Domain.Entities.SyncHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("IntegrationAccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ItemsImported")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Message")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IntegrationAccountId");
+
+                    b.HasIndex("UserId", "Provider", "StartedAt");
+
+                    b.ToTable("SyncHistories");
+                });
+
             modelBuilder.Entity("TaskManagement.Domain.Entities.SystemAuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2623,6 +2786,31 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("TaskManagement.Domain.Entities.InboxItem", b =>
+                {
+                    b.HasOne("TaskManagement.Domain.Entities.WorkTask", "CreatedTask")
+                        .WithMany()
+                        .HasForeignKey("CreatedTaskId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("TaskManagement.Domain.Entities.IntegrationAccount", "IntegrationAccount")
+                        .WithMany("InboxItems")
+                        .HasForeignKey("IntegrationAccountId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("TaskManagement.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedTask");
+
+                    b.Navigation("IntegrationAccount");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("TaskManagement.Domain.Entities.Intake", b =>
                 {
                     b.HasOne("TaskManagement.Domain.Entities.WorkTask", "CreatedIssue")
@@ -2653,6 +2841,17 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("ReviewedBy");
 
                     b.Navigation("SubmittedBy");
+                });
+
+            modelBuilder.Entity("TaskManagement.Domain.Entities.IntegrationAccount", b =>
+                {
+                    b.HasOne("TaskManagement.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TaskManagement.Domain.Entities.IssueLabel", b =>
@@ -3129,6 +3328,24 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("TaskManagement.Domain.Entities.SyncHistory", b =>
+                {
+                    b.HasOne("TaskManagement.Domain.Entities.IntegrationAccount", "IntegrationAccount")
+                        .WithMany("SyncHistories")
+                        .HasForeignKey("IntegrationAccountId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("TaskManagement.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("IntegrationAccount");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("TaskManagement.Domain.Entities.SystemAuditLog", b =>
                 {
                     b.HasOne("TaskManagement.Domain.Entities.User", "User")
@@ -3448,6 +3665,13 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("TeamGoals");
 
                     b.Navigation("Updates");
+                });
+
+            modelBuilder.Entity("TaskManagement.Domain.Entities.IntegrationAccount", b =>
+                {
+                    b.Navigation("InboxItems");
+
+                    b.Navigation("SyncHistories");
                 });
 
             modelBuilder.Entity("TaskManagement.Domain.Entities.Label", b =>

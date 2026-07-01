@@ -1799,6 +1799,80 @@ const getInitials = (name) => {
     padding: 12px !important;
   }
 }
+.views-page {
+  min-height: 0 !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg) 88%, var(--color-surface)) 0%, var(--color-bg) 220px),
+    var(--color-bg) !important;
+}
+
+:deep(.project-page-header) {
+  padding-right: min(520px, 42vw);
+}
+
+:deep(.project-page-toolbar) {
+  align-self: flex-end;
+  width: min(500px, 42vw);
+  margin-top: -62px;
+  min-height: 38px;
+}
+
+:deep(.project-page-toolbar .ppt-left) {
+  flex: 1;
+}
+
+:deep(.project-page-toolbar .ppt-search) {
+  width: min(260px, 100%);
+}
+
+:deep(.project-page-toolbar .ppt-right) {
+  margin-left: auto;
+}
+
+.views-content {
+  padding: 16px 0 18px !important;
+}
+
+.views-list,
+.detail-container {
+  width: 100% !important;
+}
+
+.views-list-head,
+.view-detail-summary {
+  margin-bottom: 12px !important;
+}
+
+.views-list-head h2,
+.view-detail-summary h2 {
+  font-size: 18px !important;
+}
+
+.view-item-row,
+.views-list-row,
+.view-row {
+  min-height: 50px !important;
+  padding: 9px 12px !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 20px color-mix(in srgb, #020617 10%, transparent) !important;
+}
+
+.empty-state,
+.empty-placeholder {
+  min-height: 150px !important;
+  padding: 18px !important;
+}
+
+@media (max-width: 980px) {
+  :deep(.project-page-header) {
+    padding-right: 0;
+  }
+
+  :deep(.project-page-toolbar) {
+    width: 100%;
+    margin-top: 0;
+  }
+}
 </style>
 
 

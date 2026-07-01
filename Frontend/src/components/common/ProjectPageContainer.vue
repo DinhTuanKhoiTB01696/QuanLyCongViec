@@ -12,22 +12,26 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  /* background-color is usually handled by the parent ProjectLayoutWrapper, but we ensure transparency here */
   background: transparent;
+  min-height: 0;
+  overflow: hidden;
 }
 .project-page-inner {
   width: 100%;
-  padding: 24px;
+  padding: 18px 24px 20px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 14px;
   box-sizing: border-box;
+  min-height: 100%;
+  flex: 1;
+  overflow: auto;
 }
 
 @media (max-width: 768px) {
   .project-page-inner {
-    padding: 24px 16px;
-    gap: 24px;
+    padding: 16px 12px;
+    gap: 12px;
   }
 }
 </style>

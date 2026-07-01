@@ -8,11 +8,7 @@ const projectId = route.params.id || 'current-project-id'
 </script>
 
 <template>
-  <div>
-    <div style="background-color: var(--color-bg); height: 100vh; overflow-y: auto;">
-      <PagesTab :projectId="projectId" />
-    </div>
-  </div>
+  <PagesTab :projectId="projectId" />
 </template>
 
 

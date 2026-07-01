@@ -7,9 +7,9 @@ import axiosClient from '@/api/axiosClient'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { currentTheme } from '@/utils/theme'
 
-import PageContainer from '@/components/common/PageContainer.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
-import PageToolbar from '@/components/common/PageToolbar.vue'
+import ProjectPageContainer from '@/components/common/ProjectPageContainer.vue'
+import ProjectPageHeader from '@/components/common/ProjectPageHeader.vue'
+import ProjectPageToolbar from '@/components/common/ProjectPageToolbar.vue'
 
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
@@ -1719,6 +1719,93 @@ onUnmounted(() => {
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.24);
 }
 
+.cycles-body {
+  min-height: 0 !important;
+  overflow: auto !important;
+  max-width: 100% !important;
+  padding: 8px 4px 18px !important;
+}
+
+.cycle-section {
+  margin-bottom: 10px !important;
+}
+
+.cycle-card {
+  border-radius: 12px !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06) !important;
+}
+
+.cycle-card.expanded {
+  max-height: none !important;
+}
+
+.cc-grid {
+  grid-template-columns: minmax(180px, 0.75fr) minmax(300px, 1.5fr) minmax(240px, 0.95fr) !important;
+}
+
+.grid-panel {
+  padding: 10px 12px !important;
+}
+
+.gp-header {
+  margin-bottom: 10px !important;
+}
+
+.chart-mockup {
+  min-height: 112px !important;
+  height: 112px !important;
+}
+
+.legend-list {
+  gap: 8px !important;
+}
+
+.progress-bar-container {
+  height: 8px !important;
+  margin-bottom: 10px !important;
+}
+
+.tabs-header {
+  margin-bottom: 8px !important;
+}
+
+.cycle-card.collapsed {
+  min-height: 54px !important;
+  padding: 10px 12px !important;
+}
+
+.cc-top {
+  padding: 12px 14px !important;
+  gap: 10px !important;
+}
+
+.progress-ring {
+  width: 34px !important;
+  height: 34px !important;
+  font-size: 11px !important;
+}
+
+.cycle-name {
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+}
+
+.tabs-body {
+  padding: 12px 14px !important;
+}
+
+.work-items-body {
+  max-height: 210px !important;
+}
+
+.cycle-work-item {
+  padding: 7px 9px !important;
+  border-radius: 8px !important;
+}
+
+[data-theme='dark'] .cycle-card {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22) !important;
+}
 </style>
 
 

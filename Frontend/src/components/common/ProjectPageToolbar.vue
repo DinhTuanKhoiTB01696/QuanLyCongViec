@@ -51,15 +51,22 @@ defineEmits(['update:searchQuery'])
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  min-height: 36px;
+  gap: 10px;
+  min-height: 42px;
   width: 100%;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 86%, transparent), color-mix(in srgb, var(--color-surface-hover) 46%, transparent));
+  box-shadow: 0 10px 24px color-mix(in srgb, #020617 6%, transparent);
 }
 
 .ppt-left, .ppt-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .ppt-group {
@@ -73,7 +80,7 @@ defineEmits(['update:searchQuery'])
   position: relative;
   display: flex;
   align-items: center;
-  width: 240px;
+  width: min(260px, 30vw);
 }
 
 .ppt-search .search-icon {
@@ -85,10 +92,10 @@ defineEmits(['update:searchQuery'])
 
 .ppt-search .nexus-search-input {
   width: 100%;
-  height: 36px !important;
+  height: 34px !important;
   padding-left: 36px !important;
   padding-right: 12px !important;
-  border-radius: 8px !important;
+  border-radius: 9px !important;
   border: 1px solid var(--color-border) !important;
   background-color: var(--color-surface) !important;
   color: var(--color-text-primary) !important;
@@ -107,14 +114,14 @@ defineEmits(['update:searchQuery'])
 :deep(.ppt-group select),
 :deep(.ppt-group input),
 :deep(.ppt-group .el-dropdown) {
-  height: 36px !important;
-  min-height: 36px !important;
+  height: 34px !important;
+  min-height: 34px !important;
   box-sizing: border-box !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  font-size: 13.5px !important;
-  border-radius: 8px !important;
+  font-size: 13px !important;
+  border-radius: 9px !important;
 }
 
 /* Standardize outlined buttons in toolbar */
@@ -123,7 +130,7 @@ defineEmits(['update:searchQuery'])
   background-color: transparent !important;
   border: 1px solid var(--color-border) !important;
   color: var(--color-text-secondary) !important;
-  padding: 0 14px !important;
+  padding: 0 12px !important;
   gap: 6px !important;
   font-weight: 500 !important;
 }
@@ -157,14 +164,14 @@ defineEmits(['update:searchQuery'])
   background-color: var(--color-surface-hover) !important;
   padding: 2px !important;
   border-radius: 8px !important;
-  height: 36px !important;
+  height: 32px !important;
   border: 1px solid var(--color-border) !important;
 }
 
 :deep(.view-toggles button) {
-  height: 30px !important;
-  min-height: 30px !important;
-  width: 30px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  width: 28px !important;
   border: none !important;
   background: transparent !important;
   color: var(--color-text-muted) !important;

@@ -205,9 +205,9 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick, onUnmounted } from 'vue'
-import PageContainer from '@/components/common/PageContainer.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
-import PageToolbar from '@/components/common/PageToolbar.vue'
+import ProjectPageContainer from '@/components/common/ProjectPageContainer.vue'
+import ProjectPageHeader from '@/components/common/ProjectPageHeader.vue'
+import ProjectPageToolbar from '@/components/common/ProjectPageToolbar.vue'
 
 import { useRoute } from 'vue-router'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
@@ -247,7 +247,7 @@ const filters = ref({
   myTasks: false
 })
 const zoomLevel = ref('Week')
-const rowHeight = 44
+const rowHeight = 36
 
 const sidebarRef = ref(null)
 const chartWrapperRef = ref(null)
@@ -673,7 +673,9 @@ const openTaskDetail = (task) => {
 .filters-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  flex-wrap: nowrap;
+  width: 100%;
 }
 
 .filter-item {
@@ -697,7 +699,7 @@ const openTaskDetail = (task) => {
   outline: none;
   background: var(--sa-bg);
   color: var(--sa-text);
-  width: 180px;
+  width: 170px;
 }
 
 .filter-select {
@@ -709,6 +711,12 @@ const openTaskDetail = (task) => {
   background: var(--sa-bg);
   color: var(--sa-text);
   cursor: pointer;
+  width: 150px;
+  min-width: 0;
+}
+
+.filter-select:last-of-type {
+  width: 210px;
 }
 
 .filter-checkbox {
@@ -718,6 +726,8 @@ const openTaskDetail = (task) => {
   font-size: 13px;
   cursor: pointer;
   color: var(--sa-text-secondary);
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .zoom-controls {
@@ -748,14 +758,15 @@ const openTaskDetail = (task) => {
 .timeline-body {
   display: flex;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
   position: relative;
 }
 
 /* Left Sidebar */
 .timeline-sidebar {
-  width: 480px;
-  min-width: 480px;
+  width: 420px;
+  min-width: 420px;
   border-right: 1px solid var(--sa-border);
   display: flex;
   flex-direction: column;
@@ -768,13 +779,13 @@ const openTaskDetail = (task) => {
 .sidebar-header {
   display: flex;
   align-items: center;
-  height: 50px;
+  height: 40px;
   border-bottom: 1px solid var(--sa-border);
   background: var(--sa-surface);
   position: sticky;
   top: 0;
   z-index: 11;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--sa-text-muted);
   text-transform: uppercase;
@@ -782,7 +793,7 @@ const openTaskDetail = (task) => {
 }
 
 .col {
-  padding: 0 12px;
+  padding: 0 8px;
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -790,8 +801,8 @@ const openTaskDetail = (task) => {
 
 .col-task { flex: 1; min-width: 0; }
 .col-owner { width: 120px; flex-shrink: 0; }
-.col-status { width: 100px; flex-shrink: 0; }
-.col-progress { width: 80px; flex-shrink: 0; justify-content: flex-end; }
+.col-status { width: 88px; flex-shrink: 0; }
+.col-progress { width: 64px; flex-shrink: 0; justify-content: flex-end; }
 
 .sidebar-rows {
   position: relative;
@@ -811,7 +822,7 @@ const openTaskDetail = (task) => {
 }
 
 .task-title-cell {
-  gap: 8px;
+  gap: 6px;
 }
 
 .task-id {
@@ -821,7 +832,7 @@ const openTaskDetail = (task) => {
 }
 
 .task-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -831,8 +842,8 @@ const openTaskDetail = (task) => {
 .owner-cell {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 5px;
+  font-size: 11px;
 }
 
 .empty-avatar {
@@ -854,7 +865,7 @@ const openTaskDetail = (task) => {
 }
 
 .status-badge {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 12px;
@@ -862,7 +873,7 @@ const openTaskDetail = (task) => {
 }
 
 .progress-cell {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
 }
 
@@ -976,8 +987,8 @@ const openTaskDetail = (task) => {
 
 .task-bar-wrapper {
   position: absolute;
-  top: 6px;
-  height: 32px;
+  top: 5px;
+  height: 26px;
   z-index: 3;
 }
 
@@ -1017,8 +1028,8 @@ const openTaskDetail = (task) => {
   align-items: center;
   width: 100%;
   height: 100%;
-  padding: 0 8px;
-  gap: 8px;
+  padding: 0 7px;
+  gap: 6px;
 }
 
 .bar-avatar {
@@ -1026,7 +1037,7 @@ const openTaskDetail = (task) => {
 }
 
 .bar-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: #fff;
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
@@ -1086,5 +1097,62 @@ const openTaskDetail = (task) => {
   text-align: center;
   color: var(--sa-text-muted);
   font-size: 13px;
+}
+
+/* SprintA premium timeline pass */
+.timeline-body {
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 94%, transparent), color-mix(in srgb, var(--color-surface-hover) 44%, var(--color-surface)));
+  box-shadow:
+    0 12px 34px color-mix(in srgb, #020617 8%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.10);
+}
+
+.filters-row {
+  flex-wrap: nowrap;
+}
+
+.filter-input,
+.filter-select,
+.zoom-controls {
+  min-height: 34px;
+  border-radius: 9px !important;
+  border-color: color-mix(in srgb, var(--color-border) 86%, transparent) !important;
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent) !important;
+}
+
+.timeline-sidebar,
+.sidebar-header,
+.sidebar-row,
+.chart-header {
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent) !important;
+}
+
+.timeline-chart-wrapper {
+  background:
+    radial-gradient(circle at 70% 0%, color-mix(in srgb, var(--color-accent) 5%, transparent), transparent 20rem),
+    color-mix(in srgb, var(--color-bg) 74%, #020617) !important;
+}
+
+.sidebar-row:hover {
+  background: color-mix(in srgb, var(--color-accent) 9%, var(--color-surface-hover)) !important;
+}
+
+.task-name,
+.owner-name {
+  min-width: 0;
+}
+
+.status-badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zoom-btn.active {
+  background: color-mix(in srgb, var(--color-accent) 16%, var(--color-surface)) !important;
+  color: var(--color-accent) !important;
 }
 </style>

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import axiosClient from '@/api/axiosClient'
 import { reportExpectedError } from '@/utils/errorTelemetry'
+import { clearScopedCurrentProjectId } from '@/utils/projectContext'
 
 const PROJECT_BUNDLE_CACHE_TTL_MS = 30000
 const resolveProjectId = (project) => project?.id || project?.Id || project?.projectId || project?.ProjectId || null
@@ -324,6 +325,12 @@ export const useProjectStore = defineStore('project', {
       } catch (err) {
         if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
           return null;
+        }
+
+        if ([403, 404].includes(err?.response?.status)) {
+          clearScopedCurrentProjectId()
+          this.clearProjectContext(projectId)
+          return null
         }
 
         this.error = err.message || 'Failed to fetch project details';

@@ -481,11 +481,12 @@ watch(projectId, () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(255,255,255,0.9);
-  border: 1px solid rgba(14, 165, 233, 0.3);
-  padding: 8px 16px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.08);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 10%, var(--color-surface)), color-mix(in srgb, var(--color-surface) 88%, transparent));
+  border: 1px solid color-mix(in srgb, var(--color-accent) 28%, var(--color-border));
+  padding: 7px 12px;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px color-mix(in srgb, #020617 8%, transparent);
   transition: all 0.2s;
 }
 
@@ -495,16 +496,16 @@ watch(projectId, () => {
 }
 
 .current-cycle-card.empty {
-  border: 1px dashed rgba(148, 163, 184, 0.5);
+  border: 1px dashed color-mix(in srgb, var(--color-border) 78%, transparent);
   box-shadow: none;
-  background: rgba(255,255,255,0.6);
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
 }
 
 .cycle-icon-wrapper {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: #f1f5f9;
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface-hover));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -546,8 +547,8 @@ watch(projectId, () => {
   align-items: center;
   gap: 10px;
   padding: 6px 14px 6px 6px;
-  background: rgba(255,255,255,0.8);
-  border: 1px solid rgba(148,163,184,0.2);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
   border-radius: 99px;
 }
 
@@ -601,14 +602,14 @@ watch(projectId, () => {
 .dashboard-content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 14px;
 }
 
 /* Stats Cards Grid */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
+  gap: 12px;
   width: 100%;
 }
 
@@ -625,14 +626,14 @@ watch(projectId, () => {
 }
 
 .stat-card {
-  min-height: 78px;
+  min-height: 64px;
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 14px;
-  padding: 16px;
+  border-radius: 12px;
+  padding: 12px 14px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -652,7 +653,7 @@ watch(projectId, () => {
 .stat-card:hover {
   transform: none;
   border-color: rgba(14, 165, 233, 0.32);
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.10);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
 }
 
 .stat-card.open-tasks-card::before { background: #3b82f6; }
@@ -661,13 +662,13 @@ watch(projectId, () => {
 .stat-card.blocked-tasks-card::before { background: #ef4444; }
 
 .stat-icon {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 
@@ -683,7 +684,7 @@ watch(projectId, () => {
 }
 
 .stat-value {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 800;
   line-height: 1;
   color: var(--color-text-primary);
@@ -693,7 +694,7 @@ watch(projectId, () => {
 .stat-label {
   font-size: 11px;
   color: var(--color-text-secondary);
-  margin-top: 6px;
+  margin-top: 4px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -706,7 +707,7 @@ watch(projectId, () => {
 .panels-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 18px;
+  gap: 14px;
   align-items: stretch;
 }
 
@@ -719,9 +720,9 @@ watch(projectId, () => {
 .dashboard-panel {
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 14px;
-  padding: 18px;
-  min-height: 320px;
+  border-radius: 12px;
+  padding: 14px;
+  min-height: 260px;
   display: flex;
   flex-direction: column;
   transition: box-shadow 0.25s ease;
@@ -730,7 +731,7 @@ watch(projectId, () => {
 }
 
 .dashboard-panel:hover {
-  box-shadow: 0 24px 58px rgba(15, 23, 42, 0.10);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
 }
 
 [data-theme='dark'] .stat-card,
@@ -740,12 +741,20 @@ watch(projectId, () => {
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
 }
 
+[data-theme='dark'] .current-cycle-card,
+[data-theme='dark'] .header-project-badge {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 9%, #17233a), color-mix(in srgb, var(--color-surface) 84%, #020617));
+  border-color: color-mix(in srgb, var(--color-accent) 24%, var(--color-border));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+}
+
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
 }
 
@@ -1021,12 +1030,12 @@ watch(projectId, () => {
 .stat-card,
 .dashboard-panel {
   border-radius: 10px !important;
-  padding: 14px !important;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+  padding: 12px !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05) !important;
 }
 
 .stat-card {
-  min-height: 82px !important;
+  min-height: 64px !important;
 }
 
 .stat-icon {
@@ -1112,9 +1121,9 @@ watch(projectId, () => {
 
 .stat-card:hover,
 .dashboard-panel:hover {
-  transform: translateY(-3px);
+  transform: translateY(-1px);
   border-color: rgba(56, 189, 248, 0.30) !important;
-  box-shadow: 0 28px 72px rgba(15, 23, 42, 0.14) !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.10) !important;
 }
 
 .stat-card:hover::after,

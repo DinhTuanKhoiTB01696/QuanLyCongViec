@@ -36,9 +36,9 @@
           <div v-if="searching" class="search-state">{{ t('Searching...', 'Đang tìm kiếm...') }}</div>
           <template v-else-if="searchResults.length">
             <button v-for="result in searchResults" :key="result.id" type="button" class="search-result" @click="openSearchResult(result)">
-              <strong>{{ result.sequenceId || result.title || result.name }}</strong>
-              <span>{{ result.title || result.description || result.type }}</span>
-              <small v-if="result.projectName">{{ result.projectName }}</small>
+              <strong>{{ result.sequenceId || demoText(result.title) || demoText(result.name) }}</strong>
+              <span>{{ demoText(result.title) || demoText(result.description) || result.type }}</span>
+              <small v-if="result.projectName">{{ demoText(result.projectName) }}</small>
             </button>
           </template>
           <div v-else class="search-state">{{ t('No items found.', 'Không tìm thấy kết quả.') }}</div>
@@ -90,7 +90,7 @@
         <i :class="currentTheme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun'"></i>
       </button>
 
-      <button v-if="isSpaceContext" class="icon-btn" @click="emit('toggle-ai')">
+      <button class="icon-btn ai-topbar-btn" @click="emit('toggle-ai')" title="AI Assistant">
         <i class="fa-solid fa-robot"></i>
       </button>
 
@@ -113,6 +113,7 @@ import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/projectContext'
 import { useI18nStore } from '@/store/useI18nStore'
 import { toggleTheme, currentTheme } from '@/utils/theme'
+import { translateDemoText } from '@/utils/demoContentLocale'
 
 const emit = defineEmits(['toggle-sidebar', 'toggle-ai', 'toggle-create'])
 
@@ -126,6 +127,7 @@ const projectStore = useProjectStore()
 const peopleStore = usePeopleStore()
 const i18nStore = useI18nStore()
 const t = (key) => i18nStore.t(key)
+const demoText = (value) => translateDemoText(value, i18nStore.locale)
 
 const isHomeContext = computed(() => route.path.startsWith('/home') || route.path.startsWith('/sites'))
 const isSpaceContext = computed(() => route.path.startsWith('/space') || route.path.startsWith('/dashboard') || route.path.startsWith('/stickies') || route.path.startsWith('/rewards'))
@@ -147,7 +149,7 @@ let searchRequestId = 0
 
 const currentProjectId = computed(() => route.params.id || getScopedCurrentProjectId() || '')
 const activeProject = computed(() => projectStore.allProjects.find(project => project.id === currentProjectId.value) || projectStore.currentProject)
-const workspaceName = computed(() => activeProject.value?.name || 'SprintA')
+const workspaceName = computed(() => demoText(activeProject.value?.name) || 'SprintA')
 const workspaceBadge = computed(() => activeProject.value?.icon || workspaceName.value.charAt(0).toUpperCase())
 const showSearchDropdown = computed(() => searchQuery.value.trim().length > 0 && (searching.value || searchResults.value.length > 0))
 

@@ -65,10 +65,10 @@
 
             <div class="project-body">
               <div class="project-heading">
-                <h3>{{ project.name }}</h3>
+                <h3>{{ demoText(project.name) }}</h3>
                 <span>{{ project.key }}</span>
               </div>
-              <p>{{ project.description || t('dashboard.noDescription') }}</p>
+              <p>{{ demoText(project.description) || t('dashboard.noDescription') }}</p>
               <div class="project-meta">
                 <span>{{ project.networkType || 'Public' }}</span>
                 <span>{{ project.leadName || t('dashboard.projectOwner') }}</span>
@@ -101,10 +101,10 @@
 
             <div class="project-body">
               <div class="project-heading">
-                <h3>{{ project.name }}</h3>
+                <h3>{{ demoText(project.name) }}</h3>
                 <span>{{ project.key }}</span>
               </div>
-              <p>{{ project.description || t('dashboard.noDescription') }}</p>
+              <p>{{ demoText(project.description) || t('dashboard.noDescription') }}</p>
               <div class="project-meta">
                 <span>{{ project.networkType || 'Public' }}</span>
                 <span>{{ project.leadName || t('dashboard.projectOwner') }}</span>
@@ -124,7 +124,7 @@
             {{ t('common.project') }}
             <select v-model="taskForm.projectId">
               <option value="" disabled>{{ t('dashboard.selectProject') }}</option>
-              <option v-for="project in visibleProjects" :key="project.id" :value="project.id">{{ project.name }}</option>
+              <option v-for="project in visibleProjects" :key="project.id" :value="project.id">{{ demoText(project.name) }}</option>
             </select>
           </label>
 
@@ -170,6 +170,7 @@ import axiosClient from '@/api/axiosClient'
 
 import { useProjectStore } from '@/store/useProjectStore'
 import { useI18n } from '@/composables/useI18n'
+import { translateDemoText } from '@/utils/demoContentLocale'
 
 const router = useRouter()
 const projectStore = useProjectStore()
@@ -189,11 +190,12 @@ const taskForm = ref({
 
 const visibleProjects = computed(() => projectStore.sidebarProjects)
 const favoriteProjects = computed(() => projectStore.favoriteProjects)
+const demoText = (value) => translateDemoText(value, language.value)
 const filteredProjects = computed(() => {
   const keyword = projectSearch.value.trim().toLowerCase()
   if (!keyword) return visibleProjects.value
   return visibleProjects.value.filter(project =>
-    project.name?.toLowerCase().includes(keyword) || project.key?.toLowerCase().includes(keyword)
+    demoText(project.name)?.toLowerCase().includes(keyword) || project.key?.toLowerCase().includes(keyword)
   )
 })
 

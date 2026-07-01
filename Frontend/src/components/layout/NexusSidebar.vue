@@ -70,6 +70,12 @@
           </router-link>
         </li>
         <li class="nav-item">
+          <router-link to="/integrations" class="nav-link">
+            <i class="fa-solid fa-plug-circle-bolt"></i>
+            <span>{{ t('Integration Hub') }}</span>
+          </router-link>
+        </li>
+        <li class="nav-item">
           <router-link to="/stickies" class="nav-link">
             <i class="fa-solid fa-note-sticky"></i>
             <span>{{ t('Stickies') }}</span>
@@ -143,7 +149,7 @@
               :class="{ active: currentProjectId === project.id }"
             >
               <span class="proj-icon" :style="{ background: projectColor(project) }">{{ projectIcon(project) }}</span>
-              <span class="truncate">{{ project.name }}</span>
+              <span class="truncate">{{ demoText(project.name) }}</span>
             </router-link>
           </li>
         </template>
@@ -168,6 +174,7 @@ import { useProjectStore } from '@/store/useProjectStore'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/projectContext'
 import { useI18nStore } from '@/store/useI18nStore'
+import { translateDemoText } from '@/utils/demoContentLocale'
 import RecentDropdown from '@/components/RecentDropdown.vue'
 import StarredDropdown from '@/components/StarredDropdown.vue'
 
@@ -175,6 +182,7 @@ const route = useRoute()
 const router = useRouter()
 const i18nStore = useI18nStore()
 const t = (key) => i18nStore.t(key)
+const demoText = (value) => translateDemoText(value, i18nStore.locale)
 const showMorePanel = ref(false)
 const projectStore = useProjectStore()
 
@@ -236,6 +244,11 @@ const recentProjects = computed(() => {
 })
 
 watch(currentProjectId, async (newVal, oldVal) => {
+   const isProjectRoute = route.path.startsWith('/space') && route.params.id
+   if (!isProjectRoute) {
+      return
+   }
+
    if (newVal && newVal !== 'default') {
       if (newVal !== oldVal) {
         projectStore.expandProject(newVal)

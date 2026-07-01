@@ -13,19 +13,32 @@ if /I "%resetDB%"=="Y" (
     cd Backend\src\TaskManagement.API
     
     echo 1. Drop Database cu...
-    sqlcmd -S "KIETNGO" -Q "IF DB_ID('TaskManagementDB') IS NOT NULL BEGIN ALTER DATABASE [TaskManagementDB] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [TaskManagementDB]; END" -E -C
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-sql.ps1" -Server "KHOI\SQLEXPRESS" -Database "master" -Query "IF DB_ID('TaskManagementDB') IS NOT NULL BEGIN ALTER DATABASE [TaskManagementDB] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [TaskManagementDB]; END"
+    if errorlevel 1 (
+        echo Drop database that bai.
+        pause
+        exit /b 1
+    )
     
-    echo 2. Xoa cac migration cu...
-    if exist "..\TaskManagement.Infrastructure\Migrations" rd /s /q "..\TaskManagement.Infrastructure\Migrations"
-    
-    echo 3. Tao migration moi 'PlaneRenovation'...
-    dotnet ef migrations add PlaneRenovation --project ../TaskManagement.Infrastructure --startup-project .
-    
-    echo 4. Cap nhat Database...
+    echo 2. Cap nhat Database bang migrations hien co...
     dotnet ef database update --project ../TaskManagement.Infrastructure --startup-project .
+    if errorlevel 1 (
+        echo Cap nhat database that bai.
+        pause
+        exit /b 1
+    )
     
-    echo 5. Dang chay data ban dau seed_data.sql va cac bang moi...
-    sqlcmd -S "KIETNGO" -d "TaskManagementDB" -i "..\..\seed_data.sql" -E -C
+    echo 3. Dang nap demo data doanh nghiep cho admin dev@sprinta.local...
+    if exist "%~dp0scripts\seed-demo-data.sql" (
+        powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-sql.ps1" -Server "KHOI\SQLEXPRESS" -Database "TaskManagementDB" -InputFile "%~dp0scripts\seed-demo-data.sql"
+        if errorlevel 1 (
+            echo Seed demo data that bai.
+            pause
+            exit /b 1
+        )
+    ) else (
+        echo Khong tim thay scripts\seed-demo-data.sql, bo qua demo seed.
+    )
     
     cd ..\..\..
     echo --- RESET DATABASE THANH CONG ---
@@ -42,13 +55,31 @@ if /I "%resetDB%"=="Y" (
     
     echo Cap nhat / Tao moi Database...
     dotnet ef database update --project ../TaskManagement.Infrastructure --startup-project .
+    if errorlevel 1 (
+        echo Cap nhat database that bai. Neu database cu dang lech migration, hay chay lai run.bat va chon Y de reset.
+        pause
+        exit /b 1
+    )
+
+    echo Dang nap demo data cho admin dev@sprinta.local...
+    if exist "%~dp0scripts\seed-demo-data.sql" (
+        powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-sql.ps1" -Server "KHOI\SQLEXPRESS" -Database "TaskManagementDB" -InputFile "%~dp0scripts\seed-demo-data.sql"
+        if errorlevel 1 (
+            echo Seed demo data that bai.
+            pause
+            exit /b 1
+        )
+    ) else (
+        echo Khong tim thay scripts\seed-demo-data.sql, bo qua demo seed.
+    )
+
     cd ..\..\..
     echo --- HOAN TAT KIEM TRA ---
     echo.
 )
 
 echo 1. Khởi động Backend (.NET Web API)...
-start "Backend API" cmd /k "cd Backend\src\TaskManagement.API && title Backend API && dotnet run"
+start "Backend API" cmd /k "cd Backend\src\TaskManagement.API && title Backend API && dotnet run --launch-profile https"
 
 echo 2. Khởi động Frontend (Vue 3)...
 start "Frontend Vue" cmd /k "cd Frontend && title Frontend Vue && if not exist node_modules (echo Cai dat dependencies bang npm... && npm install) && npm run dev"
