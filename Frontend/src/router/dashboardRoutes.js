@@ -53,5 +53,6 @@ export default [
     path: '/integrations',
     name: 'IntegrationHub',
     component: () => import('../views/IntegrationHubView.vue')
+
   }
 ]
