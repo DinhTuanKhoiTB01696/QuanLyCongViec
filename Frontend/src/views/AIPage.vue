@@ -4,7 +4,7 @@
       <div class="ai-container">
         <div class="ai-page-header">
           <div class="header-left">
-            <h2 class="page-title">Tro ly AI</h2>
+            <h2 class="page-title">Trợ lý AI</h2>
             <span class="header-pill">Chat, breakdown, repo analysis</span>
           </div>
         </div>
