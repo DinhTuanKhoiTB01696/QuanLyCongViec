@@ -1,24 +1,19 @@
 <template>
-  <NexusLayout>
-    <div class="space-reports-page">
-      <header class="reports-header">
-        <div>
-          <span class="reports-tag">{{ t('reports.analyticsReport', 'Analytics Report') }}</span>
-          <h1 class="reports-title">{{ t('projectTabs.reports', 'Reports') }}</h1>
-          <p class="reports-subtitle">{{ t('reports.analyticsAndInsights', 'Analytics and insights for this project') }}</p>
-        </div>
-        <div class="reports-actions">
-          <button class="btn-secondary" @click="fetchData">
+  <ProjectPageContainer>
+    <ProjectPageHeader 
+        icon="fa-solid fa-chart-line" 
+        :title="t('projectTabs.reports', 'Reports')" 
+        :description="t('reports.analyticsAndInsights', 'Analytics and insights for this project')"
+      >
+        <template #actions>
+          <button class="nexus-btn-outlined" @click="fetchData">
             <i class="fa-solid fa-rotate-right" :class="{ 'fa-spin': loading }"></i> {{ t('reports.refresh', 'Refresh') }}
           </button>
-        </div>
-      </header>
-      
+        </template>
+      </ProjectPageHeader>
+
       <!-- Loading State -->
-      <div v-if="loading" class="reports-loading">
-        <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-[var(--color-accent)]"></i>
-        <p class="text-sm font-medium">{{ t('reports.analyzingProjectData', 'Analyzing project data...') }}</p>
-      </div>
+      <ProjectLoadingState v-if="loading" :text="t('reports.analyzingProjectData', 'Analyzing project data...')" />
       
       <!-- Error State -->
       <div v-else-if="error" class="reports-error">
@@ -26,13 +21,12 @@
         <p class="font-semibold">{{ error }}</p>
       </div>
 
-      <div v-else-if="allTasks.length === 0" class="reports-empty-container">
-        <div class="reports-empty-state">
-          <i class="fa-solid fa-chart-line text-5xl mb-4 text-[var(--color-text-muted)]"></i>
-          <h3 class="text-xl font-semibold text-[var(--color-text-primary)] mb-2">{{ t('reports.noReportsToGenerate', 'No reports to generate') }}</h3>
-          <p class="text-[var(--color-text-secondary)] mb-6 max-w-md mx-auto">{{ t('reports.noTasksPlaceholderDesc', "This project doesn't have any tasks yet. Create a few tasks to see statistics, charts, and workload distributions here.") }}</p>
-        </div>
-      </div>
+      <ProjectEmptyState 
+        v-else-if="allTasks.length === 0"
+        icon="fa-solid fa-chart-line"
+        :title="t('reports.noReportsToGenerate', 'No reports to generate')"
+        :description="t('reports.noTasksPlaceholderDesc', 'This project doesn\'t have any tasks yet. Create a few tasks to see statistics, charts, and workload distributions here.')"
+      />
       <!-- Main Dashboard Grid -->
       <div v-else class="reports-content">
         
@@ -195,7 +189,12 @@
               <div v-for="member in teamWorkload" :key="member.userId" class="workload-item">
                 <div class="workload-item-top">
                   <div class="workload-user-info">
-                    <UserAvatar :user="{ avatarColor: member.avatarColor || getAvatarBg(member.fullName), initials: member.avatar, fullName: member.fullName }" :size="32" :fontSize="14" />
+                    <div class="user-avatar" style="background: transparent; border: none; margin-right: 0;" v-if="member.userId === 'unassigned'">
+                      <div style="width: 32px; height: 32px; border-radius: 50%; background: #e2e8f0; color: #64748b; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-solid fa-question text-sm"></i>
+                      </div>
+                    </div>
+                    <UserAvatar v-else :user="{ id: member.userId, fullName: member.fullName, name: member.fullName, avatarColor: member.avatarColor, avatarUrl: member.avatarUrl }" :size="32" :fontSize="14" />
                     <span class="workload-name">{{ member.fullName }}</span>
                   </div>
                   <span class="workload-completion-text">
@@ -215,24 +214,31 @@
             </div>
           </div>
 
-          <!-- Overdue Tasks Card -->
+          <!-- Due Tasks Alert Card -->
           <div class="report-card">
-            <h3 class="card-title">
-              <i class="fa-solid fa-circle-exclamation text-rose-500"></i> {{ t('reports.overdueTaskAlert', 'Overdue Task Alert') }}
+            <h3 class="card-title flex justify-between items-center w-full" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+              <span><i class="fa-solid fa-circle-exclamation text-rose-500"></i> {{ dueFilter === 'overdue' ? t('reports.overdueTaskAlert', 'Cảnh báo công việc quá hạn') : 'Công việc sắp tới hạn' }}</span>
+              <select v-model="dueFilter" class="premium-select">
+                <option value="overdue">Quá hạn</option>
+                <option value="5">Sắp tới hạn (5 ngày)</option>
+                <option value="10">Sắp tới hạn (10 ngày)</option>
+                <option value="20">Sắp tới hạn (20 ngày)</option>
+                <option value="40">Sắp tới hạn (40 ngày)</option>
+              </select>
             </h3>
             
-            <div v-if="overdueTasks.length === 0" class="overdue-empty">
+            <div v-if="filteredDueTasks.length === 0" class="overdue-empty">
               <div class="overdue-empty-icon">
                 <i class="fa-solid fa-circle-check text-4xl text-green-400"></i>
               </div>
-              <h4 class="font-bold text-sm text-green-400 mt-2">{{ t('reports.allTasksOnTrack', 'All tasks on track!') }}</h4>
-              <p class="text-xs text-[var(--color-text-muted)] mt-1">{{ t('reports.noOverduePendingTasks', 'There are no overdue pending tasks in this project.') }}</p>
+              <h4 class="font-bold text-sm text-green-400 mt-2">{{ t('reports.allTasksOnTrack', 'Tất cả công việc đúng tiến độ!') }}</h4>
+              <p class="text-xs text-[var(--color-text-muted)] mt-1">{{ dueFilter === 'overdue' ? t('reports.noOverduePendingTasks', 'Không có công việc quá hạn nào trong dự án này.') : 'Không có công việc nào sắp tới hạn trong khoảng thời gian này.' }}</p>
             </div>
 
             <div v-else class="overdue-list-container">
               <div class="overdue-list">
                 <div 
-                  v-for="task in overdueTasks" 
+                  v-for="task in filteredDueTasks" 
                   :key="task.id"
                   class="overdue-task-card"
                   @click="navigateToTask(task.id)"
@@ -250,8 +256,9 @@
                     </div>
                   </div>
                   <div class="overdue-task-right">
-                    <span class="overdue-badge">
-                      <i class="fa-solid fa-triangle-exclamation"></i> {{ t('reports.overdue', 'Overdue') }}
+                    <span class="overdue-badge" :style="dueFilter === 'overdue' ? '' : 'background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2);'">
+                      <i class="fa-solid" :class="dueFilter === 'overdue' ? 'fa-triangle-exclamation' : 'fa-clock'"></i> 
+                      {{ dueFilter === 'overdue' ? t('reports.overdue', 'Overdue') : 'Sắp tới' }}
                     </span>
                     <span class="overdue-date">{{ t('reports.due', 'Due:') }} {{ formatDate(task.dueDate) }}</span>
                   </div>
@@ -261,25 +268,31 @@
           </div>
         </div>
       </div>
-    </div>
-  </NexusLayout>
+  </ProjectPageContainer>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import { useI18n } from '@/composables/useI18n'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import { useI18nStore } from '@/store/useI18nStore'
+import ProjectPageContainer from '@/components/common/ProjectPageContainer.vue'
+import ProjectPageHeader from '@/components/common/ProjectPageHeader.vue'
+import ProjectPageToolbar from '@/components/common/ProjectPageToolbar.vue'
+import ProjectEmptyState from '@/components/common/ProjectEmptyState.vue'
+import ProjectLoadingState from '@/components/common/ProjectLoadingState.vue'
+import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 
 const { t } = useI18n()
-import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 
 const route = useRoute()
 const router = useRouter()
 const projectId = computed(() => route.params.id)
 const workTaskStore = useWorkTaskStore()
 
+const dueFilter = ref('overdue')
 const loading = ref(false)
 const error = ref(null)
 
@@ -313,6 +326,30 @@ const overdueTasks = computed(() => {
 })
 
 const overdueTasksCount = computed(() => overdueTasks.value.length)
+
+const filteredDueTasks = computed(() => {
+  const today = new Date()
+  today.setHours(0,0,0,0)
+  
+  return allTasks.value.filter(task => {
+    if (!task.dueDate) return false
+    const s = (task.statusName || '').toLowerCase().trim()
+    const isCompleted = doneStatuses.includes(s) || cancelStatuses.includes(s)
+    if (isCompleted) return false
+    
+    const dueDate = new Date(task.dueDate)
+    dueDate.setHours(0,0,0,0)
+    
+    if (dueFilter.value === 'overdue') {
+      return dueDate < today
+    } else {
+      const diffTime = dueDate.getTime() - today.getTime()
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      const targetDays = parseInt(dueFilter.value)
+      return diffDays >= 0 && diffDays <= targetDays
+    }
+  }).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+})
 
 // Status Distribution list
 const statusDistribution = computed(() => {
@@ -399,7 +436,8 @@ const teamWorkload = computed(() => {
             userId: uid,
             fullName: name,
             avatar: assignee.initials || name.substring(0, 1).toUpperCase(),
-            avatarColor: assignee.avatarColor,
+            avatarColor: assignee.avatarColor || assignee.AvatarColor,
+            avatarUrl: assignee.avatarUrl || assignee.AvatarUrl,
             count: 0,
             doneCount: 0
           }
@@ -1212,90 +1250,82 @@ onMounted(() => {
   font-weight: 500;
 }
 
-/* Compact density */
-.space-reports-page {
-  max-width: 1080px !important;
-  padding: 18px var(--sa-page-x, 24px) 30px !important;
-  min-height: calc(100vh - var(--sa-topbar-height, 52px)) !important;
-  gap: 16px !important;
-}
-
 .reports-header {
-  border-radius: 10px !important;
-  padding: 18px !important;
+  border-radius: 10px;
+  padding: 18px;
 }
 
 .reports-title {
-  font-size: clamp(24px, 2.2vw, 32px) !important;
-  line-height: 1.12 !important;
+  font-size: clamp(24px, 2.2vw, 32px);
+  line-height: 1.12;
 }
 
 .reports-subtitle {
-  font-size: 12.5px !important;
-  margin-top: 4px !important;
+  font-size: 12.5px;
+  margin-top: 4px;
 }
 
 .reports-content {
-  gap: 16px !important;
+  gap: 16px;
 }
 
 .reports-stats-grid,
 .distributions-grid,
 .workload-grid {
-  gap: 14px !important;
+  gap: 14px;
 }
 
 .report-stat-card,
 .report-card {
-  border-radius: 10px !important;
-  padding: 18px !important;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
 
 .stat-card-content {
-  gap: 12px !important;
+  gap: 12px;
 }
 
 .stat-icon-wrapper {
-  width: 38px !important;
-  height: 38px !important;
-  border-radius: 8px !important;
-  font-size: 16px !important;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  font-size: 16px;
 }
 
 .report-stat-card .value {
-  font-size: 26px !important;
+  font-size: 26px;
 }
 
 .card-title {
-  font-size: 15px !important;
-  margin-bottom: 14px !important;
-  padding-bottom: 10px !important;
+  font-size: 15px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
 }
 
 .donut-chart-wrapper {
-  width: 118px !important;
-  height: 118px !important;
+  width: 118px;
+  height: 118px;
 }
 
 .donut-center {
-  width: 68px !important;
-  height: 68px !important;
+  width: 68px;
+  height: 68px;
 }
 
 .donut-number {
-  font-size: 22px !important;
+  font-size: 22px;
 }
 
 .workload-list,
 .status-list {
-  gap: 10px !important;
+  gap: 10px;
 }
 
 .workload-item,
 .overdue-task-card {
-  border-radius: 8px !important;
-  padding: 10px 12px !important;
+  border-radius: 8px;
+  padding: 10px 12px;
 }
 
 @media (max-width: 720px) {
@@ -1624,4 +1654,37 @@ onMounted(() => {
     transition: none !important;
   }
 }
+
+.premium-select {
+  appearance: none;
+  background: var(--color-surface, #ffffff) url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") no-repeat right 8px center;
+  background-size: 14px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 6px;
+  padding: 6px 32px 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary, #334155);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  margin-left: auto;
+}
+
+.premium-select:hover {
+  border-color: #cbd5e1;
+}
+
+.premium-select:focus {
+  outline: none;
+  border-color: var(--color-accent, #0ea5e9);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+[data-theme='dark'] .premium-select {
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
 </style>

@@ -205,9 +205,10 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick, onUnmounted } from 'vue'
-import PageContainer from '@/components/common/PageContainer.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
-import PageToolbar from '@/components/common/PageToolbar.vue'
+import ProjectPageContainer from '@/components/common/ProjectPageContainer.vue'
+import ProjectPageHeader from '@/components/common/ProjectPageHeader.vue'
+import ProjectPageToolbar from '@/components/common/ProjectPageToolbar.vue'
+
 
 import { useRoute } from 'vue-router'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'

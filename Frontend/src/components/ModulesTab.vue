@@ -5,6 +5,10 @@ import { useRouter } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
+import ProjectPageContainer from '@/components/common/ProjectPageContainer.vue'
+import ProjectPageHeader from '@/components/common/ProjectPageHeader.vue'
+import ProjectPageToolbar from '@/components/common/ProjectPageToolbar.vue'
+import ProjectEmptyState from '@/components/common/ProjectEmptyState.vue'
 
 const props = defineProps({
   projectId: { type: String, required: true }
@@ -442,66 +446,67 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="plane-modules-wrapper">
-    <header class="nexus-project-header">
-      <div class="nexus-breadcrumb">
-        <div class="project-icon" style="background: #3B82F6">
-          <i class="fa-solid fa-cube"></i>
-        </div>
-        <span class="view-name">{{ t('shell.modules', 'Modules') }}</span>
-      </div>
+  <ProjectPageContainer>
+    <ProjectPageHeader 
+        icon="fa-solid fa-cubes" 
+        :title="t('shell.modules', 'Modules')" 
+        :description="t('modules.description', 'Organize related work items into large initiatives')"
+      >
+        <template #actions>
+          <button class="nexus-btn-outlined" type="button" @click="showRestoreModal = true">{{ t('modules.restore', 'Restore') }}</button>
+          <button class="nexus-btn-primary" @click="openCreateModal"><i class="fa-solid fa-plus"></i> {{ t('modules.addModule', 'Add Module') }}</button>
+        </template>
+      </ProjectPageHeader>
 
-      <div class="nexus-controls-row">
-        <!-- Unified clustering: Search -> Sort -> Filter -> Add Button -->
-        <div class="flex items-center gap-2">
-           <input v-model="moduleSearch" class="nexus-search-input" type="text" :placeholder="t('modules.searchPlaceholder', 'Search modules...')" style="width: 200px" />
-        </div>
+      <ProjectPageToolbar
+        :showSearch="true"
+        v-model:searchQuery="moduleSearch"
+        :searchPlaceholder="t('modules.searchPlaceholder', 'Search modules...')"
+      >
 
-        <el-dropdown trigger="click" @command="(value) => { sortBy = value.field; sortDirection = value.direction }">
-          <button class="nexus-btn-outlined" type="button">
-            <i class="fa-solid fa-arrow-up-z-a"></i> {{ t('modules.sort', 'Sort') }}
-          </button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item :command="{ field: 'updatedAt', direction: 'desc' }">{{ t('modules.recentlyUpdated', 'Recently updated') }}</el-dropdown-item>
-              <el-dropdown-item :command="{ field: 'name', direction: 'asc' }">{{ t('modules.nameAZ', 'Name A-Z') }}</el-dropdown-item>
-              <el-dropdown-item :command="{ field: 'name', direction: 'desc' }">{{ t('modules.nameZA', 'Name Z-A') }}</el-dropdown-item>
-              <el-dropdown-item :command="{ field: 'status', direction: 'asc' }">Status</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+        <template #filters>
+          <el-dropdown trigger="click" @command="(value) => { sortBy = value.field; sortDirection = value.direction }">
+            <button class="nexus-btn-outlined" type="button">
+              <i class="fa-solid fa-arrow-up-z-a"></i> {{ t('modules.sort', 'Sort') }}
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item :command="{ field: 'updatedAt', direction: 'desc' }">{{ t('modules.recentlyUpdated', 'Recently updated') }}</el-dropdown-item>
+                <el-dropdown-item :command="{ field: 'name', direction: 'asc' }">{{ t('modules.nameAZ', 'Name A-Z') }}</el-dropdown-item>
+                <el-dropdown-item :command="{ field: 'name', direction: 'desc' }">{{ t('modules.nameZA', 'Name Z-A') }}</el-dropdown-item>
+                <el-dropdown-item :command="{ field: 'status', direction: 'asc' }">Status</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
 
-        <el-dropdown trigger="click" @command="(value) => statusFilter = value">
-          <button class="nexus-btn-outlined" type="button">
-            <i class="fa-solid fa-filter"></i>
-            {{ statusFilter === 'all' ? t('modules.allStatuses', 'All statuses') : getStatusLabel(statusFilter) }}
-          </button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="all">{{ t('modules.allStatuses', 'All statuses') }}</el-dropdown-item>
-              <el-dropdown-item v-for="status in statusOptions" :key="status.key" :command="status.key">
-                {{ status.label }}
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+          <el-dropdown trigger="click" @command="(value) => statusFilter = value">
+            <button class="nexus-btn-outlined" type="button">
+              <i class="fa-solid fa-filter"></i>
+              {{ statusFilter === 'all' ? t('modules.allStatuses', 'All statuses') : getStatusLabel(statusFilter) }}
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="all">{{ t('modules.allStatuses', 'All statuses') }}</el-dropdown-item>
+                <el-dropdown-item v-for="status in statusOptions" :key="status.key" :command="status.key">
+                  {{ status.label }}
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
 
-        <div class="view-toggles flex items-center gap-1 bg-[#16181d] p-1 rounded-md" style="height: 36px">
-          <button class="nexus-btn-icon !h-7 !w-7 !border-none" :class="{ 'bg-[#27272a] text-white': viewMode === 'list' }" @click="viewMode = 'list'">
-            <i class="fa-solid fa-bars"></i>
-          </button>
-          <button class="nexus-btn-icon !h-7 !w-7 !border-none" :class="{ 'bg-[#27272a] text-white': viewMode === 'grid' }" @click="viewMode = 'grid'">
-            <i class="fa-solid fa-border-all"></i>
-          </button>
-          <button class="nexus-btn-icon !h-7 !w-7 !border-none" :class="{ 'bg-[#27272a] text-white': viewMode === 'status' }" @click="viewMode = 'status'">
-            <i class="fa-solid fa-table-list"></i>
-          </button>
-        </div>
-
-        <button class="nexus-btn-outlined" type="button" @click="showRestoreModal = true">{{ t('modules.restore', 'Restore') }}</button>
-        <button class="nexus-btn-primary" @click="openCreateModal"><i class="fa-solid fa-plus"></i> {{ t('modules.addModule', 'Add Module') }}</button>
-      </div>
-    </header>
+          <div class="view-toggles flex items-center gap-1 bg-[#16181d] p-1 rounded-md" style="height: 36px">
+            <button class="nexus-btn-icon !h-7 !w-7 !border-none" :class="{ 'bg-[#27272a] text-white': viewMode === 'list' }" @click="viewMode = 'list'">
+              <i class="fa-solid fa-bars"></i>
+            </button>
+            <button class="nexus-btn-icon !h-7 !w-7 !border-none" :class="{ 'bg-[#27272a] text-white': viewMode === 'grid' }" @click="viewMode = 'grid'">
+              <i class="fa-solid fa-border-all"></i>
+            </button>
+            <button class="nexus-btn-icon !h-7 !w-7 !border-none" :class="{ 'bg-[#27272a] text-white': viewMode === 'status' }" @click="viewMode = 'status'">
+              <i class="fa-solid fa-table-list"></i>
+            </button>
+          </div>
+        </template>
+      </ProjectPageToolbar>
 
     <div class="modules-toolbar-meta">
       <span>{{ t('modules.loadedCount', { loaded: totalLoaded, total: modulePagination.totalCount }) }}</span>
@@ -509,11 +514,12 @@ onUnmounted(() => {
     </div>
 
     <div class="modules-body" v-loading="loadingModules">
-      <div v-if="!loadingModules && filteredModules.length === 0" class="empty-state-wrapper">
-        <div class="es-icon"><i class="fa-solid fa-cube"></i></div>
-        <h3 class="es-title">{{ t('modules.noModulesFound', 'No modules found') }}</h3>
-        <p class="es-desc">{{ t('modules.noModulesFoundDesc', 'Create a module, adjust the status, then assign work items into it.') }}</p>
-      </div>
+      <ProjectEmptyState 
+        v-if="!loadingModules && filteredModules.length === 0"
+        icon="fa-solid fa-cubes"
+        :title="t('modules.noModulesFound', 'No modules found')"
+        :description="t('modules.noModulesFoundDesc', 'Create a module, adjust the status, then assign work items into it.')"
+      />
 
       <!-- List View Mode -->
       <div v-else-if="viewMode === 'list'" class="modules-list">
@@ -761,7 +767,7 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
-  </div>
+  </ProjectPageContainer>
 </template>
 
 <style scoped>

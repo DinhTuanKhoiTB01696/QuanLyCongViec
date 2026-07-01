@@ -1,5 +1,5 @@
 <template>
-  <NexusLayout>
+  <div>
     <div class="recent-container">
       <div class="recent-header">
         <div class="header-left">
@@ -43,13 +43,13 @@
         </div>
       </div>
     </div>
-  </NexusLayout>
+  </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 
 const router = useRouter()
 const loading = ref(true)

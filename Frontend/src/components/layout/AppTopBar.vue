@@ -108,6 +108,7 @@ import UserDropdown from '@/components/UserDropdown.vue'
 import NotificationsDropdown from '@/components/NotificationsDropdown.vue'
 import SettingsDropdown from '@/components/SettingsDropdown.vue'
 import { useProjectStore } from '@/store/useProjectStore'
+import { usePeopleStore } from '@/store/usePeopleStore'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/projectContext'
 import { useI18nStore } from '@/store/useI18nStore'
@@ -123,6 +124,7 @@ const handleGlobalCreate = () => {
 const router = useRouter()
 const route = useRoute()
 const projectStore = useProjectStore()
+const peopleStore = usePeopleStore()
 const i18nStore = useI18nStore()
 const t = (key) => i18nStore.t(key)
 const demoText = (value) => translateDemoText(value, i18nStore.locale)
@@ -256,6 +258,7 @@ onMounted(() => {
   if (isSpaceContext.value) {
     projectStore.fetchAllProjects(true).catch(() => {})
   }
+  peopleStore.fetchPeople().catch(() => {})
   document.addEventListener('click', handleClickOutside)
   document.addEventListener('keydown', handleEscKey)
 })

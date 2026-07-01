@@ -16,7 +16,7 @@ import {
   Title,
   Tooltip
 } from 'chart.js'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import axiosClient from '@/api/axiosClient'
 
 ChartJS.register(
@@ -359,7 +359,7 @@ const chartConfig = {
 </script>
 
 <template>
-  <NexusLayout>
+  <div>
     <div class="analytics-wrapper">
       <header class="an-header">
         <div class="an-top-row">
@@ -606,7 +606,7 @@ const chartConfig = {
         </div>
       </div>
     </div>
-  </NexusLayout>
+  </div>
 </template>
 
 <style scoped>

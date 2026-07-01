@@ -6,10 +6,10 @@ import { useI18n } from '@/composables/useI18n'
 import axiosClient from '@/api/axiosClient'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { currentTheme } from '@/utils/theme'
+import ProjectPageContainer from '@/components/common/ProjectPageContainer.vue'
+import ProjectPageHeader from '@/components/common/ProjectPageHeader.vue'
+import ProjectPageToolbar from '@/components/common/ProjectPageToolbar.vue'
 
-import PageContainer from '@/components/common/PageContainer.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
-import PageToolbar from '@/components/common/PageToolbar.vue'
 
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'

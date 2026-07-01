@@ -23,6 +23,10 @@ import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
+import ProjectPageContainer from '@/components/common/ProjectPageContainer.vue'
+import ProjectPageHeader from '@/components/common/ProjectPageHeader.vue'
+import ProjectPageToolbar from '@/components/common/ProjectPageToolbar.vue'
+import ProjectEmptyState from '@/components/common/ProjectEmptyState.vue'
 
 const props = defineProps({
   projectId: { type: String, required: true }
@@ -435,23 +439,26 @@ function pageMenuItems(page) {
   ]
 }
 </script>
-
 <template>
-  <div class="plane-pages-wrapper">
+  <ProjectPageContainer>
     <!-- LIST VIEW -->
-    <div v-if="!activePage" class="pages-list-view">
-      <div class="pages-header">
-        <div class="ph-left">
-          <i class="fa-solid fa-certificate" style="color: #F59E0B"></i>
-          <span style="margin-left: 8px">{{ spaceName }}</span>
-          <i class="fa-solid fa-chevron-right" style="font-size: 9px; margin: 0 8px; color: var(--color-text-muted)"></i>
-          <i class="fa-regular fa-file-lines" style="color: var(--color-text-muted)"></i>
-          <span style="color: var(--color-text-primary); margin-left: 8px">{{ t('Pages') }}</span>
-        </div>
-        <div class="nexus-controls-row">
-            <!-- Consolidated Controls (Top Right) -->
-            <button class="nexus-btn-icon" @click="filterSearch = ''"><i class="fa-solid fa-magnifying-glass"></i></button>
-            
+      <div v-if="!activePage" class="pages-list-view">
+        <ProjectPageHeader 
+          icon="fa-regular fa-file-lines" 
+          :title="t('Pages')" 
+          :description="t('Create and manage project documentation')"
+        >
+          <template #actions>
+            <button class="nexus-btn-primary" @click="createPage"><i class="fa-solid fa-plus"></i> {{ t('Add page') }}</button>
+          </template>
+        </ProjectPageHeader>
+
+        <ProjectPageToolbar
+          :showSearch="true"
+          v-model:searchQuery="filterSearch"
+          :searchPlaceholder="t('Search pages...')"
+        >
+          <template #filters>
             <el-popover placement="bottom-end" trigger="click" :width="220" popper-class="custom-dark-popover sort-popover" :offset="8" :show-arrow="false">
               <template #reference>
                 <button class="nexus-btn-outlined">
@@ -547,10 +554,8 @@ function pageMenuItems(page) {
                 </div>
               </div>
             </el-popover>
-
-            <button class="nexus-btn-primary" @click="createPage"><i class="fa-solid fa-plus"></i> {{ t('Add page') }}</button>
-        </div>
-      </div>
+          </template>
+        </ProjectPageToolbar>
 
       <div class="pages-nav">
         <div class="nav-tab" :class="{ 'active': activeTab === 'Public' }" @click="activeTab = 'Public'">{{ t('Public') }}</div>
@@ -559,19 +564,12 @@ function pageMenuItems(page) {
       </div>
 
       <div class="pages-list" v-loading="loading">
-        <div v-if="filteredPages.length === 0" class="empty-state-full flex flex-col items-center justify-center py-24">
-           <div class="relative w-40 h-32 mb-6 opacity-70 flex items-center justify-center">
-              <div class="absolute w-24 h-12 border-2 border-[var(--color-border)] rounded-[20%] bottom-0 skew-x-[30deg] -rotate-[15deg]"></div>
-              <div class="absolute w-16 h-20 border-2 border-[var(--color-text-muted)] bg-[var(--color-surface)] rounded z-10 skew-x-[15deg] -rotate-[10deg] flex flex-col items-center pt-3 gap-2">
-                <div class="w-8 h-1 bg-[var(--color-border)] rounded-full"></div>
-                <div class="w-6 h-1 bg-[var(--color-border)] rounded-full self-start ml-3"></div>
-              </div>
-           </div>
-           <h3 class="text-[16px] font-medium text-[var(--color-text-primary)] mb-2">{{ activeTab === 'Archived' ? t('No archived pages yet') : t('No pages yet') }}</h3>
-           <p class="text-[13px] text-[var(--color-text-muted)] text-center max-w-[300px]">
-             {{ activeTab === 'Archived' ? t('Archive pages not on your radar. Access them here when needed.') : t('Create your first page to get started and keep your work organized.') }}
-           </p>
-        </div>
+        <ProjectEmptyState 
+           v-if="filteredPages.length === 0"
+           icon="fa-regular fa-file-lines"
+           :title="activeTab === 'Archived' ? t('No archived pages yet') : t('No pages yet')"
+           :description="activeTab === 'Archived' ? t('Archive pages not on your radar. Access them here when needed.') : t('Create your first page to get started and keep your work organized.')"
+        />
         
         <div v-for="page in filteredPages" :key="page.id" class="page-row" @click="openPage(page.id)">
            <div class="pr-left">
@@ -768,7 +766,7 @@ function pageMenuItems(page) {
         </div>
       </transition>
     </div>
-  </div>
+  </ProjectPageContainer>
 </template>
 
 <style scoped>

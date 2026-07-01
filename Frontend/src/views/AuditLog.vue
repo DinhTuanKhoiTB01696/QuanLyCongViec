@@ -1,5 +1,5 @@
 <template>
-  <NexusLayout>
+  <div>
     <div class="page-header">
       <h1 class="text-hero">Audit Log</h1>
       <p class="text-desc">Review and track project activities, changes, and access logs.</p>
@@ -171,7 +171,7 @@
 
     <!-- Customize Sidebar Modal -->
     <CustomizeSidebarModal :visible="showCustomizeModal" @update:visible="showCustomizeModal = $event" @saved="handleSidebarSaved" />
-  </NexusLayout>
+  </div>
 </template>
 
 <script setup>
@@ -183,7 +183,7 @@ import logoImg from '../assets/logo_QLCV.png'
 import UserDropdown from '../components/UserDropdown.vue'
 import NotificationsDropdown from '../components/NotificationsDropdown.vue'
 import CustomizeSidebarModal from '../components/CustomizeSidebarModal.vue'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import axiosClient from '../api/axiosClient'
 import { canAccessAdminUserDirectory, getStoredUser, hasSystemAdminAccess } from '@/utils/permissions'
 
