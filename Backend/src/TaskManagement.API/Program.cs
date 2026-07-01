@@ -168,7 +168,7 @@ END;
 IF NOT EXISTS (
     SELECT 1
     FROM [__EFMigrationsHistory]
-    WHERE [MigrationId] = N'20260422145022_PlaneRenovation'
+    WHERE [MigrationId] = N'20260630092237_PlaneRenovation'
 )
 AND OBJECT_ID(N'dbo.AIPromptTemplates', N'U') IS NOT NULL
 AND OBJECT_ID(N'dbo.Organizations', N'U') IS NOT NULL
@@ -180,7 +180,7 @@ AND COL_LENGTH(N'dbo.Users', N'AvatarUrl') IS NOT NULL
 AND COL_LENGTH(N'dbo.Users', N'CoverUrl') IS NOT NULL
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20260422145022_PlaneRenovation', N'10.0.5');
+    VALUES (N'20260630092237_PlaneRenovation', N'10.0.5');
 END;
 ");
 

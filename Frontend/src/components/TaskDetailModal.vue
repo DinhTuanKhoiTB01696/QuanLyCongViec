@@ -50,10 +50,18 @@
              <div class="popover-content">
                <input type="text" v-model="assigneeSearch" class="popover-search" :placeholder="tr('Find assignee...', 'Tìm người thực hiện...')" />
                 <div class="popover-list">
-                  <div class="popover-item" v-for="user in filteredMembers" :key="user.userId" @click="toggleAssignee(user.userId)">
-                    <div class="avatar-xxs bg-accent-muted rounded-full w-5 h-5 flex-center text-white text-xs mr-2">{{ (user.fullName || user.email || 'U').charAt(0).toUpperCase() }}</div>
-                    <span>{{ user.fullName || user.email }}</span>
-                    <i v-if="getAssigneeIds().includes(user.userId)" class="fa-solid fa-check ms-auto"></i>
+                  <div class="popover-item flex items-center justify-between transition-colors cursor-pointer" 
+                       v-for="user in filteredMembers" 
+                       :key="user.userId" 
+                       @click="toggleAssignee(user.userId)"
+                       :class="getAssigneeIds().includes(user.userId) ? 'bg-green-100 hover:bg-green-200 text-green-900 border-l-4 border-green-500 rounded-sm' : 'hover:bg-gray-100'">
+                    <div class="flex items-center truncate max-w-[75%] pl-2 py-1">
+                      <UserAvatar :user="{ avatarColor: user.avatarColor, initials: user.initials, fullName: user.fullName, email: user.email, id: user.userId }" :size="20" :fontSize="9" class="mr-2" />
+                      <span class="truncate" :class="getAssigneeIds().includes(user.userId) ? 'font-semibold' : ''">{{ user.fullName || user.email }}</span>
+                    </div>
+                    <div class="flex items-center flex-shrink-0 pr-2">
+                      <span v-if="user.taskPercentage !== undefined" class="text-[10px] px-1.5 py-0.5 rounded mr-2 font-semibold" :class="getAssigneeIds().includes(user.userId) ? 'bg-green-200 text-green-800' : 'bg-sky-100 text-sky-600'" :title="tr('Current workload', 'Khối lượng hiện tại')">{{ user.taskPercentage }}%</span>
+                    </div>
                   </div>
                   <div v-if="!filteredMembers.length" class="text-xs text-center text-muted py-2">{{ tr('No assignees found.', 'Không tìm thấy người thực hiện.') }}</div>
                 </div>
@@ -438,9 +446,9 @@
                   </button>
                   <div class="subtask-controls" @click.stop>
                     <el-dropdown trigger="click" @command="(cmd) => selectStatus({ name: cmd }, subtask)">
-                      <button class="subtask-chip" type="button">
+                      <button class="subtask-chip" type="button" :style="{ color: getStatusColor(subtask.statusName), borderColor: getStatusColor(subtask.statusName), background: `color-mix(in srgb, ${getStatusColor(subtask.statusName)} 15%, transparent)` }">
                         <i :class="getStatusIcon(subtask.statusName)"></i>
-                        <span>{{ getStatusLabel(subtask.statusName) }}</span>
+                        <span style="margin-left: 4px;">{{ getStatusLabel(subtask.statusName) }}</span>
                       </button>
                       <template #dropdown>
                         <el-dropdown-menu class="theme-dropdown">
@@ -453,9 +461,9 @@
                     </el-dropdown>
 
                     <el-dropdown trigger="click" @command="(cmd) => selectPriority(cmd, subtask)">
-                      <button class="subtask-chip" type="button">
+                      <button class="subtask-chip" type="button" :style="{ color: getPriorityColor(subtask.priority), borderColor: getPriorityColor(subtask.priority), background: `color-mix(in srgb, ${getPriorityColor(subtask.priority)} 15%, transparent)` }">
                         <i :class="getPrioIcon(subtask.priority)"></i>
-                        <span>{{ getPrioLabel(subtask.priority) }}</span>
+                        <span style="margin-left: 4px;">{{ getPrioLabel(subtask.priority) }}</span>
                       </button>
                       <template #dropdown>
                         <el-dropdown-menu class="theme-dropdown">
@@ -470,18 +478,27 @@
 
                     <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="240" @show="assigneeSearch = ''">
                       <template #reference>
-                        <button class="subtask-chip" type="button">
-                          <i class="fa-regular fa-user"></i>
-                          <span>{{ getAssigneeSummary(subtask) }}</span>
+                        <button class="subtask-chip" type="button" style="padding: 2px 8px;">
+                          <UserAvatar v-if="buildTaskAssigneeRows(subtask).length === 1" :user="buildTaskAssigneeRows(subtask)[0]" :size="16" :fontSize="8" />
+                          <i v-else class="fa-regular fa-user"></i>
+                          <span style="margin-left: 4px;">{{ getAssigneeSummary(subtask) }}</span>
                         </button>
                       </template>
                       <div class="popover-content">
                         <input v-model="assigneeSearch" type="text" class="popover-search" :placeholder="tr('Search members...', 'Tìm thành viên... ')" />
                         <div class="popover-list">
-                          <div class="popover-item" v-for="member in filteredMembers" :key="`${subtask.id}-${member.userId}`" @click="toggleInlineTaskAssignee(subtask, member.userId)">
-                            <div class="avatar-xxs bg-gray-600 rounded-full w-5 h-5 flex-center text-white text-xs mr-2">{{ (member.fullName || member.email || 'U').charAt(0).toUpperCase() }}</div>
-                            <span>{{ member.fullName || member.email }}</span>
-                            <i v-if="getAssigneeIds(subtask).includes(member.userId)" class="fa-solid fa-check ms-auto"></i>
+                          <div class="popover-item flex items-center justify-between transition-colors cursor-pointer" 
+                               v-for="member in filteredMembers" 
+                               :key="`${subtask.id}-${member.userId}`" 
+                               @click="toggleInlineTaskAssignee(subtask, member.userId)"
+                               :class="getAssigneeIds(subtask).includes(member.userId) ? 'bg-green-100 hover:bg-green-200 text-green-900 border-l-4 border-green-500 rounded-sm' : 'hover:bg-gray-100'">
+                            <div class="flex items-center truncate max-w-[75%] pl-2 py-1">
+                              <UserAvatar :user="{ avatarColor: member.avatarColor, initials: member.initials, fullName: member.fullName, email: member.email, id: member.userId }" :size="20" :fontSize="9" class="mr-2" />
+                              <span class="truncate" :class="getAssigneeIds(subtask).includes(member.userId) ? 'font-semibold' : ''">{{ member.fullName || member.email }}</span>
+                            </div>
+                            <div class="flex items-center flex-shrink-0 pr-2">
+                              <span v-if="member.taskPercentage !== undefined" class="text-[10px] px-1.5 py-0.5 rounded mr-2 font-semibold" :class="getAssigneeIds(subtask).includes(member.userId) ? 'bg-green-200 text-green-800' : 'bg-sky-100 text-sky-600'" :title="tr('Current workload', 'Khối lượng hiện tại')">{{ member.taskPercentage }}%</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -524,7 +541,7 @@
                          <button class="property-trigger status-property-trigger" :style="{ '--status-color': getStatusColor(selectedTask?.statusName) }">
                            <i :class="getStatusIcon(selectedTask?.statusName)"></i>
                            <span>{{ tr('Status', 'Trạng thái') }}</span>
-                           <span class="property-value">{{ getStatusLabel(selectedTask?.statusName) }}</span>
+                           <span class="property-value" :style="{ color: getStatusColor(selectedTask?.statusName), padding: '2px 8px', borderRadius: '4px', background: `color-mix(in srgb, ${getStatusColor(selectedTask?.statusName)} 15%, transparent)` }">{{ getStatusLabel(selectedTask?.statusName) }}</span>
                          </button>
                        </template>
                        <div class="popover-content">
@@ -574,16 +591,27 @@
                          <button class="property-trigger" :class="{ 'muted-val': !getAssigneeIds().length }" :disabled="!canManageTaskAssignees">
                            <i class="fa-regular fa-user"></i>
                            <span>{{ tr('Assignee', 'Người thực hiện') }}</span>
-                           <span class="property-value">{{ getAssigneeSummary() }}</span>
+                           <span class="property-value" style="display: flex; align-items: center; gap: 4px;">
+                             <UserAvatar v-if="selectedAssigneeRows.length === 1" :user="selectedAssigneeRows[0]" :size="16" :fontSize="8" />
+                             {{ getAssigneeSummary() }}
+                           </span>
                          </button>
                        </template>
                        <div class="popover-content">
                          <input v-model="assigneeSearch" type="text" class="popover-search" :placeholder="tr('Search members...', 'Tìm thành viên... ')" />
                          <div class="popover-list">
-                           <div class="popover-item" v-for="member in filteredMembers" :key="member.userId" @click="toggleAssignee(member.userId)">
-                             <div class="avatar-xxs bg-gray-600 rounded-full w-5 h-5 flex-center text-white text-xs mr-2">{{ (member.fullName || member.email || 'U').charAt(0).toUpperCase() }}</div>
-                             <span>{{ member.fullName || member.email }}</span>
-                             <i v-if="getAssigneeIds().includes(member.userId)" class="fa-solid fa-check ms-auto"></i>
+                           <div class="popover-item flex items-center justify-between transition-colors cursor-pointer" 
+                                v-for="member in filteredMembers" 
+                                :key="member.userId" 
+                                @click="toggleAssignee(member.userId)"
+                                :class="getAssigneeIds().includes(member.userId) ? 'bg-green-100 hover:bg-green-200 text-green-900 border-l-4 border-green-500 rounded-sm' : 'hover:bg-gray-100'">
+                             <div class="flex items-center truncate max-w-[75%] pl-2 py-1">
+                               <UserAvatar :user="{ avatarColor: member.avatarColor, initials: member.initials, fullName: member.fullName, email: member.email, id: member.userId }" :size="20" :fontSize="9" class="mr-2" />
+                               <span class="truncate" :class="getAssigneeIds().includes(member.userId) ? 'font-semibold' : ''">{{ member.fullName || member.email }}</span>
+                             </div>
+                             <div class="flex items-center flex-shrink-0 pr-2">
+                               <span v-if="member.taskPercentage !== undefined" class="text-[10px] px-1.5 py-0.5 rounded mr-2 font-semibold" :class="getAssigneeIds().includes(member.userId) ? 'bg-green-200 text-green-800' : 'bg-sky-100 text-sky-600'" :title="tr('Current workload', 'Khối lượng hiện tại')">{{ member.taskPercentage }}%</span>
+                             </div>
                            </div>
                          </div>
                        </div>
@@ -663,7 +691,7 @@
                   <div class="p-label"><i class="fa-solid fa-chart-simple"></i> {{ tr('Priority', 'Độ ưu tiên') }}</div>
                   <div class="p-val">
                     <el-dropdown  trigger="click" @command="(cmd) => selectPriority(cmd)">
-                      <div class="property-trigger" :class="{ 'muted-val': !selectedTask?.priority }"><i :class="getPrioIcon(selectedTask?.priority)"></i><span>{{ tr('Priority', 'Độ ưu tiên') }}</span><span class="property-value">{{ getPrioLabel(selectedTask?.priority) }}</span></div>
+                      <div class="property-trigger" :class="{ 'muted-val': !selectedTask?.priority }"><i :class="getPrioIcon(selectedTask?.priority)"></i><span>{{ tr('Priority', 'Độ ưu tiên') }}</span><span class="property-value" :style="{ color: getPriorityColor(selectedTask?.priority), padding: '2px 8px', borderRadius: '4px', background: `color-mix(in srgb, ${getPriorityColor(selectedTask?.priority)} 15%, transparent)` }">{{ getPrioLabel(selectedTask?.priority) }}</span></div>
                       <template #dropdown>
                         <el-dropdown-menu class="theme-dropdown">
                           <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: var(--color-danger)"></i> {{ tr('Urgent', 'Khẩn cấp') }}</el-dropdown-item>
@@ -696,8 +724,8 @@
                <div class="p-row">
                  <div class="p-label"><i class="fa-regular fa-circle-user"></i> {{ tr('Creator', 'Người tạo') }}</div>
                  <div class="p-val flex items-center gap-2">
-                    <div class="avatar-xxs bg-green-700 rounded-full w-5 h-5 flex-center text-white text-[10px]">{{ getCreatorName(selectedTask)[0]?.toUpperCase() || 'U' }}</div>
-                    <span class="text-[13px] font-medium">{{ getCreatorName(selectedTask) }}</span>
+                    <UserAvatar :user="getCreatorUserObject(selectedTask)" :size="20" :fontSize="10" />
+                    <span class="text-[13px] font-medium">{{ getCreatorUserObject(selectedTask).fullName }}</span>
                  </div>
                </div>
                <div class="p-row">
@@ -1244,7 +1272,9 @@ import DOMPurify from 'dompurify';
 import { subscribeAdminRealtime } from '@/utils/adminRealtime';
 import { getStoredUser, hasSystemAdminAccess, normalizeProjectRole } from '@/utils/permissions';
 import { useProjectStore } from '@/store/useProjectStore';
+import { usePeopleStore } from '@/store/usePeopleStore';
 import { useI18nStore } from '@/store/useI18nStore';
+import UserAvatar from '@/components/common/UserAvatar.vue';
 import {
   buildFreshWorkSession,
   calculateWorkSessionHours,
@@ -1367,9 +1397,42 @@ const disableDueDates = (date) => {
 };
 
 const filteredMembers = computed(() => {
-    const members = projectMemberOptions.value;
-    if (!assigneeSearch.value) return members;
-    return members.filter(m => (m.fullName || m.name || m.email || '').toLowerCase().includes(assigneeSearch.value.toLowerCase()));
+    const allTasks = cachedProjectTasks.value || [];
+    const totalTasks = allTasks.length || 1;
+    
+    const memberWorkload = {};
+    allTasks.forEach(task => {
+        const status = (task.statusName || '').toLowerCase().trim();
+        const isCompleted = ['done', 'completed', 'finished', 'hoàn thành', 'success', 'hoàn tất'].includes(status);
+        if (isCompleted) return; // Only count incomplete/active tasks for workload weighting, or count all tasks? The user just said "phần trăm việc so với dự án", usually it means active or all tasks. Let's count all tasks.
+        
+        const assignees = Array.isArray(task.assignees) ? task.assignees.map(a => a.userId || a.id) : 
+                          (Array.isArray(task.assigneeIds) ? task.assigneeIds : 
+                          (task.assignedUserId ? [task.assignedUserId] : 
+                          (task.assigneeId ? [task.assigneeId] : [])));
+                          
+        assignees.forEach(uid => {
+            if (uid) {
+                memberWorkload[uid] = (memberWorkload[uid] || 0) + 1;
+            }
+        });
+    });
+
+    const members = projectMemberOptions.value.map(m => {
+        const count = memberWorkload[m.userId] || 0;
+        const percentage = Math.round((count / totalTasks) * 100);
+        return {
+            ...m,
+            taskPercentage: percentage
+        };
+    });
+    
+    let filtered = members;
+    if (assigneeSearch.value) {
+        filtered = members.filter(m => (m.fullName || m.name || m.email || '').toLowerCase().includes(assigneeSearch.value.toLowerCase()));
+    }
+    
+    return filtered.sort((a, b) => a.taskPercentage - b.taskPercentage);
 });
 
 const currentProjectRole = computed(() => {
@@ -1555,6 +1618,14 @@ const getPrioLabel = (p) => {
     if (p===3) return tr('Medium', 'Trung bình');
     if (p===4) return tr('Low', 'Thấp');
     return tr('None', 'Không có');
+};
+
+const getPriorityColor = (p) => {
+    if (p===1) return '#ef4444';
+    if (p===2) return '#f59e0b';
+    if (p===3) return '#3b82f6';
+    if (p===4) return '#94a3b8';
+    return '#cbd5e1';
 };
 
 const getPrioIcon = (p) => {
@@ -2553,6 +2624,31 @@ const handleAttachmentOpen = (attachment, comment = null) => {
 const getCreatorName = (task) => {
   if (!task) return 'Creator';
   return task.reporterName || task.createdByName || task.creatorName || task.createdBy?.fullName || task.reporter?.fullName || 'Creator';
+};
+
+const getCreatorUserObject = (task) => {
+  if (!task) return { fullName: 'Creator' };
+  
+  const creatorId = task.createdBy || task.creatorId || task.createdById || task.reporterId;
+  if (!creatorId) return { fullName: getCreatorName(task) };
+  
+  let user = projectMemberOptions.value.find(m => m.userId === creatorId || m.id === creatorId);
+  if (!user) {
+    const peopleStore = usePeopleStore();
+    user = peopleStore.users?.find(m => m.id === creatorId);
+  }
+  
+  if (user) {
+    return {
+      id: user.userId || user.id,
+      fullName: user.fullName || user.name,
+      email: user.email,
+      avatarColor: user.avatarColor,
+      initials: user.initials
+    };
+  }
+  
+  return { fullName: getCreatorName(task), email: getCreatorName(task) };
 };
 
 const getActivityActorName = () => {
@@ -4293,6 +4389,32 @@ watch(() => props.selectedTask, (newTask) => {
   flex: 1;
   overflow-y: auto;
   padding: 22px 26px 32px;
+}
+
+.parent-context-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.parent-context-label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.parent-context-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.parent-context-link:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
 }
 
 .sp-breadcrumb {

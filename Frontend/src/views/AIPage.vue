@@ -1,10 +1,10 @@
 <template>
-  <NexusLayout>
+  <div>
     <div class="ai-page-flex-wrapper">
       <div class="ai-container">
         <div class="ai-page-header">
           <div class="header-left">
-            <h2 class="page-title">Tro ly AI</h2>
+            <h2 class="page-title">Trợ lý AI</h2>
             <span class="header-pill">Chat, breakdown, repo analysis</span>
           </div>
         </div>
@@ -263,7 +263,7 @@
     </div>
 
     <CustomizeSidebarModal :visible="showCustomizeModal" @update:visible="showCustomizeModal = $event" @saved="handleSidebarSaved" />
-  </NexusLayout>
+  </div>
 </template>
 
 <script setup>
@@ -271,7 +271,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import CustomizeSidebarModal from '../components/CustomizeSidebarModal.vue'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import axiosClient from '@/api/axiosClient'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'

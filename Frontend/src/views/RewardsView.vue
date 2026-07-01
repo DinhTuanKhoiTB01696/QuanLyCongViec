@@ -1,5 +1,5 @@
 <template>
-  <NexusLayout>
+  <div>
     <div class="rewards-page">
       <header class="nexus-feature-header">
         <div class="header-info">
@@ -154,13 +154,13 @@
         </section>
       </section>
     </div>
-  </NexusLayout>
+  </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import axiosClient from '@/api/axiosClient'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 

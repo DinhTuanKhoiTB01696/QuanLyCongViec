@@ -1,5 +1,5 @@
 <template>
-  <NexusLayout>
+  <ProjectPageContainer>
     <div v-if="isForbidden" class="forbidden-overlay">
       <div class="forbidden-content">
         <div class="lock-icon"><i class="fa-solid fa-lock"></i></div>
@@ -8,23 +8,22 @@
         <button class="plane-primary-btn mt-4" @click="router.push('/spaces')">{{ t('Back to Home') }}</button>
       </div>
     </div>
-    <div v-else class="plane-board-container">
-      <!-- Plane Style Header -->
-      <header class="plane-space-header">
-        <div class="sh-left">
-          <div class="breadcrumb">
-            <span class="proj-icon">{{ projectBadge }}</span>
-            <span class="proj-name">{{ project?.name || t('Project') }}</span>
-            <i class="fa-solid fa-chevron-right separator"></i>
-            <span class="active-page">
-              <i class="fa-solid fa-layer-group"></i> {{ t('Work Items') }}
-            </span>
-            <span class="item-count">{{ visibleTopLevelTasks.length }}</span>
-          </div>
-        </div>
-        
-        <div class="sh-right">
-          <!-- View Toggles -->
+    <div v-else class="plane-board-container" style="display: flex; flex-direction: column;">
+      
+      <ProjectPageHeader 
+        icon="fa-solid fa-layer-group" 
+        :title="t('Work Items')" 
+        :description="t('Manage tasks, bugs, and features')"
+      >
+        <template #actions>
+          <button class="nexus-btn-primary" @click="openCreateTask('TO DO')">
+            <i class="fa-solid fa-plus"></i> {{ t('Add work item') }}
+          </button>
+        </template>
+      </ProjectPageHeader>
+
+      <ProjectPageToolbar>
+        <template #filters>
           <div class="view-toggles">
             <button class="toggle-btn" :class="{ active: currentTab === 'list' }" @click="currentTab = 'list'" :title="t('List view')"><i class="fa-solid fa-bars"></i></button>
             <button class="toggle-btn" :class="{ active: currentTab === 'board' }" @click="currentTab = 'board'" :title="t('Kanban view')"><i class="fa-solid fa-table-columns"></i></button>
@@ -38,7 +37,6 @@
             <span v-if="activeTaskFilters.length" class="filter-count">{{ activeTaskFilters.length }}</span>
           </button>
           
-          <!-- Display Dropdown -->
           <div class="display-dropdown-wrapper">
              <button class="plane-toolbar-btn" @click.stop="showDisplayDropdown = !showDisplayDropdown" :class="{ 'active': showDisplayDropdown }">{{ t('Display') }}</button>
              <div class="plane-dropdown-menu" v-show="showDisplayDropdown" @click.stop>
@@ -70,14 +68,12 @@
                 </div>
              </div>
           </div>
-          
+        </template>
+        
+        <template #actions>
           <button class="plane-toolbar-btn" @click="showAnalyticsSidebar = true">{{ t('Analytics') }}</button>
-          
-          <button class="plane-primary-btn" @click="openCreateTask('TO DO')">
-            {{ t('Add work item') }}
-          </button>
-        </div>
-      </header>
+        </template>
+      </ProjectPageToolbar>
 
       <div class="work-filter-row" v-if="showFilterPanel || activeTaskFilters.length">
         <FilterBar
@@ -151,25 +147,33 @@
                      <el-popover placement="bottom" trigger="click" width="260" popper-class="plane-popover">
                        <template #reference>
                          <div class="pill pill-user cursor-pointer hover:bg-[var(--color-border)]">
-                           <div class="avatar-xxs">
-                             <i class="fa-regular fa-user" v-if="!getTaskAssigneeSummary(task).label"></i>
+                           <div class="avatar-xxs" style="border: none; padding: 0;">
+                             <div v-if="!getTaskAssigneeIds(task).length" style="width: 20px; height: 20px; border-radius: 50%; background: #e2e8f0; color: #64748b; display: flex; align-items: center; justify-content: center; border: 1px dashed #cbd5e1;">
+                               <i class="fa-solid fa-question" style="font-size: 10px;"></i>
+                             </div>
                              <span v-else>{{ getTaskAssigneeSummary(task).avatar }}</span>
                            </div>
-                           <span v-if="getTaskAssigneeSummary(task).label" class="pill-user-text">{{ getTaskAssigneeSummary(task).label }}</span>
+                           <span v-if="getTaskAssigneeSummary(task).label" class="pill-user-text" style="margin-left: 4px;">{{ getTaskAssigneeSummary(task).label }}</span>
                          </div>
                        </template>
-                       <div class="popover-content">
-                         <input type="text" class="plane-search-input" v-model="assigneeSearch" placeholder="Search members" />
-                         <div class="plane-list mt-2">
-                           <label
-                             class="plane-list-item"
+                       <div class="popover-content" style="padding-top: 8px;">
+                         <input type="text" class="popover-search mb-2" v-model="assigneeSearch" placeholder="Search members" />
+                         <div class="popover-list mt-1">
+                           <div
                              v-for="member in filteredProjectMembers"
                              :key="member.userId || member.id"
+                             class="popover-item flex items-center justify-between transition-colors cursor-pointer"
                              @click.stop="toggleTaskAssignee(task, member.userId || member.id)"
+                             :class="getTaskAssigneeIds(task).includes(member.userId || member.id) ? 'bg-green-100 hover:bg-green-200 text-green-900 border-l-4 border-green-500 rounded-sm' : 'hover:bg-gray-100'"
                            >
-                             <input type="checkbox" :checked="getTaskAssigneeIds(task).includes(member.userId || member.id)" />
-                             {{ member.fullName || member.name || member.email }}
-                           </label>
+                             <div class="flex items-center truncate max-w-[75%] pl-2">
+                               <UserAvatar :user="member" :size="22" :fontSize="10" class="mr-2" />
+                               <span class="truncate" :class="getTaskAssigneeIds(task).includes(member.userId || member.id) ? 'font-semibold' : ''">{{ member.fullName || member.name || member.email }}</span>
+                             </div>
+                             <div class="flex items-center flex-shrink-0 pr-2">
+                               <span v-if="member.taskPercentage !== undefined" class="text-[11px] px-1.5 py-0.5 rounded text-gray-500">{{ member.taskPercentage }}%</span>
+                             </div>
+                           </div>
                          </div>
                        </div>
                      </el-popover>
@@ -300,23 +304,34 @@
 
                      <el-popover placement="bottom" trigger="click" width="260" popper-class="plane-popover">
                        <template #reference>
-                         <div class="avatar-xs ms-auto cursor-pointer hover:bg-[var(--color-border)]" v-if="getTaskAssigneeSummary(element).label">
-                           {{ getTaskAssigneeSummary(element).avatar }}
+                         <div class="avatar-xs ms-auto cursor-pointer hover:bg-[var(--color-border)]" style="border: none; background: transparent; padding: 0; display: flex; align-items: center; justify-content: center;" v-if="getTaskAssigneeSummary(element).label">
+                           <UserAvatar v-if="getTaskAssigneeIds(element).length === 1" :user="getAssigneeUser(element)" :size="24" :fontSize="11" />
+                           <div v-else style="width: 24px; height: 24px; border-radius: 50%; background: #0c66e4; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold;">
+                             +{{ getTaskAssigneeIds(element).length }}
+                           </div>
                          </div>
-                         <div class="avatar-xs ms-auto cursor-pointer hover:bg-[var(--color-border)]" style="border: 1px dashed var(--color-text-muted); background: transparent; color: var(--color-text-muted);" v-else><i class="fa-solid fa-user"></i></div>
+                         <div class="avatar-xs ms-auto cursor-pointer hover:bg-[var(--color-border)]" style="border: 1px dashed var(--color-text-muted); background: #e2e8f0; color: #64748b; display: flex; align-items: center; justify-content: center;" v-else>
+                           <i class="fa-solid fa-question text-xs"></i>
+                         </div>
                        </template>
-                       <div class="popover-content">
-                         <input type="text" class="plane-search-input" v-model="assigneeSearch" placeholder="Search members" />
-                         <div class="plane-list mt-2">
-                           <label
-                             class="plane-list-item"
+                       <div class="popover-content" style="padding-top: 8px;">
+                         <input type="text" class="popover-search mb-2" v-model="assigneeSearch" placeholder="Search members" />
+                         <div class="popover-list mt-1">
+                           <div
                              v-for="member in filteredProjectMembers"
                              :key="member.userId || member.id"
+                             class="popover-item flex items-center justify-between transition-colors cursor-pointer"
                              @click.stop="toggleTaskAssignee(element, member.userId || member.id)"
+                             :class="getTaskAssigneeIds(element).includes(member.userId || member.id) ? 'bg-green-100 hover:bg-green-200 text-green-900 border-l-4 border-green-500 rounded-sm' : 'hover:bg-gray-100'"
                            >
-                             <input type="checkbox" :checked="getTaskAssigneeIds(element).includes(member.userId || member.id)" />
-                             {{ member.fullName || member.name || member.email }}
-                           </label>
+                             <div class="flex items-center truncate max-w-[75%] pl-2">
+                               <UserAvatar :user="member" :size="22" :fontSize="10" class="mr-2" />
+                               <span class="truncate" :class="getTaskAssigneeIds(element).includes(member.userId || member.id) ? 'font-semibold' : ''">{{ member.fullName || member.name || member.email }}</span>
+                             </div>
+                             <div class="flex items-center flex-shrink-0 pr-2">
+                               <span v-if="member.taskPercentage !== undefined" class="text-[11px] px-1.5 py-0.5 rounded text-gray-500">{{ member.taskPercentage }}%</span>
+                             </div>
+                           </div>
                          </div>
                        </div>
                      </el-popover>
@@ -529,10 +544,14 @@
          </div>
       </div>
     </div>
-  </NexusLayout>
+  </ProjectPageContainer>
 </template>
 
 <script setup>
+import PageContainer from '@/components/common/PageContainer.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import PageToolbar from '@/components/common/PageToolbar.vue'
+
 // AI 3: CHUYÊN VIÊN GHÉP NỐI LOGIC FRONT-TO-BACK
 import { ref, onMounted, computed, defineAsyncComponent, watch, nextTick, onUnmounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
@@ -543,7 +562,7 @@ import { ref, onMounted, computed, defineAsyncComponent, watch, nextTick, onUnmo
   import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/projectContext'
   import { signalRService } from '@/api/signalrService'
 import { hasSystemAdminAccess, normalizeProjectRole } from '@/utils/permissions'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import draggable from 'vuedraggable'
 import TaskDetailModal from '@/components/TaskDetailModal.vue'
 import CalendarTab from '@/components/CalendarTab.vue'
@@ -553,6 +572,7 @@ import FilterBar from '@/components/FilterBar.vue'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useI18nStore } from '@/store/useI18nStore';
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
@@ -581,8 +601,8 @@ const showSubtasks = ref(false)
 const collapsedListGroups = ref({})
 const assigneeSearch = ref('')
 
-const route = useRoute()
 const router = useRouter()
+const route = useRoute()
 const currentProjectId = computed(() => route.params.id || getScopedCurrentProjectId() || null)
 const store = useWorkTaskStore();
 const projectStore = useProjectStore()
@@ -786,6 +806,12 @@ const getTaskAssigneeSummary = (task) => {
   }
 
   return { label: `${ids.length} assignees`, avatar: `${ids.length}` }
+}
+
+const getAssigneeUser = (task) => {
+  const ids = getTaskAssigneeIds(task)
+  if (!ids.length) return null
+  return projectMembers.value.find(item => (item.userId || item.id) === ids[0]) || { fullName: task.assigneeName || 'Unknown' }
 }
 
 const matchesTaskFilters = (task) => {
@@ -1191,10 +1217,26 @@ const getProjectId = () => {
 
 const filteredProjectMembers = computed(() => {
   const keyword = assigneeSearch.value.trim().toLowerCase()
-  if (!keyword) return projectMembers.value
-  return projectMembers.value.filter(member =>
-    `${member.fullName || member.name || member.email || ''}`.toLowerCase().includes(keyword)
-  )
+  let filtered = projectMembers.value
+  if (keyword) {
+    filtered = projectMembers.value.filter(member =>
+      `${member.fullName || member.name || member.email || ''}`.toLowerCase().includes(keyword)
+    )
+  }
+  const totalTasks = allTasks.value.length || 1;
+  return filtered.map(member => {
+    let count = 0;
+    allTasks.value.forEach(task => {
+      const ids = getTaskAssigneeIds(task);
+      if (ids.includes(member.userId || member.id)) {
+        count++;
+      }
+    });
+    return {
+      ...member,
+      taskPercentage: Math.round((count / totalTasks) * 100)
+    };
+  }).sort((a, b) => a.taskPercentage - b.taskPercentage);
 })
 
 const filteredTasksList = computed(() => {
@@ -1710,6 +1752,18 @@ const openCreateTask = (statusName, defaults = {}) => {
      dueDate: defaults?.dueDate || null
    };
 }
+
+const handleGlobalCreateTask = (e) => {
+  openCreateTask(e.detail?.statusName || 'TO DO')
+}
+
+onMounted(() => {
+  window.addEventListener('open-create-task', handleGlobalCreateTask)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('open-create-task', handleGlobalCreateTask)
+})
 
 const toggleAnalyticsExpand = () => {
   isAnalyticsExpanded.value = !isAnalyticsExpanded.value
@@ -3243,20 +3297,8 @@ onUnmounted(() => {
   }
 }
 
-/* Compact density */
-.nexus-project-header {
-  min-height: 52px !important;
-  padding: 10px 16px !important;
-}
-
-.project-title,
-.breadcrumb-current {
-  font-size: 14px !important;
-  line-height: 1.2 !important;
-}
-
 .nexus-controls-row {
-  gap: 8px !important;
+  gap: 8px;
 }
 
 .nexus-btn,
@@ -3264,20 +3306,15 @@ onUnmounted(() => {
 .view-btn,
 .filter-btn,
 .stats-btn {
-  min-height: 32px !important;
-  border-radius: 8px !important;
-  padding: 6px 10px !important;
-  font-size: 12.5px !important;
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12.5px;
 }
 
 .view-toggle {
-  border-radius: 9px !important;
-  padding: 2px !important;
-}
-
-.board-wrapper,
-.kanban-wrapper {
-  padding: 18px var(--sa-page-x, 24px) 26px !important;
+  border-radius: 9px;
+  padding: 2px;
 }
 
 .kanban-board {
@@ -3386,7 +3423,6 @@ onUnmounted(() => {
 
 /* Polished list view and analytics panel */
 .list-wrapper {
-  padding: 18px var(--sa-page-x, 24px) 28px !important;
   background:
     radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--color-accent) 5%, transparent), transparent 28%),
     var(--color-bg);
