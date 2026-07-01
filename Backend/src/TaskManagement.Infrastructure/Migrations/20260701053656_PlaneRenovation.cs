@@ -331,6 +331,35 @@ namespace TaskManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "IntegrationAccounts",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Provider = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    AccountEmail = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ExternalAccountId = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    AccessToken = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    RefreshToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    AccessTokenExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Scopes = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    LastSyncedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_IntegrationAccounts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_IntegrationAccounts_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Notifications",
                 columns: table => new
                 {
@@ -712,6 +741,36 @@ namespace TaskManagement.Infrastructure.Migrations
                     table.ForeignKey(
                         name: "FK_Kudos_Users_SenderId",
                         column: x => x.SenderId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SyncHistories",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    IntegrationAccountId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    Provider = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ItemsImported = table.Column<int>(type: "int", nullable: false),
+                    Message = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    StartedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CompletedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SyncHistories", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SyncHistories_IntegrationAccounts_IntegrationAccountId",
+                        column: x => x.IntegrationAccountId,
+                        principalTable: "IntegrationAccounts",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_SyncHistories_Users_UserId",
+                        column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -1577,6 +1636,47 @@ namespace TaskManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "InboxItems",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    IntegrationAccountId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    Source = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Provider = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    ExternalId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Content = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Location = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    StartsAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    EndsAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsRead = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedTaskId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InboxItems", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_InboxItems_IntegrationAccounts_IntegrationAccountId",
+                        column: x => x.IntegrationAccountId,
+                        principalTable: "IntegrationAccounts",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_InboxItems_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_InboxItems_WorkTasks_CreatedTaskId",
+                        column: x => x.CreatedTaskId,
+                        principalTable: "WorkTasks",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Intakes",
                 columns: table => new
                 {
@@ -2002,6 +2102,32 @@ namespace TaskManagement.Infrastructure.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_InboxItems_CreatedTaskId",
+                table: "InboxItems",
+                column: "CreatedTaskId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InboxItems_IntegrationAccountId",
+                table: "InboxItems",
+                column: "IntegrationAccountId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InboxItems_UserId_IsRead",
+                table: "InboxItems",
+                columns: new[] { "UserId", "IsRead" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InboxItems_UserId_Provider_ExternalId",
+                table: "InboxItems",
+                columns: new[] { "UserId", "Provider", "ExternalId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InboxItems_UserId_Source_CreatedAt",
+                table: "InboxItems",
+                columns: new[] { "UserId", "Source", "CreatedAt" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Intakes_CreatedIssueId",
                 table: "Intakes",
                 column: "CreatedIssueId");
@@ -2020,6 +2146,12 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "IX_Intakes_SubmittedById",
                 table: "Intakes",
                 column: "SubmittedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_IntegrationAccounts_UserId_Provider",
+                table: "IntegrationAccounts",
+                columns: new[] { "UserId", "Provider" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_IssueLabels_LabelId",
@@ -2265,6 +2397,16 @@ namespace TaskManagement.Infrastructure.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_SyncHistories_IntegrationAccountId",
+                table: "SyncHistories",
+                column: "IntegrationAccountId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SyncHistories_UserId_Provider_StartedAt",
+                table: "SyncHistories",
+                columns: new[] { "UserId", "Provider", "StartedAt" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_SystemAuditLogs_UserId",
                 table: "SystemAuditLogs",
                 column: "UserId");
@@ -2459,6 +2601,9 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "GoalUpdates");
 
             migrationBuilder.DropTable(
+                name: "InboxItems");
+
+            migrationBuilder.DropTable(
                 name: "Intakes");
 
             migrationBuilder.DropTable(
@@ -2525,6 +2670,9 @@ namespace TaskManagement.Infrastructure.Migrations
                 name: "StickyNotes");
 
             migrationBuilder.DropTable(
+                name: "SyncHistories");
+
+            migrationBuilder.DropTable(
                 name: "SystemAuditLogs");
 
             migrationBuilder.DropTable(
@@ -2577,6 +2725,9 @@ namespace TaskManagement.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Permissions");
+
+            migrationBuilder.DropTable(
+                name: "IntegrationAccounts");
 
             migrationBuilder.DropTable(
                 name: "Goals");

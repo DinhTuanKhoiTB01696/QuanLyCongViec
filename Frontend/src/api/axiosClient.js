@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { clearAuthSession, getStoredAccessToken } from '@/utils/authSession'
+import { translateDemoPayload } from '@/utils/demoContentLocale'
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5136/api';
 
@@ -43,6 +44,8 @@ axiosClient.interceptors.request.use(
 
 axiosClient.interceptors.response.use(
     (response) => {
+        const locale = localStorage.getItem('admin_locale') || 'vi';
+        response.data = translateDemoPayload(response.data, locale);
         return response;
     },
     async (error) => {

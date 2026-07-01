@@ -41,3 +41,11 @@ export const setScopedCurrentProjectId = (projectId, options = {}) => {
     window.localStorage.removeItem(LOCAL_PROJECT_KEY)
   }
 }
+
+export const clearScopedCurrentProjectId = () => {
+  if (typeof window === 'undefined') return
+
+  window.sessionStorage.removeItem(SESSION_PROJECT_KEY)
+  window.localStorage.removeItem(LOCAL_PROJECT_KEY)
+  window.localStorage.removeItem(LAST_PROJECT_KEY)
+}
