@@ -70,6 +70,12 @@
           </router-link>
         </li>
         <li class="nav-item">
+          <router-link to="/integrations" class="nav-link">
+            <i class="fa-solid fa-plug-circle-bolt"></i>
+            <span>{{ t('Integration Hub') }}</span>
+          </router-link>
+        </li>
+        <li class="nav-item">
           <router-link to="/stickies" class="nav-link">
             <i class="fa-solid fa-note-sticky"></i>
             <span>{{ t('Stickies') }}</span>
@@ -137,21 +143,13 @@
       <ul class="nav-menu">
         <template v-for="project in projectTree" :key="project.id">
           <li class="nav-item">
-            <div
+            <router-link
+              :to="`/space/${project.id}/dashboard`"
               class="nav-link proj-folder"
               :class="{ active: currentProjectId === project.id }"
-              @click="toggleProject(project.id)"
             >
               <span class="proj-icon" :style="{ background: projectColor(project) }">{{ projectIcon(project) }}</span>
-              <span class="truncate">{{ project.name }}</span>
-              <i class="fa-solid ms-auto" :class="project.expanded ? 'fa-chevron-down' : 'fa-chevron-right'" style="font-size: 10px;"></i>
-            </div>
-          </li>
-
-          <li v-for="child in project.children" v-show="project.expanded" :key="child.id" class="nav-item sub-item">
-            <router-link :to="child.route" class="nav-link" active-class="active">
-              <i :class="childIcon(child.key)"></i>
-              <span>{{ t(child.label) }}</span>
+              <span class="truncate">{{ demoText(project.name) }}</span>
             </router-link>
           </li>
         </template>
@@ -176,6 +174,7 @@ import { useProjectStore } from '@/store/useProjectStore'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/projectContext'
 import { useI18nStore } from '@/store/useI18nStore'
+import { translateDemoText } from '@/utils/demoContentLocale'
 import RecentDropdown from '@/components/RecentDropdown.vue'
 import StarredDropdown from '@/components/StarredDropdown.vue'
 
@@ -183,6 +182,7 @@ const route = useRoute()
 const router = useRouter()
 const i18nStore = useI18nStore()
 const t = (key) => i18nStore.t(key)
+const demoText = (value) => translateDemoText(value, i18nStore.locale)
 const showMorePanel = ref(false)
 const projectStore = useProjectStore()
 
@@ -244,6 +244,11 @@ const recentProjects = computed(() => {
 })
 
 watch(currentProjectId, async (newVal, oldVal) => {
+   const isProjectRoute = route.path.startsWith('/space') && route.params.id
+   if (!isProjectRoute) {
+      return
+   }
+
    if (newVal && newVal !== 'default') {
       if (newVal !== oldVal) {
         projectStore.expandProject(newVal)
@@ -295,16 +300,6 @@ const toggleProject = (projectId) => {
   }
   projectStore.toggleProject(projectId)
 }
-
-const childIcon = (key) => ({
-  'dashboard': 'fa-solid fa-chart-line',
-  'work-items': 'fa-solid fa-layer-group',
-  'cycles': 'fa-solid fa-arrows-spin',
-  'modules': 'fa-solid fa-table-cells-large',
-  'reports': 'fa-solid fa-chart-pie',
-  'views': 'fa-solid fa-list-ul',
-  'pages': 'fa-regular fa-file-lines'
-}[key] || 'fa-solid fa-chevron-right')
 
 const projectIcon = (project) => project.icon || project.name?.charAt(0)?.toUpperCase() || 'P'
 const projectColor = (project) => {

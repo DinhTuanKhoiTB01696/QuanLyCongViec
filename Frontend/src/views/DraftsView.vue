@@ -1,5 +1,5 @@
 <template>
-  <NexusLayout>
+  <div>
     <div class="drafts-wrapper">
       <!-- Header (Safe Styling Only) -->
       <header class="nexus-feature-header">
@@ -397,13 +397,13 @@
           </div>
        </div>
     </div>
-  </NexusLayout>
+  </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import axiosClient from '@/api/axiosClient'
 import { ElMessage } from 'element-plus'
 

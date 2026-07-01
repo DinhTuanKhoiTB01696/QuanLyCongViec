@@ -10,6 +10,9 @@ const i18nStore = useI18nStore()
 const t = (key) => i18nStore.t(key)
 
 import FilterBar from '@/components/FilterBar.vue'
+import ProjectPageContainer from '@/components/common/ProjectPageContainer.vue'
+import ProjectPageHeader from '@/components/common/ProjectPageHeader.vue'
+import ProjectPageToolbar from '@/components/common/ProjectPageToolbar.vue'
 
 const route = useRoute()
 const projectId = computed(() => route.params.id || localStorage.getItem('currentProjectId') || 'default')
@@ -545,72 +548,23 @@ const getInitials = (name) => {
 </script>
 
 <template>
-  <div class="views-page">
-    <header class="nexus-project-header">
-      <div class="nexus-breadcrumb">
-        <div class="project-icon">
-          <i class="fa-solid fa-certificate"></i>
-        </div>
-        <span class="view-name cursor-pointer" @click="goBackToList">{{ t('Views') }}</span>
-        <template v-if="activeView">
-            <i class="fa-solid fa-chevron-right sep"></i>
-            <span class="view-name">{{ activeView.name }}</span>
+  <ProjectPageContainer>
+    <ProjectPageHeader 
+        icon="fa-regular fa-eye" 
+        :title="activeView ? activeView.name : t('Views')" 
+        :description="activeView ? activeViewSubtitle : t('Manage custom views for your tasks')"
+      >
+        <template #breadcrumbs v-if="activeView">
+          <span class="cursor-pointer hover:underline text-blue-500" @click="goBackToList">{{ t('Views') }}</span>
+          <i class="fa-solid fa-chevron-right text-xs mx-2 text-gray-500"></i>
         </template>
-      </div>
-
-      <div class="nexus-controls-row">
-        <template v-if="!activeView">
-            <!-- Consolidated Clusters -->
-            <div class="flex items-center gap-2" v-if="showViewSearch">
-               <input v-model="filterSearch" class="nexus-search-input" type="text" :placeholder="t('Search views...')" style="width: 200px" />
-            </div>
-            
-            <button class="nexus-btn-icon" type="button" @click="showViewSearch = !showViewSearch" :class="{ 'bg-surface-hover border-accent': showViewSearch }">
-              <i class="fa-solid fa-magnifying-glass"></i>
-            </button>
-            
-            <el-dropdown trigger="click">
-                <button class="nexus-btn-outlined" type="button">
-                    <i class="fa-solid fa-arrow-down-short-wide"></i> {{ t(sortBy) }}
-                </button>
-                <template #dropdown>
-                    <el-dropdown-menu class="dark-popover">
-                        <el-dropdown-item @click="sortBy = 'Name'">{{ t('Name') }}</el-dropdown-item>
-                        <el-dropdown-item @click="sortBy = 'Created at'">{{ t('Created at') }}</el-dropdown-item>
-                        <el-dropdown-item @click="sortBy = 'Updated at'">{{ t('Updated at') }}</el-dropdown-item>
-                    </el-dropdown-menu>
-                </template>
-            </el-dropdown>
-            
-            <el-dropdown trigger="click" :hide-on-click="false" popper-class="views-popper-clean">
-                <button class="nexus-btn-outlined" type="button" :class="{ active: showListFilters || activeListFilterCount }" @click="showListFilters = !showListFilters">
-                    <i class="fa-solid fa-bars-staggered"></i> {{ t('Filters') }}
-                    <span v-if="activeListFilterCount" class="toolbar-count">{{ activeListFilterCount }}</span>
-                </button>
-                <template #dropdown>
-                    <div class="views-filter-menu" @click.stop>
-                        <label class="menu-check">
-                            <input type="checkbox" v-model="listFavoritesOnly" />
-                            <span>{{ t('Favorites') }}</span>
-                        </label>
-                        <label class="menu-check">
-                            <input type="checkbox" v-model="listGlobalOnly" />
-                            <span>{{ t('Global views') }}</span>
-                        </label>
-                        <button class="menu-clear" type="button" :disabled="!activeListFilterCount" @click="clearListFilters">{{ t('Clear filters') }}</button>
-                    </div>
-                </template>
-            </el-dropdown>
-
+        <template #actions>
+          <template v-if="!activeView">
             <button class="nexus-btn-primary" type="button" @click="openCreateModal">
               <i class="fa-solid fa-plus"></i> {{ t('Add view') }}
             </button>
-        </template>
-        <template v-else>
-            <button class="nexus-btn-outlined" type="button" :class="{ active: showActiveFilters || activeFilterCount }" @click="showActiveFilters = !showActiveFilters">
-              <i class="fa-solid fa-filter"></i> {{ t('Filters') }}
-              <span v-if="activeFilterCount" class="toolbar-count">{{ activeFilterCount }}</span>
-            </button>
+          </template>
+          <template v-else>
             <el-dropdown trigger="click" popper-class="display-popper-final" placement="bottom-end" :hide-on-click="false" :z-index="5000">
               <button class="nexus-btn-outlined" type="button">
                 <i class="fa-solid fa-sliders"></i> {{ t('Display') }}
@@ -655,9 +609,63 @@ const getInitials = (name) => {
                 </div>
               </template>
             </el-dropdown>
+          </template>
         </template>
-      </div>
-    </header>
+      </ProjectPageHeader>
+
+      <ProjectPageToolbar v-if="!activeView || activeView"
+        :showSearch="!activeView && showViewSearch"
+        v-model:searchQuery="filterSearch"
+        :searchPlaceholder="t('Search views...')"
+      >
+        <template #left v-if="!activeView">
+          <button class="nexus-btn-icon" type="button" @click="showViewSearch = !showViewSearch" :class="{ 'bg-surface-hover border-accent': showViewSearch }">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+        </template>
+        <template #filters>
+          <template v-if="!activeView">
+            <el-dropdown trigger="click">
+                <button class="nexus-btn-outlined" type="button">
+                    <i class="fa-solid fa-arrow-down-short-wide"></i> {{ t(sortBy) }}
+                </button>
+                <template #dropdown>
+                    <el-dropdown-menu class="dark-popover">
+                        <el-dropdown-item @click="sortBy = 'Name'">{{ t('Name') }}</el-dropdown-item>
+                        <el-dropdown-item @click="sortBy = 'Created at'">{{ t('Created at') }}</el-dropdown-item>
+                        <el-dropdown-item @click="sortBy = 'Updated at'">{{ t('Updated at') }}</el-dropdown-item>
+                    </el-dropdown-menu>
+                </template>
+            </el-dropdown>
+            
+            <el-dropdown trigger="click" :hide-on-click="false" popper-class="views-popper-clean">
+                <button class="nexus-btn-outlined" type="button" :class="{ active: showListFilters || activeListFilterCount }" @click="showListFilters = !showListFilters">
+                    <i class="fa-solid fa-bars-staggered"></i> {{ t('Filters') }}
+                    <span v-if="activeListFilterCount" class="toolbar-count">{{ activeListFilterCount }}</span>
+                </button>
+                <template #dropdown>
+                    <div class="views-filter-menu" @click.stop>
+                        <label class="menu-check">
+                            <input type="checkbox" v-model="listFavoritesOnly" />
+                            <span>{{ t('Favorites') }}</span>
+                        </label>
+                        <label class="menu-check">
+                            <input type="checkbox" v-model="listGlobalOnly" />
+                            <span>{{ t('Global views') }}</span>
+                        </label>
+                        <button class="menu-clear" type="button" :disabled="!activeListFilterCount" @click="clearListFilters">{{ t('Clear filters') }}</button>
+                    </div>
+                </template>
+            </el-dropdown>
+          </template>
+          <template v-else>
+            <button class="nexus-btn-outlined" type="button" :class="{ active: showActiveFilters || activeFilterCount }" @click="showActiveFilters = !showActiveFilters">
+              <i class="fa-solid fa-filter"></i> {{ t('Filters') }}
+              <span v-if="activeFilterCount" class="toolbar-count">{{ activeFilterCount }}</span>
+            </button>
+          </template>
+        </template>
+      </ProjectPageToolbar>
 
     <main class="views-content">
       <div v-if="!activeView" class="views-list">
@@ -764,7 +772,6 @@ const getInitials = (name) => {
                     <button class="m-toggle" :class="{ active: modalTab === 'list' }" @click="modalTab = 'list'" type="button">
                         <i :class="viewTypeIcon" class="mr-2"></i> {{ t('List') }}
                     </button>
-                    <!-- UPDATED PLACEMENT TO 'right-start' FOR SCROLLABILITY -->
                     <el-dropdown trigger="click" popper-class="display-popper-final" placement="right-start" :hide-on-click="false" :z-index="5000">
                         <button class="m-toggle" :class="{ active: modalTab === 'display' }" @click="modalTab = 'display'" type="button">{{ t('Display') }}</button>
                         <template #dropdown>
@@ -839,7 +846,7 @@ const getInitials = (name) => {
         </div>
       </div>
     </div>
-  </div>
+  </ProjectPageContainer>
 </template>
 
 <style scoped>
@@ -1790,6 +1797,80 @@ const getInitials = (name) => {
 
   .views-content {
     padding: 12px !important;
+  }
+}
+.views-page {
+  min-height: 0 !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg) 88%, var(--color-surface)) 0%, var(--color-bg) 220px),
+    var(--color-bg) !important;
+}
+
+:deep(.project-page-header) {
+  padding-right: min(520px, 42vw);
+}
+
+:deep(.project-page-toolbar) {
+  align-self: flex-end;
+  width: min(500px, 42vw);
+  margin-top: -62px;
+  min-height: 38px;
+}
+
+:deep(.project-page-toolbar .ppt-left) {
+  flex: 1;
+}
+
+:deep(.project-page-toolbar .ppt-search) {
+  width: min(260px, 100%);
+}
+
+:deep(.project-page-toolbar .ppt-right) {
+  margin-left: auto;
+}
+
+.views-content {
+  padding: 16px 0 18px !important;
+}
+
+.views-list,
+.detail-container {
+  width: 100% !important;
+}
+
+.views-list-head,
+.view-detail-summary {
+  margin-bottom: 12px !important;
+}
+
+.views-list-head h2,
+.view-detail-summary h2 {
+  font-size: 18px !important;
+}
+
+.view-item-row,
+.views-list-row,
+.view-row {
+  min-height: 50px !important;
+  padding: 9px 12px !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 20px color-mix(in srgb, #020617 10%, transparent) !important;
+}
+
+.empty-state,
+.empty-placeholder {
+  min-height: 150px !important;
+  padding: 18px !important;
+}
+
+@media (max-width: 980px) {
+  :deep(.project-page-header) {
+    padding-right: 0;
+  }
+
+  :deep(.project-page-toolbar) {
+    width: 100%;
+    margin-top: 0;
   }
 }
 </style>

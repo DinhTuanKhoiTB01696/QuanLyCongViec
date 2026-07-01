@@ -1,5 +1,5 @@
 <template>
-  <NexusLayout>
+  <div>
     <div class="stickies-wrapper">
       <header class="st-header">
         <div class="st-left">
@@ -94,12 +94,12 @@
         </div>
       </div>
     </div>
-  </NexusLayout>
+  </div>
 </template>
 
 <script setup>
 import { ref, onMounted, nextTick, computed } from 'vue'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import { ElNotification } from 'element-plus'
 
 import { COLOR_PALETTE, getContrastTextColor, getRandomPaletteColor, getDynamicColorStyle } from '@/utils/colors'

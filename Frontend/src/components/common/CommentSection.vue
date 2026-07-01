@@ -30,7 +30,7 @@
 
       <div class="comments-list">
         <div v-for="comment in sortedComments" :key="comment.id" class="comment-item">
-          <UserAvatar :user="comment" :size="32" :fontSize="12" />
+          <UserAvatar :user="{ id: comment.userId || comment.user?.id, fullName: comment.fullName || comment.user?.name, email: comment.email || comment.user?.email, avatarColor: comment.avatarColor || comment.user?.avatarColor }" :size="32" :fontSize="12" />
           <div class="comment-body">
             <div class="comment-header">
               <span class="comment-author">{{ comment.fullName }}</span>
@@ -80,11 +80,12 @@ const currentUser = computed(() => {
   const stored = getStoredUser() || {}
   const u = peopleStore.users.find(user => user.id === stored.id) || peopleStore.currentUser || stored
   return {
+    id: u.id || stored.id,
     fullName: u.fullName || u.name || u.publicName,
-    email: u.email,
+    email: u.email || stored.email,
     initials: u.initials || getInitials(u.fullName || u.name, u.email),
-    avatarColor: u.avatarColor,
-    avatarUrl: u.avatarUrl
+    avatarColor: u.avatarColor || stored.avatarColor,
+    avatarUrl: u.avatarUrl || stored.avatarUrl
   }
 })
 
@@ -124,7 +125,14 @@ const submitComment = async () => {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
     if (res.data?.data) {
-      comments.value.unshift(res.data.data) // Thêm bình luận mới vào danh sách
+      const newCmt = res.data.data;
+      if (!newCmt.userId && !newCmt.email && !newCmt.avatarColor) {
+        newCmt.userId = currentUser.value.id;
+        newCmt.email = currentUser.value.email;
+        newCmt.avatarColor = currentUser.value.avatarColor;
+        newCmt.fullName = newCmt.fullName || currentUser.value.fullName;
+      }
+      comments.value.unshift(newCmt) // Thêm bình luận mới vào danh sách
       newComment.value = ''
     }
   } catch (error) {

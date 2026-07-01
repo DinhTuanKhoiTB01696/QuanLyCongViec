@@ -1,15 +1,45 @@
 <template>
-  <NexusLayout>
-    <div class="space-dashboard-page">
-      <header class="dashboard-header">
-        <span class="project-key-badge">
-          {{ project?.key || t('Project') }}
-        </span>
-        <h1 class="project-title">
-          {{ project?.name || t('Dashboard') }}
-        </h1>
-        <p class="project-subtitle">{{ t('Project overview and quick insights') }}</p>
-      </header>
+  <ProjectPageContainer>
+      <ProjectPageHeader
+        :title="t('Dashboard')"
+        :description="t('Project overview and quick insights')"
+        icon="fa-solid fa-chart-pie"
+      >
+        <template #actions>
+          <!-- Active Cycle Card -->
+          <router-link :to="{ name: 'CyclesView', params: { id: projectId } }" style="text-decoration: none;">
+            <div v-if="activeSprint" class="current-cycle-card">
+              <div class="cycle-icon-wrapper active">
+                <i class="fa-solid fa-arrows-spin fa-spin-pulse"></i>
+              </div>
+              <div class="cycle-info">
+                <h4>{{ activeSprint.name }} <span class="active-badge">ACTIVE</span></h4>
+                <p>{{ t('Current running cycle') }}</p>
+              </div>
+            </div>
+            <div v-else class="current-cycle-card empty">
+              <div class="cycle-icon-wrapper">
+                <i class="fa-solid fa-rotate"></i>
+              </div>
+              <div class="cycle-info">
+                <h4 class="text-gray-600">{{ t('No active cycle') }}</h4>
+                <p>{{ t('Click to plan sprints') }}</p>
+              </div>
+            </div>
+          </router-link>
+
+          <!-- Project Info -->
+          <div class="header-project-badge">
+            <div class="hpb-avatar" :style="{ backgroundColor: project?.avatarColor || '#0c66e4' }">
+              {{ project?.initials || project?.key?.substring(0, 2) || 'P' }}
+            </div>
+            <div class="hpb-details">
+              <span class="hpb-key">{{ project?.key }}</span>
+              <span class="hpb-name">{{ project?.name }}</span>
+            </div>
+          </div>
+        </template>
+      </ProjectPageHeader>
 
       <div v-if="loading" class="dashboard-loading-container">
         <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-[var(--color-accent)]"></i>
@@ -61,11 +91,11 @@
 
         <!-- Dashboard panels -->
         <div class="panels-grid">
-          <!-- Recent Tasks Panel -->
+          <!-- Suggested Tasks Panel -->
           <div class="dashboard-panel">
             <div class="panel-header">
               <h3 class="panel-title">
-                <i class="fa-solid fa-bolt text-yellow-500"></i> {{ t('Recent Tasks') }}
+                <i class="fa-solid fa-fire text-orange-500"></i> {{ t('Suggested for today') }}
               </h3>
               <router-link
                 :to="{ name: 'SpaceSummary', params: { id: projectId } }"
@@ -75,15 +105,55 @@
               </router-link>
             </div>
 
-            <div v-if="recentTasks.length === 0" class="empty-state">
-              <i class="fa-solid fa-inbox"></i>
-              <h4>{{ t('No recent tasks') }}</h4>
-              <p>{{ t('Get started by creating a new task in your board or backlog.') }}</p>
+            <div v-if="suggestedTasks.length === 0" class="empty-state">
+              <i class="fa-solid fa-mug-hot"></i>
+              <h4>{{ t('You are all caught up!') }}</h4>
+              <p>{{ t('No urgent tasks suggested for today.') }}</p>
             </div>
 
             <div v-else class="task-list">
               <div
-                v-for="task in recentTasks"
+                v-for="task in suggestedTasks"
+                :key="task.id"
+                class="task-row"
+              >
+                <div class="task-info-left">
+                  <span class="task-seq-id">
+                    {{ task.sequenceId || t('Task') }}
+                  </span>
+                  <button
+                    @click="navigateToTask(task.id)"
+                    class="task-title-btn"
+                  >
+                    {{ task.title }}
+                  </button>
+                </div>
+
+                <div class="task-meta-right">
+                  <span class="priority-badge" :class="getPriorityClass(task.priority)">
+                    {{ getPriorityLabel(task.priority) }}
+                  </span>
+                  <span class="task-status-tag" :class="getStatusClass(task.statusName)">
+                    {{ normalizeStatusLabel(task.statusName) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="panel-header" style="margin-top: 24px; border-top: 1px dashed rgba(148, 163, 184, 0.4); padding-top: 20px;">
+              <h3 class="panel-title text-gray-500">
+                <i class="fa-solid fa-list-ul"></i> {{ t('Continue working') }}
+              </h3>
+            </div>
+
+            <div v-if="continueTasks.length === 0" class="empty-state" style="min-height: 120px; padding: 16px;">
+              <i class="fa-solid fa-inbox text-gray-300" style="font-size: 24px;"></i>
+              <p style="margin-top: 8px;">{{ t('No other active tasks.') }}</p>
+            </div>
+
+            <div v-else class="task-list" style="opacity: 0.85;">
+              <div
+                v-for="task in continueTasks"
                 :key="task.id"
                 class="task-row"
               >
@@ -133,20 +203,26 @@
               >
                 <div class="workload-item-header">
                   <div class="workload-user">
-                    <div class="user-avatar">
-                      <span v-if="member.avatar">{{ member.avatar }}</span>
-                      <i v-else class="fa-solid fa-user"></i>
+                    <div class="user-avatar" style="background: transparent; border: none;" v-if="member.userId === 'unassigned'">
+                      <div style="width: 26px; height: 26px; border-radius: 50%; background: #e2e8f0; color: #64748b; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-solid fa-question text-xs"></i>
+                      </div>
                     </div>
+                    <UserAvatar v-else :user="{ id: member.userId, fullName: member.fullName, name: member.fullName, avatarColor: member.avatarColor, avatarUrl: member.avatarUrl }" :size="26" :fontSize="11" />
                     <span class="user-name">{{ member.fullName }}</span>
                   </div>
-                  <span class="workload-count">
-                    {{ member.count }} {{ t(member.count === 1 ? 'task' : 'tasks') }}
-                  </span>
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 13px; font-weight: 800; color: var(--color-accent);">{{ member.percentage }}%</span>
+                    <span class="workload-count" style="min-width: 50px; text-align: right;">
+                      {{ member.count }} {{ t(member.count === 1 ? 'task' : 'tasks') }}
+                    </span>
+                  </div>
                 </div>
 
                 <div class="workload-progress-track">
                   <div
                     class="workload-progress-bar"
+                    :class="{ 'is-unassigned': member.userId === 'unassigned' }"
                     :style="{ width: `${member.percentage}%` }"
                   ></div>
                 </div>
@@ -156,14 +232,14 @@
           </div>
         </div>
       </div>
-    </div>
-  </NexusLayout>
+  </ProjectPageContainer>
 </template>
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+import UserAvatar from '@/components/common/UserAvatar.vue'
+import ProjectPageHeader from '@/components/common/ProjectPageHeader.vue'
 
 import { useI18nStore } from '@/store/useI18nStore'
 
@@ -172,18 +248,21 @@ const t = (key) => i18nStore.t(key)
 
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 import { useProjectStore } from '@/store/useProjectStore'
+import { useSprintStore } from '@/store/useSprintStore'
 
 const route = useRoute()
 const router = useRouter()
 const projectId = computed(() => route.params.id)
 const workTaskStore = useWorkTaskStore()
 const projectStore = useProjectStore()
+const sprintStore = useSprintStore()
 
 const loading = ref(true)
 let loadRequestId = 0
 
 const project = computed(() => projectStore.currentProject)
 const allTasks = computed(() => workTaskStore.tasks || [])
+const activeSprint = computed(() => sprintStore.activeSprint)
 
 const doneStatuses = ['done', 'completed', 'finished', 'hoàn thành', 'success', 'hoàn tất']
 const cancelStatuses = ['cancel', 'cancelled', 'hủy', 'hủy bỏ']
@@ -216,15 +295,65 @@ const blockedTasks = computed(() => {
   })
 })
 
-const recentTasks = computed(() => {
-  const tasksCopy = [...allTasks.value]
-  tasksCopy.sort((a, b) => {
-    const dateA = new Date(a.updatedAt || a.createdAt || 0)
-    const dateB = new Date(b.updatedAt || b.createdAt || 0)
-    return dateB - dateA
+const scoredTasks = computed(() => {
+  const incompleteTasks = allTasks.value.filter(t => {
+    const status = (t.statusName || '').toLowerCase().trim()
+    return !doneStatuses.includes(status) && !cancelStatuses.includes(status)
   })
-  return tasksCopy.slice(0, 5)
+
+  return incompleteTasks.map(task => {
+    let score = 0;
+    
+    // 1. Deadline (max 35)
+    const dueDateStr = task.dueDate || task.deadline || task.endDate || task.DueDate;
+    if (dueDateStr) {
+      const due = new Date(dueDateStr);
+      due.setHours(0,0,0,0);
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const diffTime = due - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < 0) score += 35; 
+      else if (diffDays === 0) score += 32;
+      else if (diffDays === 1) score += 28;
+      else if (diffDays <= 3) score += 20;
+      else if (diffDays <= 7) score += 10;
+    }
+    
+    // 2. Priority (max 25)
+    const prio = Number(task.priority || task.Priority);
+    if (prio === 1) score += 25; // Critical/Urgent
+    else if (prio === 2) score += 20; // High
+    else if (prio === 3) score += 12; // Medium
+    else if (prio === 4) score += 5; // Low
+    
+    // 3. Status (max 10)
+    const status = (task.statusName || '').toLowerCase().trim();
+    if (status.includes('todo') || status.includes('to do') || status.includes('backlog') || status === 'new') score += 10;
+    else if (status.includes('progress') || status.includes('doing')) score += 8;
+    else if (status.includes('review') || status.includes('test')) score += 5;
+    
+    // 4. Progress (max 15)
+    const progress = Number(task.progress || task.Progress || 0);
+    if (progress >= 90) score += 15;
+    else if (progress >= 80) score += 12;
+    else if (progress >= 70) score += 10;
+    else if (progress >= 50) score += 8;
+    else if (progress === 0) score += 3;
+    
+    // 5. Dependency (max 10)
+    if (task.linkedTasks && task.linkedTasks.length > 0) {
+      const hasBlocked = task.linkedTasks.some(l => l.linkType === 'blocks' || l.linkType === 'blocking');
+      if (hasBlocked) score += 10;
+    }
+    
+    return { ...task, score };
+  }).sort((a, b) => b.score - a.score);
 })
+
+const suggestedTasks = computed(() => scoredTasks.value.slice(0, 4))
+const continueTasks = computed(() => scoredTasks.value.slice(4, 12))
 
 const teamWorkload = computed(() => {
   const membersMap = {}
@@ -249,7 +378,8 @@ const teamWorkload = computed(() => {
           membersMap[uid] = {
             userId: uid,
             fullName: name,
-            avatar: name.substring(0, 1).toUpperCase(),
+            avatarColor: assignee.avatarColor || assignee.AvatarColor,
+            avatarUrl: assignee.avatarUrl || assignee.AvatarUrl,
             count: 0
           }
         }
@@ -261,11 +391,11 @@ const teamWorkload = computed(() => {
   const list = Object.values(membersMap)
   if (list.length === 0) return []
 
-  const maxCount = Math.max(...list.map(item => item.count)) || 1
+  const totalTasks = allTasks.value.length || 1
   return list
     .map(item => ({
       ...item,
-      percentage: Math.round((item.count / maxCount) * 100)
+      percentage: Math.round((item.count / totalTasks) * 100)
     }))
     .sort((a, b) => b.count - a.count)
 })
@@ -326,7 +456,10 @@ const loadDashboard = async () => {
   })
 
   try {
-    await workTaskStore.fetchTasks(id)
+    await Promise.all([
+      workTaskStore.fetchTasks(id),
+      sprintStore.fetchSprints(id)
+    ])
   } catch (error) {
     console.error('Failed to load dashboard data', error)
   } finally {
@@ -344,57 +477,116 @@ watch(projectId, () => {
 </script>
 
 <style scoped>
-.space-dashboard-page {
-  width: 100%;
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 34px clamp(20px, 4vw, 48px) 54px;
-  min-height: calc(100vh - 64px);
-  color: var(--color-text-primary);
+.current-cycle-card {
   display: flex;
-  flex-direction: column;
-  gap: 22px;
+  align-items: center;
+  gap: 12px;
   background:
-    radial-gradient(circle at 16% 0%, rgba(14, 165, 233, 0.10), transparent 30%),
-    linear-gradient(180deg, #f8fbff, #f1f6fb 54%, #f8fafc);
+    linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 10%, var(--color-surface)), color-mix(in srgb, var(--color-surface) 88%, transparent));
+  border: 1px solid color-mix(in srgb, var(--color-accent) 28%, var(--color-border));
+  padding: 7px 12px;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px color-mix(in srgb, #020617 8%, transparent);
+  transition: all 0.2s;
 }
 
-.dashboard-header {
-  margin-bottom: 4px;
-  padding: 22px 24px;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.065);
+.current-cycle-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(14, 165, 233, 0.15);
 }
 
-.project-key-badge {
-  font-size: 11px;
+.current-cycle-card.empty {
+  border: 1px dashed color-mix(in srgb, var(--color-border) 78%, transparent);
+  box-shadow: none;
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+}
+
+.cycle-icon-wrapper {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface-hover));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+}
+
+.cycle-icon-wrapper.active {
+  background: rgba(14, 165, 233, 0.1);
+  color: #0ea5e9;
+}
+
+.cycle-info h4 {
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.15em;
-  color: var(--color-accent);
-  text-transform: uppercase;
-  background: rgba(56, 189, 248, 0.08);
-  padding: 4px 8px;
-  border-radius: 4px;
-  display: inline-block;
-  margin-bottom: 8px;
-}
-
-.project-title {
-  font-size: clamp(26px, 2.4vw, 34px);
-  font-weight: 900;
-  letter-spacing: 0;
   color: var(--color-text-primary);
   margin: 0;
-  line-height: 1.15;
-  overflow-wrap: anywhere;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.project-subtitle {
-  font-size: 14px;
+.cycle-info p {
+  font-size: 11px;
   color: var(--color-text-muted);
-  margin-top: 6px;
+  margin: 2px 0 0 0;
+}
+
+.active-badge {
+  font-size: 9px;
+  background: #10b981;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 800;
+}
+
+.header-project-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 6px 6px;
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+  border-radius: 99px;
+}
+
+.hpb-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hpb-details {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.hpb-key {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--color-text-muted);
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.hpb-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1;
+  max-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dashboard-loading-container {
@@ -410,14 +602,14 @@ watch(projectId, () => {
 .dashboard-content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 14px;
 }
 
 /* Stats Cards Grid */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
+  gap: 12px;
   width: 100%;
 }
 
@@ -434,14 +626,14 @@ watch(projectId, () => {
 }
 
 .stat-card {
-  min-height: 78px;
+  min-height: 64px;
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 14px;
-  padding: 16px;
+  border-radius: 12px;
+  padding: 12px 14px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -461,7 +653,7 @@ watch(projectId, () => {
 .stat-card:hover {
   transform: none;
   border-color: rgba(14, 165, 233, 0.32);
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.10);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
 }
 
 .stat-card.open-tasks-card::before { background: #3b82f6; }
@@ -470,13 +662,13 @@ watch(projectId, () => {
 .stat-card.blocked-tasks-card::before { background: #ef4444; }
 
 .stat-icon {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 
@@ -492,7 +684,7 @@ watch(projectId, () => {
 }
 
 .stat-value {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 800;
   line-height: 1;
   color: var(--color-text-primary);
@@ -502,7 +694,7 @@ watch(projectId, () => {
 .stat-label {
   font-size: 11px;
   color: var(--color-text-secondary);
-  margin-top: 6px;
+  margin-top: 4px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -515,7 +707,7 @@ watch(projectId, () => {
 .panels-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 18px;
+  gap: 14px;
   align-items: stretch;
 }
 
@@ -528,9 +720,9 @@ watch(projectId, () => {
 .dashboard-panel {
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 14px;
-  padding: 18px;
-  min-height: 320px;
+  border-radius: 12px;
+  padding: 14px;
+  min-height: 260px;
   display: flex;
   flex-direction: column;
   transition: box-shadow 0.25s ease;
@@ -539,16 +731,9 @@ watch(projectId, () => {
 }
 
 .dashboard-panel:hover {
-  box-shadow: 0 24px 58px rgba(15, 23, 42, 0.10);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
 }
 
-[data-theme='dark'] .space-dashboard-page {
-  background:
-    radial-gradient(circle at 14% 0%, rgba(14, 165, 233, 0.11), transparent 30%),
-    linear-gradient(180deg, #07111f, #0f172a 52%, #101827);
-}
-
-[data-theme='dark'] .dashboard-header,
 [data-theme='dark'] .stat-card,
 [data-theme='dark'] .dashboard-panel {
   border-color: rgba(148, 163, 184, 0.18);
@@ -556,12 +741,20 @@ watch(projectId, () => {
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
 }
 
+[data-theme='dark'] .current-cycle-card,
+[data-theme='dark'] .header-project-badge {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 9%, #17233a), color-mix(in srgb, var(--color-surface) 84%, #020617));
+  border-color: color-mix(in srgb, var(--color-accent) 24%, var(--color-border));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+}
+
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
 }
 
@@ -817,30 +1010,12 @@ watch(projectId, () => {
 .workload-progress-bar {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Compact density */
-.space-dashboard-page {
-  max-width: 1120px !important;
-  padding: 18px var(--sa-page-x, 24px) 30px !important;
-  min-height: calc(100vh - var(--sa-topbar-height, 52px)) !important;
-  gap: 16px !important;
-}
-
-.dashboard-header {
-  padding: 18px !important;
-  border-radius: 10px !important;
-}
-
-.dashboard-header h1 {
-  font-size: clamp(24px, 2.2vw, 32px) !important;
-  line-height: 1.12 !important;
-}
-
-.dashboard-header p {
-  font-size: 12.5px !important;
+.workload-progress-bar.is-unassigned {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
 }
 
 .dashboard-content {
@@ -855,12 +1030,12 @@ watch(projectId, () => {
 .stat-card,
 .dashboard-panel {
   border-radius: 10px !important;
-  padding: 14px !important;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+  padding: 12px !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05) !important;
 }
 
 .stat-card {
-  min-height: 82px !important;
+  min-height: 64px !important;
 }
 
 .stat-icon {
@@ -912,35 +1087,6 @@ watch(projectId, () => {
   to { transform: scaleX(1); }
 }
 
-.dashboard-header {
-  position: relative !important;
-  overflow: hidden !important;
-  animation: overview-panel-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  background:
-    radial-gradient(circle at 16% 22%, rgba(56, 189, 248, 0.18), transparent 24%),
-    linear-gradient(135deg, rgba(255,255,255,0.96), rgba(239,248,255,0.78)),
-    var(--color-surface) !important;
-  border: 1px solid rgba(56, 189, 248, 0.18) !important;
-  box-shadow: 0 24px 70px rgba(14, 165, 233, 0.12) !important;
-}
-
-.dashboard-header::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 76% 22%, rgba(45, 212, 191, 0.16), transparent 22%),
-    radial-gradient(circle at 8% 88%, rgba(250, 204, 21, 0.10), transparent 20%);
-  pointer-events: none;
-  animation: overview-glow-drift 8s ease-in-out infinite alternate;
-}
-
-.dashboard-header > * {
-  position: relative;
-  z-index: 1;
-}
-
-.stat-card,
 .dashboard-panel {
   animation: overview-panel-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   transition:
@@ -975,9 +1121,9 @@ watch(projectId, () => {
 
 .stat-card:hover,
 .dashboard-panel:hover {
-  transform: translateY(-3px);
+  transform: translateY(-1px);
   border-color: rgba(56, 189, 248, 0.30) !important;
-  box-shadow: 0 28px 72px rgba(15, 23, 42, 0.14) !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.10) !important;
 }
 
 .stat-card:hover::after,
@@ -993,17 +1139,13 @@ watch(projectId, () => {
 .panels-grid .dashboard-panel:nth-child(2) { animation-delay: 300ms; }
 
 .workload-progress-bar {
-  background: linear-gradient(90deg, #38bdf8 0%, #2dd4bf 58%, #facc15 100%) !important;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%) !important;
   transform-origin: left center;
   animation: overview-progress-grow 700ms 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-[data-theme='dark'] .dashboard-header {
-  background:
-    radial-gradient(circle at 16% 22%, rgba(56, 189, 248, 0.18), transparent 24%),
-    linear-gradient(135deg, rgba(30,41,59,0.92), rgba(15,23,42,0.86)),
-    #0f172a !important;
-  border-color: rgba(125, 211, 252, 0.18) !important;
+.workload-progress-bar.is-unassigned {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%) !important;
 }
 
 [data-theme='dark'] .stat-card,
@@ -1043,8 +1185,6 @@ watch(projectId, () => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dashboard-header,
-  .dashboard-header::before,
   .stat-card,
   .dashboard-panel {
     animation: none !important;
@@ -1053,14 +1193,6 @@ watch(projectId, () => {
 }
 
 @media (max-width: 760px) {
-  .space-dashboard-page {
-    padding: 12px !important;
-  }
-
-  .dashboard-header {
-    padding: 14px !important;
-  }
-
   .stats-grid,
   .panels-grid {
     grid-template-columns: 1fr !important;

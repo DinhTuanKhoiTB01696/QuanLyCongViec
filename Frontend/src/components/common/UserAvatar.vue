@@ -97,9 +97,12 @@ const initialsStyle = computed(() => ({
   color: '#ffffff',
   fontSize: `${props.fontSize}px`,
   fontWeight: '600',
-  lineHeight: 1,
+  lineHeight: '1',
   textTransform: 'uppercase',
-  userSelect: 'none'
+  userSelect: 'none',
+  letterSpacing: 'normal',
+  margin: '0',
+  padding: '0'
 }))
 </script>
 

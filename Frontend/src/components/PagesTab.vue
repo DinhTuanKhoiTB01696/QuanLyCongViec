@@ -23,6 +23,10 @@ import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
+import ProjectPageContainer from '@/components/common/ProjectPageContainer.vue'
+import ProjectPageHeader from '@/components/common/ProjectPageHeader.vue'
+import ProjectPageToolbar from '@/components/common/ProjectPageToolbar.vue'
+import ProjectEmptyState from '@/components/common/ProjectEmptyState.vue'
 
 const props = defineProps({
   projectId: { type: String, required: true }
@@ -435,23 +439,26 @@ function pageMenuItems(page) {
   ]
 }
 </script>
-
 <template>
-  <div class="plane-pages-wrapper">
+  <ProjectPageContainer>
     <!-- LIST VIEW -->
-    <div v-if="!activePage" class="pages-list-view">
-      <div class="pages-header">
-        <div class="ph-left">
-          <i class="fa-solid fa-certificate" style="color: #F59E0B"></i>
-          <span style="margin-left: 8px">{{ spaceName }}</span>
-          <i class="fa-solid fa-chevron-right" style="font-size: 9px; margin: 0 8px; color: var(--color-text-muted)"></i>
-          <i class="fa-regular fa-file-lines" style="color: var(--color-text-muted)"></i>
-          <span style="color: var(--color-text-primary); margin-left: 8px">{{ t('Pages') }}</span>
-        </div>
-        <div class="nexus-controls-row">
-            <!-- Consolidated Controls (Top Right) -->
-            <button class="nexus-btn-icon" @click="filterSearch = ''"><i class="fa-solid fa-magnifying-glass"></i></button>
-            
+      <div v-if="!activePage" class="pages-list-view">
+        <ProjectPageHeader 
+          icon="fa-regular fa-file-lines" 
+          :title="t('Pages')" 
+          :description="t('Create and manage project documentation')"
+        >
+          <template #actions>
+            <button class="nexus-btn-primary" @click="createPage"><i class="fa-solid fa-plus"></i> {{ t('Add page') }}</button>
+          </template>
+        </ProjectPageHeader>
+
+        <ProjectPageToolbar
+          :showSearch="true"
+          v-model:searchQuery="filterSearch"
+          :searchPlaceholder="t('Search pages...')"
+        >
+          <template #filters>
             <el-popover placement="bottom-end" trigger="click" :width="220" popper-class="custom-dark-popover sort-popover" :offset="8" :show-arrow="false">
               <template #reference>
                 <button class="nexus-btn-outlined">
@@ -547,10 +554,8 @@ function pageMenuItems(page) {
                 </div>
               </div>
             </el-popover>
-
-            <button class="nexus-btn-primary" @click="createPage"><i class="fa-solid fa-plus"></i> {{ t('Add page') }}</button>
-        </div>
-      </div>
+          </template>
+        </ProjectPageToolbar>
 
       <div class="pages-nav">
         <div class="nav-tab" :class="{ 'active': activeTab === 'Public' }" @click="activeTab = 'Public'">{{ t('Public') }}</div>
@@ -559,19 +564,12 @@ function pageMenuItems(page) {
       </div>
 
       <div class="pages-list" v-loading="loading">
-        <div v-if="filteredPages.length === 0" class="empty-state-full flex flex-col items-center justify-center py-24">
-           <div class="relative w-40 h-32 mb-6 opacity-70 flex items-center justify-center">
-              <div class="absolute w-24 h-12 border-2 border-[var(--color-border)] rounded-[20%] bottom-0 skew-x-[30deg] -rotate-[15deg]"></div>
-              <div class="absolute w-16 h-20 border-2 border-[var(--color-text-muted)] bg-[var(--color-surface)] rounded z-10 skew-x-[15deg] -rotate-[10deg] flex flex-col items-center pt-3 gap-2">
-                <div class="w-8 h-1 bg-[var(--color-border)] rounded-full"></div>
-                <div class="w-6 h-1 bg-[var(--color-border)] rounded-full self-start ml-3"></div>
-              </div>
-           </div>
-           <h3 class="text-[16px] font-medium text-[var(--color-text-primary)] mb-2">{{ activeTab === 'Archived' ? t('No archived pages yet') : t('No pages yet') }}</h3>
-           <p class="text-[13px] text-[var(--color-text-muted)] text-center max-w-[300px]">
-             {{ activeTab === 'Archived' ? t('Archive pages not on your radar. Access them here when needed.') : t('Create your first page to get started and keep your work organized.') }}
-           </p>
-        </div>
+        <ProjectEmptyState 
+           v-if="filteredPages.length === 0"
+           icon="fa-regular fa-file-lines"
+           :title="activeTab === 'Archived' ? t('No archived pages yet') : t('No pages yet')"
+           :description="activeTab === 'Archived' ? t('Archive pages not on your radar. Access them here when needed.') : t('Create your first page to get started and keep your work organized.')"
+        />
         
         <div v-for="page in filteredPages" :key="page.id" class="page-row" @click="openPage(page.id)">
            <div class="pr-left">
@@ -768,7 +766,7 @@ function pageMenuItems(page) {
         </div>
       </transition>
     </div>
-  </div>
+  </ProjectPageContainer>
 </template>
 
 <style scoped>
@@ -878,6 +876,138 @@ function pageMenuItems(page) {
 .grid-row { display: flex; gap: 3px; }
 .grid-cell { width: 14px; height: 14px; border: 1px solid #3F3F46; border-radius: 2px; cursor: pointer; transition: all 0.1s; }
 .grid-cell.active { background: #0EA5E9 !important; border-color: #38BDF8 !important; }
+
+/* SprintA premium pages pass */
+.pages-list-view {
+  min-height: calc(100vh - 230px);
+}
+
+.pages-nav {
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 88%, transparent), color-mix(in srgb, var(--color-surface-hover) 46%, transparent));
+  width: max-content;
+  max-width: 100%;
+}
+
+.nav-tab {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: 10px;
+  border-bottom: 0 !important;
+  margin-bottom: 0;
+  font-weight: 800;
+}
+
+.nav-tab.active {
+  background: color-mix(in srgb, var(--color-accent) 15%, var(--color-surface));
+  color: var(--color-accent);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+
+.pages-list {
+  margin-top: 12px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 92%, transparent), color-mix(in srgb, var(--color-surface-hover) 40%, transparent));
+  box-shadow: 0 18px 48px color-mix(in srgb, #020617 9%, transparent);
+}
+
+.page-row {
+  border-bottom-color: color-mix(in srgb, var(--color-border) 65%, transparent);
+}
+
+.page-row:hover {
+  background: color-mix(in srgb, var(--color-accent) 9%, var(--color-surface-hover));
+}
+
+.page-editor-view,
+.editor-header {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg) 78%, var(--color-surface)), var(--color-bg));
+}
+.pages-list-view,
+.page-editor-view {
+  min-height: 0 !important;
+}
+
+.pages-nav {
+  gap: 6px !important;
+  padding: 0 !important;
+  border-bottom: none !important;
+}
+
+.nav-tab {
+  padding: 9px 14px !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 10px !important;
+  background: color-mix(in srgb, var(--color-surface) 80%, transparent) !important;
+  margin-bottom: 0 !important;
+}
+
+.nav-tab.active {
+  background: color-mix(in srgb, var(--color-accent) 16%, var(--color-surface)) !important;
+  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border)) !important;
+}
+
+.pages-list {
+  padding: 12px 0 18px !important;
+  overflow: auto !important;
+}
+
+.page-row {
+  min-height: 52px !important;
+  padding: 10px 14px !important;
+  border: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent) !important;
+  border-radius: 12px !important;
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent) !important;
+  margin-bottom: 8px !important;
+}
+
+.page-title {
+  font-size: 13.5px !important;
+}
+
+.pr-right {
+  gap: 8px !important;
+}
+
+.doc-icon,
+.pr-right .icon-btn {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 9px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent) !important;
+  background: color-mix(in srgb, var(--color-surface-hover) 60%, transparent) !important;
+  color: color-mix(in srgb, var(--color-accent) 72%, var(--color-text-secondary)) !important;
+  font-size: 13px !important;
+}
+
+.avatar-xxs {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 9px !important;
+}
+
+.btn-box {
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface)) !important;
+}
+
+.editor-header,
+.wysiwyg-toolbar-wrapper {
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}
 </style>
 
 

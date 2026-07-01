@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import axiosClient from '@/api/axiosClient'
 import { reportExpectedError } from '@/utils/errorTelemetry'
+import { clearScopedCurrentProjectId } from '@/utils/projectContext'
 
 const SPRINT_CACHE_TTL_MS = 30000
 
@@ -35,6 +36,13 @@ export const useSprintStore = defineStore('sprint', {
           [projectId]: Date.now()
         }
       } catch (error) {
+        if ([403, 404].includes(error?.response?.status)) {
+          clearScopedCurrentProjectId()
+          this.sprints = []
+          this.activeSprint = null
+          return
+        }
+
         this.error = error.message
         reportExpectedError('Failed to fetch sprints', error)
       } finally {

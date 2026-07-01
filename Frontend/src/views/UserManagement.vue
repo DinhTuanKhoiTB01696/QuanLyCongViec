@@ -1,5 +1,5 @@
 <template>
-  <NexusLayout>
+  <div>
       <header class="nexus-feature-header">
         <div class="header-info">
           <p class="eyebrow">Administration</p>
@@ -235,7 +235,7 @@
 
     <!-- Customize Sidebar Modal -->
     <CustomizeSidebarModal :visible="showCustomizeModal" @update:visible="showCustomizeModal = $event" @saved="handleSidebarSaved" />
-  </NexusLayout>
+  </div>
 </template>
 <script setup>
 import { ref, computed } from 'vue'
@@ -245,7 +245,7 @@ import UserDropdown from '../components/UserDropdown.vue'
 import NotificationsDropdown from '../components/NotificationsDropdown.vue'
 import CustomizeSidebarModal from '../components/CustomizeSidebarModal.vue'
 import { Plus, Search, Edit, Delete, Key, More, ArrowDown, User, Monitor, Folder } from '@element-plus/icons-vue'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 
 import { onMounted } from 'vue'
 

@@ -1,5 +1,5 @@
 <template>
-  <NexusLayout>
+  <div>
     <div class="settings-wrapper" v-loading="loading">
       <header class="settings-header">
         <div class="sh-left">
@@ -120,13 +120,13 @@
        </div>
     </el-dialog>
 
-  </NexusLayout>
+  </div>
 </template>
 
 <script setup>
 import { ref, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import axiosClient from '@/api/axiosClient'
 import { ElMessage, ElMessageBox } from 'element-plus'
 

@@ -65,25 +65,36 @@
             <el-popover placement="bottom" trigger="click" width="260" popper-class="plane-popover">
               <template #reference>
                 <div class="pill assignee-pill">
-                  <div class="avatar-xxs">
-                    <i v-if="!getTaskAssigneeSummary(task).label" class="fa-regular fa-user"></i>
-                    <span v-else>{{ getTaskAssigneeSummary(task).avatar }}</span>
+                  <div class="avatar-xxs" style="border: none; padding: 0;">
+                    <div v-if="!getTaskAssigneeIds(task).length" style="width: 20px; height: 20px; border-radius: 50%; background: #e2e8f0; color: #64748b; display: flex; align-items: center; justify-content: center; border: 1px dashed #cbd5e1;">
+                      <i class="fa-solid fa-question" style="font-size: 10px;"></i>
+                    </div>
+                    <UserAvatar v-else-if="getTaskAssigneeIds(task).length === 1" :user="getAssigneeUser(task)" :size="20" :fontSize="10" />
+                    <div v-else style="width: 20px; height: 20px; border-radius: 50%; background: #0c66e4; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;">
+                      +{{ getTaskAssigneeIds(task).length }}
+                    </div>
                   </div>
-                  <span v-if="getTaskAssigneeSummary(task).label" class="pill-user-text">{{ getTaskAssigneeSummary(task).label }}</span>
+                  <span v-if="getTaskAssigneeSummary(task).label" class="pill-user-text" style="margin-left: 4px;">{{ getTaskAssigneeSummary(task).label }}</span>
                 </div>
               </template>
-              <div class="popover-content">
-                <input v-model="searchAssignee" type="text" class="plane-search-input" :placeholder="t('workItems.searchMembers')" />
-                <div class="plane-list mt-2">
-                  <label
+              <div class="popover-content" style="padding-top: 8px;">
+                <input v-model="searchAssignee" type="text" class="popover-search mb-2" :placeholder="t('workItems.searchMembers')" />
+                <div class="popover-list mt-1">
+                  <div
                     v-for="member in filteredMembers"
                     :key="member.userId || member.id"
-                    class="plane-list-item"
+                    class="popover-item flex items-center justify-between transition-colors cursor-pointer"
                     @click.stop="toggleTaskAssignee(task, member.userId || member.id)"
+                    :class="getTaskAssigneeIds(task).includes(member.userId || member.id) ? 'bg-green-100 hover:bg-green-200 text-green-900 border-l-4 border-green-500 rounded-sm' : 'hover:bg-gray-100'"
                   >
-                    <input type="checkbox" :checked="getTaskAssigneeIds(task).includes(member.userId || member.id)" />
-                    {{ member.fullName || member.name || member.email }}
-                  </label>
+                    <div class="flex items-center truncate max-w-[75%] pl-2">
+                      <UserAvatar :user="member" :size="22" :fontSize="10" class="mr-2" />
+                      <span class="truncate" :class="getTaskAssigneeIds(task).includes(member.userId || member.id) ? 'font-semibold' : ''">{{ member.fullName || member.name || member.email }}</span>
+                    </div>
+                    <div class="flex items-center flex-shrink-0 pr-2">
+                      <span v-if="member.taskPercentage !== undefined" class="text-[11px] px-1.5 py-0.5 rounded text-gray-500">{{ member.taskPercentage }}%</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </el-popover>
@@ -141,6 +152,7 @@
 <script setup>
 import { computed, nextTick, ref } from 'vue'
 import { useI18n } from '@/composables/useI18n'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const { t } = useI18n()
 
@@ -189,10 +201,27 @@ const searchAssignee = ref('')
 
 const filteredMembers = computed(() => {
   const keyword = searchAssignee.value.trim().toLowerCase()
-  if (!keyword) return props.projectMembers
-  return props.projectMembers.filter(member =>
-    `${member.fullName || member.name || member.email || ''}`.toLowerCase().includes(keyword)
-  )
+  let filtered = props.projectMembers
+  if (keyword) {
+    filtered = props.projectMembers.filter(member =>
+      `${member.fullName || member.name || member.email || ''}`.toLowerCase().includes(keyword)
+    )
+  }
+  
+  const totalTasks = props.tasks.length || 1;
+  return filtered.map(member => {
+    let count = 0;
+    props.tasks.forEach(task => {
+      const ids = getTaskAssigneeIds(task);
+      if (ids.includes(member.userId || member.id)) {
+        count++;
+      }
+    });
+    return {
+      ...member,
+      taskPercentage: Math.round((count / totalTasks) * 100)
+    };
+  }).sort((a, b) => a.taskPercentage - b.taskPercentage);
 })
 
 const getTaskAssigneeIds = (task) => {
@@ -205,13 +234,19 @@ const getTaskAssigneeIds = (task) => {
 
 const getTaskAssigneeSummary = (task) => {
   const ids = getTaskAssigneeIds(task)
-  if (!ids.length) return { label: '', avatar: '' }
+  if (!ids.length) return { label: 'Unassigned', avatar: '' }
   if (ids.length === 1) {
     const member = props.projectMembers.find(item => (item.userId || item.id) === ids[0])
     const label = member?.fullName || member?.name || member?.email || task.assigneeName || t('workItems.assignee', 'Assignee')
     return { label, avatar: label.substring(0, 1).toUpperCase() }
   }
   return { label: t('workItems.assigneeCount', { count: ids.length }), avatar: `${ids.length}` }
+}
+
+const getAssigneeUser = (task) => {
+  const ids = getTaskAssigneeIds(task)
+  if (!ids.length) return null
+  return props.projectMembers.find(item => (item.userId || item.id) === ids[0]) || { fullName: task.assigneeName || 'Unknown' }
 }
 
 const toggleTaskAssignee = (task, memberId) => {
