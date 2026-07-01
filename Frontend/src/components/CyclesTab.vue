@@ -7,6 +7,10 @@ import axiosClient from '@/api/axiosClient'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { currentTheme } from '@/utils/theme'
 
+import PageContainer from '@/components/common/PageContainer.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import PageToolbar from '@/components/common/PageToolbar.vue'
+
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -587,41 +591,46 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="plane-cycles-wrapper">
-    <header class="nexus-project-header">
-      <div class="nexus-breadcrumb">
-        <div class="project-icon" style="background: #F59E0B">
-          <i class="fa-solid fa-certificate"></i>
-        </div>
-        <span class="view-name">{{ t('cyclesTab.cycles', 'Cycles') }}</span>
-      </div>
-
-      <div class="nexus-controls-row">
-        <!-- Unified clustering: Search -> Filter -> Add Button -->
-        <div class="flex items-center gap-2" v-if="showCycleSearch">
-           <input v-model="cycleSearchQuery" class="nexus-search-input" type="text" :placeholder="t('cyclesTab.searchCycles', 'Search cycles...')" style="width: 200px" />
-        </div>
-        <button class="nexus-btn-icon" type="button" @click="showCycleSearch = !showCycleSearch" :class="{ active: showCycleSearch }"><i class="fa-solid fa-magnifying-glass"></i></button>
-        
-        <div class="cycle-filter-wrapper">
-          <button class="nexus-btn-outlined" type="button" @click="showCycleFilters = !showCycleFilters" :class="{ active: showCycleFilters || hasCycleFilters }">
-            <i class="fa-solid fa-filter"></i> {{ t('cyclesTab.filters', 'Filters') }}
+  <ProjectPageContainer>
+    <ProjectPageHeader 
+        icon="fa-solid fa-rotate" 
+        :title="t('cyclesTab.cycles', 'Cycles')" 
+        :description="t('cyclesTab.cyclesDesc', 'Manage project sprints and iterations')"
+      >
+        <template #actions>
+          <button class="nexus-btn-primary" type="button" @click="showCreateModal = true">
+            <i class="fa-solid fa-plus"></i> {{ t('cyclesTab.addCycle', 'Add cycle') }}
           </button>
-          <div class="cycle-filter-menu" v-if="showCycleFilters" @click.stop>
-            <div class="filter-title">{{ t('cyclesTab.progress', 'Progress') }}</div>
-            <label class="filter-option"><input type="radio" value="all" v-model="cycleProgressFilter" /> {{ t('cyclesTab.allCycles', 'All cycles') }}</label>
-            <label class="filter-option"><input type="radio" value="not-started" v-model="cycleProgressFilter" /> {{ t('cyclesTab.notStarted', 'Not started') }}</label>
-            <label class="filter-option"><input type="radio" value="in-progress" v-model="cycleProgressFilter" /> {{ t('cyclesTab.inProgress', 'In progress') }}</label>
-            <label class="filter-option"><input type="radio" value="completed" v-model="cycleProgressFilter" /> {{ t('cyclesTab.completed', 'Completed') }}</label>
-            <button class="clear-filter-btn" type="button" @click="clearCycleFilters">{{ t('cyclesTab.clearFilters', 'Clear filters') }}</button>
-          </div>
-        </div>
+        </template>
+      </ProjectPageHeader>
+
+      <ProjectPageToolbar
+        :showSearch="showCycleSearch"
+        v-model:searchQuery="cycleSearchQuery"
+        :searchPlaceholder="t('cyclesTab.searchCycles', 'Search cycles...')"
+      >
+        <template #left>
+          <button class="nexus-btn-icon" type="button" @click="showCycleSearch = !showCycleSearch" :class="{ active: showCycleSearch }">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+        </template>
         
-        <button class="nexus-btn-primary" type="button" @click="showCreateModal = true">
-          <i class="fa-solid fa-plus"></i> {{ t('cyclesTab.addCycle', 'Add cycle') }}
-        </button>
-      </div>
-    </header>
+        <template #filters>
+          <div class="cycle-filter-wrapper">
+            <button class="nexus-btn-outlined" type="button" @click="showCycleFilters = !showCycleFilters" :class="{ active: showCycleFilters || hasCycleFilters }">
+              <i class="fa-solid fa-filter"></i> {{ t('cyclesTab.filters', 'Filters') }}
+            </button>
+            <div class="cycle-filter-menu" v-if="showCycleFilters" @click.stop>
+              <div class="filter-title">{{ t('cyclesTab.progress', 'Progress') }}</div>
+              <label class="filter-option"><input type="radio" value="all" v-model="cycleProgressFilter" /> {{ t('cyclesTab.allCycles', 'All cycles') }}</label>
+              <label class="filter-option"><input type="radio" value="not-started" v-model="cycleProgressFilter" /> {{ t('cyclesTab.notStarted', 'Not started') }}</label>
+              <label class="filter-option"><input type="radio" value="in-progress" v-model="cycleProgressFilter" /> {{ t('cyclesTab.inProgress', 'In progress') }}</label>
+              <label class="filter-option"><input type="radio" value="completed" v-model="cycleProgressFilter" /> {{ t('cyclesTab.completed', 'Completed') }}</label>
+              <button class="clear-filter-btn" type="button" @click="clearCycleFilters">{{ t('cyclesTab.clearFilters', 'Clear filters') }}</button>
+            </div>
+          </div>
+        </template>
+      </ProjectPageToolbar>
 
     <div class="cycles-body">
       <div class="cycle-section">
@@ -933,7 +942,7 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
-  </div>
+  </ProjectPageContainer>
 </template>
 
 <style scoped>
@@ -1710,14 +1719,6 @@ onUnmounted(() => {
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.24);
 }
 
-@media (max-width: 780px) {
-  .cycles-view-header,
-  .nexus-project-header {
-    width: calc(100% - 24px) !important;
-    margin-left: 12px !important;
-    margin-right: 12px !important;
-  }
-}
 </style>
 
 

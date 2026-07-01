@@ -1,6 +1,5 @@
 <template>
-  <NexusLayout>
-    <div class="df-page">
+  <div class="df-page">
 
       <!-- ══ HEADER ══ -->
       <header class="df-header">
@@ -207,14 +206,12 @@
         </div>
       </transition>
 
-    </div>
-  </NexusLayout>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
 import PriorityAIPanel from '@/components/PriorityAIPanel.vue'
 import axiosClient from '@/api/axiosClient'
 import { ElMessage } from 'element-plus'

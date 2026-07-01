@@ -1,5 +1,5 @@
 <template>
-  <NexusLayout>
+  <div>
     <div class="plane-dashboard">
       <header class="nexus-feature-header">
         <div class="header-info">
@@ -159,7 +159,7 @@
         </template>
       </el-dialog>
     </div>
-  </NexusLayout>
+  </div>
 </template>
 
 <script setup>
@@ -167,7 +167,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import axiosClient from '@/api/axiosClient'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import { useProjectStore } from '@/store/useProjectStore'
 import { useI18n } from '@/composables/useI18n'
 

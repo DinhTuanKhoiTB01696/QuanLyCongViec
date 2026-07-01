@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import axiosClient from '@/api/axiosClient'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import FilterBar from '@/components/FilterBar.vue'
 
 const rawTasks = ref([])
@@ -185,7 +185,7 @@ const getPrioIcon = (pr) => {
 </script>
 
 <template>
-  <NexusLayout>
+  <div>
     <div class="views-wrapper">
       <!-- Header -->
       <header class="vh-header">
@@ -354,7 +354,7 @@ const getPrioIcon = (pr) => {
         </table>
       </div>
     </div>
-  </NexusLayout>
+  </div>
 </template>
 
 <style scoped>

@@ -1,5 +1,5 @@
 <script setup>
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import ModulesTab from '@/components/ModulesTab.vue'
 import { useRoute } from 'vue-router'
 import { ref, onMounted } from 'vue'
@@ -28,12 +28,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <NexusLayout>
+  <div>
     <div style="background-color: var(--color-bg); height: 100vh; overflow-y: auto;">
       <ModulesTab v-if="isReady && projectId && projectId !== 'default'" :projectId="projectId" />
       <div v-else-if="isReady" class="text-muted text-center pt-10">No project available to load Modules.</div>
     </div>
-  </NexusLayout>
+  </div>
 </template>
 
 

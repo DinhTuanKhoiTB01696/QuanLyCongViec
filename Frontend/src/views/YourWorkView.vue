@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import axiosClient from '@/api/axiosClient'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import { useActivityStore } from '@/store/useActivityStore'
 import apexchart from 'vue3-apexcharts'
 import { ElNotification } from 'element-plus'
@@ -307,7 +307,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 </script>
 
 <template>
-  <NexusLayout>
+  <div>
     <div class="yw-container">
       <div class="yw-main">
         <header class="yw-header flex-between">
@@ -535,7 +535,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
         </div>
       </div>
     </div>
-  </NexusLayout>
+  </div>
 </template>
 
 <style scoped>

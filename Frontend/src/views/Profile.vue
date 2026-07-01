@@ -1,5 +1,5 @@
 <template>
-  <NexusLayout class="profile-page">
+  <div class="profile-page">
     <div class="atlassian-settings-layout">
       <!-- Sidebar Column -->
       <ProfileSidebar
@@ -60,12 +60,12 @@
         </transition>
       </div>
     </div>
-  </NexusLayout>
+  </div>
 </template>
 
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import axiosClient from '@/api/axiosClient'
 import { ElMessage } from 'element-plus'
 import { useLocale } from '@/composables/useLocale'

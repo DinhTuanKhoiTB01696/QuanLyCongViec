@@ -10,6 +10,9 @@ const i18nStore = useI18nStore()
 const t = (key) => i18nStore.t(key)
 
 import FilterBar from '@/components/FilterBar.vue'
+import ProjectPageContainer from '@/components/common/ProjectPageContainer.vue'
+import ProjectPageHeader from '@/components/common/ProjectPageHeader.vue'
+import ProjectPageToolbar from '@/components/common/ProjectPageToolbar.vue'
 
 const route = useRoute()
 const projectId = computed(() => route.params.id || localStorage.getItem('currentProjectId') || 'default')
@@ -545,72 +548,23 @@ const getInitials = (name) => {
 </script>
 
 <template>
-  <div class="views-page">
-    <header class="nexus-project-header">
-      <div class="nexus-breadcrumb">
-        <div class="project-icon">
-          <i class="fa-solid fa-certificate"></i>
-        </div>
-        <span class="view-name cursor-pointer" @click="goBackToList">{{ t('Views') }}</span>
-        <template v-if="activeView">
-            <i class="fa-solid fa-chevron-right sep"></i>
-            <span class="view-name">{{ activeView.name }}</span>
+  <ProjectPageContainer>
+    <ProjectPageHeader 
+        icon="fa-regular fa-eye" 
+        :title="activeView ? activeView.name : t('Views')" 
+        :description="activeView ? activeViewSubtitle : t('Manage custom views for your tasks')"
+      >
+        <template #breadcrumbs v-if="activeView">
+          <span class="cursor-pointer hover:underline text-blue-500" @click="goBackToList">{{ t('Views') }}</span>
+          <i class="fa-solid fa-chevron-right text-xs mx-2 text-gray-500"></i>
         </template>
-      </div>
-
-      <div class="nexus-controls-row">
-        <template v-if="!activeView">
-            <!-- Consolidated Clusters -->
-            <div class="flex items-center gap-2" v-if="showViewSearch">
-               <input v-model="filterSearch" class="nexus-search-input" type="text" :placeholder="t('Search views...')" style="width: 200px" />
-            </div>
-            
-            <button class="nexus-btn-icon" type="button" @click="showViewSearch = !showViewSearch" :class="{ 'bg-surface-hover border-accent': showViewSearch }">
-              <i class="fa-solid fa-magnifying-glass"></i>
-            </button>
-            
-            <el-dropdown trigger="click">
-                <button class="nexus-btn-outlined" type="button">
-                    <i class="fa-solid fa-arrow-down-short-wide"></i> {{ t(sortBy) }}
-                </button>
-                <template #dropdown>
-                    <el-dropdown-menu class="dark-popover">
-                        <el-dropdown-item @click="sortBy = 'Name'">{{ t('Name') }}</el-dropdown-item>
-                        <el-dropdown-item @click="sortBy = 'Created at'">{{ t('Created at') }}</el-dropdown-item>
-                        <el-dropdown-item @click="sortBy = 'Updated at'">{{ t('Updated at') }}</el-dropdown-item>
-                    </el-dropdown-menu>
-                </template>
-            </el-dropdown>
-            
-            <el-dropdown trigger="click" :hide-on-click="false" popper-class="views-popper-clean">
-                <button class="nexus-btn-outlined" type="button" :class="{ active: showListFilters || activeListFilterCount }" @click="showListFilters = !showListFilters">
-                    <i class="fa-solid fa-bars-staggered"></i> {{ t('Filters') }}
-                    <span v-if="activeListFilterCount" class="toolbar-count">{{ activeListFilterCount }}</span>
-                </button>
-                <template #dropdown>
-                    <div class="views-filter-menu" @click.stop>
-                        <label class="menu-check">
-                            <input type="checkbox" v-model="listFavoritesOnly" />
-                            <span>{{ t('Favorites') }}</span>
-                        </label>
-                        <label class="menu-check">
-                            <input type="checkbox" v-model="listGlobalOnly" />
-                            <span>{{ t('Global views') }}</span>
-                        </label>
-                        <button class="menu-clear" type="button" :disabled="!activeListFilterCount" @click="clearListFilters">{{ t('Clear filters') }}</button>
-                    </div>
-                </template>
-            </el-dropdown>
-
+        <template #actions>
+          <template v-if="!activeView">
             <button class="nexus-btn-primary" type="button" @click="openCreateModal">
               <i class="fa-solid fa-plus"></i> {{ t('Add view') }}
             </button>
-        </template>
-        <template v-else>
-            <button class="nexus-btn-outlined" type="button" :class="{ active: showActiveFilters || activeFilterCount }" @click="showActiveFilters = !showActiveFilters">
-              <i class="fa-solid fa-filter"></i> {{ t('Filters') }}
-              <span v-if="activeFilterCount" class="toolbar-count">{{ activeFilterCount }}</span>
-            </button>
+          </template>
+          <template v-else>
             <el-dropdown trigger="click" popper-class="display-popper-final" placement="bottom-end" :hide-on-click="false" :z-index="5000">
               <button class="nexus-btn-outlined" type="button">
                 <i class="fa-solid fa-sliders"></i> {{ t('Display') }}
@@ -655,9 +609,63 @@ const getInitials = (name) => {
                 </div>
               </template>
             </el-dropdown>
+          </template>
         </template>
-      </div>
-    </header>
+      </ProjectPageHeader>
+
+      <ProjectPageToolbar v-if="!activeView || activeView"
+        :showSearch="!activeView && showViewSearch"
+        v-model:searchQuery="filterSearch"
+        :searchPlaceholder="t('Search views...')"
+      >
+        <template #left v-if="!activeView">
+          <button class="nexus-btn-icon" type="button" @click="showViewSearch = !showViewSearch" :class="{ 'bg-surface-hover border-accent': showViewSearch }">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+        </template>
+        <template #filters>
+          <template v-if="!activeView">
+            <el-dropdown trigger="click">
+                <button class="nexus-btn-outlined" type="button">
+                    <i class="fa-solid fa-arrow-down-short-wide"></i> {{ t(sortBy) }}
+                </button>
+                <template #dropdown>
+                    <el-dropdown-menu class="dark-popover">
+                        <el-dropdown-item @click="sortBy = 'Name'">{{ t('Name') }}</el-dropdown-item>
+                        <el-dropdown-item @click="sortBy = 'Created at'">{{ t('Created at') }}</el-dropdown-item>
+                        <el-dropdown-item @click="sortBy = 'Updated at'">{{ t('Updated at') }}</el-dropdown-item>
+                    </el-dropdown-menu>
+                </template>
+            </el-dropdown>
+            
+            <el-dropdown trigger="click" :hide-on-click="false" popper-class="views-popper-clean">
+                <button class="nexus-btn-outlined" type="button" :class="{ active: showListFilters || activeListFilterCount }" @click="showListFilters = !showListFilters">
+                    <i class="fa-solid fa-bars-staggered"></i> {{ t('Filters') }}
+                    <span v-if="activeListFilterCount" class="toolbar-count">{{ activeListFilterCount }}</span>
+                </button>
+                <template #dropdown>
+                    <div class="views-filter-menu" @click.stop>
+                        <label class="menu-check">
+                            <input type="checkbox" v-model="listFavoritesOnly" />
+                            <span>{{ t('Favorites') }}</span>
+                        </label>
+                        <label class="menu-check">
+                            <input type="checkbox" v-model="listGlobalOnly" />
+                            <span>{{ t('Global views') }}</span>
+                        </label>
+                        <button class="menu-clear" type="button" :disabled="!activeListFilterCount" @click="clearListFilters">{{ t('Clear filters') }}</button>
+                    </div>
+                </template>
+            </el-dropdown>
+          </template>
+          <template v-else>
+            <button class="nexus-btn-outlined" type="button" :class="{ active: showActiveFilters || activeFilterCount }" @click="showActiveFilters = !showActiveFilters">
+              <i class="fa-solid fa-filter"></i> {{ t('Filters') }}
+              <span v-if="activeFilterCount" class="toolbar-count">{{ activeFilterCount }}</span>
+            </button>
+          </template>
+        </template>
+      </ProjectPageToolbar>
 
     <main class="views-content">
       <div v-if="!activeView" class="views-list">
@@ -764,7 +772,6 @@ const getInitials = (name) => {
                     <button class="m-toggle" :class="{ active: modalTab === 'list' }" @click="modalTab = 'list'" type="button">
                         <i :class="viewTypeIcon" class="mr-2"></i> {{ t('List') }}
                     </button>
-                    <!-- UPDATED PLACEMENT TO 'right-start' FOR SCROLLABILITY -->
                     <el-dropdown trigger="click" popper-class="display-popper-final" placement="right-start" :hide-on-click="false" :z-index="5000">
                         <button class="m-toggle" :class="{ active: modalTab === 'display' }" @click="modalTab = 'display'" type="button">{{ t('Display') }}</button>
                         <template #dropdown>
@@ -839,7 +846,7 @@ const getInitials = (name) => {
         </div>
       </div>
     </div>
-  </div>
+  </ProjectPageContainer>
 </template>
 
 <style scoped>

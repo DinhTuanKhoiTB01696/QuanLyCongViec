@@ -86,6 +86,7 @@ export const useHomeProjectStore = defineStore('homeProject', {
       return {
         ...data,
         id: data.id || data._id,
+        workspaceId: data.workspaceId || data.WorkspaceId || null,
         title: data.title || data.name || data.Name || '',
         name: data.name || data.title || data.Name || '',
         owner: ownerName,

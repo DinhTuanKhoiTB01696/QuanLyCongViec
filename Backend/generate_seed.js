@@ -187,7 +187,7 @@ for (let i = 1; i <= ROW_COUNT; i++) {
     let id = generateGuid(i, COMM_PREFIX);
     let tid = generateGuid(i, TASK_PREFIX);
     let uid = generateGuid(i, USERS_PREFIX);
-    sql += `INSERT INTO Comments (Id, Content, WorkTaskId, UserId, IsDeleted, CreatedAt, UpdatedAt) VALUES ('${id}', 'Comment ${i}', '${tid}', '${uid}', 0, GETDATE(), GETDATE());\n`;
+    sql += `INSERT INTO Comments (Id, Content, EntityId, EntityType, UserId, IsDeleted, CreatedAt, UpdatedAt) VALUES ('${id}', 'Comment ${i}', '${tid}', 'WorkTask', '${uid}', 0, GETDATE(), GETDATE());\n`;
 }
 sql += '\n';
 
