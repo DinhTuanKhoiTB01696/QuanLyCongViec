@@ -3,30 +3,30 @@
     <div class="rewards-page">
       <header class="nexus-feature-header">
         <div class="header-info">
-          <p class="eyebrow">Hệ thống điểm</p>
-          <h1>Phần thưởng</h1>
-          <p class="muted">Theo dõi điểm thưởng, cấp độ nghề nghiệp, tỷ lệ đóng góp và thưởng hoàn thành sớm.</p>
+          <p class="eyebrow">{{ t('Hệ thống điểm') }}</p>
+          <h1>{{ t('Phần thưởng') }}</h1>
+          <p class="muted">{{ t('Theo dõi điểm thưởng, cấp độ nghề nghiệp, tỷ lệ đóng góp và thưởng hoàn thành sớm.') }}</p>
         </div>
         <button class="refresh-btn" type="button" :disabled="loading" @click="loadRewards">
-          <i class="fa-solid fa-rotate"></i> {{ loading ? 'Đang cập nhật...' : 'Làm mới' }}
+          <i class="fa-solid fa-rotate"></i> {{ loading ? t('Đang cập nhật...') : t('Làm mới') }}
         </button>
       </header>
 
       <section class="wallet-band">
         <div class="wallet-card">
-          <span class="label">Số dư hiện tại</span>
+          <span class="label">{{ t('Số dư hiện tại') }}</span>
           <strong>{{ wallet.totalPoints }}</strong>
-          <span class="unit">điểm</span>
+          <span class="unit">{{ t('điểm') }}</span>
         </div>
         <div class="wallet-card">
-          <span class="label">Cấp độ nghề nghiệp</span>
+          <span class="label">{{ t('Cấp độ nghề nghiệp') }}</span>
           <strong>{{ career.level }}</strong>
           <span class="unit">{{ career.title }}</span>
         </div>
         <div class="wallet-card wide">
           <div class="wallet-card-head">
-            <span class="label">Tiến độ cấp độ</span>
-            <span class="unit">{{ pointsToNext }} điểm đến cấp tiếp theo</span>
+            <span class="label">{{ t('Tiến độ cấp độ') }}</span>
+            <span class="unit">{{ pointsToNext }} {{ t('điểm đến cấp tiếp theo') }}</span>
           </div>
           <div class="progress-container">
             <div class="progress-track">
@@ -40,81 +40,89 @@
       <section class="formula-band">
         <div class="panel">
           <div class="panel-head">
-            <h2>Công thức tính điểm</h2>
+            <h2>{{ t('Công thức tính điểm') }}</h2>
             <span>{{ formula.expression }}</span>
           </div>
           <div class="formula-grid">
             <div class="formula-cell">
-              <span>Độ khó</span>
+              <span>{{ t('Độ khó') }}</span>
               <strong>{{ formula.sample.difficulty }}</strong>
             </div>
             <div class="formula-cell">
-              <span>Thời lượng</span>
+              <span>{{ t('Thời lượng') }}</span>
               <strong>{{ formula.sample.duration }}</strong>
             </div>
             <div class="formula-cell">
-              <span>Tỷ lệ</span>
+              <span>{{ t('Tỷ lệ') }}</span>
               <strong>{{ formula.sample.share }}%</strong>
             </div>
             <div class="formula-cell total">
-              <span>Điểm cuối cùng</span>
+              <span>{{ t('Điểm cuối cùng') }}</span>
               <strong>{{ formula.sample.total }}</strong>
             </div>
           </div>
           <p class="helper-copy">{{ formula.sample.note }}</p>
           <div class="policy-list">
-            <div class="summary-row"><span>Quy tắc thực tế</span><strong>{{ formula.actualHoursRule }}</strong></div>
-            <div class="summary-row"><span>Nhiều người thực hiện</span><strong>{{ formula.policy?.multiAssignee }}</strong></div>
-            <div class="summary-row"><span>Chuyển tiếp</span><strong>{{ formula.policy?.carryOver }}</strong></div>
+            <div class="summary-row"><span>{{ t('Quy tắc thực tế') }}</span><strong>{{ translatePolicyText(formula.actualHoursRule) }}</strong></div>
+            <div class="summary-row"><span>{{ t('Nhiều người thực hiện') }}</span><strong>{{ translatePolicyText(formula.policy?.multiAssignee) }}</strong></div>
+            <div class="summary-row"><span>{{ t('Chuyển tiếp') }}</span><strong>{{ translatePolicyText(formula.policy?.carryOver) }}</strong></div>
           </div>
         </div>
 
         <div class="panel">
           <div class="panel-head">
-            <h2>Tổng kết</h2>
-            <span>Sprint này</span>
+            <h2>{{ t('Tổng kết') }}</h2>
+            <span>{{ t('Sprint này') }}</span>
           </div>
           <div class="summary-list">
-            <div class="summary-row"><span>Công việc hoàn thành</span><strong>{{ summary.completedTasks }}</strong></div>
-            <div class="summary-row"><span>Thưởng hoàn thành sớm</span><strong>{{ summary.earlyBonuses }}</strong></div>
-            <div class="summary-row"><span>Điểm cơ bản</span><strong>{{ summary.basePoints }}</strong></div>
-            <div class="summary-row"><span>Điểm thưởng</span><strong>{{ summary.bonusPoints }}</strong></div>
-            <div class="summary-row"><span>Điểm phạt</span><strong>{{ summary.penaltyPoints }}</strong></div>
-            <div class="summary-row"><span>Tỷ lệ đóng góp</span><strong>{{ summary.contributionPercent }}%</strong></div>
-            <div class="summary-row"><span>Giờ dự kiến</span><strong>{{ summary.estimatedHours }}h</strong></div>
-            <div class="summary-row"><span>Giờ thực tế</span><strong>{{ summary.actualHours }}h</strong></div>
-            <div class="summary-row"><span>Giờ đã ghi nhận</span><strong>{{ summary.loggedHours }}h</strong></div>
-            <div class="summary-row"><span>Điểm thu hồi</span><strong>{{ summary.rollbackPoints }}</strong></div>
+            <div class="summary-row"><span>{{ t('Công việc hoàn thành') }}</span><strong>{{ summary.completedTasks }}</strong></div>
+            <div class="summary-row"><span>{{ t('Thưởng hoàn thành sớm') }}</span><strong>{{ summary.earlyBonuses }}</strong></div>
+            <div class="summary-row"><span>{{ t('Điểm cơ bản') }}</span><strong>{{ summary.basePoints }}</strong></div>
+            <div class="summary-row"><span>{{ t('Điểm thưởng') }}</span><strong>{{ summary.bonusPoints }}</strong></div>
+            <div class="summary-row"><span>{{ t('Điểm phạt') }}</span><strong>{{ summary.penaltyPoints }}</strong></div>
+            <div class="summary-row"><span>{{ t('Tỷ lệ đóng góp') }}</span><strong>{{ summary.contributionPercent }}%</strong></div>
+            <div class="summary-row"><span>{{ t('Giờ dự kiến') }}</span><strong>{{ summary.estimatedHours }}h</strong></div>
+            <div class="summary-row"><span>{{ t('Giờ thực tế') }}</span><strong>{{ summary.actualHours }}h</strong></div>
+            <div class="summary-row"><span>{{ t('Giờ đã ghi nhận') }}</span><strong>{{ summary.loggedHours }}h</strong></div>
+            <div class="summary-row"><span>{{ t('Điểm thu hồi') }}</span><strong>{{ summary.rollbackPoints }}</strong></div>
           </div>
         </div>
       </section>
 
       <main class="rewards-grid">
         <section class="panel">
-          <div class="panel-head"><h2>Công việc tiêu biểu</h2><span>Giá trị nhất</span></div>
-          <div v-if="!spotlightTasks.length" class="empty">Chưa có công việc tiêu biểu nào.</div>
+          <div class="panel-head"><h2>{{ t('Công việc tiêu biểu') }}</h2><span>{{ t('Giá trị nhất') }}</span></div>
+          <div v-if="!spotlightTasks.length" class="empty">{{ t('Chưa có công việc tiêu biểu nào.') }}</div>
           <article v-for="task in spotlightTasks" :key="task.id" class="spotlight-row">
             <div class="spotlight-main">
               <strong>{{ task.sequenceId || 'TASK' }}</strong>
               <div class="spotlight-title">{{ task.title }}</div>
-              <small>{{ task.estimatedDays }} ngày · {{ task.estimatedHours }}h dự kiến / {{ task.actualHours }}h thực tế · tỷ lệ {{ task.contributionShare }}%</small>
+              <small>{{ task.estimatedDays }} {{ t('ngày') }} · {{ task.estimatedHours }}h {{ t('dự kiến') }} / {{ task.actualHours }}h {{ t('thực tế') }} · {{ t('tỷ lệ') }} {{ task.contributionShare }}%</small>
             </div>
             <div class="spotlight-side">
-              <span class="chip">{{ task.fairPoints }} điểm</span>
-              <span class="chip muted">hiệu suất x{{ task.efficiency }}</span>
-              <span class="chip muted">chất lượng x{{ task.qualityModifier }}</span>
+              <span class="chip" v-if="task.actualHours > 0 && task.actualHours <= task.estimatedHours / 2" style="background-color: var(--color-accent); color: white;">
+                {{ task.fairPoints * 2 }} {{ t('điểm') }}
+              </span>
+              <span class="chip" v-else>
+                {{ task.fairPoints }} {{ t('điểm') }}
+              </span>
+              <span v-if="task.actualHours > 0 && task.actualHours <= task.estimatedHours / 2" class="chip muted" style="color: var(--color-accent); font-weight: bold;">
+                <i class="fa-solid fa-bolt"></i> x2 {{ t('Hoàn thành sớm') }}
+              </span>
+              <span class="chip muted">{{ t('hiệu suất') }} x{{ task.efficiency }}</span>
+              <span class="chip muted">{{ t('chất lượng') }} x{{ task.qualityModifier }}</span>
               <span class="chip muted">{{ task.progressPercent }}%</span>
             </div>
           </article>
         </section>
 
         <section class="panel">
-          <div class="panel-head"><h2>Thành tích gần đây</h2><span>{{ recentAchievements.length }}</span></div>
-          <div v-if="!recentAchievements.length" class="empty">Chưa có thành tích nào gần đây.</div>
+          <div class="panel-head"><h2>{{ t('Thành tích gần đây') }}</h2><span>{{ recentAchievements.length }}</span></div>
+          <div v-if="!recentAchievements.length" class="empty">{{ t('Chưa có thành tích nào gần đây.') }}</div>
           <article v-for="item in recentAchievements" :key="item.id" class="achievement-row">
             <div>
               <strong>{{ item.title }}</strong>
-              <div class="muted">{{ item.reason }}</div>
+              <div class="muted">{{ translateTransaction(item.reason) }}</div>
             </div>
             <div class="achievement-points">+{{ item.amount }}</div>
           </article>
@@ -123,16 +131,16 @@
 
       <section class="rewards-grid lower-grid">
         <section class="panel">
-          <div class="panel-head"><h2>Lịch sử điểm</h2><span>{{ transactions.length }}</span></div>
-          <div v-if="loading" class="empty">Đang tải dữ liệu...</div>
-          <div v-else-if="!transactions.length" class="empty">Chưa có giao dịch điểm nào.</div>
+          <div class="panel-head"><h2>{{ t('Lịch sử điểm') }}</h2><span>{{ transactions.length }}</span></div>
+          <div v-if="loading" class="empty">{{ t('Đang tải dữ liệu...') }}</div>
+          <div v-else-if="!transactions.length" class="empty">{{ t('Chưa có giao dịch điểm nào.') }}</div>
           <article v-for="tx in transactions" :key="tx.id" class="tx-row">
             <div class="tx-icon" :class="{ negative: tx.amount < 0 }">
               <i :class="tx.amount >= 0 ? 'fa-solid fa-plus' : 'fa-solid fa-minus'"></i>
             </div>
             <div class="tx-main">
-              <div class="tx-title">{{ tx.taskSequenceId || tx.taskTitle || tx.reason }}</div>
-              <div class="tx-reason">{{ tx.reason }}</div>
+              <div class="tx-title">{{ tx.taskSequenceId || tx.taskTitle || translateTransaction(tx.reason) }}</div>
+              <div class="tx-reason">{{ translateTransaction(tx.reason) }}</div>
               <time>{{ formatDate(tx.createdAt) }}</time>
             </div>
             <strong class="tx-points" :class="{ negative: tx.amount < 0 }">{{ tx.amount > 0 ? '+' : '' }}{{ tx.amount }}</strong>
@@ -140,16 +148,16 @@
         </section>
 
         <section class="panel">
-          <div class="panel-head"><h2>Bảng xếp hạng</h2><span>Top 20</span></div>
-          <div v-if="!leaderboard.length" class="empty">Chưa có dữ liệu xếp hạng.</div>
+          <div class="panel-head"><h2>{{ t('Bảng xếp hạng') }}</h2><span>Top 20</span></div>
+          <div v-if="!leaderboard.length" class="empty">{{ t('Chưa có dữ liệu xếp hạng.') }}</div>
           <article v-for="(item, index) in leaderboard" :key="item.userId" class="leader-row">
             <span class="rank">#{{ index + 1 }}</span>
             <UserAvatar :user="{ avatarColor: getAvatarBg(item.userName), initials: getInitials(item.userName), fullName: item.userName }" :size="32" :fontSize="11" class="avatar-wrapper" />
             <div class="leader-main">
-              <strong>{{ item.userName || 'Thành viên' }}</strong>
-              <small>{{ item.careerTitle || `Cấp độ ${item.level}` }}</small>
+              <strong>{{ item.userName || t('Thành viên') }}</strong>
+              <small>{{ item.careerTitle || `${t('Cấp độ')} ${item.level}` }}</small>
             </div>
-            <span class="leader-points">{{ item.totalPoints }} điểm</span>
+            <span class="leader-points">{{ item.totalPoints }} {{ t('điểm') }}</span>
           </article>
         </section>
       </section>
@@ -163,6 +171,65 @@ import { ElMessage } from 'element-plus'
 
 import axiosClient from '@/api/axiosClient'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import { useI18nStore } from '@/store/useI18nStore'
+
+const i18nStore = useI18nStore()
+const t = (key) => {
+  const customMap = {
+    'Hệ thống điểm': 'Point system',
+    'Phần thưởng': 'Rewards',
+    'Theo dõi điểm thưởng, cấp độ nghề nghiệp, tỷ lệ đóng góp và thưởng hoàn thành sớm.': 'Track reward points, career level, contribution share, and early completion bonuses.',
+    'Đang cập nhật...': 'Updating...',
+    'Làm mới': 'Refresh',
+    'Số dư hiện tại': 'Current balance',
+    'điểm': 'points',
+    'Cấp độ nghề nghiệp': 'Career level',
+    'Tiến độ cấp độ': 'Level progress',
+    'điểm đến cấp tiếp theo': 'points to next level',
+    'Công thức tính điểm': 'Point calculation formula',
+    'Độ khó': 'Difficulty',
+    'Thời lượng': 'Duration',
+    'Tỷ lệ': 'Share',
+    'Điểm cuối cùng': 'Final points',
+    'Quy tắc thực tế': 'Actual rule',
+    'Nhiều người thực hiện': 'Multi-assignee',
+    'Chuyển tiếp': 'Carry-over',
+    'Tổng kết': 'Summary',
+    'Sprint này': 'This sprint',
+    'Công việc hoàn thành': 'Completed tasks',
+    'Thưởng hoàn thành sớm': 'Early completion bonus',
+    'Điểm cơ bản': 'Base points',
+    'Điểm thưởng': 'Bonus points',
+    'Điểm phạt': 'Penalty points',
+    'Tỷ lệ đóng góp': 'Contribution share',
+    'Giờ dự kiến': 'Estimated hours',
+    'Giờ thực tế': 'Actual hours',
+    'Giờ đã ghi nhận': 'Logged hours',
+    'Điểm thu hồi': 'Rollback points',
+    'Công việc tiêu biểu': 'Spotlight tasks',
+    'Giá trị nhất': 'Most valuable',
+    'Chưa có công việc tiêu biểu nào.': 'No spotlight tasks yet.',
+    'ngày': 'days',
+    'dự kiến': 'estimated',
+    'thực tế': 'actual',
+    'tỷ lệ': 'share',
+    'hiệu suất': 'efficiency',
+    'chất lượng': 'quality',
+    'Thành tích gần đây': 'Recent achievements',
+    'Chưa có thành tích nào gần đây.': 'No recent achievements.',
+    'Lịch sử điểm': 'Points history',
+    'Đang tải dữ liệu...': 'Loading data...',
+    'Chưa có giao dịch điểm nào.': 'No point transactions yet.',
+    'Bảng xếp hạng': 'Leaderboard',
+    'Chưa có dữ liệu xếp hạng.': 'No leaderboard data.',
+    'Thành viên': 'Member',
+    'Cấp độ': 'Level'
+  }
+  if (i18nStore.locale === 'en') {
+    return customMap[key] || i18nStore.t(key) || key
+  }
+  return key
+}
 
 const loading = ref(false)
 const wallet = ref({ totalPoints: 0, level: 1, nextLevelAt: 1000 })
@@ -185,6 +252,58 @@ const pointsToNext = computed(() => Math.max(0, Number(career.value?.nextThresho
 const getInitials = (name = '') => {
   const parts = name.trim().split(/\s+/).filter(Boolean)
   return (parts.length > 1 ? `${parts[0][0]}${parts.at(-1)[0]}` : name.slice(0, 2)).toUpperCase() || 'U'
+}
+
+const translatePolicyText = (text) => {
+  if (!text) return '';
+  const lower = text.toLowerCase();
+  
+  const isEn = i18nStore.locale === 'en';
+
+  if (lower.includes('actual hours luon uu tien lay tu time log')) {
+    return isEn ? 'Actual hours are always taken from time log. Assignment and Task actual hours are rolled up from time log.' : 'Giờ thực tế luôn ưu tiên lấy từ time log. Giờ thực tế của Assignment và Task được tổng hợp (roll-up) từ time log.';
+  }
+  if (lower.includes('estimate cua task khong bi nhan doi')) {
+    return isEn ? 'Task estimate is not multiplied; effort is distributed by assignee estimate first, then by contribution weight.' : 'Thời gian dự kiến (Estimate) của công việc không bị nhân đôi; nỗ lực được chia theo dự kiến của từng người thực hiện trước, sau đó mới tính theo tỷ lệ đóng góp (contribution weight).';
+  }
+  if (lower.includes('task qua cycle van giu estimate')) {
+    return isEn ? 'Tasks carried over to another cycle retain their estimate/actual; bonus and penalty are evaluated at completion.' : 'Công việc chuyển qua chu kỳ (cycle) khác vẫn giữ nguyên thời gian dự kiến/thực tế; điểm thưởng và phạt được xét tại thời điểm hoàn thành.';
+  }
+  return text;
+}
+
+const translateTransaction = (reason) => {
+  if (!reason) return '';
+  const lower = reason.toLowerCase();
+  const isEn = i18nStore.locale === 'en';
+
+  if (lower.includes('hoan tra diem do task bi reject')) {
+    const userMatch = reason.match(/user ([a-zA-Z0-9-]+)/);
+    const userSuffix = userMatch ? ` bởi người dùng ${userMatch[1].substring(0,6)}...` : '';
+    const userSuffixEn = userMatch ? ` by user ${userMatch[1].substring(0,6)}...` : '';
+    return isEn ? `Points refunded due to Task rejection${userSuffixEn}` : `Hoàn trả điểm do Task bị từ chối${userSuffix}`;
+  }
+  
+  if (lower.includes('cong diem hoan thanh phan viec task')) {
+    const taskMatch = reason.match(/task ([A-Z0-9-]+)/i);
+    const taskName = taskMatch ? taskMatch[1] : '';
+    return isEn ? `Points awarded for completing task portion ${taskName}` : `Cộng điểm hoàn thành phần việc task ${taskName}`;
+  }
+
+  if (lower.includes('cong diem hoan thanh task')) {
+    const taskMatch = reason.match(/task ([A-Z0-9-]+)/i);
+    const taskName = taskMatch ? taskMatch[1] : '';
+    return isEn ? `Points awarded for completing task ${taskName}` : `Cộng điểm hoàn thành task ${taskName}`;
+  }
+
+  // Catch-all generic cases that might have slight variations
+  if (lower.includes('cong diem hoan thanh')) {
+    const parts = reason.split(' ');
+    const taskName = parts[parts.length - 1]; // Assume last word is task ID
+    return isEn ? `Points awarded for completion (${taskName})` : `Cộng điểm hoàn thành (${taskName})`;
+  }
+
+  return reason;
 }
 
 const loadRewards = async () => {
@@ -494,6 +613,39 @@ small,
 .summary-row {
   padding: 12px 0;
   border-bottom: 1px solid var(--color-border);
+  gap: 16px;
+}
+
+.summary-row span {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.summary-row strong {
+  text-align: right;
+}
+
+.policy-list {
+  padding: 0 24px 24px 24px;
+}
+
+.policy-list .summary-row {
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 24px;
+}
+
+.policy-list .summary-row span {
+  flex: 0 0 180px;
+  white-space: normal;
+}
+
+.policy-list .summary-row strong {
+  flex: 1;
+  text-align: left;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--color-text-primary);
 }
 
 .summary-row:last-child {

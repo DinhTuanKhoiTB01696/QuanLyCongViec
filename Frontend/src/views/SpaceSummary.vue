@@ -1,5 +1,5 @@
 <template>
-  <ProjectPageContainer>
+  <ProjectPageContainer class="space-summary-page">
     <div v-if="isForbidden" class="forbidden-overlay">
       <div class="forbidden-content">
         <div class="lock-icon"><i class="fa-solid fa-lock"></i></div>
@@ -211,15 +211,15 @@
         <!-- Loading indicator -->
         <div class="kanban-loading-bar" v-if="store.loading">
           <i class="fa-solid fa-spinner fa-spin"></i>
-          <span>Đang tải dữ liệu...</span>
+          <span>{{ t('Loading data...') }}</span>
         </div>
 
         <!-- Error banner -->
         <div class="kanban-error-banner" v-if="store.error && !store.loading">
           <i class="fa-solid fa-triangle-exclamation"></i>
-          <span>Không thể tải bảng công việc. Đang thử kết nối lại...</span>
+          <span>{{ t('Unable to load work items. Reconnecting...') }}</span>
           <button class="kanban-retry-btn" @click="fetchTasks()">
-            <i class="fa-solid fa-rotate-right"></i> Thử lại
+            <i class="fa-solid fa-rotate-right"></i> {{ t('Retry') }}
           </button>
         </div>
 
@@ -2111,8 +2111,6 @@ onUnmounted(() => {
    PLANE.SO PROJECT KANBAN THEME
    ================================== */
 .plane-board-container {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--sa-bg, var(--color-bg)) 88%, var(--color-surface) 12%), var(--sa-bg, var(--color-bg)));
   height: calc(100vh - 60px);
   min-height: 0;
   display: flex;
@@ -2747,6 +2745,24 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 12px;
 }
+/* Kanban edge-to-edge layout fixes */
+:deep(.project-page-inner) {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+.plane-board-container > .project-page-header,
+.plane-board-container > .project-page-toolbar,
+.plane-board-container > .work-filter-row,
+.plane-board-container > .list-wrapper,
+.plane-board-container > .calendar-wrapper,
+.plane-board-container > .timeline-wrapper {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
 .ic-top {
   display: flex;
   align-items: center;
@@ -3656,6 +3672,7 @@ onUnmounted(() => {
   }
 }
 </style>
+
 
 
 

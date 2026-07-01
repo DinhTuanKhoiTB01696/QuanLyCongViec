@@ -29,24 +29,24 @@ import { currentTheme, toggleTheme } from '@/utils/theme'
 const promoVideoSrc = ''
 
 const modules = [
-  { icon: KanbanSquare, title: 'Kanban & Tasks', text: 'Quản lý backlog, trạng thái, deadline và người phụ trách trong một luồng rõ ràng.' },
-  { icon: CalendarCheck, title: 'Sprint / Chu kỳ', text: 'Lập kế hoạch sprint, theo dõi burndown và điểm tiến độ theo từng ngày.' },
-  { icon: BarChart3, title: 'Reports', text: 'Tổng hợp hiệu suất, cảnh báo quá hạn, tải công việc và phân bổ ưu tiên.' },
-  { icon: Bot, title: 'Trợ lý AI', text: 'Tạo việc nhanh, gợi ý mô tả và hỗ trợ đội nhóm bớt thao tác lặp lại.' },
-  { icon: Users, title: 'Team workspace', text: 'Không gian cho nhóm, dự án, mục tiêu và phân quyền theo vai trò.' },
-  { icon: ShieldCheck, title: 'Bảo mật & OTP', text: 'Đăng nhập, đăng ký và xác thực OTP được gom vào trải nghiệm gọn gàng.' }
+  { icon: KanbanSquare, title: 'Kanban & Tasks', text: 'Quản lý backlog, trạng thái, deadline, người phụ trách và độ ưu tiên trong một bảng rõ ràng.' },
+  { icon: CalendarCheck, title: 'Sprint / Chu kỳ', text: 'Lập kế hoạch sprint, theo dõi tiến độ và biết ngay việc nào đang bị chậm.' },
+  { icon: Layers3, title: 'Modules', text: 'Gom các công việc liên quan vào từng phân hệ để đội nhóm dễ chia phạm vi.' },
+  { icon: BarChart3, title: 'Reports', text: 'Tổng hợp tiến độ, tải công việc và rủi ro để báo cáo nhanh hơn.' },
+  { icon: Users, title: 'Team Workspace', text: 'Mỗi dự án có không gian riêng cho thành viên, vai trò, công việc và cập nhật.' },
+  { icon: Sparkles, title: 'Rewards', text: 'Ghi nhận đóng góp và tạo động lực cho thành viên hoàn thành công việc đúng hạn.' }
 ]
 
 const stats = [
-  { value: '4x', label: 'nhìn rõ tiến độ hơn' },
-  { value: '1', label: 'workspace cho toàn đội' },
-  { value: '24/7', label: 'sẵn sàng theo dõi' }
+  { value: 'Rõ việc hơn', label: 'task, người phụ trách, deadline nằm cùng một chỗ' },
+  { value: 'Ít hỏi lại hơn', label: 'trạng thái và cập nhật hiển thị theo thời gian thực' },
+  { value: 'Báo cáo nhanh', label: 'tiến độ sprint và nhóm được tổng hợp sẵn' }
 ]
 
 const timeline = [
   'Tạo dự án và chia việc theo priority',
-  'Kéo task qua board, sprint và cycle',
-  'Xem báo cáo, thưởng điểm và cảnh báo quá hạn'
+  'Kéo task qua board, sprint và module',
+  'Theo dõi báo cáo, điểm thưởng và cảnh báo quá hạn'
 ]
 </script>
 
@@ -85,12 +85,11 @@ const timeline = [
           <div class="hero-copy">
             <div class="eyebrow">
               <Sparkles :size="16" />
-              SprintA Agile Workspace
+              SPRINTA AGILE WORKSPACE
             </div>
-            <h1>Một workspace nổi bật để quản lý dự án, sprint và báo cáo như Jira nhưng dễ dùng hơn.</h1>
+            <h1>Quản lý công việc, sprint và báo cáo trong một workspace dễ dùng hơn.</h1>
             <p>
-              SprintA gom task, chu kỳ, bảng công việc, báo cáo và phần thưởng vào một trải nghiệm hiện đại,
-              có chuyển sáng tối đúng màu và đủ không gian để giới thiệu sản phẩm cho khách hàng mới.
+              SprintA giúp đội nhóm gom task, chu kỳ, module, báo cáo và tiến độ về một nơi — để ai cũng biết việc nào cần làm, ai đang phụ trách và dự án đang chạy tới đâu.
             </p>
 
             <div class="hero-actions">
@@ -98,10 +97,11 @@ const timeline = [
                 Bắt đầu miễn phí
                 <ArrowRight :size="18" />
               </router-link>
-              <router-link class="secondary-cta" to="/login">
-                Đăng nhập
-              </router-link>
+              <a class="secondary-cta" href="#video">
+                Xem demo
+              </a>
             </div>
+            <small style="display: block; margin-top: 12px; color: var(--page-muted); font-size: 13px;">Không cần thẻ thanh toán. Tạo workspace và thử ngay trong vài phút.</small>
 
             <div class="stat-row">
               <article v-for="stat in stats" :key="stat.label">
@@ -125,16 +125,16 @@ const timeline = [
             <div class="floating-card card-progress">
               <CheckCircle2 :size="18" />
               <div>
-                <strong>86%</strong>
-                <span>Sprint health</span>
+                <strong>Báo cáo nhanh</strong>
+                <span>Tổng hợp tiến độ</span>
               </div>
             </div>
 
             <div class="floating-card card-ai">
               <Bot :size="18" />
               <div>
-                <strong>AI gợi ý</strong>
-                <span>Tạo task nhanh</span>
+                <strong>Gợi ý thông minh</strong>
+                <span>Sắp ra mắt</span>
               </div>
             </div>
           </div>
@@ -145,8 +145,8 @@ const timeline = [
         <div class="container">
           <div class="section-heading">
             <span class="eyebrow small">Product suite</span>
-            <h2>Đủ tính năng để người mới nhìn vào là muốn bấm thử.</h2>
-            <p>Thay vì một trang chào đơn sắc, landing mới show ngay giá trị chính: quản lý việc, sprint, báo cáo, AI, đội nhóm và điểm thưởng.</p>
+            <h2>Tất cả thứ đội nhóm cần để chạy dự án gọn hơn.</h2>
+            <p>Từ backlog, bảng công việc, sprint, module đến báo cáo — SprintA gom các bước quan trọng vào một luồng làm việc dễ theo dõi.</p>
           </div>
 
           <div class="module-grid">
@@ -165,10 +165,9 @@ const timeline = [
         <div class="container video-grid">
           <div class="video-copy">
             <span class="eyebrow small">Showcase video</span>
-            <h2>Chừa sẵn một khung video quảng cáo sản phẩm.</h2>
+            <h2>Xem SprintA hoạt động trong một dự án thật.</h2>
             <p>
-              Một khu vực hero media riêng để đặt video giới thiệu sản phẩm, show quy trình tạo việc,
-              kéo board, chạy sprint và xem báo cáo trong cùng một câu chuyện liền mạch.
+              Video ngắn cho bạn thấy cách tạo task, kéo việc qua board, theo dõi sprint và xem báo cáo mà không cần mở nhiều công cụ khác nhau.
             </p>
             <div class="timeline">
               <div v-for="(item, index) in timeline" :key="item" class="timeline-item">
@@ -176,6 +175,7 @@ const timeline = [
                 <p>{{ item }}</p>
               </div>
             </div>
+            <a class="secondary-cta" href="#video" style="margin-top: 24px; display: inline-flex;">Xem demo sản phẩm</a>
           </div>
 
           <div class="video-frame">
@@ -187,7 +187,7 @@ const timeline = [
               </button>
               <div class="video-caption">
                 <strong>SprintA product film</strong>
-                <span>Demo workspace, sprint, report và AI automation</span>
+                <span>Demo workspace, sprint, report và module</span>
               </div>
             </div>
           </div>
@@ -206,19 +206,19 @@ const timeline = [
 
           <div class="workflow-copy">
             <span class="eyebrow small">From idea to done</span>
-            <h2>Khách vừa vào là thấy ngay SprintA giải quyết việc gì.</h2>
+            <h2>Từ ý tưởng đến hoàn thành, đội nhóm đều nhìn cùng một bức tranh.</h2>
             <p>
-              Bố cục mới giống một SaaS hiện đại: headline rõ, CTA mạnh, preview sản phẩm lớn,
-              module tính năng nhiều màu và animation nhẹ để trang có sức sống hơn.
+              SprintA giúp bạn biến danh sách việc rời rạc thành một quy trình rõ ràng: tạo task, chia sprint, theo dõi tiến độ, cập nhật báo cáo và biết ai đang cần hỗ trợ.
             </p>
             <div class="workflow-pills">
               <span><Layers3 :size="16" /> Projects</span>
               <span><KanbanSquare :size="16" /> Boards</span>
               <span><CalendarCheck :size="16" /> Sprints</span>
               <span><BarChart3 :size="16" /> Reports</span>
+              <span><Sparkles :size="16" /> Rewards</span>
             </div>
             <router-link class="primary-cta compact" to="/register">
-              Tạo tài khoản
+              Tạo workspace miễn phí
               <ArrowRight :size="18" />
             </router-link>
           </div>
@@ -232,7 +232,7 @@ const timeline = [
           <img :src="logoImg" alt="SprintA Logo" class="custom-logo" />
           <span>SprintA</span>
         </router-link>
-        <p>Quản lý dự án, sprint và hiệu suất đội nhóm trong một workspace sáng rõ.</p>
+        <p>SprintA — Quản lý công việc, sprint và hiệu suất đội nhóm trong một workspace rõ ràng.</p>
         <div class="socials">
           <Twitter :size="18" />
           <Github :size="18" />
