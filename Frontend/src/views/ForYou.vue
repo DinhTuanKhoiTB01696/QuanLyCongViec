@@ -3,7 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import axiosClient from '@/api/axiosClient'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import TaskDetailModal from '@/components/TaskDetailModal.vue'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
@@ -59,7 +59,7 @@ const fetchSpaces = async () => {
       description: p.description || t('forYou.softwareSpace'),
       cover: p.cover || '#3b82f6',
       icon: p.icon || '📦',
-      taskCount: p.activeMemberCount || p.ActiveMemberCount || 0,
+      taskCount: p.taskCount ?? p.TotalTasks ?? p.totalTasks ?? p.activeMemberCount ?? p.ActiveMemberCount ?? 0,
       networkType: p.networkType || 'Public',
       createdAt: p.createdAt || null,
       originalRow: p
@@ -114,7 +114,13 @@ const forYouTabs = computed(() => [
 
 // Sorted Spaces
 const sortedSpaces = computed(() => {
-  return [...spaces.value].sort((a, b) => {
+  return spaces.value.map(space => {
+    const spaceTasks = myTasks.value.filter(t => t.projectId === space.id || (t.projectName && t.projectName === space.name)).length;
+    return {
+      ...space,
+      displayTaskCount: spaceTasks > 0 ? spaceTasks : (space.taskCount || 0)
+    }
+  }).sort((a, b) => {
     const aStarred = projectStore.favoriteProjects.some(p => p.id === a.id)
     const bStarred = projectStore.favoriteProjects.some(p => p.id === b.id)
     if (aStarred !== bStarred) return aStarred ? -1 : 1
@@ -360,7 +366,7 @@ watch(activeTab, () => {
 </script>
 
 <template>
-  <NexusLayout>
+  <div>
     <div class="jira-dashboard">
       
       <!-- Main Content Area (Left Column) -->
@@ -402,7 +408,7 @@ watch(activeTab, () => {
               </div>
               <div class="sc-info">
                 <h3 class="sc-name" :title="space.name">{{ space.name }}</h3>
-                <p class="sc-desc">{{ space.description }} - {{ space.taskCount }} {{ t('common.tasks') }}</p>
+                <p class="sc-desc">{{ space.description }} - {{ space.displayTaskCount }} {{ t('common.tasks') }}</p>
               </div>
               <!-- Star button for Space -->
               <button 
@@ -543,7 +549,7 @@ watch(activeTab, () => {
       />
 
     </div>
-  </NexusLayout>
+  </div>
 </template>
 
 <style scoped>
@@ -665,7 +671,7 @@ watch(activeTab, () => {
   font-size: 14px;
   padding: 6px;
   border-radius: 6px;
-  opacity: 0;
+  opacity: 1;
   transition: all 0.2s ease;
   flex-shrink: 0;
   position: absolute;

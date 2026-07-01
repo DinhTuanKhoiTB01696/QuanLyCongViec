@@ -1,5 +1,5 @@
 <template>
-  <NexusLayout>
+  <div>
     <div class="project-settings-page" v-loading="loading">
       <header class="settings-header">
         <div>
@@ -1110,14 +1110,14 @@
         </section>
       </div>
     </div>
-  </NexusLayout>
+  </div>
 </template>
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import axiosClient from '@/api/axiosClient'
 import { broadcastAdminRealtime, subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { signalRService } from '@/api/signalrService'

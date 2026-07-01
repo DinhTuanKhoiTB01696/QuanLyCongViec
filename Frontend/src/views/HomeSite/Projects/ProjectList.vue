@@ -383,7 +383,8 @@ const submitCreateProject = async () => {
       name: newProject.value.title, // Backend uses Name
       icon: newProject.value.icon, // Backend uses Icon
       startDate: new Date().toISOString(), // Required by CreateProjectDto
-      networkType: newProject.value.isPrivate ? 'Private' : 'Public'
+      networkType: newProject.value.isPrivate ? 'Private' : 'Public',
+      workspaceId: projectStore.getWorkspaceId()
     }
     
     await projectStore.createProject(payload)
@@ -420,6 +421,11 @@ const isLoading = computed(() => projectStore.isLoading)
 
 const filteredProjects = computed(() => {
   let list = projectStore.projects || []
+  
+  const currentWorkspaceId = projectStore.getWorkspaceId()
+  if (currentWorkspaceId && currentWorkspaceId !== '00000000-0000-0000-0000-000000000000') {
+    list = list.filter(p => p.workspaceId === currentWorkspaceId)
+  }
 
   // Filter by tab
   if (isArchived.value) {

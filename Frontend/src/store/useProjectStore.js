@@ -50,6 +50,12 @@ const defaultProjectNodes = (projectId) => ([
     route: `/space/${projectId}/work-items`
   },
   {
+    id: `${projectId}-timeline`,
+    key: 'timeline',
+    label: 'Timeline',
+    route: `/space/${projectId}/timeline`
+  },
+  {
     id: `${projectId}-cycles`,
     key: 'cycles',
     label: 'Cycles',
