@@ -421,4 +421,56 @@ const rangeEnd = computed(() => Math.min(page.value * PAGE_SIZE, filteredRows.va
     grid-template-columns: 1fr;
   }
 }
+.reports-tab {
+  padding-bottom: 16px;
+}
+
+.reports-head {
+  margin-bottom: 10px;
+}
+
+.summary-cards {
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.sum-card {
+  border-radius: 12px;
+  padding: 10px 12px;
+  gap: 10px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+.sum-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+
+.sum-val {
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.sum-sub {
+  font-size: 11px;
+}
+
+.chart-row {
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.chart-card,
+.details-card {
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+.donut,
+.bar,
+.line {
+  height: 190px;
+}
 </style>

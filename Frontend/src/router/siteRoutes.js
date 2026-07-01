@@ -26,6 +26,7 @@ export default [
     children: [
       {
         path: '',
+        name: 'HomeSiteIndex',
         redirect: '/home/for-you'
       },
       { path: 'for-you', name: 'HomeForYou', component: () => import('../views/SitesForYou.vue') },

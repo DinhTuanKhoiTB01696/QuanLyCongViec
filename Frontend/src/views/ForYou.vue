@@ -3,17 +3,19 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import axiosClient from '@/api/axiosClient'
-import NexusLayout from '@/components/layout/NexusLayout.vue'
+
 import TaskDetailModal from '@/components/TaskDetailModal.vue'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 import { useI18n } from '@/composables/useI18n'
+import { translateDemoText } from '@/utils/demoContentLocale'
 
 const route = useRoute()
 const router = useRouter()
 const projectStore = useProjectStore()
 const workTaskStore = useWorkTaskStore()
-const { t } = useI18n()
+const { t, language } = useI18n()
+const demoText = (value) => translateDemoText(value, language.value)
 
 const currentProjectId = computed(() => route.params.id || null)
 
@@ -59,7 +61,7 @@ const fetchSpaces = async () => {
       description: p.description || t('forYou.softwareSpace'),
       cover: p.cover || '#3b82f6',
       icon: p.icon || '📦',
-      taskCount: p.activeMemberCount || p.ActiveMemberCount || 0,
+      taskCount: p.taskCount ?? p.TotalTasks ?? p.totalTasks ?? p.activeMemberCount ?? p.ActiveMemberCount ?? 0,
       networkType: p.networkType || 'Public',
       createdAt: p.createdAt || null,
       originalRow: p
@@ -114,7 +116,13 @@ const forYouTabs = computed(() => [
 
 // Sorted Spaces
 const sortedSpaces = computed(() => {
-  return [...spaces.value].sort((a, b) => {
+  return spaces.value.map(space => {
+    const spaceTasks = myTasks.value.filter(t => t.projectId === space.id || (t.projectName && t.projectName === space.name)).length;
+    return {
+      ...space,
+      displayTaskCount: spaceTasks > 0 ? spaceTasks : (space.taskCount || 0)
+    }
+  }).sort((a, b) => {
     const aStarred = projectStore.favoriteProjects.some(p => p.id === a.id)
     const bStarred = projectStore.favoriteProjects.some(p => p.id === b.id)
     if (aStarred !== bStarred) return aStarred ? -1 : 1
@@ -159,9 +167,9 @@ const filteredTasksList = computed(() => {
   if (taskSearch.value.trim()) {
     const q = taskSearch.value.toLowerCase().trim()
     list = list.filter(task => 
-      task.title?.toLowerCase().includes(q) || 
+      demoText(task.title)?.toLowerCase().includes(q) || 
       task.sequenceId?.toLowerCase().includes(q) ||
-      task.projectName?.toLowerCase().includes(q)
+      demoText(task.projectName)?.toLowerCase().includes(q)
     )
   }
 
@@ -194,7 +202,7 @@ const groupedTasks = computed(() => {
   if (activeTab.value === 'assigned' || activeTab.value === 'starred') {
     const projectGroups = {}
     paginatedTasks.value.forEach(task => {
-      const pName = task.projectName || t('forYou.otherProjects')
+      const pName = demoText(task.projectName) || t('forYou.otherProjects')
       if (!projectGroups[pName]) projectGroups[pName] = []
       projectGroups[pName].push(task)
     })
@@ -360,7 +368,7 @@ watch(activeTab, () => {
 </script>
 
 <template>
-  <NexusLayout>
+  <div>
     <div class="jira-dashboard">
       
       <!-- Main Content Area (Left Column) -->
@@ -401,8 +409,8 @@ watch(activeTab, () => {
                 <span class="sc-emoji">{{ space.icon || '📦' }}</span>
               </div>
               <div class="sc-info">
-                <h3 class="sc-name" :title="space.name">{{ space.name }}</h3>
-                <p class="sc-desc">{{ space.description }} - {{ space.taskCount }} {{ t('common.tasks') }}</p>
+                <h3 class="sc-name" :title="demoText(space.name)">{{ demoText(space.name) }}</h3>
+                <p class="sc-desc">{{ demoText(space.description) }} - {{ space.displayTaskCount }} {{ t('common.tasks') }}</p>
               </div>
               <!-- Star button for Space -->
               <button 
@@ -496,10 +504,10 @@ watch(activeTab, () => {
                   </div>
                   <div class="jtr-center">
                     <div class="jtr-title" :class="{ 'line-through text-gray-400 dark:text-neutral-500': task.statusName === 'DONE' }">
-                      {{ task.title }}
+                      {{ demoText(task.title) }}
                     </div>
                     <div class="jtr-subtitle">
-                      {{ t('common.task') }} - {{ task.sequenceId || 'DTN-5' }} - {{ task.projectName || t('common.project') }}
+                      {{ t('common.task') }} - {{ task.sequenceId || 'DTN-5' }} - {{ demoText(task.projectName) || t('common.project') }}
                     </div>
                   </div>
                   <div class="jtr-actions" @click.stop>
@@ -543,7 +551,7 @@ watch(activeTab, () => {
       />
 
     </div>
-  </NexusLayout>
+  </div>
 </template>
 
 <style scoped>
@@ -665,7 +673,7 @@ watch(activeTab, () => {
   font-size: 14px;
   padding: 6px;
   border-radius: 6px;
-  opacity: 0;
+  opacity: 1;
   transition: all 0.2s ease;
   flex-shrink: 0;
   position: absolute;

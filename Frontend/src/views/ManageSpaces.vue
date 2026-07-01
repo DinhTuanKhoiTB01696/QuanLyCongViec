@@ -73,12 +73,12 @@
               </div>
 
               <div class="proj-title-row">
-                 <h3>{{ space.name }}</h3>
+                 <h3>{{ demoText(space.name) }}</h3>
                  <span class="proj-key">{{ space.key }}</span>
               </div>
 
               <p class="proj-desc">
-                {{ space.originalRow?.description || 'Welcome to this Project! This project throws you into the driver\'s seat of work management. Through curated work items, you\'ll uncover key features...' }}
+                {{ demoText(space.originalRow?.description) || 'Welcome to this project. Explore curated work items, team progress, and reports from one workspace.' }}
               </p>
 
               <div class="card-footer" @click.stop>
@@ -128,7 +128,7 @@
                     <div style="width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px;" :style="{ background: space.cover || coverGradients[index % coverGradients.length] }">
                       {{ space.icon || emojiList[index % emojiList.length] || '📦' }}
                     </div>
-                    <span style="font-weight: 500; color: #3b82f6;">{{ space.name }}</span>
+                    <span style="font-weight: 500; color: #3b82f6;">{{ demoText(space.name) }}</span>
                   </div>
                 </td>
                 <td style="padding: 12px 16px; font-size: 13px;">{{ space.key }}</td>
@@ -180,6 +180,8 @@ import { useProjectStore } from '@/store/useProjectStore'
 import { canAccessProjectSettings, getProjectSettingsDeniedMessage, getStoredUser } from '@/utils/permissions'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { getProjectSettingsWindowName, openNamedAppWindow, PROJECT_ADMIN_WINDOW_NAME } from '@/utils/windowTabs'
+import { useI18n } from '@/composables/useI18n'
+import { translateDemoText } from '@/utils/demoContentLocale'
 
 const router = useRouter()
 const handleSwitchSettings = (path) => {
@@ -187,6 +189,7 @@ const handleSwitchSettings = (path) => {
 }
 
 const projectStore = useProjectStore()
+const { language } = useI18n()
 const loading = ref(false)
 const spaces = ref([])
 const searchQuery = ref('')
@@ -202,6 +205,7 @@ const setViewMode = (mode) => {
 }
 
 const currentUser = computed(() => getStoredUser())
+const demoText = (value) => translateDemoText(value, language.value)
 const canManageSpace = (space) => canAccessProjectSettings(space, currentUser.value)
 const showProjectSettingsButton = (space) => canManageSpace(space)
 
@@ -317,7 +321,8 @@ onUnmounted(() => {
 const filteredSpaces = computed(() => {
   return spaces.value
     .filter(s => {
-      const matchesSearch = !searchQuery.value || s.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || s.key.toLowerCase().includes(searchQuery.value.toLowerCase())
+      const query = searchQuery.value.toLowerCase()
+      const matchesSearch = !query || demoText(s.name).toLowerCase().includes(query) || s.key.toLowerCase().includes(query)
       const matchesVisibility =
         visibilityFilter.value === 'all' ||
         (visibilityFilter.value === 'starred' && s.starred) ||
