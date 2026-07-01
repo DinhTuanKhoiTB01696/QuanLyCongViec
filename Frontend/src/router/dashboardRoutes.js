@@ -54,6 +54,21 @@ export default [
         component: () => import('../views/DailyFocusView.vue')
       },
       {
+        path: 'chat',
+        name: 'CollaborationChat',
+        component: () => import('../views/CollaborationChat.vue')
+      },
+      {
+        path: 'feed',
+        name: 'ActivityFeed',
+        component: () => import('../views/ActivityFeed.vue')
+      },
+      {
+        path: 'checkin',
+        name: 'VirtualCheckin',
+        component: () => import('../views/VirtualCheckin.vue')
+      },
+      {
         path: 'integrations',
         name: 'IntegrationHub',
         component: () => import('../views/IntegrationHubView.vue')

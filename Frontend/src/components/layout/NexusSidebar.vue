@@ -70,6 +70,24 @@
           </router-link>
         </li>
         <li class="nav-item">
+          <router-link to="/chat" class="nav-link">
+            <i class="fa-solid fa-comments" style="color: #3b82f6;"></i>
+            <span>{{ t('Team Chat') || 'Trò chuyện nhóm' }}</span>
+          </router-link>
+        </li>
+        <li class="nav-item">
+          <router-link to="/feed" class="nav-link">
+            <i class="fa-solid fa-bolt" style="color: #eab308;"></i>
+            <span>{{ t('Activity Feed') || 'Hoạt động nhóm' }}</span>
+          </router-link>
+        </li>
+        <li class="nav-item">
+          <router-link to="/checkin" class="nav-link">
+            <i class="fa-solid fa-calendar-check" style="color: #10b981;"></i>
+            <span>{{ t('Daily Check-in') || 'Check-in ngày' }}</span>
+          </router-link>
+        </li>
+        <li class="nav-item">
           <router-link to="/integrations" class="nav-link">
             <i class="fa-solid fa-plug-circle-bolt"></i>
             <span>{{ t('Integration Hub') }}</span>
@@ -158,10 +176,25 @@
 
     <!-- Bottom Actions -->
     <div class="sidebar-bottom">
-      <a href="#" class="community-link">
-        <i class="fa-regular fa-comment"></i> {{ t('Community') }}
-      </a>
+      <!-- Status Update Trigger widget -->
+      <div class="user-status-widget mb-2" @click="statusModalOpen = true" style="cursor: pointer;">
+        <div class="flex items-center gap-2 p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition border border-dashed border-slate-300 dark:border-slate-700">
+          <span class="text-base flex-shrink-0">{{ userEmoji || '💻' }}</span>
+          <span class="text-xs truncate text-secondary font-medium" style="max-width: 140px;">
+            {{ userStatusText || 'Cập nhật trạng thái...' }}
+          </span>
+        </div>
+      </div>
     </div>
+
+    <!-- Status Modal Dialog -->
+    <StatusUpdateModal 
+      v-model="statusModalOpen"
+      :initial-emoji="userEmoji"
+      :initial-text="userStatusText"
+      @save="onStatusSave"
+      @clear="onStatusClear"
+    />
   </aside>
 </template>
 
@@ -177,6 +210,7 @@ import { useI18nStore } from '@/store/useI18nStore'
 import { translateDemoText } from '@/utils/demoContentLocale'
 import RecentDropdown from '@/components/RecentDropdown.vue'
 import StarredDropdown from '@/components/StarredDropdown.vue'
+import StatusUpdateModal from '@/components/collaboration/StatusUpdateModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -185,6 +219,21 @@ const t = (key) => i18nStore.t(key)
 const demoText = (value) => translateDemoText(value, i18nStore.locale)
 const showMorePanel = ref(false)
 const projectStore = useProjectStore()
+
+// User status state
+const statusModalOpen = ref(false)
+const userEmoji = ref('💻')
+const userStatusText = ref('Đang làm việc')
+
+const onStatusSave = (status) => {
+  userEmoji.value = status.emoji
+  userStatusText.value = status.text
+}
+
+const onStatusClear = () => {
+  userEmoji.value = ''
+  userStatusText.value = ''
+}
 
 // Popover control variables
 const recentVisible = ref(false)
