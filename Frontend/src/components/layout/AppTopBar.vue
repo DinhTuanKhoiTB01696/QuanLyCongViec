@@ -130,7 +130,14 @@ const t = (key) => i18nStore.t(key)
 const demoText = (value) => translateDemoText(value, i18nStore.locale)
 
 const isHomeContext = computed(() => route.path.startsWith('/home') || route.path.startsWith('/sites'))
-const isSpaceContext = computed(() => route.path.startsWith('/space') || route.path.startsWith('/dashboard') || route.path.startsWith('/stickies') || route.path.startsWith('/rewards'))
+const isSpaceContext = computed(() => 
+  route.path.startsWith('/space') || 
+  route.path.startsWith('/dashboard') || 
+  route.path.startsWith('/stickies') || 
+  route.path.startsWith('/rewards') || 
+  route.path.startsWith('/priority') || 
+  route.path.startsWith('/integrations')
+)
 
 const isModule = (moduleName) => {
   if (moduleName === 'people') {
