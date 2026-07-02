@@ -260,8 +260,12 @@ const handleGoogleLogin = async (response) => {
 }
 
 const handleGitHubLogin = () => {
-  const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID || 'Ov23liYQdySKrDme697t'
-  const redirectUri = `${window.location.origin}/auth/github/callback`
+  const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID
+  if (!clientId || clientId === 'CHANGE_ME_USE_LOCAL_ENV') {
+    ElMessage.error('GitHub OAuth chưa được cấu hình.')
+    return
+  }
+  const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI || `${window.location.origin}/auth/github/callback`
   const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user:email`
   window.location.href = githubAuthUrl
 }

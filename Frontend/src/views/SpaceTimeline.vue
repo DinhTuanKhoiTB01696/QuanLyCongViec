@@ -12,13 +12,13 @@
         :description="t('Visualize project schedule and dependencies')"
       />
 
-        <ProjectPageToolbar>
+        <ProjectPageToolbar
+          :showSearch="true"
+          v-model:searchQuery="searchQuery"
+          :searchPlaceholder="'Search tasks...'"
+        >
           <template #filters>
             <div class="filters-row">
-              <div class="filter-item">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" v-model="searchQuery" class="filter-input" placeholder="Search tasks..." />
-              </div>
               
               <select v-model="filters.assignee" class="filter-select">
                 <option value="">All Assignees</option>

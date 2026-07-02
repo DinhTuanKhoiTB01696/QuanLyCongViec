@@ -139,9 +139,11 @@ namespace TaskManagement.Infrastructure.Services
             try
             {
                 // Luồng 1: Nếu Credential là JWT ID Token → validate trực tiếp
+                var googleClientId = _configuration["Google:ClientId"]
+                    ?? throw new InvalidOperationException("Google ClientId is not configured.");
                 var settings = new GoogleJsonWebSignature.ValidationSettings
                 {
-                    Audience = new List<string> { "1008910270642-b5ic5oo3sb2rnemts5dp9sfaq025cud8.apps.googleusercontent.com" }
+                    Audience = new List<string> { googleClientId }
                 };
                 var jwtPayload = await GoogleJsonWebSignature.ValidateAsync(request.Credential, settings);
                 email = jwtPayload.Email;
@@ -262,6 +264,7 @@ namespace TaskManagement.Infrastructure.Services
                 throw new InvalidOperationException("GitHub ClientSecret is not configured.");
 
             var frontendBaseUrl = (_configuration["Frontend:BaseUrl"] ?? "http://localhost:5173").TrimEnd('/');
+            var redirectUri = gitHubConfig["RedirectUri"] ?? $"{frontendBaseUrl}/auth/github/callback";
 
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -272,7 +275,7 @@ namespace TaskManagement.Infrastructure.Services
                 { "client_id", clientId },
                 { "client_secret", clientSecret },
                 { "code", request.Code },
-                { "redirect_uri", $"{frontendBaseUrl}/auth/github/callback" }
+                { "redirect_uri", redirectUri }
             };
 
             var tokenResponse = await httpClient.PostAsync(

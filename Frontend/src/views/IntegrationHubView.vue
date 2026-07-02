@@ -12,17 +12,17 @@
           </p>
         </div>
 
-        <div class="hero-action-card" :class="{ connected: isGoogleConnected }">
-          <span class="hero-status">{{ googleStatusLabel }}</span>
-          <strong>{{ isGoogleConnected ? t('Google Calendar đã sẵn sàng', 'Google Calendar is ready') : t('Bắt đầu bằng Google Calendar', 'Start with Google Calendar') }}</strong>
+        <div class="hero-action-card" :class="{ connected: connectedProviders.length > 0 }">
+          <span class="hero-status">{{ connectedProviders.length > 0 ? t('Đã kết nối', 'Connected') : t('Chưa kết nối', 'Not connected') }}</span>
+          <strong>{{ connectedProviders.length > 0 ? t('Đồng bộ tất cả ứng dụng', 'Sync all connected apps') : t('Bắt đầu bằng Google Calendar', 'Start with Google Calendar') }}</strong>
           <p>
-            {{ isGoogleConnected
-              ? t('Đồng bộ sự kiện mới nhất để cập nhật Unified Inbox.', 'Sync the latest events to update Unified Inbox.')
-              : t('Kết nối một lần, sau đó Khôi có thể đồng bộ event thật bất cứ lúc nào.', 'Connect once, then sync real events whenever needed.') }}
+            {{ connectedProviders.length > 0
+              ? t('Một nút đồng bộ tất cả provider đã kết nối vào Unified Inbox.', 'One button syncs every connected provider into Unified Inbox.')
+              : t('Kết nối một lần, sau đó Khôi có thể đồng bộ dữ liệu thật bất cứ lúc nào.', 'Connect once, then sync real data whenever needed.') }}
           </p>
           <div class="hero-actions">
             <button
-              v-if="!isGoogleConnected"
+              v-if="connectedProviders.length === 0"
               class="primary cta"
               type="button"
               :disabled="connecting"
@@ -36,10 +36,10 @@
               class="primary cta"
               type="button"
               :disabled="syncing"
-              @click="syncGoogleCalendar"
+              @click="syncAllConnected"
             >
               <i class="fa-solid fa-rotate" :class="{ 'fa-spin': syncing }"></i>
-              {{ syncing ? t('Đang đồng bộ', 'Syncing') : t('Đồng bộ ngay', 'Sync now') }}
+              {{ syncing ? t('Đang đồng bộ tất cả', 'Syncing all') : t('Đồng bộ ngay', 'Sync now') }}
             </button>
           </div>
         </div>
@@ -77,7 +77,7 @@
           <div class="panel-head">
             <div>
               <h2>{{ t('Ứng dụng kết nối', 'Connected apps') }}</h2>
-              <p>{{ t('Google Calendar là provider thật trong MVP. Gmail và Slack sẽ hỗ trợ sau.', 'Google Calendar is the real MVP provider. Gmail and Slack are coming later.') }}</p>
+              <p>{{ t('Google Calendar, Gmail và Slack đang dùng OAuth/sync thật. Không tạo dữ liệu giả.', 'Google Calendar, Gmail, and Slack use real OAuth/sync. No fake data.') }}</p>
             </div>
             <button class="icon-btn" type="button" :disabled="loadingIntegrations" @click="loadIntegrations" :title="t('Tải lại kết nối', 'Reload connections')">
               <i class="fa-solid fa-arrows-rotate" :class="{ 'fa-spin': loadingIntegrations }"></i>
@@ -124,18 +124,18 @@
 
               <div class="provider-actions">
                 <button
-                  v-if="provider.provider === 'google-calendar' && provider.status !== 'connected'"
+                  v-if="provider.supportsConnect !== false && provider.status !== 'connected'"
                   class="primary small"
                   type="button"
                   :disabled="connecting"
-                  @click="connectGoogleCalendar"
+                  @click="connectProvider(provider)"
                 >
-                  <i :class="connecting ? 'fa-solid fa-circle-notch fa-spin' : 'fa-brands fa-google'"></i>
-                  {{ connecting ? t('Đang mở...', 'Opening...') : t('Kết nối Google Calendar', 'Connect Google Calendar') }}
+                  <i :class="connecting ? 'fa-solid fa-circle-notch fa-spin' : providerIcon(provider.provider)"></i>
+                  {{ connecting ? t('Đang mở...', 'Opening...') : t(`Kết nối ${provider.name}`, `Connect ${provider.name}`) }}
                 </button>
 
-                <template v-if="provider.provider === 'google-calendar' && provider.status === 'connected'">
-                  <button class="primary small" type="button" :disabled="syncing" @click="syncGoogleCalendar">
+                <template v-if="provider.status === 'connected'">
+                  <button class="primary small" type="button" :disabled="syncing" @click="syncProvider(provider)">
                     <i class="fa-solid fa-rotate" :class="{ 'fa-spin': syncing }"></i>
                     {{ syncing ? t('Đang đồng bộ', 'Syncing') : t('Đồng bộ ngay', 'Sync now') }}
                   </button>
@@ -146,12 +146,12 @@
                 </template>
 
                 <button
-                  v-if="provider.provider !== 'google-calendar'"
+                  v-if="provider.supportsConnect === false && provider.status !== 'connected'"
                   class="ghost small"
                   type="button"
                   disabled
                 >
-                  {{ t('Sẽ hỗ trợ sau', 'Coming soon') }}
+                  {{ t('Backend chưa bật OAuth', 'OAuth backend not enabled') }}
                 </button>
               </div>
             </article>
@@ -175,6 +175,29 @@
                   <strong>{{ log.provider }} · {{ syncStatusLabel(log.status) }}</strong>
                   <span>{{ log.message || t('Không có ghi chú', 'No message') }}</span>
                   <small>{{ formatDate(log.startedAt) }}</small>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="notification-center">
+            <div class="section-title">
+              <h3>{{ t('Trung tâm thông báo', 'Notification center') }}</h3>
+              <span>{{ integrationNotifications.length }}</span>
+            </div>
+
+            <div v-if="integrationNotifications.length === 0" class="history-empty compact-empty">
+              <i class="fa-regular fa-bell"></i>
+              <span>{{ t('Chưa có thông báo tích hợp mới.', 'No new integration notifications.') }}</span>
+            </div>
+
+            <div v-else class="history-list">
+              <article v-for="item in integrationNotifications" :key="item.id" class="history-row" :class="item.type">
+                <i :class="item.icon"></i>
+                <div>
+                  <strong>{{ item.title }}</strong>
+                  <span>{{ item.message }}</span>
+                  <small>{{ item.time }}</small>
                 </div>
               </article>
             </div>
@@ -206,6 +229,31 @@
               <span>{{ sourceCount(tab.id) }}</span>
             </button>
           </nav>
+
+          <div v-if="selectedBulkItems.length > 0" class="bulk-toolbar">
+            <label class="bulk-select-all">
+              <input
+                type="checkbox"
+                :checked="allVisibleCreatableSelected"
+                :disabled="visibleCreatableItems.length === 0"
+                @change="toggleAllVisible($event.target.checked)"
+              />
+              <span>{{ t('Chọn mục chưa tạo task', 'Select items without task') }}</span>
+            </label>
+            <span class="bulk-count">{{ selectedBulkItems.length }} {{ t('mục đã chọn', 'selected') }}</span>
+            <button
+              class="primary small"
+              type="button"
+              :disabled="bulkCreating || selectedBulkItems.length === 0 || !selectedProjectId"
+              @click="createSelectedTasks"
+            >
+              <i :class="bulkCreating ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-square-plus'"></i>
+              {{ t('Tạo nhiều task', 'Create tasks') }}
+            </button>
+            <button class="ghost small" type="button" @click="clearBulkSelection">
+              {{ t('Bỏ chọn', 'Clear') }}
+            </button>
+          </div>
 
           <div v-if="loadingInbox" class="inbox-list">
             <article v-for="n in 4" :key="n" class="inbox-skeleton">
@@ -256,6 +304,14 @@
               :class="{ selected: selectedItem?.id === item.id, unread: !item.isRead }"
               @click="selectItem(item)"
             >
+              <input
+                class="bulk-check"
+                type="checkbox"
+                :checked="isBulkSelected(item)"
+                :disabled="!!item.createdTaskId"
+                @click.stop
+                @change="toggleBulkItem(item, $event.target.checked)"
+              />
               <span class="source-icon" :class="item.source"><i :class="sourceIcon(item.source)"></i></span>
               <span class="item-main">
                 <span class="item-title">
@@ -308,15 +364,69 @@
               <p>{{ selectedItem.content || t('Provider không trả mô tả cho mục này.', 'The provider did not return a description for this item.') }}</p>
             </section>
 
+            <section class="task-target-box">
+              <div class="section-title compact">
+                <h3>{{ t('Project nhận task', 'Task target project') }}</h3>
+                <button class="text-action" type="button" :disabled="loadingProjectOptions" @click="loadCreateTaskOptions">
+                  <i class="fa-solid fa-arrows-rotate" :class="{ 'fa-spin': loadingProjectOptions }"></i>
+                  {{ t('Tải lại', 'Reload') }}
+                </button>
+              </div>
+
+              <label class="project-select-label" for="integration-project-select">
+                {{ t('Chọn project thật trước khi tạo task', 'Choose a real project before creating tasks') }}
+              </label>
+              <select
+                id="integration-project-select"
+                v-model="selectedProjectId"
+                class="project-select"
+                :disabled="loadingProjectOptions || projectOptions.length === 0"
+              >
+                <option value="">{{ loadingProjectOptions ? t('Đang tải project...', 'Loading projects...') : t('Chọn project...', 'Choose project...') }}</option>
+                <option v-for="project in projectOptions" :key="project.id" :value="project.id">
+                  {{ project.name }}{{ project.key ? ` (${project.key})` : '' }}
+                </option>
+              </select>
+
+              <p v-if="projectOptionsError" class="mini-state error">{{ projectOptionsError }}</p>
+              <p v-else-if="!loadingProjectOptions && projectOptions.length === 0" class="mini-state">
+                {{ t('Bạn chưa có project khả dụng. Hãy tạo hoặc tham gia project trước khi tạo task từ inbox.', 'No available project yet. Create or join a project before creating tasks from inbox.') }}
+              </p>
+            </section>
+
             <button
               class="primary full"
               type="button"
-              :disabled="creatingTask || !!selectedItem.createdTaskId"
+              :disabled="creatingTask || !!selectedItem.createdTaskId || !selectedProjectId"
               @click="createTask(selectedItem)"
             >
               <i :class="creatingTask ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-square-plus'"></i>
               {{ selectedItem.createdTaskId ? t('Đã tạo task', 'Task created') : creatingTask ? t('Đang tạo task', 'Creating task') : t('Tạo task từ mục này', 'Create task from this item') }}
             </button>
+
+            <section class="ai-box">
+              <div class="section-title compact">
+                <h3>{{ t('AI hỗ trợ xử lý', 'AI assistance') }}</h3>
+                <span>{{ t('Không tạo dữ liệu giả', 'No fake data') }}</span>
+              </div>
+              <div class="ai-actions">
+                <button
+                  v-for="action in aiActions"
+                  :key="action.key"
+                  class="ghost small"
+                  type="button"
+                  :disabled="aiLoadingAction === action.key || !selectedItem?.id"
+                  @click="runAiAction(action.key)"
+                >
+                  <i :class="aiLoadingAction === action.key ? 'fa-solid fa-circle-notch fa-spin' : action.icon"></i>
+                  {{ action.label }}
+                </button>
+              </div>
+              <p v-if="aiMessage" class="ai-result" :class="aiMessageType">
+                <i :class="aiMessageType === 'error' ? 'fa-solid fa-triangle-exclamation' : 'fa-regular fa-lightbulb'"></i>
+                <span>{{ aiMessage }}</span>
+              </p>
+            </section>
           </template>
 
           <div v-else class="empty-state detail-empty">
@@ -351,6 +461,15 @@ const loadingInbox = ref(false)
 const connecting = ref(false)
 const syncing = ref(false)
 const creatingTask = ref(false)
+const bulkCreating = ref(false)
+const selectedBulkIds = ref([])
+const projectOptions = ref([])
+const selectedProjectId = ref('')
+const loadingProjectOptions = ref(false)
+const projectOptionsError = ref('')
+const aiLoadingAction = ref('')
+const aiMessage = ref('')
+const aiMessageType = ref('info')
 const integrationsError = ref('')
 const inboxError = ref('')
 const notice = ref(null)
@@ -367,13 +486,49 @@ const tabs = computed(() => [
 
 const googleCalendar = computed(() => providers.value.find(provider => provider.provider === 'google-calendar') || null)
 const isGoogleConnected = computed(() => googleCalendar.value?.status === 'connected')
+const connectedProviders = computed(() => providers.value.filter(provider => provider.status === 'connected' && provider.supportsSync !== false))
 const connectedCount = computed(() => providers.value.filter(provider => provider.status === 'connected').length)
 const unreadCount = computed(() => inboxItems.value.filter(item => !item.isRead).length)
 const filteredInbox = computed(() => activeTab.value === 'all'
   ? inboxItems.value
   : inboxItems.value.filter(item => item.source === activeTab.value))
 const selectedItem = computed(() => inboxItems.value.find(item => item.id === selectedItemId.value) || filteredInbox.value[0] || null)
+const visibleCreatableItems = computed(() => filteredInbox.value.filter(item => !item.createdTaskId))
+const selectedBulkItems = computed(() => inboxItems.value.filter(item => selectedBulkIds.value.includes(item.id) && !item.createdTaskId))
+const allVisibleCreatableSelected = computed(() => visibleCreatableItems.value.length > 0 && visibleCreatableItems.value.every(item => selectedBulkIds.value.includes(item.id)))
 const googleStatusLabel = computed(() => isGoogleConnected.value ? t('Đã kết nối', 'Connected') : t('Chưa kết nối', 'Not connected'))
+const integrationNotifications = computed(() => {
+  const failedSync = syncHistory.value
+    .filter(log => log.status === 'error')
+    .slice(0, 3)
+    .map(log => ({
+      id: `sync-${log.id}`,
+      type: 'error',
+      icon: 'fa-solid fa-circle-exclamation',
+      title: t(`Lỗi đồng bộ ${providerNameById(log.provider)}`, `${providerNameById(log.provider)} sync failed`),
+      message: log.message || t('Provider trả lỗi khi đồng bộ.', 'The provider returned an error while syncing.'),
+      time: formatDate(log.startedAt)
+    }))
+
+  const unread = inboxItems.value
+    .filter(item => !item.isRead)
+    .slice(0, 3)
+    .map(item => ({
+      id: `inbox-${item.id}`,
+      type: 'success',
+      icon: sourceIcon(item.source),
+      title: item.title,
+      message: t(`Mục mới từ ${sourceLabel(item.source)} chưa đọc.`, `New unread item from ${sourceLabel(item.source)}.`),
+      time: formatDate(item.startsAt || item.createdAt)
+    }))
+
+  return [...failedSync, ...unread].slice(0, 5)
+})
+const aiActions = computed(() => [
+  { key: 'summary', label: t('Tóm tắt nội dung', 'Summarize'), icon: 'fa-regular fa-file-lines' },
+  { key: 'suggest-task', label: t('Đề xuất task', 'Suggest task'), icon: 'fa-regular fa-square-plus' },
+  { key: 'suggest-related-task', label: t('Liên kết task', 'Link task'), icon: 'fa-solid fa-link' }
+])
 const emptyStateIcon = computed(() => !isGoogleConnected.value ? 'fa-solid fa-plug-circle-bolt' : 'fa-regular fa-calendar-xmark')
 const emptyTitle = computed(() => {
   if (!isGoogleConnected.value) return t('Bạn chưa kết nối ứng dụng nào', 'No app is connected yet')
@@ -393,7 +548,7 @@ const emptyBody = computed(() => {
       'No Google Calendar event was found. Create an event in Calendar or try syncing again.'
     )
   }
-  return t('Gmail và Slack đang ở trạng thái sẽ hỗ trợ sau, nên chưa có dữ liệu thật cho tab này.', 'Gmail and Slack are coming later, so this tab has no real data yet.')
+  return t('Tab này chưa có dữ liệu thật. Hãy kết nối provider tương ứng rồi bấm Đồng bộ ngay.', 'This tab has no real data yet. Connect the provider and click Sync now.')
 })
 
 const getPayload = (response) => response.data?.data ?? response.data
@@ -435,15 +590,40 @@ const loadInbox = async () => {
   }
 }
 
-const connectGoogleCalendar = async () => {
+const loadCreateTaskOptions = async () => {
+  loadingProjectOptions.value = true
+  projectOptionsError.value = ''
+  try {
+    const response = await axiosClient.get('/inbox/create-task-options')
+    const projects = asArray(getPayload(response)?.projects)
+    projectOptions.value = projects
+
+    const scopedProjectId = getScopedCurrentProjectId()
+    if (scopedProjectId && projects.some(project => project.id === scopedProjectId)) {
+      selectedProjectId.value = scopedProjectId
+    } else if (!selectedProjectId.value && projects.length === 1) {
+      selectedProjectId.value = projects[0].id
+    } else if (selectedProjectId.value && !projects.some(project => project.id === selectedProjectId.value)) {
+      selectedProjectId.value = ''
+    }
+  } catch (error) {
+    projectOptions.value = []
+    selectedProjectId.value = ''
+    projectOptionsError.value = error.response?.data?.message || t('Không tải được danh sách project.', 'Could not load projects.')
+  } finally {
+    loadingProjectOptions.value = false
+  }
+}
+
+const connectProvider = async (provider) => {
   connecting.value = true
   notice.value = null
   try {
-    const response = await axiosClient.get('/integrations/google-calendar/connect')
+    const response = await axiosClient.get(`/integrations/${provider.provider}/connect`)
     const payload = getPayload(response)
     const authorizationUrl = payload?.authorizationUrl || payload?.authUrl
     if (!authorizationUrl) {
-      throw new Error(t('Backend không trả URL Google OAuth.', 'Backend did not return a Google OAuth URL.'))
+      throw new Error(t('Backend không trả URL OAuth.', 'Backend did not return an OAuth URL.'))
     }
     window.location.href = authorizationUrl
   } catch (error) {
@@ -453,17 +633,31 @@ const connectGoogleCalendar = async () => {
   }
 }
 
+const connectGoogleCalendar = async () => {
+  if (!googleCalendar.value) return
+  await connectProvider(googleCalendar.value)
+}
+
+const providerNameById = (provider) => ({
+  'google-calendar': 'Google Calendar',
+  gmail: 'Gmail',
+  slack: 'Slack'
+}[provider] || provider || t('ứng dụng', 'app'))
+
 const completeGoogleOAuth = async () => {
-  if (route.query.connected === 'success' && route.query.provider === 'google-calendar') {
-    notice.value = { type: 'success', message: t('Đã kết nối Google Calendar thành công.', 'Google Calendar connected successfully.') }
+  const provider = route.query.provider
+  const providerName = providerNameById(provider)
+
+  if (route.query.connected === 'success' && provider) {
+    notice.value = { type: 'success', message: t(`Đã kết nối ${providerName} thành công.`, `${providerName} connected successfully.`) }
     ElMessage.success(notice.value.message)
     await loadIntegrations()
     router.replace('/integrations').catch(() => {})
     return
   }
 
-  if (route.query.connected === 'error' && route.query.provider === 'google-calendar') {
-    const message = route.query.message || t('Không kết nối được Google Calendar.', 'Could not connect Google Calendar.')
+  if (route.query.connected === 'error' && provider) {
+    const message = route.query.message || t(`Không kết nối được ${providerName}.`, `Could not connect ${providerName}.`)
     notice.value = { type: 'error', message }
     ElMessage.error(message)
     await loadIntegrations()
@@ -487,24 +681,60 @@ const completeGoogleOAuth = async () => {
   }
 }
 
-const syncGoogleCalendar = async () => {
-  if (!isGoogleConnected.value) {
-    notice.value = { type: 'error', message: t('Bạn cần kết nối Google Calendar trước.', 'Connect Google Calendar first.') }
+const syncProvider = async (provider) => {
+  if (provider.status !== 'connected') {
+    notice.value = { type: 'error', message: t(`Bạn cần kết nối ${provider.name} trước.`, `Connect ${provider.name} first.`) }
     return
   }
 
   syncing.value = true
   try {
-    const response = await axiosClient.post('/integrations/google-calendar/sync')
+    const response = await axiosClient.post(`/integrations/${provider.provider}/sync`)
     const imported = getPayload(response)?.imported ?? 0
     notice.value = {
       type: 'success',
-      message: t(`Đã đồng bộ ${imported} sự kiện thật từ Google Calendar.`, `Synced ${imported} real Google Calendar events.`)
+      message: t(`Đã đồng bộ ${imported} mục thật từ ${provider.name}.`, `Synced ${imported} real items from ${provider.name}.`)
     }
     ElMessage.success(notice.value.message)
     await Promise.all([loadIntegrations(), loadInbox()])
   } catch (error) {
-    notice.value = { type: 'error', message: error.response?.data?.message || t('Không đồng bộ được Google Calendar.', 'Could not sync Google Calendar.') }
+    notice.value = { type: 'error', message: error.response?.data?.message || t(`Không đồng bộ được ${provider.name}.`, `Could not sync ${provider.name}.`) }
+  } finally {
+    syncing.value = false
+  }
+}
+
+const syncGoogleCalendar = async () => {
+  if (!googleCalendar.value) return
+  await syncProvider(googleCalendar.value)
+}
+
+const syncAllConnected = async () => {
+  if (connectedProviders.value.length === 0) {
+    notice.value = { type: 'error', message: t('Chưa có ứng dụng nào được kết nối.', 'No connected app is available.') }
+    return
+  }
+
+  syncing.value = true
+  let totalImported = 0
+  const failed = []
+
+  try {
+    for (const provider of connectedProviders.value) {
+      try {
+        const response = await axiosClient.post(`/integrations/${provider.provider}/sync`)
+        totalImported += Number(getPayload(response)?.imported ?? 0)
+      } catch {
+        failed.push(provider.name)
+      }
+    }
+
+    notice.value = failed.length
+      ? { type: 'error', message: t(`Đã đồng bộ ${totalImported} mục, nhưng lỗi: ${failed.join(', ')}.`, `Synced ${totalImported} items, but failed: ${failed.join(', ')}.`) }
+      : { type: 'success', message: t(`Đã đồng bộ ${totalImported} mục thật từ tất cả ứng dụng.`, `Synced ${totalImported} real items from all connected apps.`) }
+
+    failed.length ? ElMessage.warning(notice.value.message) : ElMessage.success(notice.value.message)
+    await Promise.all([loadIntegrations(), loadInbox()])
   } finally {
     syncing.value = false
   }
@@ -524,6 +754,8 @@ const disconnect = async (id) => {
 
 const selectItem = async (item) => {
   selectedItemId.value = item.id
+  aiMessage.value = ''
+  aiMessageType.value = 'info'
   if (!item.isRead) {
     item.isRead = true
     try {
@@ -534,12 +766,35 @@ const selectItem = async (item) => {
   }
 }
 
+const isBulkSelected = (item) => selectedBulkIds.value.includes(item.id)
+
+const toggleBulkItem = (item, checked) => {
+  if (item.createdTaskId) return
+  selectedBulkIds.value = checked
+    ? Array.from(new Set([...selectedBulkIds.value, item.id]))
+    : selectedBulkIds.value.filter(id => id !== item.id)
+}
+
+const toggleAllVisible = (checked) => {
+  const visibleIds = visibleCreatableItems.value.map(item => item.id)
+  selectedBulkIds.value = checked
+    ? Array.from(new Set([...selectedBulkIds.value, ...visibleIds]))
+    : selectedBulkIds.value.filter(id => !visibleIds.includes(id))
+}
+
+const clearBulkSelection = () => {
+  selectedBulkIds.value = []
+}
+
 const createTask = async (item) => {
+  if (!selectedProjectId.value) {
+    ElMessage.warning(t('Hãy chọn hoặc tạo project trước khi tạo task từ inbox.', 'Choose or create a project before creating a task from inbox.'))
+    return
+  }
+
   creatingTask.value = true
   try {
-    const projectId = getScopedCurrentProjectId()
-    const body = projectId ? { projectId } : {}
-    const response = await axiosClient.post(`/inbox/${item.id}/create-task`, body)
+    const response = await axiosClient.post(`/inbox/${item.id}/create-task`, { projectId: selectedProjectId.value })
     item.createdTaskId = getPayload(response)?.id || item.createdTaskId
     ElMessage.success(t('Đã tạo task thật từ mục inbox.', 'Created a real task from the inbox item.'))
     await loadInbox()
@@ -547,6 +802,78 @@ const createTask = async (item) => {
     ElMessage.error(error.response?.data?.message || t('Không tạo được task.', 'Could not create task.'))
   } finally {
     creatingTask.value = false
+  }
+}
+
+const createSelectedTasks = async () => {
+  const inboxItemIds = selectedBulkItems.value.map(item => item.id)
+  if (inboxItemIds.length === 0) {
+    ElMessage.warning(t('Hãy chọn ít nhất một mục chưa tạo task.', 'Select at least one item without a task.'))
+    return
+  }
+  if (!selectedProjectId.value) {
+    ElMessage.warning(t('Hãy chọn project trước khi tạo nhiều task từ inbox.', 'Choose a project before creating tasks from inbox.'))
+    return
+  }
+
+  bulkCreating.value = true
+  try {
+    const response = await axiosClient.post('/inbox/create-tasks', {
+      projectId: selectedProjectId.value,
+      inboxItemIds
+    })
+    const createdCount = getPayload(response)?.createdCount ?? inboxItemIds.length
+    ElMessage.success(t(`Đã tạo ${createdCount} task thật từ inbox.`, `Created ${createdCount} real tasks from inbox.`))
+    clearBulkSelection()
+    await loadInbox()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || t('Không tạo được nhiều task.', 'Could not create selected tasks.'))
+  } finally {
+    bulkCreating.value = false
+  }
+}
+
+const formatAiMessage = (payload) => {
+  if (!payload) return t('AI không trả dữ liệu.', 'AI returned no data.')
+  if (payload.message) return payload.message
+  if (payload.summary) return payload.summary
+  if (payload.suggestedTask) {
+    const task = payload.suggestedTask
+    return [
+      task.title ? `${t('Tiêu đề', 'Title')}: ${task.title}` : '',
+      task.description ? `${t('Mô tả', 'Description')}: ${task.description}` : '',
+      task.priority ? `${t('Ưu tiên', 'Priority')}: ${task.priority}` : '',
+      task.reason ? `${t('Lý do', 'Reason')}: ${task.reason}` : ''
+    ].filter(Boolean).join('\n')
+  }
+  if (payload.relatedTask) {
+    const task = payload.relatedTask
+    return [
+      task.title ? `${t('Task liên quan', 'Related task')}: ${task.title}` : t('Không tìm thấy task phù hợp.', 'No related task found.'),
+      task.reason ? `${t('Lý do', 'Reason')}: ${task.reason}` : ''
+    ].filter(Boolean).join('\n')
+  }
+  return JSON.stringify(payload)
+}
+
+const runAiAction = async (action) => {
+  if (!selectedItem.value?.id) return
+
+  aiLoadingAction.value = action
+  aiMessage.value = ''
+  aiMessageType.value = 'info'
+  try {
+    const response = await axiosClient.get(`/inbox/${selectedItem.value.id}/ai/${action}`)
+    const payload = getPayload(response)
+    aiMessageType.value = payload?.configured === false ? 'error' : 'info'
+    aiMessage.value = payload?.configured === false
+      ? t('AI chưa được cấu hình. Hãy kiểm tra Gemini:ApiKey trong appsettings.', 'AI is not configured. Check Gemini:ApiKey in appsettings.')
+      : formatAiMessage(payload)
+  } catch (error) {
+    aiMessageType.value = 'error'
+    aiMessage.value = error.response?.data?.message || t('AI chưa xử lý được yêu cầu này.', 'AI could not handle this request.')
+  } finally {
+    aiLoadingAction.value = ''
   }
 }
 
@@ -588,9 +915,9 @@ const providerDescription = (provider) => {
     )
   }
   if (provider.provider === 'gmail') {
-    return t('Email sẽ được hỗ trợ ở giai đoạn sau. MVP này không tạo dữ liệu Gmail giả.', 'Email support is coming later. This MVP does not create fake Gmail data.')
+    return t('Kết nối Gmail bằng OAuth thật rồi đồng bộ email thật vào Unified Inbox.', 'Connect Gmail with real OAuth and sync real emails into Unified Inbox.')
   }
-  return t('Slack sẽ được hỗ trợ ở giai đoạn sau. MVP này không tạo dữ liệu Slack giả.', 'Slack support is coming later. This MVP does not create fake Slack data.')
+  return t('Kết nối Slack bằng OAuth thật rồi đồng bộ tin nhắn thật vào Unified Inbox.', 'Connect Slack with real OAuth and sync real messages into Unified Inbox.')
 }
 
 const syncStatusLabel = (status) => {
@@ -631,7 +958,7 @@ const formatFullDate = (value) => {
 }
 
 onMounted(async () => {
-  await Promise.all([loadIntegrations(), loadInbox()])
+  await Promise.all([loadIntegrations(), loadInbox(), loadCreateTaskOptions()])
   await completeGoogleOAuth()
 })
 </script>
@@ -639,7 +966,7 @@ onMounted(async () => {
 <style scoped>
 .integration-page {
   min-height: calc(100vh - 64px);
-  padding: 28px;
+  padding: 18px 22px 20px;
   background:
     radial-gradient(circle at 8% -8%, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 36rem),
     radial-gradient(circle at 92% 2%, color-mix(in srgb, #22d3ee 16%, transparent), transparent 32rem),
@@ -664,7 +991,9 @@ onMounted(async () => {
 .history-row,
 .notice,
 .hero-actions,
-.section-title {
+.section-title,
+.bulk-toolbar,
+.bulk-select-all {
   display: flex;
 }
 
@@ -672,14 +1001,14 @@ onMounted(async () => {
   align-items: stretch;
   justify-content: space-between;
   gap: 18px;
-  max-width: 1580px;
-  margin: 0 auto 16px;
+  max-width: 1420px;
+  margin: 0 auto 12px;
 }
 
 .hero-copy {
   flex: 1;
   min-width: 0;
-  padding: 8px 0;
+  padding: 2px 0;
 }
 
 .kicker {
@@ -698,8 +1027,8 @@ p {
 }
 
 .hero-copy h1 {
-  margin-bottom: 8px;
-  font-size: clamp(28px, 3.2vw, 46px);
+  margin-bottom: 6px;
+  font-size: clamp(26px, 2.5vw, 38px);
   line-height: 1.06;
   text-wrap: balance;
 }
@@ -708,16 +1037,16 @@ p {
   max-width: 780px;
   margin-bottom: 0;
   color: var(--color-text-secondary);
-  font-size: 15px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .hero-action-card {
-  width: min(390px, 100%);
+  width: min(340px, 100%);
   flex-direction: column;
   justify-content: space-between;
   gap: 10px;
-  padding: 18px;
+  padding: 14px;
   border: 1px solid color-mix(in srgb, var(--color-accent) 22%, var(--color-border));
   border-radius: 18px;
   background:
@@ -733,7 +1062,7 @@ p {
 }
 
 .hero-action-card strong {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .hero-action-card p {
@@ -832,7 +1161,7 @@ button:disabled {
 }
 
 .notice {
-  max-width: 1580px;
+  max-width: 1420px;
   align-items: center;
   gap: 10px;
   margin: 0 auto 14px;
@@ -861,17 +1190,17 @@ button:disabled {
 }
 
 .stats-grid {
-  max-width: 1580px;
-  margin: 0 auto 16px;
-  gap: 12px;
+  max-width: 1420px;
+  margin: 0 auto 12px;
+  gap: 10px;
 }
 
 .stats-grid article {
   flex: 1;
   min-width: 0;
-  padding: 15px 16px;
+  padding: 11px 13px;
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: 12px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 96%, #fff), color-mix(in srgb, var(--color-surface-hover) 42%, var(--color-surface)));
   box-shadow: 0 14px 38px color-mix(in srgb, #020617 8%, transparent);
@@ -887,23 +1216,26 @@ button:disabled {
 
 .stats-grid strong {
   display: block;
-  margin-top: 8px;
+  margin-top: 5px;
   font-variant-numeric: tabular-nums;
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .workspace-grid {
-  max-width: 1580px;
+  display: grid;
+  grid-template-columns: minmax(280px, 320px) minmax(560px, 1fr) minmax(300px, 340px);
+  max-width: 1420px;
   margin: 0 auto;
   align-items: stretch;
-  gap: 14px;
-  min-height: calc(100vh - 302px);
+  gap: 10px;
+  height: calc(100vh - 222px);
+  min-height: 520px;
 }
 
 .panel {
   min-width: 0;
   border: 1px solid color-mix(in srgb, var(--color-border) 86%, transparent);
-  border-radius: 18px;
+  border-radius: 14px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 94%, transparent), color-mix(in srgb, var(--color-surface-hover) 36%, var(--color-surface)));
   box-shadow:
@@ -913,8 +1245,8 @@ button:disabled {
 }
 
 .apps-panel {
-  width: 430px;
-  padding: 16px;
+  width: auto;
+  padding: 12px;
   overflow-y: auto;
 }
 
@@ -923,27 +1255,28 @@ button:disabled {
 }
 
 .detail-panel {
-  width: 410px;
-  padding: 16px;
+  width: auto;
+  padding: 12px;
+  overflow-y: auto;
 }
 
 .panel-head {
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .inbox-title {
   margin: 0;
-  padding: 16px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--color-border);
 }
 
 .panel-head h2,
 .detail-head h2 {
   margin-bottom: 5px;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .panel-head p,
@@ -958,16 +1291,16 @@ button:disabled {
 
 .provider-list {
   display: grid;
-  gap: 11px;
+  gap: 9px;
 }
 
 .provider-card {
   align-items: flex-start;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 14px;
+  padding: 12px;
   border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
-  border-radius: 16px;
+  border-radius: 12px;
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--color-surface-hover) 78%, var(--color-surface)), var(--color-surface));
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.10);
@@ -1096,8 +1429,14 @@ button:disabled {
   background: var(--color-warning-bg);
 }
 
-.sync-history {
-  margin-top: 18px;
+.sync-history,
+.notification-center {
+  margin-top: 12px;
+}
+
+.compact-empty {
+  min-height: 88px;
+  padding: 14px;
 }
 
 .section-title {
@@ -1164,8 +1503,8 @@ button:disabled {
 }
 
 .tabs {
-  gap: 8px;
-  padding: 12px 16px;
+  gap: 7px;
+  padding: 9px 12px;
   border-bottom: 1px solid var(--color-border);
   flex-wrap: wrap;
 }
@@ -1174,7 +1513,7 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 7px 10px;
+  padding: 5px 8px;
   background: var(--color-surface);
   color: var(--color-text-secondary);
 }
@@ -1194,16 +1533,48 @@ button:disabled {
   font-size: 11px;
 }
 
+.bulk-toolbar {
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface-hover) 72%, var(--color-surface));
+}
+
+.bulk-select-all {
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.bulk-select-all input,
+.bulk-check {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--color-accent);
+}
+
+.bulk-count {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .inbox-list {
-  height: calc(100vh - 376px);
+  height: calc(100vh - 364px);
+  min-height: 370px;
   overflow-y: auto;
 }
 
 .inbox-item {
   width: 100%;
   align-items: flex-start;
-  gap: 12px;
-  padding: 15px 16px;
+  gap: 9px;
+  padding: 10px 12px;
   border: 0;
   border-bottom: 1px solid var(--color-border);
   background: transparent;
@@ -1229,7 +1600,7 @@ button:disabled {
 }
 
 .item-title strong {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.35;
 }
 
@@ -1241,9 +1612,9 @@ button:disabled {
 
 .item-copy {
   display: block;
-  margin: 6px 0 9px;
+  margin: 4px 0 7px;
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -1333,7 +1704,9 @@ button:disabled {
 }
 
 .detail-list,
-.content-box {
+.content-box,
+.task-target-box,
+.ai-box {
   border: 1px solid var(--color-border);
   border-radius: 12px;
   background: var(--color-surface-hover);
@@ -1364,6 +1737,89 @@ button:disabled {
 .content-box p {
   margin: 0;
   line-height: 1.55;
+}
+
+.task-target-box,
+.ai-box {
+  margin-bottom: 12px;
+  padding: 12px;
+}
+
+.section-title.compact {
+  margin-bottom: 8px;
+}
+
+.section-title.compact h3 {
+  font-size: 13px;
+}
+
+.text-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.project-select-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.project-select {
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-weight: 800;
+}
+
+.mini-state {
+  margin: 8px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.mini-state.error,
+.ai-result.error {
+  color: var(--color-warning);
+}
+
+.ai-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.ai-actions .ghost:last-child {
+  grid-column: 1 / -1;
+}
+
+.ai-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 18%, var(--color-border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-accent) 7%, var(--color-surface));
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-line;
 }
 
 .detail-empty {

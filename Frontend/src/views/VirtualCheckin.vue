@@ -242,11 +242,40 @@ const generateAiSummary = () => {
 
 <style scoped>
 .checkin-container {
-  max-width: 1000px !important;
+  width: min(100%, 1080px) !important;
+  max-width: 1080px !important;
+  margin: 0 auto !important;
+  padding: 22px 24px 32px !important;
+}
+
+.checkin-container .page-header {
+  margin-bottom: 16px !important;
+  padding: 16px 18px !important;
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-success) 7%, var(--color-surface)), var(--color-surface));
+  box-shadow: 0 16px 42px color-mix(in srgb, #020617 10%, transparent);
+}
+
+.checkin-container .page-title {
+  margin-bottom: 4px !important;
+  font-size: clamp(24px, 2.2vw, 34px) !important;
+  line-height: 1.1 !important;
+}
+
+.checkin-container .page-subtitle {
+  max-width: 760px;
+  margin: 0 !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
 }
 
 .ai-summary-widget {
+  margin-bottom: 14px !important;
+  padding: 16px 18px !important;
   border-left: 4px solid var(--color-accent);
+  border-radius: 12px;
 }
 
 .ai-response-box {
@@ -258,8 +287,8 @@ const generateAiSummary = () => {
 
 .team-checkins-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
 }
 
 .checkin-card {
@@ -275,11 +304,11 @@ const generateAiSummary = () => {
 
 .card-header {
   border-bottom: 1px solid var(--color-border);
-  padding: 12px 16px;
+  padding: 11px 14px;
 }
 
 .card-body {
-  padding: 16px;
+  padding: 14px;
   flex: 1;
 }
 
@@ -306,5 +335,17 @@ const generateAiSummary = () => {
 :deep(.card-header .el-avatar) {
   margin: 0 !important;
   flex-shrink: 0;
+}
+
+@media (max-width: 860px) {
+  .checkin-container {
+    padding: 16px !important;
+  }
+
+  .checkin-container .page-header,
+  .ai-summary-widget > .flex {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
 }
 </style>

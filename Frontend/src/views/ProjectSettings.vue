@@ -2417,9 +2417,11 @@ onUnmounted(() => {
 
 <style scoped>
 .project-settings-page {
-  min-height: calc(100vh - 66px);
+  height: calc(100vh - 66px);
   padding: 28px;
   color: #e4e4e7;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .settings-header,
@@ -2478,6 +2480,7 @@ onUnmounted(() => {
   grid-template-columns: 260px minmax(0, 1fr);
   gap: 20px;
   align-items: start;
+  min-height: 0;
 }
 
 .settings-nav {
@@ -2485,6 +2488,22 @@ onUnmounted(() => {
   top: 84px;
   display: grid;
   gap: 10px;
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.settings-nav::-webkit-scrollbar,
+.settings-content::-webkit-scrollbar,
+.project-settings-page::-webkit-scrollbar {
+  width: 8px;
+}
+
+.settings-nav::-webkit-scrollbar-thumb,
+.settings-content::-webkit-scrollbar-thumb,
+.project-settings-page::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.35);
 }
 
 .nav-tab,
@@ -2520,6 +2539,8 @@ onUnmounted(() => {
 
 .settings-content {
   display: grid;
+  min-height: 0;
+  padding-bottom: 80px;
 }
 
 .settings-card {

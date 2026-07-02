@@ -1,10 +1,10 @@
-<template>
+﻿<template>
   <div>
     <div class="ai-page-flex-wrapper">
       <div class="ai-container">
         <div class="ai-page-header">
           <div class="header-left">
-            <h2 class="page-title">Trợ lý AI</h2>
+            <h2 class="page-title">Trá»£ lÃ½ AI</h2>
             <span class="header-pill">Chat, breakdown, repo analysis</span>
           </div>
         </div>
@@ -13,7 +13,7 @@
           <div class="repo-head">
             <div>
               <div class="panel-title">GitHub repo analysis</div>
-              <div class="panel-copy">Chọn repo, đọc nhanh metadata và gửi một prompt phân tích task vào chat box.</div>
+              <div class="panel-copy">Chá»n repo, Ä‘á»c nhanh metadata vÃ  gá»­i má»™t prompt phÃ¢n tÃ­ch task vÃ o chat box.</div>
             </div>
             <button class="ghost-btn" type="button" :disabled="repoLoading" @click="analyzeRepository">Analyze repo</button>
           </div>
@@ -103,7 +103,7 @@
                     />
                     <span class="review-item-body">
                       <strong>{{ item.title }}</strong>
-                      <small>{{ item.suggestedHours }}h · P{{ item.priority }}</small>
+                      <small>{{ item.suggestedHours }}h Â· P{{ item.priority }}</small>
                     </span>
                   </label>
                 </div>
@@ -117,7 +117,7 @@
                     />
                     <span class="review-item-body">
                       <strong>{{ item.title }}</strong>
-                      <small>{{ item.suggestedHours }}h · P{{ item.priority }}</small>
+                      <small>{{ item.suggestedHours }}h Â· P{{ item.priority }}</small>
                     </span>
                   </label>
                 </div>
@@ -131,7 +131,7 @@
                     />
                     <span class="review-item-body">
                       <strong>{{ item.title }}</strong>
-                      <small>{{ item.suggestedHours }}h · P{{ item.priority }}</small>
+                      <small>{{ item.suggestedHours }}h Â· P{{ item.priority }}</small>
                     </span>
                   </label>
                 </div>
@@ -161,7 +161,7 @@
                 <div class="analysis-col-title">Quick wins</div>
                 <ul>
                   <li v-for="item in repoAnalysis.quickWins" :key="`quick-${item.title}`">
-                    {{ item.title }} · {{ item.suggestedHours }}h
+                    {{ item.title }} Â· {{ item.suggestedHours }}h
                   </li>
                 </ul>
               </div>
@@ -169,7 +169,7 @@
                 <div class="analysis-col-title">Medium tasks</div>
                 <ul>
                   <li v-for="item in repoAnalysis.mediumTasks" :key="`medium-${item.title}`">
-                    {{ item.title }} · {{ item.suggestedHours }}h
+                    {{ item.title }} Â· {{ item.suggestedHours }}h
                   </li>
                 </ul>
               </div>
@@ -177,7 +177,7 @@
                 <div class="analysis-col-title">Risky tasks</div>
                 <ul>
                   <li v-for="item in repoAnalysis.riskyTasks" :key="`risk-${item.title}`">
-                    {{ item.title }} · {{ item.suggestedHours }}h
+                    {{ item.title }} Â· {{ item.suggestedHours }}h
                   </li>
                 </ul>
               </div>
@@ -276,6 +276,7 @@ import axiosClient from '@/api/axiosClient'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 import { useSprintStore } from '@/store/useSprintStore'
+import { useI18nStore } from '@/store/useI18nStore'
 import { broadcastAdminRealtime } from '@/utils/adminRealtime'
 import { signalRService } from '@/api/signalrService'
 import { hasSystemAdminAccess, normalizeProjectRole } from '@/utils/permissions'
@@ -285,6 +286,7 @@ const router = useRouter()
 const projectStore = useProjectStore()
 const workTaskStore = useWorkTaskStore()
 const sprintStore = useSprintStore()
+const i18nStore = useI18nStore()
 const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
 const aiManagerProjectRoles = ['pm', 'po', 'sm', 'admin', 'project_manager', 'project_lead', 'scrum_master']
 const showCustomizeModal = ref(false)
@@ -306,7 +308,7 @@ const repoForm = ref({
 const chatHistory = ref([
   {
     role: 'bot',
-    content: 'Xin chao! Toi la tro ly AI cua SprintA. Toi co the giup ban to chuc du an, phan ra task, va phan tich repo GitHub de goi y backlog.'
+    content: 'Xin chÃ o! TÃ´i lÃ  trá»£ lÃ½ AI cá»§a SprintA. TÃ´i cÃ³ thá»ƒ táº¡o task tháº­t, thá»‘ng kÃª dá»± Ã¡n, tÃ³m táº¯t cÃ´ng viá»‡c, breakdown task vÃ  phÃ¢n tÃ­ch repo GitHub Ä‘á»ƒ gá»£i Ã½ backlog.'
   }
 ])
 
@@ -468,17 +470,39 @@ const sendMessage = async (overrideMessage = null) => {
       .slice(-10)
       .map(item => ({ role: item.role === 'bot' ? 'assistant' : 'user', content: item.content }))
 
-    chatHistory.value.push({ role: 'bot', content: response.data?.data || response.data?.message || 'Rất tiếc, AI không phản hồi nội dung. Bạn có thể thử lại với câu hỏi khác.' })
+    const response = await axiosClient.post('/ai/command', {
+      prompt: outgoing,
+      projectId: currentProjectId.value || null,
+      locale: i18nStore.locale,
+      history
+    })
+
+    clearProgressTimer()
+    chatHistory.value.pop()
+    const payload = response.data?.data ?? response.data
+    const message = payload?.message || response.data?.message || (i18nStore.locale === 'en'
+      ? 'Sorry, AI did not return content. Please try another request.'
+      : 'R\u1ea5t ti\u1ebfc, AI kh\u00f4ng ph\u1ea3n h\u1ed3i n\u1ed9i dung. B\u1ea1n c\u00f3 th\u1ec3 th\u1eed l\u1ea1i v\u1edbi c\u00e2u h\u1ecfi kh\u00e1c.')
+    chatHistory.value.push({ role: 'bot', content: message })
+
+    if (payload?.action === 'create-task' && currentProjectId.value) {
+      await Promise.all([
+        workTaskStore.fetchTasks(currentProjectId.value, { reset: false }).catch(() => []),
+        projectStore.fetchProjectDetails(currentProjectId.value, { force: true }).catch(() => null)
+      ])
+      notifyProjectRealtime('work-item-created', { taskId: payload.createdTask?.id, source: 'ai-command' })
+      ElMessage.success(i18nStore.locale === 'en' ? 'AI created a real task.' : 'AI \u0111\u00e3 t\u1ea1o task th\u1eadt.')
+    }
   } catch (error) {
     clearProgressTimer()
     chatHistory.value.pop()
-    const message = error.response?.data?.message || error.response?.data?.error || error.message || 'Lỗi kết nối'
-    let friendlyMessage = `AI không thể xử lý yêu cầu lúc này: ${message}`
+    const message = error.response?.data?.message || error.response?.data?.error || error.message || 'Lá»—i káº¿t ná»‘i'
+    let friendlyMessage = `AI khÃ´ng thá»ƒ xá»­ lÃ½ yÃªu cáº§u lÃºc nÃ y: ${message}`
     
     if (message.toLowerCase().includes('quota') || message.toLowerCase().includes('limit') || error.response?.status === 429) {
-      friendlyMessage = 'Bạn đã đạt giới hạn sử dụng AI (Quota). Vui lòng thử lại sau hoặc nâng cấp gói thành viên.'
+      friendlyMessage = 'Báº¡n Ä‘Ã£ Ä‘áº¡t giá»›i háº¡n sá»­ dá»¥ng AI (Quota). Vui lÃ²ng thá»­ láº¡i sau hoáº·c nÃ¢ng cáº¥p gÃ³i thÃ nh viÃªn.'
     } else if (message.toLowerCase().includes('key') || message.toLowerCase().includes('auth')) {
-      friendlyMessage = 'Lỗi cấu hình API key. Vui lòng liên hệ quản trị viên để kiểm tra lại hệ thống.'
+      friendlyMessage = 'Lá»—i cáº¥u hÃ¬nh API key. Vui lÃ²ng liÃªn há»‡ quáº£n trá»‹ viÃªn Ä‘á»ƒ kiá»ƒm tra láº¡i há»‡ thá»‘ng.'
     }
     
     chatHistory.value.push({ role: 'bot', content: friendlyMessage })
@@ -1289,5 +1313,3 @@ const handleSidebarSaved = (prefs) => {
   }
 }
 </style>
-
-

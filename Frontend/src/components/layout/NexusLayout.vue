@@ -138,6 +138,8 @@ import CreateSpaceModal from '../CreateSpaceModal.vue'
 import AppTopBar from './AppTopBar.vue'
 import NexusSidebar from './NexusSidebar.vue'
 import { useI18nStore } from '@/store/useI18nStore'
+import { useWorkTaskStore } from '@/store/useWorkTaskStore'
+import { useProjectStore } from '@/store/useProjectStore'
 
 const props = defineProps({
   hideSidebar: {
@@ -148,6 +150,8 @@ const props = defineProps({
 
 const route = useRoute()
 const i18nStore = useI18nStore()
+const workTaskStore = useWorkTaskStore()
+const projectStore = useProjectStore()
 const sidebarVisible = ref(window.innerWidth > 1024)
 const aiVisible = ref(false)
 const createVisible = ref(false)
@@ -207,7 +211,60 @@ const aiCopyMap = {
   }
 }
 
-const aiCopy = computed(() => aiCopyMap[i18nStore.locale] || aiCopyMap.vi)
+const aiCopyOverrideMap = {
+  vi: {
+    floatingTitle: 'Mở AI Assistant',
+    closeTitle: 'Đóng AI',
+    brand: 'SPRINTA AI',
+    title: 'Trợ lý công việc',
+    hero: 'Hỏi nhanh, tạo task thật, chuyển trạng thái, tóm tắt tiến độ hoặc xem thống kê ở bất kỳ trang nào.',
+    contextTitle: 'Ngữ cảnh hiện tại',
+    currentPagePrompt: 'Tóm tắt trang hiện tại',
+    botName: 'SprintA AI',
+    you: 'Bạn',
+    placeholder: 'Ví dụ: tạo task sửa UI deadline mai, thống kê project, tóm tắt trang...',
+    enterHint: 'Enter để gửi',
+    reset: 'Làm mới',
+    thinking: 'Đang đọc dữ liệu thật và xử lý...',
+    emptyResponse: 'AI không trả về nội dung.',
+    sendFailed: 'Không gửi được tin nhắn tới AI.',
+    needProject: 'Bạn cần mở một project trước khi yêu cầu AI tạo hoặc cập nhật task.',
+    welcome: 'Xin chào Khôi. Mình có thể tạo task thật, chuyển trạng thái task, thống kê project, tóm tắt trang và gợi ý ưu tiên từ dữ liệu hiện tại.',
+    prompts: [
+      { label: 'Tạo task', icon: 'fa-solid fa-square-plus', text: 'Tạo task mới: Hoàn thiện phần demo hôm nay, deadline ngày mai, ưu tiên cao.' },
+      { label: 'Thống kê project', icon: 'fa-solid fa-chart-simple', text: 'Thống kê project hiện tại.' },
+      { label: 'Tóm tắt trang', icon: 'fa-regular fa-file-lines', text: 'Tóm tắt trang hiện tại và nêu 3 điểm cần chú ý.' },
+      { label: 'Gợi ý ưu tiên', icon: 'fa-solid fa-arrow-up-wide-short', text: 'Gợi ý 5 việc nên làm tiếp theo dựa trên task hiện tại.' }
+    ]
+  },
+  en: {
+    floatingTitle: 'Open AI Assistant',
+    closeTitle: 'Close AI',
+    brand: 'SPRINTA AI',
+    title: 'Work assistant',
+    hero: 'Ask quickly, create real tasks, move status, summarize progress, or get project statistics from any page.',
+    contextTitle: 'Current context',
+    currentPagePrompt: 'Summarize the current page',
+    botName: 'SprintA AI',
+    you: 'You',
+    placeholder: 'Try: create task fix UI due tomorrow, project stats, summarize page...',
+    enterHint: 'Enter to send',
+    reset: 'Reset',
+    thinking: 'Reading real data and processing...',
+    emptyResponse: 'AI did not return any content.',
+    sendFailed: 'Could not send the message to AI.',
+    needProject: 'Open a project before asking AI to create or update tasks.',
+    welcome: 'Hi Khoi. I can create real tasks, move task status, summarize the page, report project stats, and suggest priorities from the current data.',
+    prompts: [
+      { label: 'Create task', icon: 'fa-solid fa-square-plus', text: 'Create a new task: Finish today demo, due tomorrow, high priority.' },
+      { label: 'Project stats', icon: 'fa-solid fa-chart-simple', text: 'Show stats for the current project.' },
+      { label: 'Summarize page', icon: 'fa-regular fa-file-lines', text: 'Summarize the current page and list 3 key points.' },
+      { label: 'Suggest priority', icon: 'fa-solid fa-arrow-up-wide-short', text: 'Suggest 5 next actions based on current tasks.' }
+    ]
+  }
+}
+
+const aiCopy = computed(() => aiCopyOverrideMap[i18nStore.locale] || aiCopyOverrideMap.vi)
 const quickPrompts = computed(() => aiCopy.value.prompts)
 
 const defaultChatHistory = () => [
@@ -265,6 +322,246 @@ const useQuickPrompt = (prompt) => {
   aiInput.value = prompt
 }
 
+const normalizeAiText = (value = '') =>
+  `${value}`
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+
+const currentProjectId = computed(() => {
+  const routeId = route.params?.id
+  if (typeof routeId === 'string' && routeId.length >= 30) return routeId
+  return projectStore.currentProject?.id || projectStore.currentProject?.Id || workTaskStore.currentProjectId || null
+})
+
+const currentTasks = computed(() => Array.isArray(workTaskStore.tasks) ? workTaskStore.tasks : [])
+
+const ensureProjectTasks = async () => {
+  const projectId = currentProjectId.value
+  if (!projectId) return []
+  if (workTaskStore.currentProjectId !== projectId || !currentTasks.value.length) {
+    await workTaskStore.fetchTasks(projectId)
+  }
+  return currentTasks.value
+}
+
+const todayDateOnly = () => new Date().toISOString().slice(0, 10)
+
+const offsetDateOnly = (days) => {
+  const date = new Date()
+  date.setDate(date.getDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
+const inferDueDate = (normalized) => {
+  if (normalized.includes('hom nay') || normalized.includes('today')) return todayDateOnly()
+  if (normalized.includes('ngay mai') || normalized.includes('tomorrow')) return offsetDateOnly(1)
+  if (normalized.includes('tuan sau') || normalized.includes('next week')) return offsetDateOnly(7)
+  const match = normalized.match(/(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?/)
+  if (!match) return null
+  const currentYear = new Date().getFullYear()
+  const day = Number(match[1])
+  const month = Number(match[2])
+  const year = match[3] ? Number(match[3].length === 2 ? `20${match[3]}` : match[3]) : currentYear
+  if (!day || !month) return null
+  return `${year}-${`${month}`.padStart(2, '0')}-${`${day}`.padStart(2, '0')}`
+}
+
+const inferPriority = (normalized) => {
+  if (/(khan|urgent|rat cao|critical|nghiem trong|blocker)/.test(normalized)) return 1
+  if (/(cao|high|important)/.test(normalized)) return 2
+  if (/(thap|low)/.test(normalized)) return 4
+  return 3
+}
+
+const inferStatusName = (normalized) => {
+  if (/(done|hoan thanh|da xong|xong)/.test(normalized)) return 'DONE'
+  if (/(review|kiem tra|danh gia)/.test(normalized)) return 'IN REVIEW'
+  if (/(progress|dang lam|dang thuc hien|in progress)/.test(normalized)) return 'IN PROGRESS'
+  if (/(todo|to do|can lam)/.test(normalized)) return 'TO DO'
+  if (/(backlog|cho xu ly)/.test(normalized)) return 'BACKLOG'
+  return 'TO DO'
+}
+
+const cleanTaskTitle = (message, normalized) => {
+  const raw = `${message}`.trim()
+  const quoted = raw.match(/["“”']([^"“”']{2,})["“”']/)
+  if (quoted?.[1]) return quoted[1].trim()
+
+  const lastBot = [...chatHistory.value].reverse().find(item => item.role === 'bot' && !item.loading)
+  const suggested = lastBot?.content?.match(/(?:Tên Task|Task|title)[:：\s*"']+([^*\n"]{2,80})/i)
+  if (/(ok tao|tao di|create it|add it|lam di)/.test(normalized) && suggested?.[1]) {
+    return suggested[1].replace(/\*\*/g, '').trim()
+  }
+
+  const markers = ['tạo task', 'tao task', 'tạo công việc', 'tao cong viec', 'create task', 'add task', 'task mới', 'task moi']
+  const lower = raw.toLowerCase()
+  let title = raw
+  for (const marker of markers) {
+    const index = lower.indexOf(marker)
+    if (index >= 0) {
+      title = raw.slice(index + marker.length)
+      break
+    }
+  }
+
+  title = title
+    .replace(/^\s*[:\-–]\s*/, '')
+    .replace(/^(mới|moi|new)\s*[:\-–]\s*/i, '')
+    .replace(/\b(deadline|due|hạn|han|ưu tiên|uu tien|priority)\b.*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!title || /^(moi|mới|new)$/i.test(title)) {
+    if (suggested?.[1]) return suggested[1].replace(/\*\*/g, '').trim()
+  }
+
+  if (!title && normalized.includes('ok tao')) return 'Task mới từ SprintA AI'
+  return title || 'Task mới từ SprintA AI'
+}
+
+const splitTaskTitles = (message) => {
+  const lines = `${message}`
+    .split(/\n|;|\d+\.\s+/)
+    .map(item => item.replace(/^[-*]\s*/, '').trim())
+    .filter(Boolean)
+  const taskLines = lines.filter(item => /^(tao|tạo|create|add|task)/i.test(item) || lines.length > 1)
+  return taskLines.length > 1 ? taskLines.map(item => cleanTaskTitle(item, normalizeAiText(item))).filter(Boolean) : []
+}
+
+const formatTaskLine = (task) => {
+  const status = task.statusName || 'BACKLOG'
+  const due = task.dueDate || task.plannedEndDate
+  return `- ${task.sequenceId || task.id?.slice?.(0, 8) || 'Task'}: ${task.title} (${status}${due ? `, hạn ${due}` : ''})`
+}
+
+const buildProjectStats = async () => {
+  const tasks = await ensureProjectTasks()
+  const isDone = (task) => normalizeAiText(task.statusName).includes('done') || normalizeAiText(task.statusName).includes('hoan thanh')
+  const isProgress = (task) => normalizeAiText(task.statusName).includes('progress') || normalizeAiText(task.statusName).includes('dang')
+  const isTodo = (task) => normalizeAiText(task.statusName).includes('todo') || normalizeAiText(task.statusName).includes('to do') || normalizeAiText(task.statusName).includes('can lam')
+  const today = todayDateOnly()
+  const overdue = tasks.filter(task => !isDone(task) && (task.dueDate || task.plannedEndDate) && (task.dueDate || task.plannedEndDate) < today)
+  return {
+    total: tasks.length,
+    done: tasks.filter(isDone).length,
+    inProgress: tasks.filter(isProgress).length,
+    todo: tasks.filter(isTodo).length,
+    backlog: tasks.filter(task => normalizeAiText(task.statusName).includes('backlog') || !task.statusName).length,
+    overdue: overdue.length,
+    highPriority: tasks.filter(task => Number(task.priority) > 0 && Number(task.priority) <= 2).length
+  }
+}
+
+const summarizeCurrentProject = async () => {
+  const tasks = await ensureProjectTasks()
+  const stats = await buildProjectStats()
+  const topTasks = tasks
+    .filter(task => !/(done|hoan thanh)/.test(normalizeAiText(task.statusName)))
+    .sort((a, b) => Number(a.priority || 9) - Number(b.priority || 9))
+    .slice(0, 5)
+
+  return [
+    `Tóm tắt project hiện tại: có ${stats.total} task, ${stats.done} đã xong, ${stats.inProgress} đang làm, ${stats.todo} cần làm, ${stats.overdue} quá hạn.`,
+    stats.highPriority ? `Có ${stats.highPriority} task ưu tiên cao cần theo dõi.` : 'Hiện chưa có task ưu tiên cao.',
+    topTasks.length ? `Việc nên chú ý:\n${topTasks.map(formatTaskLine).join('\n')}` : 'Chưa có task mở nào cần xử lý.'
+  ].join('\n\n')
+}
+
+const suggestNextActions = async () => {
+  const tasks = await ensureProjectTasks()
+  const openTasks = tasks
+    .filter(task => !/(done|hoan thanh)/.test(normalizeAiText(task.statusName)))
+    .sort((a, b) => {
+      const priorityDiff = Number(a.priority || 9) - Number(b.priority || 9)
+      if (priorityDiff !== 0) return priorityDiff
+      return `${a.dueDate || a.plannedEndDate || '9999-12-31'}`.localeCompare(`${b.dueDate || b.plannedEndDate || '9999-12-31'}`)
+    })
+    .slice(0, 5)
+
+  if (!openTasks.length) return 'Project hiện tại chưa có task mở. Bạn có thể yêu cầu: "tạo task chuẩn bị demo ngày mai".'
+  return `Gợi ý ưu tiên tiếp theo:\n${openTasks.map((task, index) => `${index + 1}. ${formatTaskLine(task).slice(2)}`).join('\n')}`
+}
+
+const createRealTasks = async (message) => {
+  const projectId = currentProjectId.value
+  if (!projectId) throw new Error(aiCopy.value.needProject)
+  const normalized = normalizeAiText(message)
+  const titles = splitTaskTitles(message)
+  const finalTitles = titles.length ? titles : [cleanTaskTitle(message, normalized)]
+  const dueDate = inferDueDate(normalized)
+  const statusName = inferStatusName(normalized)
+  const priority = inferPriority(normalized)
+  const created = []
+
+  for (const title of finalTitles.slice(0, 8)) {
+    const payload = {
+      title,
+      description: `Được tạo bởi SprintA AI từ yêu cầu:\n${message}`,
+      statusName,
+      typeName: 'Task',
+      priority,
+      storyPoints: 0
+    }
+    if (dueDate) payload.dueDate = dueDate
+    created.push(await workTaskStore.createTask(projectId, payload))
+  }
+
+  window.dispatchEvent(new CustomEvent('sprinta-ai-task-created', { detail: { projectId, tasks: created } }))
+  return created.length === 1
+    ? `Đã tạo task thật: "${created[0]?.title || finalTitles[0]}" (${statusName}${dueDate ? `, hạn ${dueDate}` : ''}).`
+    : `Đã tạo ${created.length} task thật:\n${created.map(task => `- ${task?.title}`).join('\n')}`
+}
+
+const moveTaskByPrompt = async (message) => {
+  const projectId = currentProjectId.value
+  if (!projectId) throw new Error(aiCopy.value.needProject)
+  const tasks = await ensureProjectTasks()
+  const normalized = normalizeAiText(message)
+  const statusName = inferStatusName(normalized)
+  const sequenceMatch = message.match(/\b[A-Z0-9]+-\d+\b/i)
+  const quoted = message.match(/["“”']([^"“”']{2,})["“”']/)
+  const keyword = normalizeAiText(quoted?.[1] || sequenceMatch?.[0] || message.replace(/(chuyen|chuyển|move|dua|đưa|sang|vao|vào|to do|todo|done|in progress|dang lam|hoan thanh|xong)/gi, ''))
+  const task = tasks.find(item =>
+    (sequenceMatch && normalizeAiText(item.sequenceId) === normalizeAiText(sequenceMatch[0])) ||
+    (keyword && normalizeAiText(item.title).includes(keyword.trim()))
+  )
+
+  if (!task) {
+    return 'Mình chưa tìm thấy task cần chuyển. Hãy ghi rõ mã task hoặc đặt tên task trong dấu ngoặc kép, ví dụ: chuyển "Bug Bash" sang Done.'
+  }
+
+  await workTaskStore.updateTaskStatus(projectId, task.id, statusName)
+  return `Đã chuyển task "${task.title}" sang trạng thái ${statusName}.`
+}
+
+const tryHandleLocalAiCommand = async (message) => {
+  const normalized = normalizeAiText(message)
+  const wantsCreate = /(tao|create|add).*(task|cong viec)|ok tao|tao di|create it/.test(normalized)
+  const wantsMove = /(chuyen|move|dua).*(task|cong viec|sang|vao|done|todo|progress|review)|sang (to do|todo|done|in progress)/.test(normalized)
+  const wantsStats = /(thong ke|bao cao|report|stats|dashboard|tong quan)/.test(normalized)
+  const wantsSummary = /(tom tat|summary|summarize|tong ket)/.test(normalized)
+  const wantsPriority = /(uu tien|priority|nen lam|next action|goi y)/.test(normalized)
+  const wantsChecklist = /(checklist|danh sach viec|cac buoc)/.test(normalized)
+
+  if (wantsCreate) return await createRealTasks(message)
+  if (wantsMove) return await moveTaskByPrompt(message)
+  if (wantsStats) {
+    const stats = await buildProjectStats()
+    return `Thống kê project:\n- Tổng task: ${stats.total}\n- Đã xong: ${stats.done}\n- Đang làm: ${stats.inProgress}\n- Cần làm: ${stats.todo}\n- Backlog: ${stats.backlog}\n- Quá hạn: ${stats.overdue}\n- Ưu tiên cao: ${stats.highPriority}`
+  }
+  if (wantsSummary) return await summarizeCurrentProject()
+  if (wantsPriority) return await suggestNextActions()
+  if (wantsChecklist) {
+    const suggestion = await suggestNextActions()
+    return `Checklist đề xuất:\n1. Kiểm tra các task đang quá hạn hoặc ưu tiên cao.\n2. Chốt task cần làm tiếp theo trong cột To Do.\n3. Chuyển task đang xử lý sang In Progress.\n4. Cập nhật deadline/mô tả nếu còn thiếu.\n5. Báo cáo tiến độ ngắn cho team.\n\n${suggestion}`
+  }
+
+  return null
+}
+
 const sendAiMessage = async () => {
   const outgoing = aiInput.value.trim()
   if (!outgoing || aiSending.value) return
@@ -276,23 +573,40 @@ const sendAiMessage = async () => {
   await scrollAiToBottom()
 
   try {
+    const localResult = await tryHandleLocalAiCommand(outgoing)
+    if (localResult) {
+      chatHistory.value.pop()
+      chatHistory.value.push({ role: 'bot', content: localResult })
+      ElMessage.success('SprintA AI đã thao tác dữ liệu thật.')
+      return
+    }
+
     const history = chatHistory.value
-      .filter(item => item.content !== 'Dang suy nghi...')
       .filter(item => !item.loading)
       .map(item => ({
         role: item.role === 'bot' ? 'assistant' : 'user',
         content: item.content
       }))
 
-    const response = await axiosClient.post('/ai/chat', {
-      message: outgoing,
+    const response = await axiosClient.post('/ai/command', {
+      prompt: outgoing,
+      projectId: currentProjectId.value,
+      locale: i18nStore.locale || 'vi',
       history
     })
 
     chatHistory.value.pop()
+    const responseData = response.data?.data
+    const message = responseData?.message || responseData || response.data?.message || aiCopy.value.emptyResponse
+    if (responseData?.action === 'create-task' && currentProjectId.value) {
+      await workTaskStore.fetchTasks(currentProjectId.value)
+      window.dispatchEvent(new CustomEvent('sprinta-ai-task-created', {
+        detail: { projectId: currentProjectId.value, task: responseData.createdTask }
+      }))
+    }
     chatHistory.value.push({
       role: 'bot',
-      content: response.data?.data || response.data?.message || aiCopy.value.emptyResponse
+      content: message
     })
   } catch (error) {
     chatHistory.value.pop()

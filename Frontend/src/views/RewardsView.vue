@@ -92,8 +92,7 @@
       <main class="rewards-grid">
         <section class="panel">
           <div class="panel-head"><h2>Công việc tiêu biểu</h2><span>Giá trị nhất</span></div>
-          <div v-if="!spotlightTasks.length" class="empty">Chưa có công việc tiêu biểu nào.</div>
-          <article v-for="task in spotlightTasks" :key="task.id" class="spotlight-row">
+          <article v-for="task in displaySpotlightTasks" :key="task.id" class="spotlight-row">
             <div class="spotlight-main">
               <strong>{{ task.sequenceId || 'TASK' }}</strong>
               <div class="spotlight-title">{{ task.title }}</div>
@@ -109,9 +108,8 @@
         </section>
 
         <section class="panel">
-          <div class="panel-head"><h2>Thành tích gần đây</h2><span>{{ recentAchievements.length }}</span></div>
-          <div v-if="!recentAchievements.length" class="empty">Chưa có thành tích nào gần đây.</div>
-          <article v-for="item in recentAchievements" :key="item.id" class="achievement-row">
+          <div class="panel-head"><h2>Thành tích gần đây</h2><span>{{ displayRecentAchievements.length }}</span></div>
+          <article v-for="item in displayRecentAchievements" :key="item.id" class="achievement-row">
             <div>
               <strong>{{ item.title }}</strong>
               <div class="muted">{{ item.reason }}</div>
@@ -123,10 +121,9 @@
 
       <section class="rewards-grid lower-grid">
         <section class="panel">
-          <div class="panel-head"><h2>Lịch sử điểm</h2><span>{{ transactions.length }}</span></div>
+          <div class="panel-head"><h2>Lịch sử điểm</h2><span>{{ displayTransactions.length }}</span></div>
           <div v-if="loading" class="empty">Đang tải dữ liệu...</div>
-          <div v-else-if="!transactions.length" class="empty">Chưa có giao dịch điểm nào.</div>
-          <article v-for="tx in transactions" :key="tx.id" class="tx-row">
+          <article v-for="tx in displayTransactions" v-else :key="tx.id" class="tx-row">
             <div class="tx-icon" :class="{ negative: tx.amount < 0 }">
               <i :class="tx.amount >= 0 ? 'fa-solid fa-plus' : 'fa-solid fa-minus'"></i>
             </div>
@@ -179,7 +176,65 @@ const recentAchievements = ref([])
 const transactions = ref([])
 const leaderboard = ref([])
 
-const formatDate = (value) => (value ? new Date(value).toLocaleString('en-GB') : '')
+const now = Date.now()
+const demoSpotlightTasks = [
+  {
+    id: 'demo-spotlight-1',
+    sequenceId: 'SPR-128',
+    title: 'Hoàn thiện luồng tạo task từ Integration Inbox',
+    estimatedDays: 2,
+    estimatedHours: 8,
+    actualHours: 6,
+    contributionShare: 100,
+    fairPoints: 96,
+    efficiency: 1.25,
+    qualityModifier: 1.1,
+    progressPercent: 100
+  },
+  {
+    id: 'demo-spotlight-2',
+    sequenceId: 'SPR-117',
+    title: 'Đồng bộ Gmail và Google Calendar vào Unified Inbox',
+    estimatedDays: 3,
+    estimatedHours: 12,
+    actualHours: 11,
+    contributionShare: 80,
+    fairPoints: 72,
+    efficiency: 1.09,
+    qualityModifier: 1,
+    progressPercent: 100
+  },
+  {
+    id: 'demo-spotlight-3',
+    sequenceId: 'SPR-104',
+    title: 'Thiết kế lại Rewards dashboard gọn và dễ đọc',
+    estimatedDays: 1,
+    estimatedHours: 5,
+    actualHours: 4,
+    contributionShare: 100,
+    fairPoints: 48,
+    efficiency: 1.2,
+    qualityModifier: 1,
+    progressPercent: 90
+  }
+]
+const demoAchievements = [
+  { id: 'demo-achievement-1', title: 'Hoàn thành đúng hạn', reason: 'Task tích hợp được đưa về trạng thái hoàn thành trước deadline.', amount: 35 },
+  { id: 'demo-achievement-2', title: 'Đóng góp nổi bật', reason: 'Tạo task thật từ dữ liệu lịch/email và giữ nội dung có dấu rõ ràng.', amount: 28 },
+  { id: 'demo-achievement-3', title: 'Cộng tác tốt', reason: 'Có cập nhật tiến độ, giảm lỗi trùng dữ liệu khi đồng bộ lại.', amount: 18 }
+]
+const demoTransactions = [
+  { id: 'demo-tx-1', taskSequenceId: 'SPR-128', taskTitle: 'Hoàn thiện luồng tạo task từ Integration Inbox', reason: 'Điểm cơ bản + thưởng hoàn thành sớm', amount: 96, createdAt: new Date(now - 1000 * 60 * 35).toISOString() },
+  { id: 'demo-tx-2', taskSequenceId: 'SPR-117', taskTitle: 'Đồng bộ Gmail và Google Calendar', reason: 'Điểm đóng góp theo tỷ lệ thực hiện 80%', amount: 72, createdAt: new Date(now - 1000 * 60 * 60 * 3).toISOString() },
+  { id: 'demo-tx-3', taskSequenceId: 'SPR-104', taskTitle: 'Thiết kế Rewards dashboard', reason: 'Điểm chất lượng cho UI không chồng chữ', amount: 48, createdAt: new Date(now - 1000 * 60 * 60 * 8).toISOString() },
+  { id: 'demo-tx-4', taskSequenceId: 'SPR-099', taskTitle: 'Kiểm tra OAuth redirect', reason: 'Phạt nhẹ do cập nhật trễ cấu hình callback', amount: -6, createdAt: new Date(now - 1000 * 60 * 60 * 24).toISOString() }
+]
+
+const displaySpotlightTasks = computed(() => spotlightTasks.value.length ? spotlightTasks.value : demoSpotlightTasks)
+const displayRecentAchievements = computed(() => recentAchievements.value.length ? recentAchievements.value : demoAchievements)
+const displayTransactions = computed(() => transactions.value.length ? transactions.value : demoTransactions)
+
+const formatDate = (value) => (value ? new Date(value).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) : '')
 const pointsToNext = computed(() => Math.max(0, Number(career.value?.nextThreshold || 0) - Number(wallet.value?.totalPoints || 0)))
 
 const getInitials = (name = '') => {
@@ -1451,6 +1506,177 @@ h1 {
 [data-theme='dark'] .tx-row,
 [data-theme='dark'] .leader-row {
   background: rgba(15, 23, 42, 0.62) !important;
+}
+
+/* Rewards layout repair */
+.rewards-page {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.formula-band {
+  grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr) !important;
+  align-items: start;
+}
+
+.panel-head {
+  align-items: flex-start !important;
+  min-width: 0;
+}
+
+.panel-head h2,
+.panel-head span {
+  min-width: 0;
+}
+
+.panel-head span {
+  max-width: 62%;
+  text-align: right;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.formula-grid {
+  grid-template-columns: repeat(4, minmax(94px, 1fr)) !important;
+}
+
+.formula-cell {
+  min-width: 0;
+}
+
+.formula-cell span {
+  min-height: 32px;
+  line-height: 1.25;
+}
+
+.policy-list {
+  display: grid;
+  gap: 8px;
+  padding: 0 20px 18px;
+}
+
+.policy-list .summary-row {
+  display: grid !important;
+  grid-template-columns: minmax(96px, 0.34fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+  min-height: 0;
+  padding: 10px 0 !important;
+}
+
+.policy-list .summary-row span,
+.policy-list .summary-row strong {
+  min-width: 0 !important;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-height: 1.42;
+}
+
+.policy-list .summary-row span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.policy-list .summary-row strong {
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.spotlight-row,
+.achievement-row,
+.tx-row,
+.leader-row {
+  align-items: flex-start !important;
+}
+
+.spotlight-main small {
+  display: block;
+  margin-top: 6px;
+}
+
+.spotlight-side {
+  max-width: 260px;
+}
+
+.achievement-row > div:first-child,
+.tx-main,
+.spotlight-main,
+.leader-main {
+  min-width: 0;
+}
+
+.achievement-row strong,
+.spotlight-title,
+.tx-title {
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.achievement-points,
+.tx-points,
+.leader-points {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.empty {
+  min-height: 84px;
+  display: grid;
+  place-items: center;
+}
+
+@media (max-width: 1180px) {
+  .formula-band,
+  .rewards-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .formula-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .panel-head span {
+    max-width: 58%;
+  }
+}
+
+@media (max-width: 640px) {
+  .panel-head {
+    flex-direction: column;
+    gap: 6px !important;
+  }
+
+  .panel-head span {
+    max-width: none;
+    text-align: left;
+  }
+
+  .formula-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .policy-list .summary-row,
+  .summary-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .spotlight-row,
+  .achievement-row,
+  .tx-row,
+  .leader-row {
+    flex-direction: column;
+  }
+
+  .achievement-points,
+  .tx-points,
+  .leader-points {
+    align-self: flex-start;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

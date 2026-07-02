@@ -1150,9 +1150,7 @@ watch(projectId, () => {
 
 [data-theme='dark'] .stat-card,
 [data-theme='dark'] .dashboard-panel {
-  background:
-    linear-gradient(135deg, rgba(30,41,59,0.90), rgba(15,23,42,0.88)),
-    #0f172a !important;
+  background: var(--bg-secondary) !important;
   border-color: rgba(148, 163, 184, 0.18) !important;
 }
 
