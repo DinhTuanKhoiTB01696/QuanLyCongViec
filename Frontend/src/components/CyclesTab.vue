@@ -605,15 +605,10 @@ onUnmounted(() => {
       </ProjectPageHeader>
 
       <ProjectPageToolbar
-        :showSearch="showCycleSearch"
+        :showSearch="true"
         v-model:searchQuery="cycleSearchQuery"
         :searchPlaceholder="t('cyclesTab.searchCycles', 'Search cycles...')"
       >
-        <template #left>
-          <button class="nexus-btn-icon" type="button" @click="showCycleSearch = !showCycleSearch" :class="{ active: showCycleSearch }">
-            <i class="fa-solid fa-magnifying-glass"></i>
-          </button>
-        </template>
         
         <template #filters>
           <div class="cycle-filter-wrapper">

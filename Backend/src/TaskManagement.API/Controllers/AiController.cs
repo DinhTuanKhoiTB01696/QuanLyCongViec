@@ -1,4 +1,5 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -18,14 +19,16 @@ namespace TaskManagement.API.Controllers
     public class AiController : ControllerBase
     {
         private readonly IAiService _aiService;
+        private readonly IWorkTaskService _workTaskService;
         private readonly ApplicationDbContext _dbContext;
         private const int GeminiRetryAttempts = 3;
         private static readonly string[] AiAssigneeAllowedProjectRoles = { "PM", "PO", "SM", "PROJECT_MANAGER", "SCRUM_MASTER", "Admin" };
         private static readonly string[] AiSystemOverrideRoles = { "SuperAdmin", "Admin", "System Admin", "Organization Admin", "AccessAdmin", "Access Admin" };
 
-        public AiController(IAiService aiService, ApplicationDbContext dbContext)
+        public AiController(IAiService aiService, IWorkTaskService workTaskService, ApplicationDbContext dbContext)
         {
             _aiService = aiService;
+            _workTaskService = workTaskService;
             _dbContext = dbContext;
         }
 
@@ -72,6 +75,93 @@ namespace TaskManagement.API.Controllers
                 return Ok(ApiResponse<string>.Success(
                     BuildLocalChatFallback(request.Message),
                     "Gemini tam thoi chua san sang. He thong da dung local chat fallback."));
+            }
+        }
+
+        [HttpPost("command")]
+        public async Task<IActionResult> Command([FromBody] AiCommandRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Prompt))
+            {
+                return BadRequest(ApiResponse<object>.Error("Prompt khong duoc de trong."));
+            }
+
+            var userId = GetUserId();
+            var prompt = request.Prompt.Trim();
+            var locale = string.Equals(request.Locale, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "vi";
+            var lowered = prompt.ToLowerInvariant();
+
+            if (ContainsAny(lowered, "tao task", "t\u1ea1o task", "tao cong viec", "t\u1ea1o c\u00f4ng vi\u1ec7c", "create task", "add task"))
+            {
+                if (request.ProjectId == null || request.ProjectId == Guid.Empty)
+                {
+                    return BadRequest(ApiResponse<object>.Error(locale == "en"
+                        ? "Please choose a project before asking AI to create a task."
+                        : "B\u1ea1n c\u1ea7n ch\u1ecdn project tr\u01b0\u1edbc khi y\u00eau c\u1ea7u AI t\u1ea1o task."));
+                }
+
+                var title = ExtractTaskTitle(prompt);
+                var created = await _workTaskService.CreateAsync(userId, new CreateWorkTaskDto
+                {
+                    ProjectId = request.ProjectId.Value,
+                    Title = title,
+                    Description = locale == "en"
+                        ? $"Created by SprintA AI from prompt:\n{prompt}"
+                        : $"\u0110\u01b0\u1ee3c t\u1ea1o b\u1edfi SprintA AI t\u1eeb prompt:\n{prompt}",
+                    TypeName = "Task",
+                    Priority = InferPromptPriority(lowered),
+                    StoryPoints = 0
+                });
+
+                return Ok(ApiResponse<object>.Success(new
+                {
+                    action = "create-task",
+                    createdTask = created,
+                    message = locale == "en"
+                        ? $"Created task \"{created.Title}\" in the selected project."
+                        : $"\u0110\u00e3 t\u1ea1o task \"{created.Title}\" trong project \u0111ang ch\u1ecdn."
+                }));
+            }
+
+            if (request.ProjectId.HasValue && ContainsAny(lowered, "thong ke", "th\u1ed1ng k\u00ea", "tong ket", "t\u1ed5ng k\u1ebft", "summary", "report", "bao cao", "b\u00e1o c\u00e1o"))
+            {
+                var stats = await BuildProjectStatsAsync(request.ProjectId.Value);
+                var message = locale == "en"
+                    ? $"Project summary: {stats.Total} tasks, {stats.Done} done, {stats.InProgress} in progress, {stats.Todo} to do, {stats.Overdue} overdue."
+                    : $"Th\u1ed1ng k\u00ea d\u1ef1 \u00e1n: {stats.Total} task, {stats.Done} \u0111\u00e3 xong, {stats.InProgress} \u0111ang l\u00e0m, {stats.Todo} c\u1ea7n l\u00e0m, {stats.Overdue} qu\u00e1 h\u1ea1n.";
+
+                return Ok(ApiResponse<object>.Success(new
+                {
+                    action = "project-summary",
+                    stats,
+                    message
+                }));
+            }
+
+            try
+            {
+                var languageInstruction = locale == "en"
+                    ? "Answer in English. If you suggest tasks, use clear titles and explain that the user can ask 'create task ...' to create a real task."
+                    : "Tr\u1ea3 l\u1eddi b\u1eb1ng ti\u1ebfng Vi\u1ec7t c\u00f3 d\u1ea5u. N\u1ebfu g\u1ee3i \u00fd task, h\u00e3y vi\u1ebft ti\u00eau \u0111\u1ec1 r\u00f5 r\u00e0ng v\u00e0 nh\u1eafc r\u1eb1ng ng\u01b0\u1eddi d\u00f9ng c\u00f3 th\u1ec3 nh\u1eadp 't\u1ea1o task ...' \u0111\u1ec3 t\u1ea1o task th\u1eadt.";
+                var response = await _aiService.ChatAsync(userId, new AiChatRequestDto
+                {
+                    Message = $"{languageInstruction}\n\nProjectId: {request.ProjectId?.ToString() ?? "none"}\nPrompt: {prompt}",
+                    History = request.History
+                });
+
+                return Ok(ApiResponse<object>.Success(new
+                {
+                    action = "chat",
+                    message = response
+                }));
+            }
+            catch (Exception ex) when (IsTransientAiFailure(ex) || ex is InvalidOperationException)
+            {
+                return Ok(ApiResponse<object>.Success(new
+                {
+                    action = "local-fallback",
+                    message = BuildLocalizedLocalChatFallback(prompt, locale)
+                }));
             }
         }
 
@@ -387,6 +477,103 @@ namespace TaskManagement.API.Controllers
                 $"- Neu can, hoi tiep theo mau: tom tat, breakdown, test case, hoac handoff.";
         }
 
+        private static string BuildLocalizedLocalChatFallback(string message, string locale)
+        {
+            if (locale == "en")
+            {
+                return
+                    "Gemini is not available right now, so SprintA is using a local fallback.\n\n" +
+                    $"Your request: \"{message}\"\n\n" +
+                    "You can ask me to create a real task with: create task <title>. " +
+                    "You can also ask for a project summary, report, priorities, or a task breakdown.";
+            }
+
+            return
+                "Gemini hiá»‡n chÆ°a pháº£n há»“i á»•n Ä‘á»‹nh, nÃªn SprintA Ä‘ang dÃ¹ng xá»­ lÃ½ cá»¥c bá»™.\n\n" +
+                $"YÃªu cáº§u cá»§a báº¡n: \"{message}\"\n\n" +
+                "Báº¡n cÃ³ thá»ƒ nháº­p: táº¡o task <tiÃªu Ä‘á»> Ä‘á»ƒ AI táº¡o task tháº­t. " +
+                "Báº¡n cÅ©ng cÃ³ thá»ƒ yÃªu cáº§u: thá»‘ng kÃª dá»± Ã¡n, tÃ³m táº¯t cÃ´ng viá»‡c, Ä‘á» xuáº¥t Æ°u tiÃªn, hoáº·c breakdown task.";
+        }
+
+        private static bool ContainsAny(string text, params string[] keywords)
+        {
+            return keywords.Any(keyword => text.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string ExtractTaskTitle(string prompt)
+        {
+            var patterns = new[]
+            {
+                @"(?:táº¡o|tao|create|add)\s+(?:task|cÃ´ng viá»‡c|cong viec)\s*[:\-]?\s*(?<title>.+)",
+                @"(?:task|cÃ´ng viá»‡c|cong viec)\s*[:\-]\s*(?<title>.+)"
+            };
+
+            foreach (var pattern in patterns)
+            {
+                var match = Regex.Match(prompt, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+                if (match.Success)
+                {
+                    var title = match.Groups["title"].Value.Trim().Trim('"', '\'', '.', ';');
+                    if (!string.IsNullOrWhiteSpace(title))
+                    {
+                        return title.Length > 180 ? title[..180] : title;
+                    }
+                }
+            }
+
+            var fallback = prompt.Trim();
+            return fallback.Length > 180 ? fallback[..180] : fallback;
+        }
+
+        private static int InferPromptPriority(string loweredPrompt)
+        {
+            if (ContainsAny(loweredPrompt, "kháº©n", "khan", "urgent", "gáº¥p", "gap", "p1")) return 1;
+            if (ContainsAny(loweredPrompt, "cao", "high", "p2")) return 2;
+            if (ContainsAny(loweredPrompt, "tháº¥p", "thap", "low", "p4")) return 4;
+            return 3;
+        }
+
+        private async Task<ProjectAiStats> BuildProjectStatsAsync(Guid projectId)
+        {
+            var now = DateTime.UtcNow;
+            var tasks = await _dbContext.WorkTasks
+                .AsNoTracking()
+                .Where(task => task.ProjectId == projectId && !task.IsDeleted)
+                .Select(task => new
+                {
+                    task.Id,
+                    task.DueDate,
+                    StatusName = task.TaskStatus != null ? task.TaskStatus.Name : null
+                })
+                .ToListAsync();
+
+            static bool IsDone(string? status) =>
+                !string.IsNullOrWhiteSpace(status) &&
+                (status.Contains("done", StringComparison.OrdinalIgnoreCase) ||
+                 status.Contains("complete", StringComparison.OrdinalIgnoreCase) ||
+                 status.Contains("xong", StringComparison.OrdinalIgnoreCase));
+
+            static bool IsInProgress(string? status) =>
+                !string.IsNullOrWhiteSpace(status) &&
+                (status.Contains("progress", StringComparison.OrdinalIgnoreCase) ||
+                 status.Contains("doing", StringComparison.OrdinalIgnoreCase) ||
+                 status.Contains("Ä‘ang", StringComparison.OrdinalIgnoreCase) ||
+                 status.Contains("dang", StringComparison.OrdinalIgnoreCase));
+
+            var done = tasks.Count(task => IsDone(task.StatusName));
+            var inProgress = tasks.Count(task => IsInProgress(task.StatusName));
+            var overdue = tasks.Count(task => task.DueDate.HasValue && task.DueDate.Value < now && !IsDone(task.StatusName));
+
+            return new ProjectAiStats
+            {
+                Total = tasks.Count,
+                Done = done,
+                InProgress = inProgress,
+                Todo = Math.Max(0, tasks.Count - done - inProgress),
+                Overdue = overdue
+            };
+        }
+
         private static List<AiSubTaskDto> BuildLocalBreakdownFallback(AiBreakdownRequestDto request)
         {
             var normalizedTitle = string.IsNullOrWhiteSpace(request.Title) ? "Work item" : request.Title.Trim();
@@ -557,5 +744,22 @@ namespace TaskManagement.API.Controllers
                 throw new UnauthorizedAccessException("Ban khong co quyen dung AI goi y assignee cho project nay.");
             }
         }
+    }
+
+    public class AiCommandRequest
+    {
+        public string Prompt { get; set; } = string.Empty;
+        public Guid? ProjectId { get; set; }
+        public string? Locale { get; set; }
+        public List<AiChatMessageDto>? History { get; set; }
+    }
+
+    public class ProjectAiStats
+    {
+        public int Total { get; set; }
+        public int Done { get; set; }
+        public int InProgress { get; set; }
+        public int Todo { get; set; }
+        public int Overdue { get; set; }
     }
 }

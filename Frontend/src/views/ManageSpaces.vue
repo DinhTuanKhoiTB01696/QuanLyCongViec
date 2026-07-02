@@ -337,7 +337,7 @@ const filteredSpaces = computed(() => {
 })
 
 const goToSpace = (id) => {
-  router.push(`/space/${id}`)
+  router.push(`/space/${id}/dashboard`)
 }
 
 const filterLabel = computed(() => ({

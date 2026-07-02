@@ -18,7 +18,7 @@ namespace TaskManagement.API.Extensions
             services.AddScoped<IProjectMemberService, ProjectMemberService>();
             services.AddScoped<IWorkTaskService, WorkTaskService>();
             services.AddScoped<IGamificationService, GamificationService>();
-            services.AddScoped<IAiIntegrationService, AiIntegrationService>();
+            services.AddHttpClient<IAiIntegrationService, AiIntegrationService>();
             services.AddHttpClient<IAiService, GeminiAiService>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IOtpService, OtpService>();
