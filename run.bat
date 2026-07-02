@@ -12,8 +12,16 @@ if /I "%resetDB%"=="Y" (
     echo --- DANG RESET DATABASE ---
     cd Backend\src\TaskManagement.API
     
+    echo Restoring NuGet packages...
+    dotnet restore
+    if errorlevel 1 (
+        echo NuGet package restore that bai.
+        pause
+        exit /b 1
+    )
+    
     echo 1. Drop Database cu...
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-sql.ps1" -Server "KHOI\SQLEXPRESS" -Database "master" -Query "IF DB_ID('TaskManagementDB') IS NOT NULL BEGIN ALTER DATABASE [TaskManagementDB] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [TaskManagementDB]; END"
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-sql.ps1" -Server "Quan" -Database "master" -Query "IF DB_ID('TaskManagementDB') IS NOT NULL BEGIN ALTER DATABASE [TaskManagementDB] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [TaskManagementDB]; END"
     if errorlevel 1 (
         echo Drop database that bai.
         pause
@@ -30,7 +38,7 @@ if /I "%resetDB%"=="Y" (
     
     echo 3. Dang nap demo data doanh nghiep cho admin dev@sprinta.local...
     if exist "%~dp0scripts\seed-demo-data.sql" (
-        powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-sql.ps1" -Server "KHOI\SQLEXPRESS" -Database "TaskManagementDB" -InputFile "%~dp0scripts\seed-demo-data.sql"
+        powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-sql.ps1" -Server "Quan" -Database "TaskManagementDB" -InputFile "%~dp0scripts\seed-demo-data.sql"
         if errorlevel 1 (
             echo Seed demo data that bai.
             pause
@@ -48,6 +56,14 @@ if /I "%resetDB%"=="Y" (
     echo --- KIEM TRA VA TAO DATABASE NẾU CHƯA CÓ ---
     cd Backend\src\TaskManagement.API
     
+    echo Restoring NuGet packages...
+    dotnet restore
+    if errorlevel 1 (
+        echo NuGet package restore that bai.
+        pause
+        exit /b 1
+    )
+    
     if not exist "..\TaskManagement.Infrastructure\Migrations" (
         echo Chua co Migrations, dang tao moi de chuan bi tao DB...
         dotnet ef migrations add InitialCreate --project ../TaskManagement.Infrastructure --startup-project .
@@ -63,7 +79,7 @@ if /I "%resetDB%"=="Y" (
 
     echo Dang nap demo data cho admin dev@sprinta.local...
     if exist "%~dp0scripts\seed-demo-data.sql" (
-        powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-sql.ps1" -Server "KHOI\SQLEXPRESS" -Database "TaskManagementDB" -InputFile "%~dp0scripts\seed-demo-data.sql"
+        powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-sql.ps1" -Server "Quan" -Database "TaskManagementDB" -InputFile "%~dp0scripts\seed-demo-data.sql"
         if errorlevel 1 (
             echo Seed demo data that bai.
             pause
