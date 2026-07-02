@@ -626,8 +626,8 @@ watch(projectId, () => {
 
 .stat-card {
   min-height: 78px;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 14px;
   padding: 16px;
   display: flex;
@@ -717,9 +717,10 @@ watch(projectId, () => {
 }
 
 .dashboard-panel {
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 14px;
+  position: relative;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
   padding: 18px;
   min-height: 320px;
   display: flex;
@@ -1141,9 +1142,7 @@ watch(projectId, () => {
 
 [data-theme='dark'] .stat-card,
 [data-theme='dark'] .dashboard-panel {
-  background:
-    linear-gradient(135deg, rgba(30,41,59,0.90), rgba(15,23,42,0.88)),
-    #0f172a !important;
+  background: var(--bg-secondary) !important;
   border-color: rgba(148, 163, 184, 0.18) !important;
 }
 

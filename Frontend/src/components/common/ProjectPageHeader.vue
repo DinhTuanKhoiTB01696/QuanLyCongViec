@@ -40,9 +40,9 @@ defineProps({
   width: 48px;
   height: 48px;
   border-radius: 8px;
-  background: var(--color-surface, #ffffff);
-  border: 1px solid var(--color-border, #dfe1e6);
-  color: var(--color-text-secondary, #42526e);
+  background: var(--bg-secondary, var(--color-surface, #ffffff));
+  border: 1px solid var(--border-color, var(--color-border, #dfe1e6));
+  color: var(--text-secondary, var(--color-text-secondary, #42526e));
   display: flex;
   align-items: center;
   justify-content: center;

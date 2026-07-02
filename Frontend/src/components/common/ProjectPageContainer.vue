@@ -12,8 +12,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  /* background-color is usually handled by the parent ProjectLayoutWrapper, but we ensure transparency here */
-  background: transparent;
+  background: var(--bg-primary, var(--color-bg));
 }
 .project-page-inner {
   width: 100%;

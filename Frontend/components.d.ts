@@ -25,6 +25,7 @@ declare module 'vue' {
     DevelopmentTab: typeof import('./src/components/DevelopmentTab.vue')['default']
     DocsTab: typeof import('./src/components/DocsTab.vue')['default']
     DropdownFilter: typeof import('./src/components/common/DropdownFilter.vue')['default']
+    ElAvatar: typeof import('element-plus/es')['ElAvatar']
     ElBadge: typeof import('element-plus/es')['ElBadge']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCheckbox: typeof import('element-plus/es')['ElCheckbox']

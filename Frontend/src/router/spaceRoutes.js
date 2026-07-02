@@ -78,6 +78,11 @@ export default [
             component: () => import('../views/SpaceDashboard.vue')
           },
           {
+            path: 'members',
+            name: 'SpaceMembers',
+            component: () => import('../views/SpaceMembers.vue')
+          },
+          {
             path: 'settings',
             name: 'ProjectSettings',
             component: () => import('../views/ProjectSettings.vue'),

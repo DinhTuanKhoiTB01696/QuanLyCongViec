@@ -442,7 +442,7 @@ function pageMenuItems(page) {
 <template>
   <ProjectPageContainer>
     <!-- LIST VIEW -->
-      <div v-if="!activePage" class="pages-list-view">
+      <template v-if="!activePage">
         <ProjectPageHeader 
           icon="fa-regular fa-file-lines" 
           :title="t('Pages')" 
@@ -605,8 +605,8 @@ function pageMenuItems(page) {
            </div>
         </div>
       </div>
-    </div>
-
+    </template>
+    
     <!-- EDITOR VIEW -->
     <div v-else class="page-editor-view">
       <div class="editor-header">

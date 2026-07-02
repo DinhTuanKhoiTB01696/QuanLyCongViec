@@ -614,15 +614,10 @@ const getInitials = (name) => {
       </ProjectPageHeader>
 
       <ProjectPageToolbar v-if="!activeView || activeView"
-        :showSearch="!activeView && showViewSearch"
+        :showSearch="!activeView"
         v-model:searchQuery="filterSearch"
         :searchPlaceholder="t('Search views...')"
       >
-        <template #left v-if="!activeView">
-          <button class="nexus-btn-icon" type="button" @click="showViewSearch = !showViewSearch" :class="{ 'bg-surface-hover border-accent': showViewSearch }">
-            <i class="fa-solid fa-magnifying-glass"></i>
-          </button>
-        </template>
         <template #filters>
           <template v-if="!activeView">
             <el-dropdown trigger="click">
@@ -669,13 +664,7 @@ const getInitials = (name) => {
 
     <main class="views-content">
       <div v-if="!activeView" class="views-list">
-        <div class="views-list-head">
-          <div>
-            <span class="section-kicker">{{ t('Saved views') }}</span>
-            <h2>{{ t('Views') }}</h2>
-          </div>
-          <span class="views-count">{{ filteredViews.length }} {{ t('views') }}</span>
-        </div>
+
 
         <div v-if="views.length === 0" class="empty-placeholder">
           <div class="empty-mark"><i class="fa-solid fa-layer-group"></i></div>

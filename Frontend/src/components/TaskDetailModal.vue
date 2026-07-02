@@ -1077,10 +1077,66 @@
             </div>
 
             <div class="flex-between mb-6" style="margin-top: 56px;">
-               <h3 class="sp-section-title mb-0">Hoạt động</h3>
-               <div class="flex-center gap-2">
+               <div class="activity-tabs-wrapper">
+                 <button class="activity-tab-btn" :class="{ active: activityTab === 'comments' }" @click="activityTab = 'comments'">Bình luận</button>
+                 <button class="activity-tab-btn" :class="{ active: activityTab === 'history' }" @click="activityTab = 'history'">Nhật ký hoạt động</button>
+               </div>
+               <div class="flex-center gap-2" v-if="activityTab === 'history'">
                   <button class="icon-filter-btn" @click="toggleActivitySort" :title="activitySortNewestFirst ? 'Mới nhất trước' : 'Cũ nhất trước'"><i class="fa-solid fa-arrow-down-short-wide"></i></button>
                   <button class="icon-filter-btn" @click="showActivityFilterInfo"><i class="fa-solid fa-bars-staggered"></i></button>
+               </div>
+            </div>
+
+            <div class="comment-box mb-6" v-if="activityTab === 'comments'">
+              <p class="text-[13px] font-semibold mb-2 text-[var(--color-text-muted)]">Thêm bình luận</p>
+               <div class="editor-wrap !pt-2">
+                  <div v-if="pendingAttachments.length > 0" class="px-3 pb-2 flex flex-wrap gap-2">
+                     <div v-for="(file, idx) in pendingAttachments" :key="idx" class="flex items-center gap-1.5 bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded px-2 py-1 text-xs text-[var(--color-text-secondary)]">
+                        <i class="fa-regular fa-file-lines text-[var(--color-text-muted)]"></i>
+                        <span class="max-w-[150px] truncate">{{ file.name }}</span>
+                        <i class="fa-solid fa-xmark ml-1 cursor-pointer hover:text-red-400" @click="pendingAttachments.splice(idx, 1)"></i>
+                     </div>
+                  </div>
+                  <div
+                    ref="commentEditor"
+                    class="c-input rich-editor comment-editor !pt-0"
+                    contenteditable
+                    data-placeholder="Nhập bình luận..."
+                    @focus="activeEditor = 'comment'"
+                    @keydown="handleEditorKeydown($event, 'comment')"
+                    @mouseup="saveEditorSelection('comment')"
+                    @keyup="saveEditorSelection('comment')"
+                    @input="handleCommentEditorInput"
+                    @blur="saveEditorSelection('comment')"
+                  ></div>
+                  <input ref="commentImageInput" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/*" style="display:none" multiple @change="handleCommentFileChange($event, true)" />
+                  <input ref="commentFileInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip,.rar,.ppt,.pptx" style="display:none" multiple @change="handleCommentFileChange($event, false)" />
+                  <div class="c-toolbar">
+                     <div class="ct-left">
+                       <i class="fa-solid fa-bold icon-hover" @mousedown.prevent="execEditorCommand('bold', null, 'comment')"></i> 
+                       <i class="fa-solid fa-italic icon-hover" @mousedown.prevent="execEditorCommand('italic', null, 'comment')"></i> 
+                       <i class="fa-solid fa-underline icon-hover" @mousedown.prevent="execEditorCommand('underline', null, 'comment')"></i> 
+                       <i class="fa-solid fa-strikethrough icon-hover" @mousedown.prevent="execEditorCommand('strikeThrough', null, 'comment')"></i>
+                       
+                       <div class="toolbar-sep"></div>
+                       
+                       <i class="fa-solid fa-code icon-hover" @mousedown.prevent="wrapSelectionWithInlineCode('comment')"></i>
+                       <i class="fa-solid fa-file-code icon-hover" :class="{ 'is-active': codeMode.comment }" @mousedown.prevent="toggleCodeBlockMode('comment')"></i>
+                       
+                       <div class="toolbar-sep"></div>
+                       
+                       <i class="fa-solid fa-list-ul icon-hover" @mousedown.prevent="execEditorCommand('insertUnorderedList', null, 'comment')"></i> 
+                       <i class="fa-solid fa-list-ol icon-hover" @mousedown.prevent="execEditorCommand('insertOrderedList', null, 'comment')"></i> 
+                       
+                       <div class="toolbar-sep"></div>
+                       
+                       <i class="fa-regular fa-image icon-hover" @mousedown.prevent="triggerCommentImageUpload"></i> 
+                       <i class="fa-solid fa-paperclip icon-hover" @mousedown.prevent="triggerCommentFileUpload"></i>
+                     </div>
+                     <button class="c-submit" :disabled="!commentHasContent || isSubmittingComment" @click="submitComment">
+                       {{ isSubmittingComment ? 'Đang gửi...' : 'Gửi' }}
+                     </button>
+                  </div>
                </div>
             </div>
 
@@ -1100,7 +1156,9 @@
                    </div>
                  </template>
                  <template v-else>
-                  <div class="feed-avatar">{{ entry.comment.fullName?.[0] || 'U' }}</div>
+                  <div class="feed-avatar-wrapper mt-1">
+                     <UserAvatar :user="{ id: entry.comment.userId, fullName: entry.comment.fullName || 'User', email: entry.comment.email, avatarColor: entry.comment.avatarColor }" :size="30" :fontSize="12" />
+                  </div>
                   <div class="feed-content w-full relative">
                     <div class="flex items-center justify-between">
                        <div>
@@ -1178,64 +1236,7 @@
                  </template>
                </div>
             </div>
-            <div v-else class="activity-empty-state">Chưa có hoạt động.</div>
-
-            <div class="comment-box">
-              <p class="text-[13px] font-semibold mb-2 text-[var(--color-text-muted)]">Thêm bình luận</p>
-               <div class="editor-wrap !pt-2">
-                  <div v-if="pendingAttachments.length > 0" class="px-3 pb-2 flex flex-wrap gap-2">
-                     <div v-for="(file, idx) in pendingAttachments" :key="idx" class="flex items-center gap-1.5 bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded px-2 py-1 text-xs text-[var(--color-text-secondary)]">
-                        <i class="fa-regular fa-file-lines text-[var(--color-text-muted)]"></i>
-                        <span class="max-w-[150px] truncate">{{ file.name }}</span>
-                        <i class="fa-solid fa-xmark ml-1 cursor-pointer hover:text-red-400" @click="pendingAttachments.splice(idx, 1)"></i>
-                     </div>
-                  </div>
-                  <div
-                    ref="commentEditor"
-                    class="c-input rich-editor comment-editor !pt-0"
-                    contenteditable
-                    data-placeholder="Nhập bình luận..."
-                    @focus="activeEditor = 'comment'"
-                    @keydown="handleEditorKeydown($event, 'comment')"
-                    @mouseup="saveEditorSelection('comment')"
-                    @keyup="saveEditorSelection('comment')"
-                    @input="handleCommentEditorInput"
-                    @blur="saveEditorSelection('comment')"
-                  ></div>
-                  <input ref="commentImageInput" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/*" style="display:none" multiple @change="handleCommentFileChange($event, true)" />
-                  <input ref="commentFileInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip,.rar,.ppt,.pptx" style="display:none" multiple @change="handleCommentFileChange($event, false)" />
-                  <div class="c-toolbar">
-                     <div class="ct-left">
-                       <!-- Group 1: Text -->
-                       <i class="fa-solid fa-bold icon-hover" @mousedown.prevent="execEditorCommand('bold', null, 'comment')"></i> 
-                       <i class="fa-solid fa-italic icon-hover" @mousedown.prevent="execEditorCommand('italic', null, 'comment')"></i> 
-                       <i class="fa-solid fa-underline icon-hover" @mousedown.prevent="execEditorCommand('underline', null, 'comment')"></i> 
-                       <i class="fa-solid fa-strikethrough icon-hover" @mousedown.prevent="execEditorCommand('strikeThrough', null, 'comment')"></i>
-                       
-                       <div class="toolbar-sep"></div>
-                       
-                       <!-- Group 2: Code -->
-                       <i class="fa-solid fa-code icon-hover" @mousedown.prevent="wrapSelectionWithInlineCode('comment')"></i>
-                       <i class="fa-solid fa-file-code icon-hover" :class="{ 'is-active': codeMode.comment }" @mousedown.prevent="toggleCodeBlockMode('comment')"></i>
-                       
-                       <div class="toolbar-sep"></div>
-                       
-                       <!-- Group 3: List -->
-                       <i class="fa-solid fa-list-ul icon-hover" @mousedown.prevent="execEditorCommand('insertUnorderedList', null, 'comment')"></i> 
-                       <i class="fa-solid fa-list-ol icon-hover" @mousedown.prevent="execEditorCommand('insertOrderedList', null, 'comment')"></i> 
-                       
-                       <div class="toolbar-sep"></div>
-                       
-                       <!-- Group 4: Insert -->
-                       <i class="fa-regular fa-image icon-hover" @mousedown.prevent="triggerCommentImageUpload"></i> 
-                       <i class="fa-solid fa-paperclip icon-hover" @mousedown.prevent="triggerCommentFileUpload"></i>
-                     </div>
-                     <button class="c-submit" :disabled="!commentHasContent || isSubmittingComment" @click="submitComment">
-                       {{ isSubmittingComment ? 'Đang gửi...' : 'Gửi' }}
-                     </button>
-                  </div>
-               </div>
-            </div>
+            <div v-else class="activity-empty-state">Chưa có {{ activityTab === 'comments' ? 'bình luận' : 'hoạt động' }} nào.</div>
          </div>
       </div>
       
@@ -1298,6 +1299,8 @@ const emit = defineEmits(['updateTask', 'close', 'back', 'open-task', 'create-su
 const projectStore = useProjectStore();
 const i18nStore = useI18nStore();
 const tr = (en, vi) => i18nStore.locale === 'vi' ? vi : en;
+
+const activityTab = ref('comments');
 const showEstimateFeatures = false;
 
 const showTaskModal = ref(true);
@@ -4035,12 +4038,18 @@ const activityEntries = computed(() => {
     user: getCreatorName(props.selectedTask)
   }] : [];
 
-  const commentEntries = topLevelComments.value.map(comment => ({
-    id: `comment-${comment.id}`,
-    type: 'comment',
-    timestamp: comment.createdAt || comment.updatedAt,
-    comment
-  }));
+  const commentEntries = topLevelComments.value.map(comment => {
+    let ts = comment.createdAt || comment.updatedAt;
+    if (ts && !ts.endsWith('Z') && !/(?:[+-]\d{2}:?\d{2})$/.test(ts)) {
+        ts += 'Z';
+    }
+    return {
+      id: `comment-${comment.id}`,
+      type: 'comment',
+      timestamp: ts,
+      comment
+    };
+  });
 
   const auditTimelineEntries = (auditEntries.value || []).map(entry => ({
     ...entry,
@@ -4048,8 +4057,13 @@ const activityEntries = computed(() => {
     timestamp: entry.timestamp || entry.createdAt || entry.occurredAt || entry.createdOn || entry.date
   }));
 
-  const items = [...localActivityEntries.value, ...auditTimelineEntries, ...commentEntries, ...createdEntry]
-    .filter(entry => entry.timestamp);
+  let items = [];
+  if (activityTab.value === 'comments') {
+    items = [...commentEntries].filter(entry => entry.timestamp);
+  } else {
+    items = [...localActivityEntries.value, ...auditTimelineEntries, ...createdEntry].filter(entry => entry.timestamp);
+  }
+  
   const sorted = items.sort((left, right) => {
     const rightTime = parseTimelineDate(right.timestamp)?.getTime() || 0;
     const leftTime = parseTimelineDate(left.timestamp)?.getTime() || 0;
@@ -4810,6 +4824,36 @@ watch(() => props.selectedTask, (newTask) => {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.activity-tabs-wrapper {
+  display: flex;
+  background: color-mix(in srgb, var(--color-bg-secondary) 50%, transparent);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.activity-tab-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.activity-tab-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.activity-tab-btn.active {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .subtask-toggle-btn {
