@@ -152,16 +152,16 @@ const homeLabels = computed(() => i18nStore.locale === 'vi'
       homeSite: 'Homesite',
       you: 'bạn',
       sitePlaceholder: 'VD: Nhóm sản phẩm của tôi',
-      siteNameRequired: 'Bạn cần nhập tên site',
-      createFailed: 'Không thể tạo site'
+      siteNameRequired: 'Bạn cần nhập tên Space',
+      createFailed: 'Không thể tạo Space'
     }
   : {
       project: 'Project',
       homeSite: 'Homesite',
       you: 'you',
       sitePlaceholder: 'e.g. My product team',
-      siteNameRequired: 'Site name is required',
-      createFailed: 'Failed to create site'
+      siteNameRequired: 'Space name is required',
+      createFailed: 'Failed to create Space'
     })
 const userName = computed(() => currentUser?.fullName || currentUser?.username || currentUser?.email || homeLabels.value.you)
 

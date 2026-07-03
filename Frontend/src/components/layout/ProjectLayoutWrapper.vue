@@ -77,7 +77,8 @@ const projectNavLinks = computed(() => [
   { name: 'Modules', path: 'modules', label: t('Modules', 'Phân hệ'), icon: 'fa-solid fa-cubes' },
   { name: 'Reports', path: 'reports', label: t('Reports', 'Báo cáo'), icon: 'fa-solid fa-chart-line' },
   { name: 'Views', path: 'views', label: t('Views', 'Góc nhìn'), icon: 'fa-regular fa-eye' },
-  { name: 'Pages', path: 'pages', label: t('Pages', 'Tài liệu'), icon: 'fa-regular fa-file-lines' }
+  { name: 'Pages', path: 'pages', label: t('Pages', 'Tài liệu'), icon: 'fa-regular fa-file-lines' },
+  { name: 'Members', path: 'members', label: t('Members', 'Thành viên'), icon: 'fa-solid fa-users' }
 ])
 
 const loadProject = async () => {

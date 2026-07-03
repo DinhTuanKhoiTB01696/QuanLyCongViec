@@ -2,6 +2,7 @@
 import {
   ArrowRight,
   BarChart3,
+  Bot,
   CalendarCheck,
   CheckCircle2,
   Facebook,
@@ -11,9 +12,9 @@ import {
   Layers3,
   Moon,
   Play,
+  ShieldCheck,
   Sparkles,
   Sun,
-  Trophy,
   Twitter,
   Users,
   Zap
@@ -25,7 +26,7 @@ import motionGif from '../assets/Motion_graphics_animation_the_cyan_and_blue.gif
 import logoImg from '../assets/logo_QLCV.png'
 import { currentTheme, toggleTheme } from '@/utils/theme'
 
-const promoVideoSrc = 'https://www.youtube.com/embed/axxBkMdI-0o'
+const promoVideoSrc = ''
 
 const modules = [
   { icon: KanbanSquare, title: 'Kanban & Tasks', text: 'Quản lý backlog, trạng thái, deadline, người phụ trách và độ ưu tiên trong một bảng rõ ràng.' },
@@ -33,19 +34,19 @@ const modules = [
   { icon: Layers3, title: 'Modules', text: 'Gom các công việc liên quan vào từng phân hệ để đội nhóm dễ chia phạm vi.' },
   { icon: BarChart3, title: 'Reports', text: 'Tổng hợp tiến độ, tải công việc và rủi ro để báo cáo nhanh hơn.' },
   { icon: Users, title: 'Team Workspace', text: 'Mỗi dự án có không gian riêng cho thành viên, vai trò, công việc và cập nhật.' },
-  { icon: Trophy, title: 'Rewards', text: 'Ghi nhận đóng góp và tạo động lực cho thành viên hoàn thành công việc đúng hạn.' }
+  { icon: Sparkles, title: 'Rewards', text: 'Ghi nhận đóng góp và tạo động lực cho thành viên hoàn thành công việc đúng hạn.' }
 ]
 
 const stats = [
-  { value: 'Rõ việc hơn', label: 'Task, người phụ trách và deadline nằm cùng một chỗ.' },
-  { value: 'Ít hỏi lại hơn', label: 'Trạng thái và cập nhật hiển thị trong cùng workspace.' },
-  { value: 'Báo cáo nhanh hơn', label: 'Tiến độ sprint và tải công việc được tổng hợp sẵn.' }
+  { value: 'Rõ việc hơn', label: 'task, người phụ trách, deadline nằm cùng một chỗ' },
+  { value: 'Ít hỏi lại hơn', label: 'trạng thái và cập nhật hiển thị theo thời gian thực' },
+  { value: 'Báo cáo nhanh', label: 'tiến độ sprint và nhóm được tổng hợp sẵn' }
 ]
 
 const timeline = [
-  'Tạo dự án và chia việc theo priority.',
-  'Kéo task qua board, sprint và module.',
-  'Theo dõi báo cáo, điểm thưởng và cảnh báo quá hạn.'
+  'Tạo dự án và chia việc theo priority',
+  'Kéo task qua board, sprint và module',
+  'Theo dõi báo cáo, điểm thưởng và cảnh báo quá hạn'
 ]
 </script>
 
@@ -70,7 +71,7 @@ const timeline = [
             <Moon v-else :size="18" />
           </button>
           <router-link class="nav-link" to="/login">Đăng nhập</router-link>
-          <router-link class="nav-primary" to="/register">Bắt đầu miễn phí</router-link>
+          <router-link class="nav-primary" to="/register">Dùng thử</router-link>
         </div>
       </div>
     </header>
@@ -84,11 +85,11 @@ const timeline = [
           <div class="hero-copy">
             <div class="eyebrow">
               <Sparkles :size="16" />
-              SprintA Agile Workspace
+              SPRINTA AGILE WORKSPACE
             </div>
             <h1>Quản lý công việc, sprint và báo cáo trong một workspace dễ dùng hơn.</h1>
             <p>
-              SprintA gom task, chu kỳ, module, báo cáo và tiến độ về một nơi. Mỗi người đều biết việc cần làm, người phụ trách và dự án đang chạy tới đâu.
+              SprintA giúp đội nhóm gom task, chu kỳ, module, báo cáo và tiến độ về một nơi — để ai cũng biết việc nào cần làm, ai đang phụ trách và dự án đang chạy tới đâu.
             </p>
 
             <div class="hero-actions">
@@ -96,9 +97,11 @@ const timeline = [
                 Bắt đầu miễn phí
                 <ArrowRight :size="18" />
               </router-link>
-              <a class="secondary-cta" href="#video">Xem demo</a>
+              <a class="secondary-cta" href="#video">
+                Xem demo
+              </a>
             </div>
-            <p class="hero-microcopy">Không cần thẻ thanh toán. Tạo workspace và thử ngay trong vài phút.</p>
+            <small style="display: block; margin-top: 12px; color: var(--page-muted); font-size: 13px;">Không cần thẻ thanh toán. Tạo workspace và thử ngay trong vài phút.</small>
 
             <div class="stat-row">
               <article v-for="stat in stats" :key="stat.label">
@@ -122,16 +125,16 @@ const timeline = [
             <div class="floating-card card-progress">
               <CheckCircle2 :size="18" />
               <div>
-                <strong>Sprint rõ ràng</strong>
-                <span>Task, deadline, owner</span>
+                <strong>Báo cáo nhanh</strong>
+                <span>Tổng hợp tiến độ</span>
               </div>
             </div>
 
-            <div class="floating-card card-workspace">
-              <Layers3 :size="18" />
+            <div class="floating-card card-ai">
+              <Bot :size="18" />
               <div>
-                <strong>Một workspace</strong>
-                <span>Board, sprint, report</span>
+                <strong>Gợi ý thông minh</strong>
+                <span>Sắp ra mắt</span>
               </div>
             </div>
           </div>
@@ -141,8 +144,9 @@ const timeline = [
       <section id="features" class="feature-strip">
         <div class="container">
           <div class="section-heading">
+            <span class="eyebrow small">Product suite</span>
             <h2>Tất cả thứ đội nhóm cần để chạy dự án gọn hơn.</h2>
-            <p>Từ backlog, bảng công việc, sprint, module đến báo cáo, SprintA gom các bước quan trọng vào một luồng làm việc dễ theo dõi.</p>
+            <p>Từ backlog, bảng công việc, sprint, module đến báo cáo — SprintA gom các bước quan trọng vào một luồng làm việc dễ theo dõi.</p>
           </div>
 
           <div class="module-grid">
@@ -160,6 +164,7 @@ const timeline = [
       <section id="video" class="video-section">
         <div class="container video-grid">
           <div class="video-copy">
+            <span class="eyebrow small">Showcase video</span>
             <h2>Xem SprintA hoạt động trong một dự án thật.</h2>
             <p>
               Video ngắn cho bạn thấy cách tạo task, kéo việc qua board, theo dõi sprint và xem báo cáo mà không cần mở nhiều công cụ khác nhau.
@@ -170,20 +175,11 @@ const timeline = [
                 <p>{{ item }}</p>
               </div>
             </div>
-            <a class="primary-cta compact video-cta" href="#video">
-              Xem demo sản phẩm
-              <ArrowRight :size="18" />
-            </a>
+            <a class="secondary-cta" href="#video" style="margin-top: 24px; display: inline-flex;">Xem demo sản phẩm</a>
           </div>
 
           <div class="video-frame">
-            <iframe
-              v-if="promoVideoSrc"
-              :src="promoVideoSrc"
-              title="SprintA product video"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowfullscreen
-            ></iframe>
+            <video v-if="promoVideoSrc" :src="promoVideoSrc" controls playsinline></video>
             <div v-else class="video-placeholder">
               <img :src="motionGif" alt="SprintA motion preview" />
               <button type="button" class="play-button" aria-label="Play product video">
@@ -191,7 +187,7 @@ const timeline = [
               </button>
               <div class="video-caption">
                 <strong>SprintA product film</strong>
-                <span>Demo board, sprint, module và báo cáo</span>
+                <span>Demo workspace, sprint, report và module</span>
               </div>
             </div>
           </div>
@@ -204,11 +200,12 @@ const timeline = [
             <img :src="focusImage" alt="Modern workspace" />
             <div class="workflow-badge">
               <Zap :size="18" />
-              Gọn từ ngày đầu
+              Fast onboarding
             </div>
           </div>
 
           <div class="workflow-copy">
+            <span class="eyebrow small">From idea to done</span>
             <h2>Từ ý tưởng đến hoàn thành, đội nhóm đều nhìn cùng một bức tranh.</h2>
             <p>
               SprintA giúp bạn biến danh sách việc rời rạc thành một quy trình rõ ràng: tạo task, chia sprint, theo dõi tiến độ, cập nhật báo cáo và biết ai đang cần hỗ trợ.
@@ -218,7 +215,7 @@ const timeline = [
               <span><KanbanSquare :size="16" /> Boards</span>
               <span><CalendarCheck :size="16" /> Sprints</span>
               <span><BarChart3 :size="16" /> Reports</span>
-              <span><Trophy :size="16" /> Rewards</span>
+              <span><Sparkles :size="16" /> Rewards</span>
             </div>
             <router-link class="primary-cta compact" to="/register">
               Tạo workspace miễn phí
@@ -373,10 +370,20 @@ const timeline = [
 .theme-toggle {
   width: 38px;
   height: 38px;
-  border-radius: 12px;
+  flex: 0 0 38px;
+  border-radius: 999px;
   color: var(--page-text);
   border: 1px solid var(--page-border);
-  background: var(--page-surface);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--page-surface-strong) 88%, transparent), var(--page-surface));
+  box-shadow: 0 8px 22px rgba(35, 64, 112, 0.1);
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, #18b5ff 46%, var(--page-border));
+  background: color-mix(in srgb, #18b5ff 10%, var(--page-surface));
 }
 
 .nav-link {
@@ -496,15 +503,6 @@ const timeline = [
   font-size: 16px;
 }
 
-.hero-microcopy {
-  max-width: none !important;
-  margin-top: 10px !important;
-  color: color-mix(in srgb, var(--page-muted) 88%, var(--page-text)) !important;
-  font-size: 13px !important;
-  font-weight: 700;
-  line-height: 1.45 !important;
-}
-
 .hero-actions {
   flex-wrap: wrap;
   gap: 14px;
@@ -531,9 +529,7 @@ const timeline = [
 }
 
 .stat-row article {
-  flex: 1 1 170px;
-  min-width: 170px;
-  max-width: 230px;
+  min-width: 128px;
   padding: 12px 14px;
   border: 1px solid var(--page-border);
   border-radius: 16px;
@@ -542,17 +538,13 @@ const timeline = [
 
 .stat-row strong {
   display: block;
-  font-size: 15px;
-  line-height: 1.25;
+  font-size: 24px;
 }
 
 .stat-row span {
-  display: block;
-  margin-top: 5px;
   color: var(--page-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  line-height: 1.45;
 }
 
 .hero-visual {
@@ -639,7 +631,7 @@ const timeline = [
   bottom: 44px;
 }
 
-.card-workspace {
+.card-ai {
   right: -4px;
   top: 76px;
   animation-delay: 900ms;
@@ -750,10 +742,6 @@ const timeline = [
   font-weight: 800;
 }
 
-.video-cta {
-  margin-top: 18px;
-}
-
 .video-frame {
   overflow: hidden;
   aspect-ratio: 16 / 10;
@@ -763,17 +751,11 @@ const timeline = [
   box-shadow: 0 24px 60px rgba(2, 8, 23, 0.26);
 }
 
-.video-frame iframe,
 .video-frame video,
 .video-placeholder,
 .video-placeholder img {
   width: 100%;
   height: 100%;
-}
-
-.video-frame iframe {
-  display: block;
-  border: 0;
 }
 
 .video-placeholder {
