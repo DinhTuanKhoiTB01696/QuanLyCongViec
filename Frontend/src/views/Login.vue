@@ -120,11 +120,14 @@
           <div class="divider"><span>{{ t('auth.login.orContinueWith') }}</span></div>
 
           <div class="social-login">
-            <GoogleLogin :callback="handleGoogleLogin" popup-type="TOKEN" class="social-btn-wrapper">
+            <GoogleLogin v-if="isGoogleConfigured" :callback="handleGoogleLogin" popup-type="TOKEN" class="social-btn-wrapper">
               <el-button native-type="button" class="social-btn google-btn">
                 <img :src="googleIcon" alt="Google" class="social-icon" /> Google
               </el-button>
             </GoogleLogin>
+            <el-button v-else native-type="button" class="social-btn google-btn" @click="handleGoogleLoginNotConfigured">
+              <img :src="googleIcon" alt="Google" class="social-icon" /> Google
+            </el-button>
 
             <el-button native-type="button" class="social-btn github-btn" @click="handleGitHubLogin">
               <img :src="githubIcon" alt="GitHub" class="social-icon" /> GitHub
@@ -234,6 +237,13 @@ const handleLogin2FA = async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
+const isGoogleConfigured = googleClientId && googleClientId !== 'CHANGE_ME_USE_LOCAL_ENV'
+
+const handleGoogleLoginNotConfigured = () => {
+  ElMessage.error('Google OAuth chưa được cấu hình.')
 }
 
 const handleGoogleLogin = async (response) => {
