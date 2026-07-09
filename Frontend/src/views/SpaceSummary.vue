@@ -1,5 +1,5 @@
 <template>
-  <ProjectPageContainer>
+  <ProjectPageContainer class="space-summary-page">
     <div v-if="isForbidden" class="forbidden-overlay">
       <div class="forbidden-content">
         <div class="lock-icon"><i class="fa-solid fa-lock"></i></div>
@@ -9,10 +9,10 @@
       </div>
     </div>
     <div v-else class="plane-board-container" style="display: flex; flex-direction: column;">
-      
-      <ProjectPageHeader 
-        icon="fa-solid fa-layer-group" 
-        :title="t('Work Items')" 
+
+      <ProjectPageHeader
+        icon="fa-solid fa-layer-group"
+        :title="t('Work Items')"
         :description="t('Manage tasks, bugs, and features')"
       >
         <template #actions>
@@ -36,7 +36,7 @@
             <i class="fa-solid fa-filter"></i>
             <span v-if="activeTaskFilters.length" class="filter-count">{{ activeTaskFilters.length }}</span>
           </button>
-          
+
           <div class="display-dropdown-wrapper">
              <button class="plane-toolbar-btn" @click.stop="showDisplayDropdown = !showDisplayDropdown" :class="{ 'active': showDisplayDropdown }">{{ t('Display') }}</button>
              <div class="plane-dropdown-menu" v-show="showDisplayDropdown" @click.stop>
@@ -69,7 +69,7 @@
              </div>
           </div>
         </template>
-        
+
         <template #actions>
           <button class="plane-toolbar-btn" @click="showAnalyticsSidebar = true">{{ t('Analytics') }}</button>
         </template>
@@ -211,15 +211,15 @@
         <!-- Loading indicator -->
         <div class="kanban-loading-bar" v-if="store.loading">
           <i class="fa-solid fa-spinner fa-spin"></i>
-          <span>Đang tải dữ liệu...</span>
+          <span>{{ t('Loading data...') }}</span>
         </div>
 
         <!-- Error banner -->
         <div class="kanban-error-banner" v-if="store.error && !store.loading">
           <i class="fa-solid fa-triangle-exclamation"></i>
-          <span>Không thể tải bảng công việc. Đang thử kết nối lại...</span>
+          <span>{{ t('Unable to load work items. Reconnecting...') }}</span>
           <button class="kanban-retry-btn" @click="fetchTasks()">
-            <i class="fa-solid fa-rotate-right"></i> Thử lại
+            <i class="fa-solid fa-rotate-right"></i> {{ t('Retry') }}
           </button>
         </div>
 
@@ -237,12 +237,12 @@
             </div>
             <i class="fa-solid fa-plus add-btn" @click="openCreateTask(col.name)"></i>
           </div>
-          
+
           <div class="col-body">
-            <draggable 
-              class="col-draggable" 
-              :list="col.items" 
-              group="tasks" 
+            <draggable
+              class="col-draggable"
+              :list="col.items"
+              group="tasks"
               item-key="id"
               @change="(evt) => handleDraggableChange(evt, col)"
             >
@@ -347,7 +347,7 @@
                 </div>
               </template>
             </draggable>
-            
+
             <!-- Inline create box nâng cấp (date + assignee) -->
             <div class="inline-create-box" v-if="inlineCreateColId === col.id" @click.stop>
                <div class="ic-top">
@@ -413,7 +413,7 @@
     </div>
 
     <!-- Task Detail Modal -->
-    <TaskDetailModal 
+    <TaskDetailModal
       v-if="selectedTask"
       :selectedTask="selectedTask"
       :projectId="getProjectId()"
@@ -437,7 +437,7 @@
                <button class="icon-btn" @click="closeAnalyticsSidebar"><i class="fa-solid fa-xmark"></i></button>
             </div>
          </div>
-         
+
          <div class="ap-body">
             <!-- Stats -->
             <div class="ap-stats-grid">
@@ -462,7 +462,7 @@
                   <span class="val">{{ visibleTopLevelTasks.filter(t => t.statusName === 'DONE').length }}</span>
                </div>
             </div>
-            
+
             <!-- Created vs Resolved Chart Overlay -->
             <div class="ap-chart-card mt-4">
                <h4>Đã tạo và đã xử lý</h4>
@@ -486,10 +486,10 @@
                     </template>
                   </el-dropdown>
                </div>
-               
+
                <v-chart class="chart-container mt-4" :option="insightChartOptions" autoresize />
             </div>
-            
+
             <!-- Tables -->
             <div class="ap-table-wrap mt-4">
                <div class="table-head">
@@ -1478,7 +1478,7 @@ const kanbanColumns = computed(() => {
        const s = (t.statusName || 'BACKLOG').toUpperCase().trim();
        let col;
        col = groups.find(group => group.name === normalizeStatus(s)) || groups[0];
-       
+
        col.items.push(t);
      });
      return groups;
@@ -1592,7 +1592,7 @@ const fetchTasks = async (options = {}) => {
   try {
       const tasks = await store.fetchTasks(pid, options);
       allTasks.value = Array.isArray(tasks) ? tasks : []
-      
+
       // Auto update selectedTask if open
       if (selectedTask.value) {
         const updatedTask = allTasks.value.find(t => t.id === selectedTask.value.id);
@@ -1852,7 +1852,7 @@ const handleDraggableChange = async (evt, group) => {
       const sortOrder = Number(task?.sortOrder);
       return Number.isFinite(sortOrder) ? sortOrder : fallback;
     };
-    
+
     // Math cho LexoRank
     let newSortOrder = 65536;
     if (group.items.length === 1) {
@@ -1866,9 +1866,9 @@ const handleDraggableChange = async (evt, group) => {
        const afterSort = getSortOrder(group.items[newIndex + 1], beforeSort + 131072);
        newSortOrder = (beforeSort + afterSort) / 2.0;
     }
-    
+
     element.sortOrder = newSortOrder;
-    
+
     if (groupBy.value === 'status') {
        element.statusName = group.name; // Cập nhật Optimistic UI
        try {
@@ -2709,16 +2709,16 @@ onUnmounted(() => {
   font-weight: 800;
 }
 
-.add-btn-bottom { 
-  color: color-mix(in srgb, var(--col-color) 52%, var(--color-text-primary)); 
-  font-size: 13px; 
-  font-weight: 800; 
-  cursor: pointer; 
-  display: flex; 
-  align-items: center; 
-  gap: 8px; 
-  padding: 10px 12px; 
-  margin-top: 12px; 
+.add-btn-bottom {
+  color: color-mix(in srgb, var(--col-color) 52%, var(--color-text-primary));
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-top: 12px;
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--col-color) 10%, transparent), transparent),
     color-mix(in srgb, var(--color-bg) 72%, transparent);
@@ -2733,17 +2733,35 @@ onUnmounted(() => {
   transform: translateY(-1px);
 }
 
-.inline-create-box { 
-  background: var(--color-surface); 
-  border: 1px solid var(--color-border); 
-  border-radius: 2px; 
-  padding: 12px 16px; 
-  margin-top: 12px; 
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5); 
+.inline-create-box {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  padding: 12px 16px;
+  margin-top: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
+/* Kanban edge-to-edge layout fixes */
+:deep(.project-page-inner) {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+.plane-board-container > .project-page-header,
+.plane-board-container > .project-page-toolbar,
+.plane-board-container > .work-filter-row,
+.plane-board-container > .list-wrapper,
+.plane-board-container > .calendar-wrapper,
+.plane-board-container > .timeline-wrapper {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
 .ic-top {
   display: flex;
   align-items: center;
@@ -2753,13 +2771,13 @@ onUnmounted(() => {
   color: var(--color-text-primary);
   font-size: 16px;
 }
-.ic-input { 
-  width: 100%; 
-  background: transparent; 
-  border: none; 
-  color: var(--color-text-primary); 
-  outline: none; 
-  font-size: 14px; 
+.ic-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  outline: none;
+  font-size: 14px;
   font-weight: 500;
   padding: 0;
 }
@@ -3748,8 +3766,3 @@ onUnmounted(() => {
     linear-gradient(180deg, color-mix(in srgb, var(--col-color) 10%, #17233a), color-mix(in srgb, var(--color-surface) 78%, #020617)) !important;
 }
 </style>
-
-
-
-
-

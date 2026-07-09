@@ -394,7 +394,7 @@ onMounted(loadTasks)
 ════════════════════════════════════════════════ */
 .df-page {
   min-height: 100vh;
-  padding: 32px;
+  padding: 22px 24px 32px;
   background:
     radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--color-danger) 8%, transparent), transparent 28%),
     radial-gradient(circle at 85% 6%, color-mix(in srgb, var(--color-warning) 8%, transparent), transparent 24%),
@@ -416,8 +416,14 @@ onMounted(loadTasks)
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  max-width: 1100px;
-  margin: 0 auto 28px;
+  max-width: 1080px;
+  margin: 0 auto 16px;
+  padding: 16px 18px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-warning) 7%, var(--color-surface)), var(--color-surface));
+  box-shadow: 0 16px 42px color-mix(in srgb, #020617 10%, transparent);
 }
 
 .df-eyebrow {
@@ -431,7 +437,7 @@ onMounted(loadTasks)
 
 .df-header h1 {
   margin: 0 0 4px;
-  font-size: 22px;
+  font-size: clamp(24px, 2.2vw, 34px);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -520,15 +526,15 @@ onMounted(loadTasks)
    SECTIONS
 ════════════════════════════════════════════════ */
 .df-section {
-  max-width: 1100px;
-  margin: 0 auto 24px;
+  max-width: 1080px;
+  margin: 0 auto 16px;
 }
 
 .df-section-head {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .df-section-badge {
@@ -580,7 +586,7 @@ onMounted(loadTasks)
 .df-task-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 /* ════════════════════════════════════════════════
@@ -600,7 +606,7 @@ onMounted(loadTasks)
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 11px 16px;
+  padding: 10px 14px;
   border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
   transition: background .15s;
 }
@@ -658,7 +664,7 @@ onMounted(loadTasks)
    STATS FOOTER
 ════════════════════════════════════════════════ */
 .df-stats-row {
-  max-width: 1100px;
+  max-width: 1080px;
   margin: 8px auto 0;
   display: flex;
   gap: 12px;
@@ -671,7 +677,7 @@ onMounted(loadTasks)
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 10px;
-  padding: 16px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -694,7 +700,7 @@ onMounted(loadTasks)
    STATE BOXES (loading / error)
 ════════════════════════════════════════════════ */
 .df-state-box {
-  max-width: 1100px;
+  max-width: 1080px;
   margin: 48px auto;
   min-height: 200px;
   display: flex;

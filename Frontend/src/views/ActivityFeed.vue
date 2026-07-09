@@ -605,6 +605,67 @@ const submitActivityPost = () => {
   font-size: 13px !important;
   font-weight: 500 !important;
 }
+
+.feed-container.admin-page {
+  width: min(100%, 1080px) !important;
+  max-width: 1080px !important;
+  margin: 0 auto !important;
+  padding: 22px 24px 32px !important;
+}
+
+.feed-container .page-header {
+  margin-bottom: 16px !important;
+  padding: 16px 18px !important;
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 7%, var(--color-surface)), var(--color-surface));
+  box-shadow: 0 16px 42px color-mix(in srgb, #020617 10%, transparent);
+}
+
+.feed-container .page-title {
+  margin-bottom: 4px !important;
+  font-size: clamp(24px, 2.2vw, 34px) !important;
+  line-height: 1.1 !important;
+}
+
+.feed-container .page-subtitle {
+  max-width: 720px;
+  margin: 0 !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+.project-post-box {
+  margin-bottom: 14px !important;
+  padding: 16px 18px;
+}
+
+.filter-bar {
+  margin-bottom: 14px !important;
+  padding: 10px 14px;
+}
+
+.timeline-wrapper {
+  gap: 16px;
+}
+
+.item-content-card {
+  padding: 14px 16px;
+  border-radius: 10px;
+}
+
+@media (max-width: 860px) {
+  .feed-container.admin-page {
+    padding: 16px !important;
+  }
+
+  .feed-container .page-header,
+  .project-post-box .flex {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
+}
 </style>
 
 <style>

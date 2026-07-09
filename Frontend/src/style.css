@@ -2068,3 +2068,91 @@ select.secondary-btn {
     width: 100% !important;
   }
 }
+
+/* Compact workspace pages: Integration, Check-in, Chat, Priority, Rewards, Feed */
+.checkin-container.admin-page,
+.feed-container.admin-page,
+.df-page,
+.rewards-page,
+.chat-container {
+  width: min(1240px, calc(100% - 36px)) !important;
+  margin-inline: auto !important;
+}
+
+.checkin-container.admin-page,
+.feed-container.admin-page,
+.df-page,
+.rewards-page {
+  padding: 18px 0 26px !important;
+}
+
+.integration-page {
+  --compact-panel-radius: 14px;
+}
+
+.page-header,
+.nexus-feature-header,
+.df-header,
+.feed-container .page-header,
+.checkin-container .page-header {
+  margin-bottom: 14px !important;
+}
+
+.page-title,
+.nexus-feature-header h1,
+.df-header h1,
+.feed-container h1,
+.checkin-container h1 {
+  font-size: clamp(26px, 2vw, 34px) !important;
+  line-height: 1.08 !important;
+  letter-spacing: 0 !important;
+}
+
+.checkin-card,
+.item-content-card,
+.rewards-page .panel,
+.wallet-card,
+.df-panel,
+.chat-container .chat-panel,
+.chat-container .sidebar-panel {
+  border-radius: 12px !important;
+  box-shadow: 0 14px 38px color-mix(in srgb, #020617 9%, transparent) !important;
+}
+
+.team-checkins-grid,
+.feed-timeline,
+.formula-band,
+.wallet-band {
+  gap: 14px !important;
+}
+
+.checkin-card,
+.item-content-card {
+  padding: 14px !important;
+}
+
+.rewards-page .wallet-band,
+.rewards-page .formula-band {
+  margin-bottom: 14px !important;
+}
+
+.rewards-page .nexus-feature-header {
+  min-height: 132px !important;
+  padding: 22px !important;
+}
+
+.activity-detail-block,
+.checkin-details {
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+@media (min-width: 1280px) {
+  .feed-container.admin-page {
+    width: min(980px, calc(100% - 36px)) !important;
+  }
+
+  .checkin-container.admin-page {
+    width: min(1060px, calc(100% - 36px)) !important;
+  }
+}

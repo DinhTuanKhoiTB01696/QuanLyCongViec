@@ -58,6 +58,7 @@ namespace TaskManagement.Infrastructure.Services
                 Console.WriteLine($"[ERROR RESEND] Không thể gửi email thực tế qua Resend: {ex.Message}");
                 Console.WriteLine($"[DEBUG OTP] Sử dụng mã OTP hiển thị bên trên để tiếp tục đăng ký/xác thực.");
                 Console.WriteLine($"=========================================");
+                throw new InvalidOperationException("Khong the gui email OTP qua Resend. Vui long kiem tra Resend API key, FromEmail/domain va thu lai.", ex);
             }
         }
 

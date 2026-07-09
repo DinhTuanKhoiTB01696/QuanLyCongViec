@@ -456,31 +456,34 @@ onMounted(() => {
 <style scoped>
 .chat-container {
   display: flex;
-  height: calc(100vh - 120px);
+  width: min(100% - 44px, 1280px);
+  height: calc(100vh - 132px);
+  margin: 22px auto;
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
+  border-radius: 14px;
   overflow: hidden;
+  box-shadow: 0 18px 46px color-mix(in srgb, #020617 12%, transparent);
 }
 
 .chat-sidebar {
-  width: 260px;
+  width: 248px;
   border-right: 1px solid var(--color-border);
   background-color: var(--sa-sidebar);
   display: flex;
   flex-direction: column;
-  padding: 16px;
+  padding: 14px;
 }
 .sidebar-header {
-  margin-bottom: 24px;
+  margin-bottom: 14px;
 }
 .sidebar-section {
   display: flex;
   flex-direction: column;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
-  padding: 14px;
+  padding: 12px;
   background-color: rgba(255, 255, 255, 0.01);
 }
 
@@ -505,7 +508,7 @@ onMounted(() => {
 .list-item {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 7px 10px;
   border: none;
   border-radius: var(--radius-button);
   background: transparent;
@@ -557,12 +560,12 @@ onMounted(() => {
 }
 
 .chat-header {
-  height: 64px;
+  min-height: 58px;
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 16px;
 }
 
 .active-info {
@@ -579,7 +582,7 @@ onMounted(() => {
 
 .header-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
 }
 
 .action-btn {
@@ -599,11 +602,11 @@ onMounted(() => {
 
 .messages-thread {
   flex: 1;
-  padding: 20px;
+  padding: 16px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .message-card {
@@ -647,7 +650,7 @@ onMounted(() => {
 
 .message-content {
   background-color: var(--color-surface-hover);
-  padding: 10px 14px;
+  padding: 9px 12px;
   border-radius: 12px;
   border-top-left-radius: 0;
   color: var(--color-text-primary);
@@ -684,7 +687,7 @@ onMounted(() => {
 }
 
 .chat-input-area {
-  padding: 16px 20px;
+  padding: 12px 16px;
   border-top: 1px solid var(--color-border);
   background-color: var(--color-surface);
 }
@@ -705,6 +708,7 @@ onMounted(() => {
   border: 2px solid var(--color-border) !important;
   border-radius: 8px !important;
   height: 40px !important;
+  padding-inline: 12px !important;
 }
 
 .btn-send {
@@ -757,6 +761,37 @@ onMounted(() => {
   background-color: rgba(15, 23, 42, 0.6);
   padding: 4px 10px;
   border-radius: 6px;
+}
+
+@media (max-width: 900px) {
+  .chat-container {
+    width: calc(100% - 24px);
+    height: calc(100vh - 112px);
+    margin: 12px auto;
+  }
+
+  .chat-sidebar {
+    width: 210px;
+  }
+}
+
+@media (max-width: 720px) {
+  .chat-container {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 112px);
+  }
+
+  .chat-sidebar {
+    width: 100%;
+    max-height: 240px;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .messages-thread {
+    min-height: 420px;
+  }
 }
 </style>
 
@@ -1007,6 +1042,5 @@ onMounted(() => {
   border-color: rgba(255, 255, 255, 0.2) !important;
 }
 </style>
-
 
 

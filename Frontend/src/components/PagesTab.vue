@@ -75,8 +75,8 @@ const filteredPages = computed(() => {
   // Filter by search query
   if (filterSearch.value.trim()) {
     const q = filterSearch.value.toLowerCase()
-    result = result.filter(p => 
-      (p.title || '').toLowerCase().includes(q) || 
+    result = result.filter(p =>
+      (p.title || '').toLowerCase().includes(q) ||
       (p.content || '').toLowerCase().includes(q)
     )
   }
@@ -361,7 +361,7 @@ function insertTable(rows, cols) {
 async function handleImageUpload(e) {
   const files = e.target.files
   if (!files || !files.length) return
-  
+
   for (const file of Array.from(files)) {
     const reader = new FileReader()
     reader.onload = (event) => {
@@ -442,10 +442,10 @@ function pageMenuItems(page) {
 <template>
   <ProjectPageContainer>
     <!-- LIST VIEW -->
-      <div v-if="!activePage" class="pages-list-view">
-        <ProjectPageHeader 
-          icon="fa-regular fa-file-lines" 
-          :title="t('Pages')" 
+      <template v-if="!activePage">
+        <ProjectPageHeader
+          icon="fa-regular fa-file-lines"
+          :title="t('Pages')"
           :description="t('Create and manage project documentation')"
         >
           <template #actions>
@@ -462,7 +462,7 @@ function pageMenuItems(page) {
             <el-popover placement="bottom-end" trigger="click" :width="220" popper-class="custom-dark-popover sort-popover" :offset="8" :show-arrow="false">
               <template #reference>
                 <button class="nexus-btn-outlined">
-                  <i class="fa-solid fa-arrow-down-short-wide"></i> 
+                  <i class="fa-solid fa-arrow-down-short-wide"></i>
                   {{ sortBy === 'name' ? t('Name') : (sortBy === 'date_created' ? t('Date created') : t('Date modified')) }}
                 </button>
               </template>
@@ -500,16 +500,16 @@ function pageMenuItems(page) {
                   <i class="fa-solid fa-magnifying-glass fms-icon"></i>
                   <input v-model="filterSearch" type="text" :placeholder="t('Search')" class="fms-input" />
                 </div>
-                
+
                 <div class="fm-section" style="margin-top: 12px">
                   <label class="fm-checkbox-row">
                     <input type="checkbox" v-model="filterFavorites" class="fm-checkbox" />
                     <span class="fm-checkbox-label">{{ t('Favorites') }}</span>
                   </label>
                 </div>
-                
+
                 <div class="pm-divider"></div>
-                
+
                 <div class="fm-collapsible">
                   <div class="fm-col-header" @click="filterDateExpanded = !filterDateExpanded">
                     <span class="fm-col-title">{{ t('Created date') }}</span>
@@ -534,9 +534,9 @@ function pageMenuItems(page) {
                     </label>
                   </div>
                 </div>
-                
+
                 <div class="pm-divider"></div>
-                
+
                 <div class="fm-collapsible">
                   <div class="fm-col-header" @click="filterByExpanded = !filterByExpanded">
                     <span class="fm-col-title">{{ t('Created by') }}</span>
@@ -564,13 +564,13 @@ function pageMenuItems(page) {
       </div>
 
       <div class="pages-list" v-loading="loading">
-        <ProjectEmptyState 
+        <ProjectEmptyState
            v-if="filteredPages.length === 0"
            icon="fa-regular fa-file-lines"
            :title="activeTab === 'Archived' ? t('No archived pages yet') : t('No pages yet')"
            :description="activeTab === 'Archived' ? t('Archive pages not on your radar. Access them here when needed.') : t('Create your first page to get started and keep your work organized.')"
         />
-        
+
         <div v-for="page in filteredPages" :key="page.id" class="page-row" @click="openPage(page.id)">
            <div class="pr-left">
               <i class="fa-regular fa-file-lines doc-icon"></i>
@@ -605,7 +605,7 @@ function pageMenuItems(page) {
            </div>
         </div>
       </div>
-    </div>
+    </template>
 
     <!-- EDITOR VIEW -->
     <div v-else class="page-editor-view">
@@ -666,7 +666,7 @@ function pageMenuItems(page) {
                </template>
             </el-dropdown>
             <div class="v-divider-tb"></div>
-            
+
             <el-color-picker
               v-model="pendingColor"
               show-alpha
@@ -710,7 +710,7 @@ function pageMenuItems(page) {
                   <div class="text-[11px] text-gray-400 mb-2 text-center font-medium">{{ hoverTableRows || 0 }} x {{ hoverTableCols || 0 }} {{ t('Table') }}</div>
                   <div class="grid-picker" @mouseleave="hoverTableRows=0; hoverTableCols=0">
                     <div v-for="r in 10" :key="'r'+r" class="grid-row">
-                      <div v-for="c in 10" :key="'r'+r+'c'+c" 
+                      <div v-for="c in 10" :key="'r'+r+'c'+c"
                            class="grid-cell"
                            :class="{ 'active': r <= hoverTableRows && c <= hoverTableCols }"
                            @mouseover="hoverTableRows=r; hoverTableCols=c"

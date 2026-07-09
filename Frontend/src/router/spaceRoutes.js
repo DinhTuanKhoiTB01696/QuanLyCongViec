@@ -28,6 +28,10 @@ export default [
         component: () => import('../components/layout/ProjectLayoutWrapper.vue'),
         children: [
           {
+            path: '',
+            redirect: to => `/space/${to.params.id}/dashboard`
+          },
+          {
             path: 'work-items',
             name: 'SpaceSummary',
             component: () => import('../views/SpaceSummary.vue')
@@ -78,6 +82,11 @@ export default [
             component: () => import('../views/SpaceDashboard.vue')
           },
           {
+            path: 'members',
+            name: 'SpaceMembers',
+            component: () => import('../views/SpaceMembers.vue')
+          },
+          {
             path: 'settings',
             name: 'ProjectSettings',
             component: () => import('../views/ProjectSettings.vue'),
@@ -86,12 +95,5 @@ export default [
         ]
       }
     ]
-  },
-  {
-    path: '/space/:id',
-    name: 'SpaceSummaryRedirect',
-    redirect: to => {
-      return `/space/${to.params.id}/dashboard`
-    }
   }
 ]
