@@ -8,9 +8,9 @@
   >
     <template #header="{ close }">
       <div class="dialog-header-standard">
-        <h2 class="dialog-title">Create Project</h2>
+        <h2 class="dialog-title">Tạo dự án</h2>
         <div class="header-actions">
-          <button class="icon-btn-ghost" @click="close" title="Close"><i class="fa-solid fa-xmark"></i></button>
+          <button class="icon-btn-ghost" @click="close" title="Đóng"><i class="fa-solid fa-xmark"></i></button>
         </div>
       </div>
     </template>
@@ -18,64 +18,52 @@
     <div class="modal-layout">
       <div class="form-column">
         <div class="form-group">
-          <label class="field-label">Project name</label>
-          <input v-model="form.name" type="text" placeholder="Sprint planning" class="compact-input-field" />
+          <label class="field-label">Tên dự án</label>
+          <input v-model="form.name" type="text" placeholder="Kế hoạch Sprint A" class="compact-input-field" />
         </div>
 
         <div class="form-group">
-          <label class="field-label">Key</label>
+          <label class="field-label">Mã dự án</label>
           <input v-model="form.key" type="text" maxlength="8" placeholder="SPR" class="compact-input-field" />
         </div>
 
         <div class="form-group">
-          <label class="field-label">Description</label>
-          <textarea v-model="form.description" rows="3" placeholder="What is this project for?" class="compact-textarea-field"></textarea>
+          <label class="field-label">Mô tả</label>
+          <textarea v-model="form.description" rows="3" placeholder="Dự án này dùng để quản lý việc gì?" class="compact-textarea-field"></textarea>
         </div>
 
         <div class="split-grid">
           <div class="form-group">
-            <label class="field-label">Start date</label>
+            <label class="field-label">Ngày bắt đầu</label>
             <input v-model="form.startDate" type="date" class="compact-input-field" />
           </div>
 
           <div class="form-group">
-            <label class="field-label">Visibility</label>
+            <label class="field-label">Quyền xem</label>
             <el-select v-model="form.networkType" class="full-width-select">
-              <el-option label="Public" value="Public" />
-              <el-option label="Private" value="Private" />
+              <el-option label="Công khai" value="Public" />
+              <el-option label="Riêng tư" value="Private" />
             </el-select>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="field-label">Icon</label>
+          <label class="field-label">Biểu tượng</label>
           <input v-model="form.icon" type="text" maxlength="2" placeholder="🚀" class="compact-input-field" style="width: 60px; text-align: center;" />
         </div>
       </div>
 
       <div class="cover-column">
-        <div class="cover-preview" :style="{ backgroundImage: `url(${form.cover})` }">
+        <div class="cover-preview" :style="{ backgroundImage: form.cover ? `url(${form.cover})` : 'none' }">
           <div class="cover-overlay">
             <span class="preview-badge">{{ form.icon || 'P' }}</span>
-            <strong class="preview-name">{{ form.name || 'Project preview' }}</strong>
+            <strong class="preview-name">{{ form.name || 'Xem trước dự án' }}</strong>
           </div>
         </div>
 
         <div class="gallery-header">
-          <h4 class="section-title">Cover gallery</h4>
-          <p class="helper-text-muted">Choose a project cover.</p>
-        </div>
-
-        <div class="cover-grid">
-          <button
-            v-for="cover in coverOptions"
-            :key="cover"
-            type="button"
-            class="cover-option"
-            :class="{ active: form.cover === cover }"
-            :style="{ backgroundImage: `url(${cover})` }"
-            @click="form.cover = cover"
-          />
+          <h4 class="section-title">Ảnh bìa dự án</h4>
+          <p class="helper-text-muted">SprintA sẽ không tự dùng ảnh mẫu. Bạn có thể cập nhật ảnh bìa thật trong phần cài đặt dự án.</p>
         </div>
       </div>
     </div>
@@ -84,10 +72,10 @@
       <div class="dialog-footer-standard">
         <div class="footer-spacer"></div>
         <div class="footer-actions">
-          <button class="btn-secondary-sm" @click="handleClose">Cancel</button>
+          <button class="btn-secondary-sm" @click="handleClose">Hủy</button>
           <button class="btn-primary-sm" :disabled="submitting" @click="handleSubmit">
             <i v-if="submitting" class="fa-solid fa-spinner fa-spin"></i>
-            {{ submitting ? 'Creating...' : 'Create project' }}
+            {{ submitting ? 'Đang tạo...' : 'Tạo dự án' }}
           </button>
         </div>
       </div>
@@ -112,7 +100,6 @@ const visibleComp = computed({
 })
 
 const submitting = ref(false)
-const coverOptions = Array.from({ length: 8 }, (_, index) => `https://picsum.photos/seed/sprinta-cover-${index + 1}/640/360`)
 
 const formatDateOnly = (value) => {
   const date = value instanceof Date ? value : new Date(value)
@@ -129,7 +116,7 @@ const createInitialForm = () => ({
   description: '',
   startDate: formatDateOnly(new Date()),
   networkType: 'Public',
-  cover: coverOptions[0],
+  cover: null,
   icon: '🚀'
 })
 
@@ -146,7 +133,7 @@ const handleClose = () => {
 
 const handleSubmit = async () => {
   if (!form.value.name.trim()) {
-    ElMessage.warning('Project name is required')
+    ElMessage.warning('Vui lòng nhập tên dự án')
     return
   }
 
@@ -158,15 +145,15 @@ const handleSubmit = async () => {
       description: form.value.description.trim() || null,
       startDate: form.value.startDate,
       networkType: form.value.networkType,
-      cover: form.value.cover,
+      cover: form.value.cover || null,
       icon: form.value.icon || null
     })
 
     emit('created', response.data?.data || response.data)
-    ElMessage.success('Project created')
+    ElMessage.success('Đã tạo dự án')
     handleClose()
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || 'Could not create project')
+    ElMessage.error(error.response?.data?.message || 'Không thể tạo dự án')
   } finally {
     submitting.value = false
   }

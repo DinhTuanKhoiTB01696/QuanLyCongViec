@@ -65,5 +65,6 @@ namespace TaskManagement.Domain.Entities
         public ICollection<IssueLabel> IssueLabels { get; set; } = new List<IssueLabel>();
         public ICollection<IssueModule> IssueModules { get; set; } = new List<IssueModule>();
         public ICollection<TaskSubscriber> Subscribers { get; set; } = new List<TaskSubscriber>();
+        public ICollection<CustomFieldValue> CustomFieldValues { get; set; } = new List<CustomFieldValue>();
     }
 }

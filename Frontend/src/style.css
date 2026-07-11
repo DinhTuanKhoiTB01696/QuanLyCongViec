@@ -85,7 +85,7 @@
   --shadow-drawer: -18px 0 48px rgb(15 23 42 / 0.18);
   --shadow-sticky-column: 10px 0 20px rgb(15 23 42 / 0.08);
   --transition-speed: 0.25s;
-  --z-modal: 2000;
+  --z-modal: 4000;
   --z-popover: 4200;
 
   /* RADIUS SYSTEM (ATLASSIAN STRICT) */
@@ -103,6 +103,15 @@
 
   --accent-color: var(--color-accent);
 }
+
+/* Layer contract: modal > overlay > AI panel/pet > page content. */
+:root {
+  --el-overlay-z-index: 3900;
+  --el-dialog-z-index: 4000;
+}
+
+.el-overlay { z-index: 3900 !important; }
+.el-overlay-dialog { z-index: 4000 !important; }
 
 
 [data-theme='dark'] {

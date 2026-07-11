@@ -24,3 +24,15 @@ app.use(vue3GoogleLogin, {
   clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 })
 app.mount('#app')
+
+// Register PWA Service Worker
+import { registerSW } from 'virtual:pwa-register'
+registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    console.info('SprintA có phiên bản mới, vui lòng tải lại trang.')
+  },
+  onOfflineReady() {
+    console.info('SprintA app shell đã sẵn sàng dùng khi offline.')
+  }
+})

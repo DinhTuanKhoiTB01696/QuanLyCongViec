@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Text;
@@ -16,6 +17,7 @@ using TaskManagement.API.Hubs;
 using TaskManagement.Application.DTOs.WorkTask;
 using TaskManagement.Application.Interfaces;
 using TaskManagement.Infrastructure.Data;
+using TaskManagement.Domain.Entities;
 
 namespace TaskManagement.API.Controllers
 {
@@ -2265,6 +2267,220 @@ namespace TaskManagement.API.Controllers
                 data = payload
             });
         }
+
+        [HttpPost("projects/{projectId}/WorkTasks/import")]
+        public async Task<IActionResult> ImportWorkTasks(Guid projectId, [FromBody] List<ImportTaskRowDto> rows, [FromServices] ApplicationDbContext context)
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out Guid userId))
+                return Unauthorized();
+
+            var project = await context.Projects.FirstOrDefaultAsync(p => p.Id == projectId && !p.IsDeleted);
+            if (project == null)
+                return NotFound(new { statusCode = 404, message = "Không tìm thấy dự án." });
+
+            var members = await context.ProjectMembers
+                .Where(pm => pm.ProjectId == projectId)
+                .Select(pm => pm.User)
+                .Where(u => u != null)
+                .ToListAsync();
+            var memberEmails = members.ToDictionary(m => m.Email.ToLowerInvariant(), m => m.Id);
+
+            var statuses = await context.TaskStatuses
+                .Where(ts => ts.ProjectId == projectId)
+                .ToListAsync();
+            var statusMap = statuses.ToDictionary(s => s.Name.ToUpperInvariant(), s => s.Id);
+
+            var todoStatus = statuses.FirstOrDefault(s => s.Name == "TO DO") ?? statuses.FirstOrDefault();
+            var defaultStatusId = todoStatus?.Id ?? Guid.Empty;
+
+            var defaultType = await context.TaskTypes.FirstOrDefaultAsync(tt => tt.ProjectId == projectId);
+            var defaultTypeId = defaultType?.Id ?? Guid.Empty;
+
+            double maxSort = await context.WorkTasks
+                .Where(wt => wt.ProjectId == projectId && !wt.IsDeleted)
+                .MaxAsync(wt => (double?)wt.SortOrder) ?? 0;
+
+            int importedCount = 0;
+            var newTasks = new List<WorkTask>();
+
+            foreach (var row in rows)
+            {
+                if (string.IsNullOrWhiteSpace(row.Title))
+                    continue;
+
+                int priorityVal = 3;
+                if (!string.IsNullOrWhiteSpace(row.Priority))
+                {
+                    var pUpper = row.Priority.ToUpperInvariant();
+                    if (pUpper.Contains("KHẨN") || pUpper.Contains("URGENT") || pUpper.Contains("1")) priorityVal = 1;
+                    else if (pUpper.Contains("CAO") || pUpper.Contains("HIGH") || pUpper.Contains("2")) priorityVal = 2;
+                    else if (pUpper.Contains("THẤP") || pUpper.Contains("LOW") || pUpper.Contains("4")) priorityVal = 4;
+                }
+
+                Guid? assignedUserId = null;
+                if (!string.IsNullOrWhiteSpace(row.AssigneeEmail))
+                {
+                    var emailLower = row.AssigneeEmail.Trim().ToLowerInvariant();
+                    if (memberEmails.TryGetValue(emailLower, out var uid))
+                    {
+                        assignedUserId = uid;
+                    }
+                }
+
+                Guid statusId = defaultStatusId;
+                if (!string.IsNullOrWhiteSpace(row.Status))
+                {
+                    var sUpper = row.Status.Trim().ToUpperInvariant();
+                    if (statusMap.TryGetValue(sUpper, out var sid))
+                    {
+                        statusId = sid;
+                    }
+                }
+
+                DateTime? dueDate = null;
+                if (!string.IsNullOrWhiteSpace(row.DueDate) && DateTime.TryParse(row.DueDate, out var parsedDate))
+                {
+                    dueDate = DateTime.SpecifyKind(parsedDate.Date, DateTimeKind.Utc);
+                }
+
+                double storyPoints = 0;
+                if (!string.IsNullOrWhiteSpace(row.StoryPoints) && double.TryParse(row.StoryPoints, out var sp))
+                {
+                    storyPoints = sp;
+                }
+
+                maxSort += 65536;
+                project.IssueSequence += 1;
+                string sequenceId = $"{project.Identifier}-{project.IssueSequence}";
+
+                var newTask = new WorkTask
+                {
+                    Id = Guid.NewGuid(),
+                    ProjectId = projectId,
+                    WorkspaceId = project.WorkspaceId,
+                    Title = row.Title,
+                    Description = row.Description,
+                    TaskStatusId = statusId,
+                    TaskTypeId = defaultTypeId,
+                    ReporterId = userId,
+                    AssignedUserId = assignedUserId,
+                    Priority = priorityVal,
+                    DueDate = dueDate,
+                    StoryPoints = storyPoints,
+                    SortOrder = maxSort,
+                    SequenceId = sequenceId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                newTasks.Add(newTask);
+                importedCount++;
+            }
+
+            if (newTasks.Any())
+            {
+                context.WorkTasks.AddRange(newTasks);
+                await context.SaveChangesAsync();
+
+                try
+                {
+                    await _kanbanHub.Clients.Group(projectId.ToString()).SendAsync("TasksUpdated");
+                }
+                catch
+                {
+                }
+            }
+
+            return Ok(new { statusCode = 200, message = $"Đã nhập thành công {importedCount} công việc.", count = importedCount });
+        }
+
+        [HttpGet("projects/{projectId}/WorkTasks/export")]
+        public async Task<IActionResult> ExportWorkTasks(Guid projectId, [FromServices] ApplicationDbContext context)
+        {
+            var project = await context.Projects.FirstOrDefaultAsync(p => p.Id == projectId && !p.IsDeleted);
+            if (project == null)
+                return NotFound(new { statusCode = 404, message = "Không tìm thấy dự án." });
+
+            var tasks = await context.WorkTasks
+                .Include(t => t.TaskStatus)
+                .Include(t => t.AssignedUser)
+                .Include(t => t.IssueLabels).ThenInclude(issueLabel => issueLabel.Label)
+                .Include(t => t.CustomFieldValues).ThenInclude(value => value.FieldDefinition)
+                .Where(t => t.ProjectId == projectId && !t.IsDeleted)
+                .OrderBy(t => t.SequenceId)
+                .ToListAsync();
+
+            var csv = new StringBuilder();
+            csv.AppendLine("Mã công việc,Tiêu đề,Mô tả,Trạng thái,Ưu tiên,Người phụ trách,Ngày bắt đầu,Hạn hoàn thành,Tiến độ,Nhãn,Custom Fields");
+
+            foreach (var task in tasks)
+            {
+                var seqId = task.SequenceId ?? "";
+                var title = EscapeCsv(task.Title);
+                var status = EscapeCsv(task.TaskStatus?.Name ?? "Backlog");
+                var assignee = EscapeCsv(task.AssignedUser?.FullName ?? task.AssignedUser?.Email ?? "");
+
+                var priorityStr = task.Priority switch
+                {
+                    1 => "Khẩn cấp",
+                    2 => "Cao",
+                    3 => "Trung bình",
+                    4 => "Thấp",
+                    _ => "Trung bình"
+                };
+
+                var startDate = task.PlannedStartDate?.ToString("yyyy-MM-dd") ?? "";
+                var dueDate = task.DueDate?.ToString("yyyy-MM-dd") ?? "";
+                var description = EscapeCsv(task.Description);
+                var progress = task.TotalEstimatedHours > 0
+                    ? Math.Clamp(task.TotalActualHours / task.TotalEstimatedHours * 100, 0, 100).ToString("0.##", CultureInfo.InvariantCulture) + "%"
+                    : "";
+                var labels = EscapeCsv(string.Join(", ", task.IssueLabels
+                    .Select(issueLabel => issueLabel.Label?.Name)
+                    .Where(name => !string.IsNullOrWhiteSpace(name))));
+                var customFields = task.CustomFieldValues
+                    .Where(value => value.FieldDefinition != null && !string.IsNullOrWhiteSpace(value.FieldDefinition.Name))
+                    .OrderBy(value => value.FieldDefinition.SortOrder)
+                    .GroupBy(value => value.FieldDefinition.Name)
+                    .ToDictionary(group => group.Key, group => group.Last().Value ?? "");
+                var customFieldsJson = customFields.Count == 0
+                    ? ""
+                    : EscapeCsv(JsonSerializer.Serialize(customFields));
+
+                csv.AppendLine($"{EscapeCsv(seqId)},{title},{description},{status},{EscapeCsv(priorityStr)},{assignee},{startDate},{dueDate},{EscapeCsv(progress)},{labels},{customFieldsJson}");
+            }
+
+            var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+            var bomBytes = new byte[] { 0xEF, 0xBB, 0xBF };
+            var fileBytes = new byte[bomBytes.Length + bytes.Length];
+            Buffer.BlockCopy(bomBytes, 0, fileBytes, 0, bomBytes.Length);
+            Buffer.BlockCopy(bytes, 0, fileBytes, bomBytes.Length, bytes.Length);
+
+            return File(fileBytes, "text/csv", $"SprintA-Tasks-{project.Name}-{DateTime.Now:yyyyMMddHHmmss}.csv");
+        }
+
+        private static string EscapeCsv(string? value)
+        {
+            if (string.IsNullOrEmpty(value)) return "";
+            var clean = value;
+            if (clean.Contains(",") || clean.Contains("\"") || clean.Contains("\r") || clean.Contains("\n"))
+            {
+                clean = "\"" + clean.Replace("\"", "\"\"") + "\"";
+            }
+            return clean;
+        }
+    }
+
+    public class ImportTaskRowDto
+    {
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? AssigneeEmail { get; set; }
+        public string? Status { get; set; }
+        public string? Priority { get; set; }
+        public string? DueDate { get; set; }
+        public string? StoryPoints { get; set; }
     }
 
     public class ReorderTaskDto

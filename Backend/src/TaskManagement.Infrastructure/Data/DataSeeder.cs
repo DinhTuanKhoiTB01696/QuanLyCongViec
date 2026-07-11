@@ -11,6 +11,15 @@ namespace TaskManagement.Infrastructure.Data
         public static async Task SeedMockDataAsync(ApplicationDbContext context)
         {
             var now = DateTime.UtcNow;
+            var invalidStarredItems = await context.StarredItems
+                .Where(item => !StarredItemTypes.Allowed.Contains(item.ItemType))
+                .ToListAsync();
+            if (invalidStarredItems.Count > 0)
+            {
+                context.StarredItems.RemoveRange(invalidStarredItems);
+                await context.SaveChangesAsync();
+            }
+
             var preferredOwnerId = Guid.Parse("11111111-0000-0000-0000-000000000001");
             const string demoWorkspaceSlug = "cybwf";
             const string demoProjectIdentifier = "CYBWF";

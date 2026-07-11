@@ -325,7 +325,7 @@ const createView = async () => {
     }
     const res = await axiosClient.post(`/projects/${projectId.value}/views`, payload)
     views.value.unshift(res.data.data)
-    ElNotification.success(t('View created successfully'))
+    ElNotification.success(t('Đã tạo góc nhìn'))
     showCreateModal.value = false
     resetForm()
   } catch (err) {
@@ -552,7 +552,7 @@ const getInitials = (name) => {
     <ProjectPageHeader 
         icon="fa-regular fa-eye" 
         :title="activeView ? activeView.name : t('Views')" 
-        :description="activeView ? activeViewSubtitle : t('Manage custom views for your tasks')"
+        :description="activeView ? activeViewSubtitle : t('Quản lý các chế độ xem tùy chỉnh cho công việc')"
       >
         <template #breadcrumbs v-if="activeView">
           <span class="cursor-pointer hover:underline text-blue-500" @click="goBackToList">{{ t('Views') }}</span>

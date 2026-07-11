@@ -718,4 +718,18 @@ onMounted(() => {
 :deep(.el-tabs__active-bar) {
   background-color: var(--color-accent, #0c66e4);
 }
+:deep(.nexus-table),
+:deep(.nexus-table .el-table__inner-wrapper),
+:deep(.nexus-table tr),
+:deep(.nexus-table th.el-table__cell),
+:deep(.nexus-table td.el-table__cell) {
+  background: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border) !important;
+}
+:deep(.nexus-table th.el-table__cell) { background: var(--color-table-header) !important; }
+:deep(.nexus-table .el-table__body tr:hover > td.el-table__cell) { background: var(--color-table-row-hover) !important; }
+:deep(.nexus-table .el-select__wrapper) { background: var(--color-input-bg) !important; box-shadow: 0 0 0 1px var(--color-input-border) inset !important; }
+.member-email { color: var(--color-text-muted) !important; }
+.team-option.is-selected { background: var(--sa-primary-soft); border-color: var(--color-accent); }
 </style>

@@ -99,7 +99,7 @@
 
           <div v-else class="provider-list">
             <article
-              v-for="provider in providers"
+              v-for="provider in renderedProviders"
               :key="provider.provider"
               class="provider-card"
               :class="[provider.status, { featured: provider.provider === 'google-calendar' }]"
@@ -117,14 +117,14 @@
                 <div class="provider-meta">
                   <span v-if="provider.accountEmail"><i class="fa-regular fa-user"></i>{{ provider.accountEmail }}</span>
                   <span v-if="provider.lastSyncedAt"><i class="fa-regular fa-clock"></i>{{ formatDate(provider.lastSyncedAt) }}</span>
-                  <span v-if="provider.status === 'coming_soon'"><i class="fa-solid fa-hourglass-half"></i>{{ t('Sẽ hỗ trợ sau', 'Coming soon') }}</span>
+                  <span v-if="provider.status === 'coming_soon'"><i class="fa-solid fa-hourglass-half"></i>{{ t('Sắp ra mắt', 'Coming soon') }}</span>
                   <span v-if="provider.status === 'not_connected'"><i class="fa-solid fa-link-slash"></i>{{ t('Chưa kết nối', 'Not connected') }}</span>
                 </div>
               </div>
 
               <div class="provider-actions">
                 <button
-                  v-if="provider.supportsConnect !== false && provider.status !== 'connected'"
+                  v-if="provider.supportsConnect !== false && provider.status !== 'connected' && provider.status !== 'coming_soon'"
                   class="primary small"
                   type="button"
                   :disabled="connecting"
@@ -135,9 +135,9 @@
                 </button>
 
                 <template v-if="provider.status === 'connected'">
-                  <button class="primary small" type="button" :disabled="syncing" @click="syncProvider(provider)">
-                    <i class="fa-solid fa-rotate" :class="{ 'fa-spin': syncing }"></i>
-                    {{ syncing ? t('Đang đồng bộ', 'Syncing') : t('Đồng bộ ngay', 'Sync now') }}
+                  <button class="primary small" type="button" :disabled="syncingProviders[provider.provider] || syncing" @click="syncProvider(provider)">
+                    <i class="fa-solid fa-rotate" :class="{ 'fa-spin': syncingProviders[provider.provider] }"></i>
+                    {{ syncingProviders[provider.provider] ? t('Đang đồng bộ', 'Syncing') : t('Đồng bộ ngay', 'Sync now') }}
                   </button>
                   <button class="ghost small danger-text" type="button" @click="disconnect(provider.id)">
                     <i class="fa-solid fa-link-slash"></i>
@@ -146,7 +146,17 @@
                 </template>
 
                 <button
-                  v-if="provider.supportsConnect === false && provider.status !== 'connected'"
+                  v-if="provider.status === 'coming_soon'"
+                  class="ghost small"
+                  type="button"
+                  disabled
+                >
+                  <i class="fa-solid fa-lock mr-1"></i>
+                  {{ t('Đang phát triển', 'Coming soon') }}
+                </button>
+
+                <button
+                  v-if="provider.supportsConnect === false && provider.status !== 'connected' && provider.status !== 'coming_soon'"
                   class="ghost small"
                   type="button"
                   disabled
@@ -227,6 +237,20 @@
               <i :class="tab.icon"></i>
               {{ tab.label }}
               <span>{{ sourceCount(tab.id) }}</span>
+            </button>
+          </nav>
+
+          <!-- Trạng thái filters -->
+          <nav class="status-filters" aria-label="Unified Inbox status filters">
+            <button
+              v-for="filter in statusFilters"
+              :key="filter.id"
+              type="button"
+              class="status-filter-btn"
+              :class="{ active: activeStatus === filter.id }"
+              @click="activeStatus = filter.id"
+            >
+              {{ filter.label }}
             </button>
           </nav>
 
@@ -473,6 +497,8 @@ const aiMessageType = ref('info')
 const integrationsError = ref('')
 const inboxError = ref('')
 const notice = ref(null)
+const activeStatus = ref('all') // all | unread | read | converted
+const syncingProviders = ref({})
 
 const t = (vi, en) => i18nStore.locale === 'en' ? en : vi
 
@@ -481,17 +507,80 @@ const tabs = computed(() => [
   { id: 'calendar', label: t('Lịch', 'Calendar'), icon: 'fa-regular fa-calendar' },
   { id: 'email', label: 'Email', icon: 'fa-regular fa-envelope' },
   { id: 'slack', label: 'Slack', icon: 'fa-brands fa-slack' },
+  { id: 'github', label: 'GitHub', icon: 'fa-brands fa-github' },
+  { id: 'zalo', label: 'Zalo', icon: 'fa-solid fa-comment' },
   { id: 'system', label: t('Hệ thống', 'System'), icon: 'fa-regular fa-bell' }
 ])
+
+const statusFilters = computed(() => [
+  { id: 'all', label: t('Tất cả', 'All') },
+  { id: 'unread', label: t('Chưa đọc', 'Unread') },
+  { id: 'read', label: t('Đã đọc', 'Read') },
+  { id: 'converted', label: t('Đã tạo task', 'Task created') }
+])
+
+const renderedProviders = computed(() => {
+  const list = [...providers.value]
+
+  // Add GitHub card if not present
+  if (!list.some(p => p.provider === 'github')) {
+    list.push({
+      provider: 'github',
+      name: 'GitHub',
+      source: 'github',
+      status: 'coming_soon',
+      accountEmail: '',
+      lastSyncedAt: null,
+      createdAt: null,
+      supportsConnect: false,
+      supportsSync: false
+    })
+  }
+
+  // Add Zalo card if not present
+  if (!list.some(p => p.provider === 'zalo')) {
+    list.push({
+      provider: 'zalo',
+      name: 'Zalo',
+      source: 'zalo',
+      status: 'coming_soon',
+      accountEmail: '',
+      lastSyncedAt: null,
+      createdAt: null,
+      supportsConnect: false,
+      supportsSync: false
+    })
+  }
+
+  return list
+})
 
 const googleCalendar = computed(() => providers.value.find(provider => provider.provider === 'google-calendar') || null)
 const isGoogleConnected = computed(() => googleCalendar.value?.status === 'connected')
 const connectedProviders = computed(() => providers.value.filter(provider => provider.status === 'connected' && provider.supportsSync !== false))
 const connectedCount = computed(() => providers.value.filter(provider => provider.status === 'connected').length)
 const unreadCount = computed(() => inboxItems.value.filter(item => !item.isRead).length)
-const filteredInbox = computed(() => activeTab.value === 'all'
-  ? inboxItems.value
-  : inboxItems.value.filter(item => item.source === activeTab.value))
+
+const filteredInbox = computed(() => {
+  let list = inboxItems.value
+
+  // 1. Filter by source (tab)
+  if (activeTab.value !== 'all') {
+    list = list.filter(item => item.source === activeTab.value)
+  }
+
+  // 2. Filter by read status or created task status
+  if (activeStatus.value === 'unread') {
+    list = list.filter(item => !item.isRead)
+  } else if (activeStatus.value === 'read') {
+    list = list.filter(item => item.isRead)
+  } else if (activeStatus.value === 'converted') {
+    list = list.filter(item => !!item.createdTaskId)
+  }
+
+  return list
+})
+
 const selectedItem = computed(() => inboxItems.value.find(item => item.id === selectedItemId.value) || filteredInbox.value[0] || null)
 const visibleCreatableItems = computed(() => filteredInbox.value.filter(item => !item.createdTaskId))
 const selectedBulkItems = computed(() => inboxItems.value.filter(item => selectedBulkIds.value.includes(item.id) && !item.createdTaskId))
@@ -687,7 +776,7 @@ const syncProvider = async (provider) => {
     return
   }
 
-  syncing.value = true
+  syncingProviders.value[provider.provider] = true
   try {
     const response = await axiosClient.post(`/integrations/${provider.provider}/sync`)
     const imported = getPayload(response)?.imported ?? 0
@@ -698,9 +787,16 @@ const syncProvider = async (provider) => {
     ElMessage.success(notice.value.message)
     await Promise.all([loadIntegrations(), loadInbox()])
   } catch (error) {
-    notice.value = { type: 'error', message: error.response?.data?.message || t(`Không đồng bộ được ${provider.name}.`, `Could not sync ${provider.name}.`) }
+    const detail = error.response?.data?.message || error.message || ''
+    const isOauthNotConfigured = detail.includes('chưa được cấu hình') || detail.includes('not configured')
+    const errorMsg = isOauthNotConfigured 
+      ? t(`OAuth của ${provider.name} chưa được cấu hình.`, `OAuth for ${provider.name} is not configured yet.`)
+      : t(`Không đồng bộ được ${provider.name}.`, `Could not sync ${provider.name}.`)
+    
+    notice.value = { type: 'error', message: errorMsg }
+    ElMessage.error(errorMsg)
   } finally {
-    syncing.value = false
+    syncingProviders.value[provider.provider] = false
   }
 }
 
@@ -721,11 +817,14 @@ const syncAllConnected = async () => {
 
   try {
     for (const provider of connectedProviders.value) {
+      syncingProviders.value[provider.provider] = true
       try {
         const response = await axiosClient.post(`/integrations/${provider.provider}/sync`)
         totalImported += Number(getPayload(response)?.imported ?? 0)
-      } catch {
+      } catch (error) {
         failed.push(provider.name)
+      } finally {
+        syncingProviders.value[provider.provider] = false
       }
     }
 
@@ -733,7 +832,11 @@ const syncAllConnected = async () => {
       ? { type: 'error', message: t(`Đã đồng bộ ${totalImported} mục, nhưng lỗi: ${failed.join(', ')}.`, `Synced ${totalImported} items, but failed: ${failed.join(', ')}.`) }
       : { type: 'success', message: t(`Đã đồng bộ ${totalImported} mục thật từ tất cả ứng dụng.`, `Synced ${totalImported} real items from all connected apps.`) }
 
-    failed.length ? ElMessage.warning(notice.value.message) : ElMessage.success(notice.value.message)
+    if (failed.length) {
+      ElMessage.warning(notice.value.message)
+    } else {
+      ElMessage.success(notice.value.message)
+    }
     await Promise.all([loadIntegrations(), loadInbox()])
   } finally {
     syncing.value = false
@@ -884,13 +987,17 @@ const sourceCount = (source) => source === 'all'
 const providerIcon = (provider) => ({
   'google-calendar': 'fa-brands fa-google',
   gmail: 'fa-regular fa-envelope',
-  slack: 'fa-brands fa-slack'
+  slack: 'fa-brands fa-slack',
+  github: 'fa-brands fa-github',
+  zalo: 'fa-solid fa-comment'
 }[provider] || 'fa-solid fa-plug')
 
 const sourceIcon = (source) => ({
   calendar: 'fa-regular fa-calendar',
   email: 'fa-regular fa-envelope',
   slack: 'fa-brands fa-slack',
+  github: 'fa-brands fa-github',
+  zalo: 'fa-solid fa-comment',
   system: 'fa-regular fa-bell'
 }[source] || 'fa-solid fa-inbox')
 
@@ -898,6 +1005,8 @@ const sourceLabel = (source) => ({
   calendar: t('Lịch', 'Calendar'),
   email: 'Email',
   slack: 'Slack',
+  github: 'GitHub',
+  zalo: 'Zalo',
   system: t('Hệ thống', 'System')
 }[source] || source)
 
@@ -917,7 +1026,13 @@ const providerDescription = (provider) => {
   if (provider.provider === 'gmail') {
     return t('Kết nối Gmail bằng OAuth thật rồi đồng bộ email thật vào Unified Inbox.', 'Connect Gmail with real OAuth and sync real emails into Unified Inbox.')
   }
-  return t('Kết nối Slack bằng OAuth thật rồi đồng bộ tin nhắn thật vào Unified Inbox.', 'Connect Slack with real OAuth and sync real messages into Unified Inbox.')
+  if (provider.provider === 'slack') {
+    return t('Kết nối Slack bằng OAuth thật rồi đồng bộ tin nhắn thật vào Unified Inbox.', 'Connect Slack with real OAuth and sync real messages into Unified Inbox.')
+  }
+  if (provider.provider === 'github') {
+    return t('Đồng bộ các commits, issues và PRs cá nhân thành công việc. Kết nối qua webhook dự án ở phần Cài đặt.', 'Sync personal commits, issues, and PRs into tasks. Connect via project webhooks in Settings.')
+  }
+  return t('Kết nối Zalo OA / thông báo công việc sẽ được hỗ trợ ở phiên bản sau.', 'Sync notifications and task assignments from Zalo OA in future updates.')
 }
 
 const syncStatusLabel = (status) => {
@@ -964,6 +1079,38 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.status-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--color-surface);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+}
+
+.status-filter-btn {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  border: 1px solid transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.status-filter-btn:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  color: var(--color-text-primary);
+}
+
+.status-filter-btn.active {
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
 .integration-page {
   min-height: calc(100vh - 64px);
   padding: 18px 22px 20px;

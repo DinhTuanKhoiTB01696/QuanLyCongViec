@@ -31,6 +31,11 @@ artifacts/
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 
+# Local runtime output
+backend-run.out
+backend-run.err
+Backend/src/TaskManagement.API/uploads/
+
 # NuGet Packages
 *.nupkg
 # NuGet Symbol Packages
@@ -63,6 +68,7 @@ node_modules/
 
 # Frontend build output
 Frontend/dist/
+/package-lock.json
 
 # Backend publish/build artifacts
 **/publish_output/

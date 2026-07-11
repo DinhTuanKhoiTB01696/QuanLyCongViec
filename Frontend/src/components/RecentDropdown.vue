@@ -39,7 +39,7 @@
     </div>
 
     <div class="jd-footer">
-      <button @click="viewAllRecent">View all recent items</button>
+      <button @click="viewAllRecent">Xem tất cả hoạt động gần đây</button>
     </div>
   </div>
 </template>

@@ -554,9 +554,88 @@
                            </div>
                          </div>
                        </div>
-                     </el-popover>
+                      </el-popover>
                    </div>
-                 </div>
+                </div>
+
+                <div v-if="customFields.length > 0" class="custom-fields-section" style="grid-column: 1 / -1; border-top: 1px solid var(--border-color); margin-top: 16px; padding-top: 16px;">
+                  <h4 style="font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-square-plus" style="color: var(--color-primary)"></i> Thông tin bổ sung
+                  </h4>
+                  <div class="props-grid" style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                    <div v-for="field in customFields" :key="field.id" class="p-row" style="display: flex; align-items: center; padding: 6px 0;">
+                      <div class="p-label" style="width: 140px; display: flex; align-items: center; gap: 8px; color: var(--color-text-muted); font-size: 13px; font-weight: 500;">
+                        <i class="fa-solid fa-tag" style="font-size: 11px;"></i>
+                        <span>{{ field.name }}</span>
+                        <span v-if="field.isRequired" class="text-red-500">*</span>
+                      </div>
+                      <div class="p-val" style="flex: 1;">
+                        <!-- Text field -->
+                        <input
+                          v-if="field.type === 'Text'"
+                          type="text"
+                          class="estimate-hours-input"
+                          style="width: 100%; max-width: 320px; font-size: 13px;"
+                          :value="customFieldValues[field.id] || ''"
+                          :disabled="!canUpdateTask"
+                          :placeholder="field.isRequired ? 'Bắt buộc nhập...' : 'Nhập thông tin...'"
+                          @blur="event => saveCustomFieldValue(field.id, event.target.value)"
+                        />
+
+                        <!-- Number field -->
+                        <input
+                          v-else-if="field.type === 'Number'"
+                          type="number"
+                          class="estimate-hours-input"
+                          style="width: 100%; max-width: 160px; font-size: 13px;"
+                          :value="customFieldValues[field.id]"
+                          :disabled="!canUpdateTask"
+                          :placeholder="field.isRequired ? 'Bắt buộc nhập...' : 'Nhập số...'"
+                          @blur="event => saveCustomFieldValue(field.id, event.target.value)"
+                        />
+
+                        <!-- Date field -->
+                        <input
+                          v-else-if="field.type === 'Date'"
+                          type="date"
+                          class="estimate-hours-input"
+                          style="width: 100%; max-width: 200px; font-size: 13px;"
+                          :value="customFieldValues[field.id] ? customFieldValues[field.id].substring(0, 10) : ''"
+                          :disabled="!canUpdateTask"
+                          @change="event => saveCustomFieldValue(field.id, event.target.value)"
+                        />
+
+                        <!-- Checkbox field -->
+                        <el-checkbox
+                          v-else-if="field.type === 'Checkbox'"
+                          :model-value="customFieldValues[field.id] === 'true'"
+                          :disabled="!canUpdateTask"
+                          @change="val => saveCustomFieldValue(field.id, val ? 'true' : 'false')"
+                        >
+                          {{ field.name }}
+                        </el-checkbox>
+
+                        <!-- Select field -->
+                        <el-select
+                          v-else-if="field.type === 'Select'"
+                          :model-value="customFieldValues[field.id] || null"
+                          placeholder="Chọn tùy chọn..."
+                          style="width: 100%; max-width: 320px;"
+                          :disabled="!canUpdateTask"
+                          clearable
+                          @change="val => saveCustomFieldValue(field.id, val)"
+                        >
+                          <el-option
+                            v-for="opt in parseOptions(field.optionsJson)"
+                            :key="opt"
+                            :label="opt"
+                            :value="opt"
+                          />
+                        </el-select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                  <div class="p-row">
                    <div class="p-label"><i class="fa-solid fa-percent"></i> {{ tr('Progress', 'Tiến độ') }}</div>
                    <div class="p-val">
@@ -1315,6 +1394,45 @@ const workSessionNow = ref(Date.now());
 const workSessionTick = ref(null);
 const idleNotificationShownForTaskId = ref(null);
 
+const customFields = ref([]);
+const customFieldValues = ref({});
+const projectMemberOptions = ref([]);
+const projectStatuses = ref([]);
+const projectCycles = ref([]);
+const projectModules = ref([]);
+const createMore = ref(false);
+const assigneeSearch = ref('');
+const labelSearch = ref('');
+const cycleSearch = ref('');
+const moduleSearch = ref('');
+const parentSearch = ref('');
+const statusSearch = ref('');
+
+const currentProjectRole = computed(() => {
+  if (props.currentProjectRole) {
+    return normalizeProjectRole(props.currentProjectRole);
+  }
+
+  const currentUser = props.currentUser && Object.keys(props.currentUser).length
+    ? props.currentUser
+    : getStoredUser();
+  const currentUserIdValue = currentUser?.id || currentUser?.userId;
+  const matchedMember = projectMemberOptions.value
+    .find(member => `${member.userId || member.id || ''}` === `${currentUserIdValue || ''}`);
+  const membershipRole = matchedMember?.projectRole || matchedMember?.ProjectRole;
+
+  const currentProjectMatch = `${projectStore.currentProject?.id || ''}` === `${props.projectId || ''}`
+    ? projectStore.currentProject
+    : null;
+  const role = membershipRole
+    || currentProjectMatch?.myRole
+    || currentProjectMatch?.MyRole
+    || currentProjectMatch?.projectRole
+    || currentProjectMatch?.ProjectRole;
+
+  return normalizeProjectRole(role);
+});
+
 const toBooleanFlag = (value) => {
     if (typeof value === 'boolean') return value;
     if (typeof value === 'string') {
@@ -1330,19 +1448,6 @@ const discardNewTask = () => {
     showTaskModal.value = false;
 };
 
-// ====================== CREATE TASK POPOVER REFS ======================
-const createMore = ref(false);
-const assigneeSearch = ref('');
-const labelSearch = ref('');
-const cycleSearch = ref('');
-const moduleSearch = ref('');
-const parentSearch = ref('');
-const statusSearch = ref('');
-
-const projectCycles = ref([]);
-const projectModules = ref([]);
-const projectMemberOptions = ref([]);
-const projectStatuses = ref([]);
 const projectExecutionRules = ref({
   enableRoleBasedTaskVisibility: false,
   managerAlwaysSeeAllTasks: true,
@@ -1352,6 +1457,7 @@ const projectExecutionRules = ref({
   estimateBaselineMode: 'role_then_project',
   roleHourMultipliers: {}
 });
+
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 const parseDateValue = (value) => {
@@ -1399,70 +1505,6 @@ const disableDueDates = (date) => {
   return Boolean(candidate && start && candidate < start);
 };
 
-const filteredMembers = computed(() => {
-    const allTasks = cachedProjectTasks.value || [];
-    const totalTasks = allTasks.length || 1;
-
-    const memberWorkload = {};
-    allTasks.forEach(task => {
-        const status = (task.statusName || '').toLowerCase().trim();
-        const isCompleted = ['done', 'completed', 'finished', 'hoàn thành', 'success', 'hoàn tất'].includes(status);
-        if (isCompleted) return; // Only count incomplete/active tasks for workload weighting, or count all tasks? The user just said "phần trăm việc so với dự án", usually it means active or all tasks. Let's count all tasks.
-
-        const assignees = Array.isArray(task.assignees) ? task.assignees.map(a => a.userId || a.id) :
-                          (Array.isArray(task.assigneeIds) ? task.assigneeIds :
-                          (task.assignedUserId ? [task.assignedUserId] :
-                          (task.assigneeId ? [task.assigneeId] : [])));
-
-        assignees.forEach(uid => {
-            if (uid) {
-                memberWorkload[uid] = (memberWorkload[uid] || 0) + 1;
-            }
-        });
-    });
-
-    const members = projectMemberOptions.value.map(m => {
-        const count = memberWorkload[m.userId] || 0;
-        const percentage = Math.round((count / totalTasks) * 100);
-        return {
-            ...m,
-            taskPercentage: percentage
-        };
-    });
-
-    let filtered = members;
-    if (assigneeSearch.value) {
-        filtered = members.filter(m => (m.fullName || m.name || m.email || '').toLowerCase().includes(assigneeSearch.value.toLowerCase()));
-    }
-
-    return filtered.sort((a, b) => a.taskPercentage - b.taskPercentage);
-});
-
-const currentProjectRole = computed(() => {
-  const currentUser = props.currentUser && Object.keys(props.currentUser).length
-    ? props.currentUser
-    : getStoredUser();
-  const currentUserIdValue = currentUser?.id || currentUser?.userId;
-  const matchedMember = projectMemberOptions.value
-    .find(member => `${member.userId || member.id || ''}` === `${currentUserIdValue || ''}`);
-  const membershipRole = matchedMember?.projectRole || matchedMember?.ProjectRole;
-
-  if (props.currentProjectRole) {
-    return normalizeProjectRole(props.currentProjectRole);
-  }
-
-  const currentProjectMatch = `${projectStore.currentProject?.id || ''}` === `${props.projectId || ''}`
-    ? projectStore.currentProject
-    : null;
-  const role = membershipRole
-    || currentProjectMatch?.myRole
-    || currentProjectMatch?.MyRole
-    || currentProjectMatch?.projectRole
-    || currentProjectMatch?.ProjectRole;
-
-  return normalizeProjectRole(role);
-});
-
 const canUseAiAssigneeSuggestion = computed(() => {
   const currentUser = props.currentUser && Object.keys(props.currentUser).length
     ? props.currentUser
@@ -1478,6 +1520,51 @@ const canUseAiAssigneeSuggestion = computed(() => {
 const canManageTaskAssignees = computed(() => canUseAiAssigneeSuggestion.value);
 const isRoleVisibilityEnabled = computed(() => Boolean(projectExecutionRules.value?.enableRoleBasedTaskVisibility));
 const canEditTaskVisibility = computed(() => canUseAiAssigneeSuggestion.value && isRoleVisibilityEnabled.value);
+
+const filteredMembers = computed(() => {
+  const allTasks = cachedProjectTasks.value || [];
+  const totalTasks = allTasks.length || 1;
+  const memberWorkload = {};
+
+  allTasks.forEach(task => {
+    const status = (task.statusName || '').toLowerCase().trim();
+    const isCompleted = ['done', 'completed', 'finished', 'hoàn thành', 'success', 'hoàn tất'].includes(status);
+    if (isCompleted) return;
+
+    const assignees = Array.isArray(task.assignees)
+      ? task.assignees.map(assignee => assignee.userId || assignee.id)
+      : Array.isArray(task.assigneeIds)
+        ? task.assigneeIds
+        : task.assignedUserId
+          ? [task.assignedUserId]
+          : task.assigneeId
+            ? [task.assigneeId]
+            : [];
+
+    assignees.forEach(userId => {
+      if (userId) {
+        memberWorkload[userId] = (memberWorkload[userId] || 0) + 1;
+      }
+    });
+  });
+
+  let members = projectMemberOptions.value.map(member => {
+    const count = memberWorkload[member.userId] || 0;
+    return {
+      ...member,
+      taskPercentage: Math.round((count / totalTasks) * 100)
+    };
+  });
+
+  const query = assigneeSearch.value.trim().toLowerCase();
+  if (query) {
+    members = members.filter(member =>
+      (member.fullName || member.name || member.email || '').toLowerCase().includes(query)
+    );
+  }
+
+  return members.sort((left, right) => left.taskPercentage - right.taskPercentage);
+});
 
 const availableVisibilityRoles = computed(() => {
   return Array.from(new Set(
@@ -2338,6 +2425,7 @@ const copyTaskLink = async () => {
     ElMessage.success("Đã copy link công việc");
 };
 
+
 const toggleSubscription = async () => {
     if (!props.selectedTask?.id || props.selectedTask?.isNew) {
         ElMessage.warning('Cần tạo work item trước khi subscribe.');
@@ -2416,14 +2504,15 @@ const addReaction = async (c, emoji) => {
 const fetchAdditionalProjectData = async () => {
     if (!props.projectId) return;
     try {
-        const [cyclesRes, modulesRes, labelsRes, tasksRes, membersRes, statusesRes, executionRulesRes] = await Promise.all([
+        const [cyclesRes, modulesRes, labelsRes, tasksRes, membersRes, statusesRes, executionRulesRes, customFieldsRes] = await Promise.all([
              axiosClient.get(`/projects/${props.projectId}/sprints`).catch(()=>({data:{data:[]}})),
              axiosClient.get(`/projects/${props.projectId}/modules`).catch(()=>({data:{data:[]}})),
              axiosClient.get(`/projects/${props.projectId}/labels`).catch(()=>({data:{data:[]}})),
              axiosClient.get(`/projects/${props.projectId}/WorkTasks`).catch(()=>({data:{data:[]}})),
              axiosClient.get(`/projects/${props.projectId}/members`).catch(()=>({data:{data:[]}})),
              axiosClient.get(`/projects/${props.projectId}/task-statuses`).catch(()=>({data:{data:[]}})),
-             axiosClient.get(`/projects/${props.projectId}/execution-rules`).catch(()=>({data:{data:{}}}))
+             axiosClient.get(`/projects/${props.projectId}/execution-rules`).catch(()=>({data:{data:{}}})),
+             axiosClient.get(`/projects/${props.projectId}/custom-fields`).catch(()=>({data:{data:[]}}))
         ]);
         projectCycles.value = cyclesRes.data?.data || [];
         projectModules.value = modulesRes.data?.data || [];
@@ -2435,20 +2524,12 @@ const fetchAdditionalProjectData = async () => {
             fullName: member.fullName || member.name || member.email,
             projectRole: member.projectRole || member.ProjectRole || member.myRole || member.MyRole || ''
         }));
-        const fallbackStatuses = [
-          { id: 'fallback-backlog', name: 'BACKLOG', displayName: 'Backlog' },
-          { id: 'fallback-todo', name: 'TO DO', displayName: 'To Do' },
-          { id: 'fallback-progress', name: 'IN PROGRESS', displayName: 'In Progress' },
-          { id: 'fallback-review', name: 'IN REVIEW', displayName: 'In Review' },
-          { id: 'fallback-done', name: 'DONE', displayName: 'Done' },
-          { id: 'fallback-cancelled', name: 'CANCELLED', displayName: 'Cancelled' }
-        ];
         const incomingStatuses = (statusesRes.data?.data || []).map((status) => ({
             ...status,
             name: status.name,
             displayName: status.displayName || status.name
         }));
-        projectStatuses.value = incomingStatuses.length ? incomingStatuses : fallbackStatuses;
+        projectStatuses.value = incomingStatuses;
         projectExecutionRules.value = {
           enableRoleBasedTaskVisibility: Boolean(executionRulesRes.data?.data?.enableRoleBasedTaskVisibility),
           managerAlwaysSeeAllTasks: executionRulesRes.data?.data?.managerAlwaysSeeAllTasks !== false,
@@ -4169,8 +4250,64 @@ watch(() => props.selectedTask, (newTask) => {
         commentEditor.value.innerHTML = '';
       }
     });
+    if (newTask.id && !newTask.isNew) {
+      fetchCustomFieldValues(newTask.id);
+    } else {
+      customFieldValues.value = {};
+    }
   }
 }, { immediate: true });
+
+async function fetchCustomFieldValues(taskId) {
+  try {
+    const res = await axiosClient.get(`/worktasks/${taskId}/custom-field-values`);
+    const valuesList = res.data?.data || [];
+    const valuesMap = {};
+    valuesList.forEach(item => {
+      valuesMap[item.fieldDefinitionId] = item.value;
+    });
+    customFieldValues.value = valuesMap;
+  } catch (e) {
+    console.error('Lỗi load custom field values:', e);
+    customFieldValues.value = {};
+  }
+}
+
+const saveCustomFieldValue = async (fieldId, val) => {
+  if (!props.selectedTask?.id || props.selectedTask.isNew) return;
+
+  const stringVal = val === null || val === undefined ? '' : String(val).trim();
+  const def = customFields.value.find(f => f.id == fieldId);
+  if (def && def.isRequired && !stringVal) {
+    ElMessage.warning(`Trường '${def.name}' là bắt buộc.`);
+    return;
+  }
+
+  try {
+    const payload = {
+      values: [
+        {
+          fieldDefinitionId: fieldId,
+          value: stringVal
+        }
+      ]
+    };
+    await axiosClient.put(`/worktasks/${props.selectedTask.id}/custom-field-values`, payload);
+    customFieldValues.value[fieldId] = stringVal;
+    ElMessage.success(`Đã lưu trường '${def?.name || 'tùy chọn'}'.`);
+  } catch (e) {
+    ElMessage.error(e.response?.data?.message || 'Không thể lưu giá trị trường tùy chọn.');
+    fetchCustomFieldValues(props.selectedTask.id);
+  }
+};
+
+const parseOptions = (json) => {
+  try {
+    return json ? JSON.parse(json) : [];
+  } catch {
+    return [];
+  }
+};
 </script>
 
 <style scoped>

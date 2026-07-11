@@ -1,6 +1,15 @@
 <template>
   <div class="reports-tab">
-    <div class="reports-head">
+    <div v-if="tasks.length === 0" class="reports-empty-state" style="padding: 60px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--color-surface); border-radius: 12px; border: 1px dashed var(--color-border); margin: 16px;">
+      <div class="empty-illustration-wrapper" style="font-size: 54px; color: var(--color-text-muted); margin-bottom: 16px; opacity: 0.8;">
+        <i class="fa-solid fa-chart-pie"></i>
+      </div>
+      <h3 style="font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin: 0 0 8px 0;">Chưa có dữ liệu thống kê cho dự án này.</h3>
+      <p style="font-size: 13px; color: var(--color-text-muted); margin: 0 0 20px 0; max-width: 400px; line-height: 1.5;">Khi dự án có công việc và tiến độ, báo cáo sẽ được cập nhật tại đây.</p>
+    </div>
+
+    <template v-else>
+      <div class="reports-head">
       <button class="more-reports-btn" type="button" disabled :title="t('workItems.reports.moreReportsNeedsFlow')">
         <i class="fa-solid fa-chart-line"></i> {{ t('workItems.reports.moreReports') }}
       </button>
@@ -112,7 +121,7 @@
         </div>
         <span class="showing">{{ t('workItems.reports.showingItems', { start: rangeStart, end: rangeEnd, total: filteredRows.length }) }}</span>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 

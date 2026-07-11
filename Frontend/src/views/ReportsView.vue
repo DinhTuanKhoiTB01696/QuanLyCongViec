@@ -1,101 +1,311 @@
 <template>
-  <ProjectPageContainer>
+  <ProjectPageContainer class="space-reports-page">
     <ProjectPageHeader 
-        icon="fa-solid fa-chart-line" 
-        :title="t('projectTabs.reports', 'Reports')" 
-        :description="t('reports.analyticsAndInsights', 'Analytics and insights for this project')"
-      >
-        <template #actions>
-          <button class="nexus-btn-outlined" @click="fetchData">
-            <i class="fa-solid fa-rotate-right" :class="{ 'fa-spin': loading }"></i> {{ t('reports.refresh', 'Refresh') }}
-          </button>
-        </template>
-      </ProjectPageHeader>
+      icon="fa-solid fa-chart-line" 
+      :title="t('projectTabs.reports', 'Báo cáo & Vận hành')" 
+      :description="t('reports.analyticsAndInsights', 'Thông tin tổng quan và phân tích tiến độ cho sếp')"
+    >
+      <template #actions>
+        <button class="nexus-btn-outlined" @click="fetchData">
+          <i class="fa-solid fa-rotate-right" :class="{ 'fa-spin': loading }"></i> Cập nhật số liệu
+        </button>
+      </template>
+    </ProjectPageHeader>
 
-      <!-- Loading State -->
-      <ProjectLoadingState v-if="loading" :text="t('reports.analyzingProjectData', 'Analyzing project data...')" />
+    <!-- Loading State -->
+    <ProjectLoadingState v-if="loading" :text="t('reports.analyzingProjectData', 'Đang tính toán dữ liệu tiến độ...')" />
+    
+    <!-- Error State -->
+    <div v-else-if="error" class="reports-error">
+      <i class="fa-solid fa-circle-exclamation text-2xl mb-2"></i>
+      <p class="font-semibold">{{ error }}</p>
+    </div>
+
+    <!-- Empty State -->
+    <ProjectEmptyState 
+      v-else-if="allTasks.length === 0"
+      icon="fa-solid fa-chart-line"
+      title="Chưa có dữ liệu tiến độ"
+      description="Chưa có dữ liệu tiến độ. Hãy tạo công việc và đặt hạn để SprintA phân tích tình hình dự án."
+    >
+      <template #action>
+        <button class="nexus-btn-primary" @click="router.push(`/space/${projectId}/work-items`)">
+          <i class="fa-solid fa-plus"></i> Tạo công việc
+        </button>
+      </template>
+    </ProjectEmptyState>
+
+    <!-- Main Dashboard Grid -->
+    <div v-else class="reports-content">
       
-      <!-- Error State -->
-      <div v-else-if="error" class="reports-error">
-        <i class="fa-solid fa-circle-exclamation text-2xl mb-2"></i>
-        <p class="font-semibold">{{ error }}</p>
+      <!-- Project Health Alert Card -->
+      <div class="health-alert-card" :class="projectHealth.level">
+        <div class="health-icon">
+          <i class="fa-solid" :class="projectHealth.icon"></i>
+        </div>
+        <div class="health-details">
+          <h2 class="health-status-title">Trạng thái vận hành: {{ projectHealth.text }}</h2>
+          <p class="health-desc">{{ projectHealth.desc }}</p>
+        </div>
       </div>
 
-      <ProjectEmptyState 
-        v-else-if="allTasks.length === 0"
-        icon="fa-solid fa-chart-line"
-        :title="t('reports.noReportsToGenerate', 'No reports to generate')"
-        :description="t('reports.noTasksPlaceholderDesc', 'This project doesn\'t have any tasks yet. Create a few tasks to see statistics, charts, and workload distributions here.')"
-      />
-      <!-- Main Dashboard Grid -->
-      <div v-else class="reports-content">
-        
-        <!-- Premium Stats Cards -->
-        <div class="reports-stats-grid">
-          <!-- Total Tasks -->
-          <div class="report-stat-card total-tasks">
-            <div class="stat-card-glow"></div>
-            <div class="stat-card-content">
-              <div class="stat-icon-wrapper">
-                <i class="fa-solid fa-list-check"></i>
-              </div>
-              <div class="stat-info">
-                <span class="label">{{ t('reports.totalTasks', 'Total Tasks') }}</span>
-                <span class="value">{{ allTasks.length }}</span>
-              </div>
+      <!-- Premium Stats Cards -->
+      <div class="reports-stats-grid">
+        <!-- Total Tasks -->
+        <div class="report-stat-card total-tasks">
+          <div class="stat-card-glow"></div>
+          <div class="stat-card-content">
+            <div class="stat-icon-wrapper">
+              <i class="fa-solid fa-list-check"></i>
             </div>
-          </div>
-          
-          <!-- Done Tasks -->
-          <div class="report-stat-card done-tasks">
-            <div class="stat-card-glow"></div>
-            <div class="stat-card-content">
-              <div class="stat-icon-wrapper">
-                <i class="fa-solid fa-circle-check"></i>
-              </div>
-              <div class="stat-info">
-                <span class="label">{{ t('reports.completedTasks', 'Completed Tasks') }}</span>
-                <span class="value">{{ completedTasksCount }}</span>
-              </div>
-            </div>
-          </div>
-          
-          <!-- In Progress -->
-          <div class="report-stat-card in-progress">
-            <div class="stat-card-glow"></div>
-            <div class="stat-card-content">
-              <div class="stat-icon-wrapper">
-                <i class="fa-solid fa-clock-rotate-left"></i>
-              </div>
-              <div class="stat-info">
-                <span class="label">{{ t('reports.inProgress', 'In Progress') }}</span>
-                <span class="value">{{ inProgressTasksCount }}</span>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Overdue Tasks -->
-          <div class="report-stat-card overdue-tasks" :class="{ 'has-overdue': overdueTasksCount > 0 }">
-            <div class="stat-card-glow"></div>
-            <div class="stat-card-content">
-              <div class="stat-icon-wrapper">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-              </div>
-              <div class="stat-info">
-                <span class="label">{{ t('reports.overdueTasks', 'Overdue Tasks') }}</span>
-                <span class="value">{{ overdueTasksCount }}</span>
-              </div>
+            <div class="stat-info">
+              <span class="label">Tổng công việc</span>
+              <span class="value">{{ allTasks.length }}</span>
             </div>
           </div>
         </div>
+        
+        <!-- Done Tasks -->
+        <div class="report-stat-card done-tasks">
+          <div class="stat-card-glow"></div>
+          <div class="stat-card-content">
+            <div class="stat-icon-wrapper">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div class="stat-info">
+              <span class="label">Đã hoàn thành</span>
+              <span class="value">
+                {{ completedTasksCount }}
+                <span class="percentage-tag">{{ completionRate }}%</span>
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- In Progress -->
+        <div class="report-stat-card in-progress">
+          <div class="stat-card-glow"></div>
+          <div class="stat-card-content">
+            <div class="stat-icon-wrapper">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+            <div class="stat-info">
+              <span class="label">Đang thực hiện</span>
+              <span class="value">{{ inProgressTasksCount }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Overdue Tasks -->
+        <div class="report-stat-card overdue-tasks" :class="{ 'has-overdue': overdueTasksCount > 0 }">
+          <div class="stat-card-glow"></div>
+          <div class="stat-card-content">
+            <div class="stat-icon-wrapper">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="stat-info">
+              <span class="label">Công việc quá hạn</span>
+              <span class="value text-danger">{{ overdueTasksCount }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        <!-- Distributions Grid -->
-        <div class="distributions-grid">
+      <!-- Distributions Grid -->
+      <div class="distributions-grid">
+        
+        <!-- Cột trái: Việc cần chú ý & Thành viên cần nhắc -->
+        <div class="dashboard-left-panel">
+          
+          <!-- Việc cần chú ý Accordions -->
+          <div class="report-card attention-panel">
+            <h3 class="card-title">
+              <i class="fa-solid fa-bell text-rose-500"></i> Việc sếp cần chú ý
+            </h3>
+
+            <div class="attention-accordions">
+              
+              <!-- 1. Quá hạn -->
+              <div class="accordion-item" :class="{ active: activeAccordion === 'overdue' }">
+                <div class="accordion-header" @click="activeAccordion = activeAccordion === 'overdue' ? '' : 'overdue'">
+                  <div class="header-left">
+                    <span class="badge danger-bg">{{ overdueTasksCount }}</span>
+                    <span class="header-text">Công việc quá hạn</span>
+                  </div>
+                  <i class="fa-solid" :class="activeAccordion === 'overdue' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </div>
+                <div class="accordion-content" v-show="activeAccordion === 'overdue'">
+                  <div v-if="overdueTasks.length === 0" class="empty-substate text-success">
+                    <i class="fa-solid fa-circle-check mr-2"></i> Không có công việc quá hạn nào!
+                  </div>
+                  <div v-else class="attention-list">
+                    <div v-for="task in overdueTasks" :key="task.id" class="attention-task-row">
+                      <div class="task-info" @click="navigateToTask(task.id)">
+                        <span class="task-key">{{ task.sequenceId || 'TASK' }}</span>
+                        <span class="task-title">{{ task.title }}</span>
+                        <span class="task-assignee">Người làm: {{ getAssigneeNames(task) }}</span>
+                        <span class="task-due-date text-danger">Hạn: {{ formatDate(task.dueDate) }}</span>
+                      </div>
+                      <button 
+                        class="remind-btn" 
+                        @click="triggerReminder(task)"
+                        :disabled="sendingReminders[task.id] || !task.assignees || task.assignees.length === 0"
+                        :title="(!task.assignees || task.assignees.length === 0) ? 'Công việc chưa có người phụ trách' : ''"
+                      >
+                        <i class="fa-solid fa-paper-plane"></i> Nhắc việc
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Sắp đến hạn -->
+              <div class="accordion-item" :class="{ active: activeAccordion === 'upcoming' }">
+                <div class="accordion-header" @click="activeAccordion = activeAccordion === 'upcoming' ? '' : 'upcoming'">
+                  <div class="header-left">
+                    <span class="badge warning-bg">{{ upcomingTasks.length }}</span>
+                    <span class="header-text">Công việc sắp tới hạn (trong 48h)</span>
+                  </div>
+                  <i class="fa-solid" :class="activeAccordion === 'upcoming' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </div>
+                <div class="accordion-content" v-show="activeAccordion === 'upcoming'">
+                  <div v-if="upcomingTasks.length === 0" class="empty-substate">
+                    Không có công việc nào sắp tới hạn trong 48h tới.
+                  </div>
+                  <div v-else class="attention-list">
+                    <div v-for="task in upcomingTasks" :key="task.id" class="attention-task-row">
+                      <div class="task-info" @click="navigateToTask(task.id)">
+                        <span class="task-key">{{ task.sequenceId || 'TASK' }}</span>
+                        <span class="task-title">{{ task.title }}</span>
+                        <span class="task-assignee">Người làm: {{ getAssigneeNames(task) }}</span>
+                        <span class="task-due-date text-warning">Hạn: {{ formatDate(task.dueDate) }}</span>
+                      </div>
+                      <button 
+                        class="remind-btn" 
+                        @click="triggerReminder(task)"
+                        :disabled="sendingReminders[task.id] || !task.assignees || task.assignees.length === 0"
+                        :title="(!task.assignees || task.assignees.length === 0) ? 'Công việc chưa có người phụ trách' : ''"
+                      >
+                        <i class="fa-solid fa-paper-plane"></i> Nhắc việc
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. Chưa có người phụ trách -->
+              <div class="accordion-item" :class="{ active: activeAccordion === 'unassigned' }">
+                <div class="accordion-header" @click="activeAccordion = activeAccordion === 'unassigned' ? '' : 'unassigned'">
+                  <div class="header-left">
+                    <span class="badge gray-bg">{{ unassignedTasks.length }}</span>
+                    <span class="header-text">Công việc chưa giao cho ai</span>
+                  </div>
+                  <i class="fa-solid" :class="activeAccordion === 'unassigned' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </div>
+                <div class="accordion-content" v-show="activeAccordion === 'unassigned'">
+                  <div v-if="unassignedTasks.length === 0" class="empty-substate text-success">
+                    <i class="fa-solid fa-circle-check mr-2"></i> Tất cả công việc đã được giao đầy đủ!
+                  </div>
+                  <div v-else class="attention-list">
+                    <div v-for="task in unassignedTasks" :key="task.id" class="attention-task-row plain-row" @click="navigateToTask(task.id)">
+                      <div class="task-info">
+                        <span class="task-key">{{ task.sequenceId || 'TASK' }}</span>
+                        <span class="task-title">{{ task.title }}</span>
+                        <span class="task-due-date">Hạn: {{ formatDate(task.dueDate) || 'Không có hạn' }}</span>
+                      </div>
+                      <span class="unassigned-badge"><i class="fa-solid fa-user-slash"></i> Chưa giao</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 4. Việc bị kẹt lâu -->
+              <div class="accordion-item" :class="{ active: activeAccordion === 'stuck' }">
+                <div class="accordion-header" @click="activeAccordion = activeAccordion === 'stuck' ? '' : 'stuck'">
+                  <div class="header-left">
+                    <span class="badge info-bg">{{ stuckTasks.length }}</span>
+                    <span class="header-text">Công việc bị kẹt lâu (> 14 ngày)</span>
+                  </div>
+                  <i class="fa-solid" :class="activeAccordion === 'stuck' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </div>
+                <div class="accordion-content" v-show="activeAccordion === 'stuck'">
+                  <div v-if="stuckTasks.length === 0" class="empty-substate">
+                    Không có công việc nào bị kẹt quá lâu.
+                  </div>
+                  <div v-else class="attention-list">
+                    <div v-for="task in stuckTasks" :key="task.id" class="attention-task-row">
+                      <div class="task-info" @click="navigateToTask(task.id)">
+                        <span class="task-key">{{ task.sequenceId || 'TASK' }}</span>
+                        <span class="task-title">{{ task.title }}</span>
+                        <span class="task-assignee">Người làm: {{ getAssigneeNames(task) }}</span>
+                        <span class="task-status">Trạng thái: {{ getStatusLabel(task.statusName) }}</span>
+                        <span class="task-due-date">Cập nhật cuối: {{ formatDate(task.updatedAt || task.createdAt) }}</span>
+                      </div>
+                      <button 
+                        class="remind-btn" 
+                        @click="triggerReminder(task)"
+                        :disabled="sendingReminders[task.id] || !task.assignees || task.assignees.length === 0"
+                        :title="(!task.assignees || task.assignees.length === 0) ? 'Công việc chưa có người phụ trách' : ''"
+                      >
+                        <i class="fa-solid fa-paper-plane"></i> Đôn đốc
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Thành viên cần nhắc (Overloaded / Pending workload) -->
+          <div class="report-card workload-panel">
+            <h3 class="card-title">
+              <i class="fa-solid fa-users text-emerald-500"></i> Thành viên cần đôn đốc
+            </h3>
+            
+            <div v-if="membersToRemind.length === 0" class="workload-empty">
+              <i class="fa-solid fa-circle-check text-4xl mb-3 text-green-400"></i>
+              <span class="text-sm font-semibold">Tất cả thành viên đều thong thả!</span>
+              <p class="text-xs text-[var(--color-text-muted)] mt-1">Không có thành viên nào đang giữ công việc chưa hoàn tất hoặc quá hạn.</p>
+            </div>
+
+            <div v-else class="workload-list">
+              <div v-for="member in membersToRemind" :key="member.userId" class="remind-member-card" :class="{ 'has-overdue': member.overdueCount > 0 }">
+                <div class="member-card-left">
+                  <UserAvatar :user="{ id: member.userId, fullName: member.fullName, name: member.fullName, avatarColor: member.avatarColor, avatarUrl: member.avatarUrl }" :size="40" :fontSize="16" />
+                  <div class="member-details">
+                    <span class="member-name">{{ member.fullName }}</span>
+                    <div class="member-stats">
+                      <span class="badge gray-bg">{{ member.pendingCount }} việc chưa xong</span>
+                      <span class="badge danger-bg" v-if="member.overdueCount > 0">{{ member.overdueCount }} việc quá hạn</span>
+                    </div>
+                    <p class="deadline-tip" v-if="member.nearestDeadlineTask">
+                      <i class="fa-solid fa-hourglass-half"></i> Gần nhất: 
+                      <strong @click="navigateToTask(member.nearestDeadlineTask.id)" class="hover-task-link">{{ member.nearestDeadlineTask.title }}</strong> 
+                      ({{ formatDate(member.nearestDeadlineTask.dueDate) }})
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  class="remind-member-btn" 
+                  @click="triggerMemberReminder(member)"
+                  :disabled="sendingMemberReminders[member.userId]"
+                >
+                  <i class="fa-solid fa-bell"></i> Nhắc nhở
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        
+        <!-- Cột phải: Biểu đồ phân phối -->
+        <div class="dashboard-right-panel">
           
           <!-- Status Distribution Card -->
           <div class="report-card">
             <h3 class="card-title">
-              <i class="fa-solid fa-chart-bar text-sky-500"></i> {{ t('reports.statusDistribution', 'Status Distribution') }}
+              <i class="fa-solid fa-chart-bar text-sky-500"></i> Phân phối theo trạng thái công việc
             </h3>
             <div class="status-list">
               <div v-for="status in statusDistribution" :key="status.name" class="status-item">
@@ -122,7 +332,7 @@
           <!-- Priority Distribution Card -->
           <div class="report-card">
             <h3 class="card-title">
-              <i class="fa-solid fa-chart-pie text-indigo-500"></i> {{ t('reports.priorityDistribution', 'Priority Distribution') }}
+              <i class="fa-solid fa-chart-pie text-indigo-500"></i> Phân phối theo mức độ ưu tiên
             </h3>
             <div class="priority-chart-container">
               <!-- Custom Donut Chart (SVG) -->
@@ -145,7 +355,7 @@
                 </svg>
                 <div class="donut-center">
                   <span class="donut-number">{{ allTasks.length }}</span>
-                  <span class="donut-label">{{ t('reports.tasks', 'Tasks') }}</span>
+                  <span class="donut-label">Công việc</span>
                 </div>
               </div>
 
@@ -168,133 +378,39 @@
               </div>
             </div>
           </div>
+
         </div>
 
-        <!-- Workload and Overdue Grid -->
-        <div class="workload-grid">
-          
-          <!-- Team Workload Panel -->
-          <div class="report-card">
-            <h3 class="card-title">
-              <i class="fa-solid fa-users text-emerald-500"></i> {{ t('reports.workloadAndCompletionProgress', 'Workload & Completion Progress') }}
-            </h3>
-            
-            <div v-if="teamWorkload.length === 0" class="workload-empty">
-              <i class="fa-solid fa-users-slash text-4xl mb-3 text-[var(--color-text-muted)]"></i>
-              <span class="text-sm font-semibold">{{ t('reports.noAssigneeDataAvailable', 'No assignee data available') }}</span>
-              <p class="text-xs text-[var(--color-text-muted)] mt-1">{{ t('reports.assignTasksToUsersDesc', 'Assign tasks to users to track workload metrics.') }}</p>
-            </div>
-
-            <div v-else class="workload-list">
-              <div v-for="member in teamWorkload" :key="member.userId" class="workload-item">
-                <div class="workload-item-top">
-                  <div class="workload-user-info">
-                    <div class="user-avatar" style="background: transparent; border: none; margin-right: 0;" v-if="member.userId === 'unassigned'">
-                      <div style="width: 32px; height: 32px; border-radius: 50%; background: #e2e8f0; color: #64748b; display: flex; align-items: center; justify-content: center;">
-                        <i class="fa-solid fa-question text-sm"></i>
-                      </div>
-                    </div>
-                    <UserAvatar v-else :user="{ id: member.userId, fullName: member.fullName, name: member.fullName, avatarColor: member.avatarColor, avatarUrl: member.avatarUrl }" :size="32" :fontSize="14" />
-                    <span class="workload-name">{{ member.fullName }}</span>
-                  </div>
-                  <span class="workload-completion-text">
-                    <strong>{{ member.doneCount }}</strong> / {{ member.count }} {{ t('reports.tasksCompleted', 'tasks completed') }}
-                  </span>
-                </div>
-                <div class="workload-progress-container">
-                  <div class="workload-progress-track">
-                    <div 
-                      class="workload-progress-bar" 
-                      :style="{ width: `${member.completionRate}%` }"
-                    ></div>
-                  </div>
-                  <span class="workload-percentage">{{ member.completionRate }}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Due Tasks Alert Card -->
-          <div class="report-card">
-            <h3 class="card-title flex justify-between items-center w-full" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-              <span><i class="fa-solid fa-circle-exclamation text-rose-500"></i> {{ dueFilter === 'overdue' ? t('reports.overdueTaskAlert', 'Cảnh báo công việc quá hạn') : 'Công việc sắp tới hạn' }}</span>
-              <select v-model="dueFilter" class="premium-select">
-                <option value="overdue">Quá hạn</option>
-                <option value="5">Sắp tới hạn (5 ngày)</option>
-                <option value="10">Sắp tới hạn (10 ngày)</option>
-                <option value="20">Sắp tới hạn (20 ngày)</option>
-                <option value="40">Sắp tới hạn (40 ngày)</option>
-              </select>
-            </h3>
-            
-            <div v-if="filteredDueTasks.length === 0" class="overdue-empty">
-              <div class="overdue-empty-icon">
-                <i class="fa-solid fa-circle-check text-4xl text-green-400"></i>
-              </div>
-              <h4 class="font-bold text-sm text-green-400 mt-2">{{ t('reports.allTasksOnTrack', 'Tất cả công việc đúng tiến độ!') }}</h4>
-              <p class="text-xs text-[var(--color-text-muted)] mt-1">{{ dueFilter === 'overdue' ? t('reports.noOverduePendingTasks', 'Không có công việc quá hạn nào trong dự án này.') : 'Không có công việc nào sắp tới hạn trong khoảng thời gian này.' }}</p>
-            </div>
-
-            <div v-else class="overdue-list-container">
-              <div class="overdue-list">
-                <div 
-                  v-for="task in filteredDueTasks" 
-                  :key="task.id"
-                  class="overdue-task-card"
-                  @click="navigateToTask(task.id)"
-                >
-                  <div class="overdue-task-left">
-                    <div class="overdue-task-header">
-                      <span class="overdue-task-key">{{ task.sequenceId || 'TASK' }}</span>
-                      <h4 class="overdue-task-title">{{ task.title }}</h4>
-                    </div>
-                    <div class="overdue-task-meta">
-                      <span class="meta-item">
-                        <i class="fa-solid fa-user text-xs"></i>
-                        {{ getAssigneeNames(task) }}
-                      </span>
-                    </div>
-                  </div>
-                  <div class="overdue-task-right">
-                    <span class="overdue-badge" :style="dueFilter === 'overdue' ? '' : 'background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2);'">
-                      <i class="fa-solid" :class="dueFilter === 'overdue' ? 'fa-triangle-exclamation' : 'fa-clock'"></i> 
-                      {{ dueFilter === 'overdue' ? t('reports.overdue', 'Overdue') : 'Sắp tới' }}
-                    </span>
-                    <span class="overdue-date">{{ t('reports.due', 'Due:') }} {{ formatDate(task.dueDate) }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
+    </div>
   </ProjectPageContainer>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-
 import { useI18n } from '@/composables/useI18n'
 import UserAvatar from '@/components/common/UserAvatar.vue'
-import { useI18nStore } from '@/store/useI18nStore'
 import ProjectPageContainer from '@/components/common/ProjectPageContainer.vue'
 import ProjectPageHeader from '@/components/common/ProjectPageHeader.vue'
-import ProjectPageToolbar from '@/components/common/ProjectPageToolbar.vue'
 import ProjectEmptyState from '@/components/common/ProjectEmptyState.vue'
 import ProjectLoadingState from '@/components/common/ProjectLoadingState.vue'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
+import { getStoredUser } from '@/utils/permissions'
+import axiosClient from '@/api/axiosClient'
+import { ElMessage } from 'element-plus'
 
 const { t } = useI18n()
-
 const route = useRoute()
 const router = useRouter()
 const projectId = computed(() => route.params.id)
 const workTaskStore = useWorkTaskStore()
 
-const dueFilter = ref('overdue')
 const loading = ref(false)
 const error = ref(null)
+const activeAccordion = ref('overdue')
+const sendingReminders = ref({})
+const sendingMemberReminders = ref({})
 
 const allTasks = computed(() => workTaskStore.tasks || [])
 
@@ -315,19 +431,61 @@ const inProgressTasksCount = computed(() => {
   }).length
 })
 
+const completionRate = computed(() => {
+  const total = allTasks.value.length
+  if (total === 0) return 0
+  return Math.round((completedTasksCount.value / total) * 100)
+})
+
+const todayStr = new Date().toISOString().slice(0, 10)
+
+// 1. Project status logic (Green / Yellow / Red)
+const projectHealth = computed(() => {
+  const total = allTasks.value.length
+  if (total === 0) return { level: 'gray', text: 'Chưa có dữ liệu', icon: 'fa-triangle-exclamation', desc: 'Chưa có dữ liệu tiến độ. Hãy tạo công việc và đặt hạn để SprintA phân tích tình hình dự án.' }
+  
+  const completed = completedTasksCount.value
+  const overdue = overdueTasksCount.value
+  const compRate = completionRate.value
+  const overdueRate = Math.round((overdue / total) * 100)
+  
+  if (overdueRate >= 30 || compRate < 40) {
+    return {
+      level: 'red',
+      text: 'Đỏ (Nguy hiểm)',
+      icon: 'fa-circle-xmark',
+      desc: `Dự án đang trong tình trạng đáng báo động. Tỷ lệ hoàn thành thấp (${compRate}%) hoặc số lượng việc quá hạn cao (${overdue} việc, chiếm ${overdueRate}%). Sếp nên đôn đốc thành viên xử lý gấp.`
+    }
+  } else if (overdue > 0 || compRate < 70) {
+    return {
+      level: 'yellow',
+      text: 'Vàng (Cần theo dõi)',
+      icon: 'fa-triangle-exclamation',
+      desc: `Dự án bắt đầu xuất hiện rủi ro chậm tiến độ. Đang có ${overdue} công việc quá hạn (chiếm ${overdueRate}%) hoặc tỷ lệ hoàn thành ở mức trung bình (${compRate}%).`
+    }
+  } else {
+    return {
+      level: 'green',
+      text: 'Xanh (Ổn định)',
+      icon: 'fa-circle-check',
+      desc: `Dự án đang vận hành vô cùng tốt! Tỷ lệ hoàn thành đạt ${compRate}%, và không có bất kỳ công việc nào bị trễ hạn.`
+    }
+  }
+})
+
+// 2. Attention Tasks filters
 const overdueTasks = computed(() => {
-  const todayStr = new Date().toISOString().slice(0, 10)
   return allTasks.value.filter(task => {
     if (!task.dueDate) return false
     const s = (task.statusName || '').toLowerCase().trim()
     const isCompleted = doneStatuses.includes(s) || cancelStatuses.includes(s)
     return !isCompleted && task.dueDate < todayStr
-  })
+  }).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
 })
 
 const overdueTasksCount = computed(() => overdueTasks.value.length)
 
-const filteredDueTasks = computed(() => {
+const upcomingTasks = computed(() => {
   const today = new Date()
   today.setHours(0,0,0,0)
   
@@ -340,24 +498,201 @@ const filteredDueTasks = computed(() => {
     const dueDate = new Date(task.dueDate)
     dueDate.setHours(0,0,0,0)
     
-    if (dueFilter.value === 'overdue') {
-      return dueDate < today
-    } else {
-      const diffTime = dueDate.getTime() - today.getTime()
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      const targetDays = parseInt(dueFilter.value)
-      return diffDays >= 0 && diffDays <= targetDays
-    }
+    const diffTime = dueDate.getTime() - today.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    // Within 48 hours (0 to 2 days)
+    return diffDays >= 0 && diffDays <= 2
   }).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
 })
 
-// Status Distribution list
+const unassignedTasks = computed(() => {
+  return allTasks.value.filter(task => {
+    const s = (task.statusName || '').toLowerCase().trim()
+    const isCompleted = doneStatuses.includes(s) || cancelStatuses.includes(s)
+    if (isCompleted) return false
+    return !task.assignees || task.assignees.length === 0
+  })
+})
+
+const stuckTasks = computed(() => {
+  const twoWeeksAgo = new Date()
+  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+  
+  return allTasks.value.filter(task => {
+    const s = (task.statusName || '').toLowerCase().trim()
+    const isCompleted = doneStatuses.includes(s) || cancelStatuses.includes(s)
+    if (isCompleted) return false
+    
+    const taskDate = new Date(task.updatedAt || task.createdAt)
+    return taskDate < twoWeeksAgo
+  })
+})
+
+// 3. Members remind workload list
+const membersToRemind = computed(() => {
+  const membersMap = {}
+  
+  allTasks.value.forEach(task => {
+    const s = (task.statusName || '').toLowerCase().trim()
+    const isCompleted = doneStatuses.includes(s) || cancelStatuses.includes(s)
+    if (isCompleted) return
+    
+    const taskAssignees = task.assignees || []
+    
+    taskAssignees.forEach(assignee => {
+      const uid = assignee.userId || assignee.id
+      if (!uid) return
+      
+      if (!membersMap[uid]) {
+        const name = assignee.fullName || assignee.name || 'Thành viên'
+        membersMap[uid] = {
+          userId: uid,
+          fullName: name,
+          avatar: assignee.initials || name.substring(0, 1).toUpperCase(),
+          avatarColor: assignee.avatarColor || assignee.AvatarColor || '#3b82f6',
+          avatarUrl: assignee.avatarUrl || assignee.AvatarUrl || null,
+          pendingCount: 0,
+          overdueCount: 0,
+          nearestDeadlineTask: null,
+          tasks: []
+        }
+      }
+      
+      const memberData = membersMap[uid]
+      memberData.pendingCount++
+      memberData.tasks.push(task)
+      
+      const isOverdue = task.dueDate && task.dueDate < todayStr
+      if (isOverdue) {
+        memberData.overdueCount++
+      }
+      
+      if (task.dueDate) {
+        if (!memberData.nearestDeadlineTask || task.dueDate < memberData.nearestDeadlineTask.dueDate) {
+          memberData.nearestDeadlineTask = {
+            id: task.id,
+            title: task.title,
+            dueDate: task.dueDate
+          }
+        }
+      }
+    })
+  })
+  
+  return Object.values(membersMap).sort((a, b) => b.overdueCount - a.overdueCount || b.pendingCount - a.pendingCount)
+})
+
+// 4. Trigger reminder logic (P1)
+const triggerReminder = async (task) => {
+  const assignees = task.assignees || []
+  if (assignees.length === 0) {
+    ElMessage.warning('Công việc này chưa được giao cho ai nên không thể gửi nhắc nhở.')
+    return
+  }
+
+  sendingReminders.value[task.id] = true
+  const currentUser = getStoredUser()
+  const actorName = currentUser?.fullName || currentUser?.username || 'Sếp'
+  let succeedCount = 0
+  let skippedCount = 0
+  let hasFailed = false
+  let errorMsg = 'Không gửi được nhắc việc. Vui lòng thử lại.'
+
+  for (const assignee of assignees) {
+    const uid = assignee.userId || assignee.id
+    if (!uid) continue
+    
+    const payload = {
+      projectId: projectId.value,
+      taskId: task.id,
+      assigneeUserId: uid,
+      projectName: 'SprintA',
+      taskTitle: task.title,
+      actorName: actorName
+    }
+
+    try {
+      const res = await axiosClient.post('/notifications/events/task-reminded', payload)
+      if (res.data && res.data.skipped) {
+        skippedCount++
+      } else if (res.data && res.data.data && res.data.data.notificationId) {
+        succeedCount++
+      }
+    } catch (err) {
+      console.error('Failed to send reminder via backend', err)
+      hasFailed = true
+      if (err.response?.data?.message) {
+        errorMsg = err.response.data.message
+      } else if (err.response?.data) {
+        errorMsg = typeof err.response.data === 'string' ? err.response.data : errorMsg
+      }
+    }
+  }
+
+  if (succeedCount > 0) {
+    ElMessage.success(`Đã gửi nhắc việc cho người phụ trách.`)
+  }
+  if (skippedCount > 0 && succeedCount === 0) {
+    ElMessage.warning('Không gửi nhắc việc cho chính bạn.')
+  }
+  if (hasFailed) {
+    ElMessage.error(errorMsg)
+  }
+  sendingReminders.value[task.id] = false
+}
+
+const triggerMemberReminder = async (member) => {
+  sendingMemberReminders.value[member.userId] = true
+  const currentUser = getStoredUser()
+  const actorName = currentUser?.fullName || currentUser?.username || 'Sếp'
+  const pendingTasks = member.tasks || []
+  
+  if (pendingTasks.length === 0) {
+    ElMessage.info('Thành viên này hiện không có công việc nào chưa hoàn tất.')
+    sendingMemberReminders.value[member.userId] = false
+    return
+  }
+  
+  const taskToRemind = pendingTasks.find(t => t.dueDate && t.dueDate < todayStr) || pendingTasks[0]
+
+  const payload = {
+    projectId: projectId.value,
+    taskId: taskToRemind.id,
+    assigneeUserId: member.userId,
+    projectName: 'SprintA',
+    taskTitle: taskToRemind.title,
+    actorName: actorName
+  }
+
+  try {
+    const res = await axiosClient.post('/notifications/events/task-reminded', payload)
+    if (res.data && res.data.skipped) {
+      ElMessage.warning('Không gửi nhắc việc cho chính bạn.')
+    } else if (res.data && res.data.data && res.data.data.notificationId) {
+      ElMessage.success(`Đã gửi đôn đốc thành viên "${member.fullName}" thực hiện các công việc chưa hoàn thành.`)
+    }
+  } catch (err) {
+    console.error('Failed to remind member via backend', err)
+    let errorMsg = 'Không gửi được nhắc việc. Vui lòng thử lại.'
+    if (err.response?.data?.message) {
+      errorMsg = err.response.data.message
+    } else if (err.response?.data) {
+      errorMsg = typeof err.response.data === 'string' ? err.response.data : errorMsg
+    }
+    ElMessage.error(errorMsg)
+  } finally {
+    sendingMemberReminders.value[member.userId] = false
+  }
+}
+
+// Charts data computations
 const statusDistribution = computed(() => {
   if (allTasks.value.length === 0) return []
   
   const statusCounts = {}
   allTasks.value.forEach(task => {
-    const s = (task.statusName || 'No status').trim()
+    const s = (task.statusName || 'Không trạng thái').trim()
     statusCounts[s] = (statusCounts[s] || 0) + 1
   })
 
@@ -368,7 +703,6 @@ const statusDistribution = computed(() => {
   })).sort((a, b) => b.count - a.count)
 })
 
-// Priority Distribution Segments (used for Custom SVG Donut Chart)
 const prioritySegments = computed(() => {
   if (allTasks.value.length === 0) return []
 
@@ -406,67 +740,18 @@ const prioritySegments = computed(() => {
   })
 })
 
-// Team Workload list
-const teamWorkload = computed(() => {
-  const membersMap = {}
-  allTasks.value.forEach(task => {
-    const taskAssignees = task.assignees || []
-    const s = (task.statusName || '').toLowerCase().trim()
-    const isCompleted = doneStatuses.includes(s)
-
-    if (taskAssignees.length === 0) {
-      if (!membersMap['unassigned']) {
-        membersMap['unassigned'] = {
-          userId: 'unassigned',
-          fullName: 'Unassigned',
-          avatar: null,
-          count: 0,
-          doneCount: 0
-        }
-      }
-      membersMap['unassigned'].count++
-      if (isCompleted) membersMap['unassigned'].doneCount++
-    } else {
-      taskAssignees.forEach(assignee => {
-        const uid = assignee.userId || assignee.id
-        if (!uid) return
-        if (!membersMap[uid]) {
-          const name = assignee.fullName || assignee.name || 'Unknown'
-          membersMap[uid] = {
-            userId: uid,
-            fullName: name,
-            avatar: assignee.initials || name.substring(0, 1).toUpperCase(),
-            avatarColor: assignee.avatarColor || assignee.AvatarColor,
-            avatarUrl: assignee.avatarUrl || assignee.AvatarUrl,
-            count: 0,
-            doneCount: 0
-          }
-        }
-        membersMap[uid].count++
-        if (isCompleted) membersMap[uid].doneCount++
-      })
-    }
-  })
-
-  return Object.values(membersMap).map(member => ({
-    ...member,
-    completionRate: member.count > 0 ? Math.round((member.doneCount / member.count) * 100) : 0
-  })).sort((a, b) => b.count - a.count)
-})
-
 const getStatusLabel = (statusName) => {
-  if (!statusName) return ''
+  if (!statusName) return 'Chưa tạo'
   const norm = statusName.toLowerCase().trim()
   const keyMap = {
-    'backlog': 'workItems.statusLabels.backlog',
-    'to do': 'workItems.statusLabels.toDo',
-    'in progress': 'workItems.statusLabels.inProgress',
-    'in review': 'workItems.statusLabels.inReview',
-    'done': 'workItems.statusLabels.done',
-    'cancelled': 'workItems.statusLabels.cancelled'
+    'backlog': 'Ý tưởng / Backlog',
+    'to do': 'Cần làm',
+    'in progress': 'Đang làm',
+    'in review': 'Đang duyệt',
+    'done': 'Đã hoàn thành',
+    'cancelled': 'Đã hủy'
   }
-  const key = keyMap[norm]
-  return key ? t(key) : statusName
+  return keyMap[norm] || statusName
 }
 
 const getStatusColor = (statusName) => {
@@ -484,20 +769,9 @@ const getStatusBgColor = (statusName) => {
   return getStatusColor(statusName) + '1a'
 }
 
-const getAvatarBg = (name) => {
-  if (!name || name === 'Unassigned') return '#64748b'
-  const colors = ['#3b82f6', '#10b981', '#fbbf24', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316']
-  let hash = 0
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  const index = Math.abs(hash) % colors.length
-  return colors[index]
-}
-
 const getAssigneeNames = (task) => {
-  if (!task.assignees || task.assignees.length === 0) return 'Unassigned'
-  return task.assignees.map(a => a.fullName || a.name || 'Unknown').join(', ')
+  if (!task.assignees || task.assignees.length === 0) return 'Chưa phân công'
+  return task.assignees.map(a => a.fullName || a.name || 'Ẩn danh').join(', ')
 }
 
 const formatDate = (value) => {
@@ -524,7 +798,7 @@ const fetchData = async () => {
   try {
     await workTaskStore.fetchTasks(projectId.value)
   } catch (e) {
-    error.value = "Failed to load project reports. Please try again."
+    error.value = "Không thể tải báo cáo của dự án. Vui lòng làm mới trang."
     console.error(e)
   } finally {
     loading.value = false
@@ -540,7 +814,7 @@ onMounted(() => {
 /* Page Layout Wrapper */
 .space-reports-page {
   width: 100%;
-  max-width: 1120px;
+  max-width: 1440px;
   margin: 0 auto;
   padding: 34px clamp(20px, 4vw, 48px) 54px;
   min-height: calc(100vh - 64px);
@@ -549,67 +823,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 28px;
   font-family: 'Inter', system-ui, sans-serif;
-  background:
-    radial-gradient(circle at 16% 0%, rgba(14, 165, 233, 0.10), transparent 30%),
-    linear-gradient(180deg, #f8fbff, #eef5fb 52%, #f8fafc);
-}
-
-/* Header Styles */
-.reports-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 18px;
-  padding: 24px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.065);
-}
-
-@media (max-width: 640px) {
-  .reports-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-}
-
-.reports-tag {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  color: var(--color-accent);
-  text-transform: uppercase;
-  background: rgba(56, 189, 248, 0.08);
-  padding: 4px 8px;
-  border-radius: 4px;
-  display: inline-block;
-  margin-bottom: 8px;
-}
-
-.reports-title {
-  font-size: clamp(28px, 2.8vw, 38px);
-  font-weight: 900;
-  letter-spacing: 0;
-  color: var(--color-text-primary);
-  margin: 0;
-  line-height: 1.2;
-}
-
-.reports-subtitle {
-  font-size: 14px;
-  color: var(--color-text-muted);
-  margin-top: 6px;
-}
-
-/* Loading, Error, Empty states */
-.reports-loading, .reports-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 0;
-  color: var(--color-text-muted);
+  background: var(--color-bg);
 }
 
 .reports-error {
@@ -621,28 +835,84 @@ onMounted(() => {
   text-align: center;
 }
 
-.reports-empty-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 60px 20px;
-}
-
-.reports-empty-state {
-  text-align: center;
-  background: var(--color-surface);
-  border: 1px dashed var(--color-border);
-  border-radius: 12px;
-  padding: 40px;
-  max-width: 600px;
-  width: 100%;
-}
-
 /* Content Area */
 .reports-content {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 28px;
+}
+
+.reports-content > .health-alert-card,
+.reports-content > .reports-stats-grid { grid-column: 1 / -1; }
+.reports-content > .attention-panel,
+.reports-content > .workload-panel,
+.reports-content > .report-card { grid-column: span 6; }
+
+/* Project Health Alert Card styling */
+.health-alert-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 24px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+  border-width: 1px;
+  border-style: solid;
+}
+
+.health-alert-card.green {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(52, 211, 153, 0.03));
+  border-color: rgba(16, 185, 129, 0.28);
+  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.04);
+}
+.health-alert-card.green .health-icon {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+.health-alert-card.yellow {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(251, 191, 36, 0.03));
+  border-color: rgba(245, 158, 11, 0.28);
+  box-shadow: 0 12px 30px rgba(245, 158, 11, 0.04);
+}
+.health-alert-card.yellow .health-icon {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+}
+
+.health-alert-card.red {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(248, 113, 113, 0.03));
+  border-color: rgba(239, 68, 68, 0.28);
+  box-shadow: 0 12px 30px rgba(239, 68, 68, 0.04);
+}
+.health-alert-card.red .health-icon {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+.health-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.health-status-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+  color: var(--color-text-primary);
+}
+
+.health-desc {
+  margin: 6px 0 0 0;
+  font-size: 13.5px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
 }
 
 /* Stats Cards Grid */
@@ -666,18 +936,17 @@ onMounted(() => {
 }
 
 .report-stat-card {
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 16px !important;
   padding: 20px;
   position: relative;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 .report-stat-card:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow: 0 28px 64px rgba(15, 23, 42, 0.12);
 }
 
@@ -713,10 +982,8 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  transition: all 0.3s;
 }
 
-/* Color schemes for stats cards */
 .total-tasks .stat-icon-wrapper {
   background: rgba(56, 189, 248, 0.08);
   color: var(--color-accent);
@@ -759,37 +1026,33 @@ onMounted(() => {
   line-height: 1.1;
   color: var(--color-text-primary);
   margin-top: 4px;
-  display: block;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.percentage-tag {
+  font-size: 13px;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  padding: 2px 6px;
+  border-radius: 6px;
 }
 
 /* Card Design Pattern */
 .report-card {
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 16px !important;
   padding: 24px;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.065);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .report-card:hover {
   box-shadow: 0 24px 58px rgba(15, 23, 42, 0.10);
-}
-
-[data-theme='dark'] .space-reports-page {
-  background:
-    radial-gradient(circle at 14% 0%, rgba(14, 165, 233, 0.11), transparent 30%),
-    linear-gradient(180deg, #07111f, #0f172a 52%, #101827);
-}
-
-[data-theme='dark'] .reports-header,
-[data-theme='dark'] .report-stat-card,
-[data-theme='dark'] .report-card {
-  border-color: rgba(148, 163, 184, 0.18);
-  background: rgba(15, 23, 42, 0.78);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
 }
 
 .card-title {
@@ -805,16 +1068,299 @@ onMounted(() => {
 }
 
 /* Grid Layouts for cards */
-.distributions-grid, .workload-grid {
+.distributions-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 24px;
+}
+
+.dashboard-left-panel,
+.dashboard-right-panel {
+  display: flex;
+  flex-direction: column;
   gap: 24px;
 }
 
 @media (max-width: 1024px) {
-  .distributions-grid, .workload-grid {
+  .distributions-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Accordion list styles */
+.attention-accordions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.accordion-item {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-surface);
+  transition: border-color 0.2s ease;
+}
+
+.accordion-item:hover {
+  border-color: #cbd5e1;
+}
+
+.accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.015);
+  user-select: none;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-text {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 0 6px;
+}
+
+.danger-bg { background: rgba(239, 68, 68, 0.08); color: #ef4444; }
+.warning-bg { background: rgba(245, 158, 11, 0.08); color: #f59e0b; }
+.info-bg { background: rgba(14, 165, 233, 0.08); color: #0ea5e9; }
+.gray-bg { background: rgba(100, 116, 139, 0.08); color: #64748b; }
+
+.accordion-content {
+  border-top: 1px solid var(--color-border);
+  padding: 12px;
+  background: var(--color-surface);
+}
+
+.empty-substate {
+  padding: 16px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+}
+
+.attention-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attention-task-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.01);
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.attention-task-row:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border);
+}
+
+.task-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  cursor: pointer;
+  overflow: hidden;
+  margin-right: 12px;
+}
+
+.task-key {
+  font-size: 10px;
+  font-family: monospace;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.task-title {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-info:hover .task-title {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.task-assignee,
+.task-due-date,
+.task-status {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.remind-btn {
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 4px 10px rgba(14, 165, 233, 0.2);
+  transition: all 0.2s ease;
+}
+
+.remind-btn:hover {
+  background: var(--color-accent-hover, #0284c7);
+  transform: translateY(-1px);
+}
+
+.remind-btn:disabled {
+  background: var(--color-text-muted, #94a3b8) !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+  opacity: 0.6 !important;
+}
+
+.plain-row {
+  cursor: pointer;
+}
+
+.unassigned-badge {
+  font-size: 11px;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Remind Members card workload design */
+.remind-member-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.01);
+  border: 1px solid var(--color-border);
+  transition: all 0.2s ease;
+}
+
+.remind-member-card:hover {
+  background: var(--color-surface-hover);
+  transform: translateX(2px);
+}
+
+.remind-member-card.has-overdue {
+  border-color: rgba(239, 68, 68, 0.15);
+  background: rgba(239, 68, 68, 0.015);
+}
+.remind-member-card.has-overdue:hover {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.03);
+}
+
+.member-card-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.member-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.member-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.member-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.member-stats .badge {
+  border-radius: 6px;
+  padding: 2px 8px;
+  height: auto;
+  font-size: 11px;
+}
+
+.deadline-tip {
+  margin: 4px 0 0 0;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.hover-task-link {
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.hover-task-link:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.remind-member-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  transition: all 0.2s ease;
+}
+
+.remind-member-btn:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-1px);
 }
 
 /* Status Distribution styles */
@@ -964,10 +1510,6 @@ onMounted(() => {
   border: 1px solid transparent;
 }
 
-[data-theme='dark'] .legend-item {
-  background: rgba(255, 255, 255, 0.01);
-}
-
 .legend-item:hover {
   background: var(--color-surface-hover);
   border-color: var(--color-border);
@@ -1009,353 +1551,7 @@ onMounted(() => {
   font-size: 11px;
 }
 
-/* Workload Completion Panel styles */
-.workload-empty, .overdue-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 16px;
-  text-align: center;
-  border: 1px dashed var(--color-border);
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.01);
-  flex: 1;
-}
-
-[data-theme='dark'] .workload-empty, 
-[data-theme='dark'] .overdue-empty {
-  background: rgba(255, 255, 255, 0.01);
-}
-
-.overdue-empty {
-  background: rgba(16, 185, 129, 0.01);
-  border-color: rgba(16, 185, 129, 0.15);
-}
-
-.workload-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.workload-item {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.01);
-  border: 1px solid transparent;
-  transition: all 0.2s;
-}
-
-[data-theme='dark'] .workload-item {
-  background: rgba(255, 255, 255, 0.01);
-}
-
-.workload-item:hover {
-  background: var(--color-surface-hover);
-  border-color: var(--color-border);
-  transform: translateX(4px);
-}
-
-.workload-item-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.workload-user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.workload-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border: 1.5px solid var(--color-surface);
-}
-
-.workload-name {
-  font-size: 13px;
-  font-weight: 650;
-  color: var(--color-text-primary);
-}
-
-.workload-completion-text {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
-.workload-completion-text strong {
-  color: #10b981;
-}
-
-.workload-progress-container {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.workload-progress-track {
-  flex-grow: 1;
-  background: var(--color-border);
-  height: 6px;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.workload-progress-bar {
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.workload-percentage {
-  font-size: 12px;
-  font-weight: 750;
-  color: var(--color-text-primary);
-  min-width: 32px;
-  text-align: right;
-}
-
-/* Overdue Task Panel styles */
-.overdue-list-container {
-  flex: 1;
-  overflow-y: auto;
-  max-height: 310px;
-  padding-right: 4px;
-}
-
-.overdue-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.overdue-task-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(239, 68, 68, 0.1);
-  background: rgba(239, 68, 68, 0.02);
-  transition: all 0.25s ease;
-  cursor: pointer;
-}
-
-[data-theme='dark'] .overdue-task-card {
-  background: rgba(239, 68, 68, 0.04);
-}
-
-.overdue-task-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(239, 68, 68, 0.3);
-  background: rgba(239, 68, 68, 0.06);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.04);
-}
-
-.overdue-task-left {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  overflow: hidden;
-  margin-right: 16px;
-}
-
-.overdue-task-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.overdue-task-key {
-  font-size: 10px;
-  font-family: monospace;
-  font-weight: 700;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-}
-
-.overdue-task-title {
-  font-size: 13px;
-  font-weight: 650;
-  color: var(--color-text-primary);
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.overdue-task-card:hover .overdue-task-title {
-  color: var(--color-accent);
-  text-decoration: underline;
-}
-
-.overdue-task-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 11px;
-  color: var(--color-text-muted);
-}
-
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.overdue-task-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.overdue-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 9px;
-  font-weight: 700;
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
-  padding: 3px 8px;
-  border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.overdue-date {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-
-.reports-header {
-  border-radius: 10px;
-  padding: 18px;
-}
-
-.reports-title {
-  font-size: clamp(24px, 2.2vw, 32px);
-  line-height: 1.12;
-}
-
-.reports-subtitle {
-  font-size: 12.5px;
-  margin-top: 4px;
-}
-
-.reports-content {
-  gap: 16px;
-}
-
-.reports-stats-grid,
-.distributions-grid,
-.workload-grid {
-  gap: 14px;
-}
-
-.report-stat-card,
-.report-card {
-  border-radius: 10px;
-  padding: 18px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-}
-
-.stat-card-content {
-  gap: 12px;
-}
-
-.stat-icon-wrapper {
-  width: 38px;
-  height: 38px;
-  border-radius: 8px;
-  font-size: 16px;
-}
-
-.report-stat-card .value {
-  font-size: 26px;
-}
-
-.card-title {
-  font-size: 15px;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-}
-
-.donut-chart-wrapper {
-  width: 118px;
-  height: 118px;
-}
-
-.donut-center {
-  width: 68px;
-  height: 68px;
-}
-
-.donut-number {
-  font-size: 22px;
-}
-
-.workload-list,
-.status-list {
-  gap: 10px;
-}
-
-.workload-item,
-.overdue-task-card {
-  border-radius: 8px;
-  padding: 10px 12px;
-}
-
-@media (max-width: 720px) {
-  .space-reports-page {
-    padding: 12px !important;
-  }
-
-  .reports-header {
-    padding: 14px !important;
-    gap: 10px !important;
-  }
-
-  .reports-stats-grid,
-  .distributions-grid,
-  .workload-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .overdue-task-card,
-  .workload-item-top {
-    align-items: flex-start !important;
-    flex-direction: column !important;
-  }
-
-  .overdue-task-right {
-    align-items: flex-start !important;
-  }
-}
-
-/* Premium reports presentation */
+/* Animations and Dark Theme adjustments */
 @keyframes reports-rise-in {
   from {
     opacity: 0;
@@ -1368,323 +1564,61 @@ onMounted(() => {
 }
 
 .space-reports-page {
-  background:
-    radial-gradient(circle at 16% 0%, rgba(56, 189, 248, 0.17), transparent 28%),
-    radial-gradient(circle at 82% 8%, rgba(99, 102, 241, 0.10), transparent 26%),
-    linear-gradient(180deg, #f8fcff 0%, #edf6fb 52%, #f8fafc 100%) !important;
+  background: var(--color-bg) !important;
 }
 
-.reports-header,
+.health-alert-card,
 .report-stat-card,
 .report-card {
   animation: reports-rise-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   transition:
     transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
     box-shadow 220ms ease,
-    border-color 220ms ease,
-    background 220ms ease !important;
+    border-color 220ms ease !important;
 }
 
 .reports-stats-grid .report-stat-card:nth-child(1) { animation-delay: 70ms; }
 .reports-stats-grid .report-stat-card:nth-child(2) { animation-delay: 120ms; }
 .reports-stats-grid .report-stat-card:nth-child(3) { animation-delay: 170ms; }
 .reports-stats-grid .report-stat-card:nth-child(4) { animation-delay: 220ms; }
-.report-card:nth-child(1) { animation-delay: 240ms; }
-.report-card:nth-child(2) { animation-delay: 290ms; }
-.report-card:nth-child(3) { animation-delay: 340ms; }
-.report-card:nth-child(4) { animation-delay: 390ms; }
 
-.reports-header {
-  position: relative;
-  overflow: hidden;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(240, 249, 255, 0.82)),
-    var(--color-surface) !important;
-  box-shadow:
-    0 28px 80px rgba(14, 165, 233, 0.12),
-    inset 0 1px 0 rgba(255,255,255,0.86) !important;
-}
-
-.reports-header::after {
-  content: "";
-  position: absolute;
-  right: 24px;
-  top: 22px;
-  width: 72px;
-  height: 72px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(56,189,248,0.18), rgba(34,197,94,0.14));
-  transform: rotate(10deg);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.reports-header > div,
-.reports-actions {
-  position: relative;
-  z-index: 1;
-}
-
-.reports-actions {
-  align-self: center;
-}
-
-.reports-tag {
-  color: #0284c7 !important;
-  background: linear-gradient(135deg, rgba(56,189,248,0.15), rgba(45,212,191,0.12)) !important;
-  border: 1px solid rgba(56,189,248,0.16);
-}
-
-.report-stat-card,
-.report-card {
-  position: relative;
-  overflow: hidden;
-  background:
-    linear-gradient(135deg, rgba(255,255,255,0.96), rgba(248,250,252,0.84)),
-    var(--color-surface) !important;
-}
-
-.report-stat-card::before,
-.report-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 3px;
-  background: linear-gradient(90deg, #38bdf8, #2dd4bf, #facc15);
-  opacity: 0.88;
-}
-
-.report-stat-card:hover,
-.report-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 28px 76px rgba(15, 23, 42, 0.14) !important;
-}
-
-.report-stat-card .stat-icon-wrapper {
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.09);
-}
-
-.report-stat-card .value {
-  letter-spacing: -0.02em;
-}
-
-.status-item,
-.legend-item,
-.workload-item,
-.overdue-task-card {
-  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
-}
-
-.status-item:hover,
-.legend-item:hover,
-.workload-item:hover {
-  transform: translateX(4px);
-  background: color-mix(in srgb, var(--color-accent) 7%, var(--color-surface));
-}
-
-.overdue-task-card {
-  background:
-    linear-gradient(90deg, rgba(239, 68, 68, 0.08), transparent 72%),
-    var(--color-surface) !important;
-}
-
-.overdue-task-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 42px rgba(239, 68, 68, 0.12);
-}
-
-[data-theme='dark'] .space-reports-page {
-  background:
-    radial-gradient(circle at 14% 0%, rgba(56, 189, 248, 0.18), transparent 30%),
-    radial-gradient(circle at 84% 10%, rgba(99, 102, 241, 0.10), transparent 28%),
-    linear-gradient(180deg, #06111f, #0f172a 52%, #101827) !important;
-}
-
-[data-theme='dark'] .reports-header,
+[data-theme='dark'] .health-alert-card,
 [data-theme='dark'] .report-stat-card,
 [data-theme='dark'] .report-card {
-  background:
-    linear-gradient(135deg, rgba(30, 41, 59, 0.90), rgba(15, 23, 42, 0.86)),
-    #0f172a !important;
+  border-color: var(--color-border);
+  background: var(--color-surface) !important;
+  box-shadow: var(--shadow-sm);
 }
 
-[data-theme='light'] .reports-header,
+[data-theme='light'] .health-alert-card,
 [data-theme='light'] .report-stat-card,
 [data-theme='light'] .report-card {
-  background:
-    linear-gradient(135deg, rgba(255,255,255,0.97), rgba(248,250,252,0.88)),
-    #ffffff !important;
-  color: #0f172a !important;
-  border-color: rgba(148, 163, 184, 0.20) !important;
+  background: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border) !important;
 }
 
-[data-theme='light'] .reports-title,
 [data-theme='light'] .card-title,
 [data-theme='light'] .report-stat-card .value,
-[data-theme='light'] .workload-name,
-[data-theme='light'] .overdue-task-title,
 [data-theme='light'] .status-count strong,
 [data-theme='light'] .legend-count,
-[data-theme='light'] .donut-number {
+[data-theme='light'] .donut-number,
+[data-theme='light'] .member-name {
   color: #0f172a !important;
 }
 
-[data-theme='light'] .reports-subtitle,
-[data-theme='light'] .report-stat-card .label,
-[data-theme='light'] .percentage-label,
-[data-theme='light'] .legend-percent,
-[data-theme='light'] .legend-label,
-[data-theme='light'] .workload-completion-text,
-[data-theme='light'] .overdue-task-meta,
-[data-theme='light'] .overdue-date {
-  color: #475569 !important;
-}
-
-[data-theme='dark'] .reports-title,
 [data-theme='dark'] .card-title,
 [data-theme='dark'] .report-stat-card .value,
-[data-theme='dark'] .workload-name,
-[data-theme='dark'] .overdue-task-title,
 [data-theme='dark'] .status-count strong,
 [data-theme='dark'] .legend-count,
-[data-theme='dark'] .donut-number {
+[data-theme='dark'] .donut-number,
+[data-theme='dark'] .member-name {
   color: #f8fafc !important;
 }
 
-[data-theme='dark'] .reports-subtitle,
-[data-theme='dark'] .report-stat-card .label,
-[data-theme='dark'] .percentage-label,
-[data-theme='dark'] .legend-percent,
-[data-theme='dark'] .legend-label,
-[data-theme='dark'] .workload-completion-text,
-[data-theme='dark'] .overdue-task-meta,
-[data-theme='dark'] .overdue-date {
-  color: #cbd5e1 !important;
+@media (max-width: 900px) {
+  .reports-content > .attention-panel,
+  .reports-content > .workload-panel,
+  .reports-content > .report-card { grid-column: 1 / -1; }
 }
-
-[data-theme='light'] .status-badge,
-[data-theme='light'] .overdue-task-key,
-[data-theme='light'] .btn-secondary {
-  background-color: #ffffff !important;
-  border-color: rgba(148, 163, 184, 0.28) !important;
-}
-
-[data-theme='dark'] .status-badge,
-[data-theme='dark'] .overdue-task-key,
-[data-theme='dark'] .btn-secondary {
-  background-color: rgba(15, 23, 42, 0.76) !important;
-  border-color: rgba(148, 163, 184, 0.20) !important;
-}
-
-.status-item,
-.legend-item,
-.workload-item,
-.overdue-task-card {
-  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
-}
-
-.overdue-task-header,
-.workload-item-top,
-.status-item-header {
-  min-width: 0;
-}
-
-.overdue-task-title,
-.workload-name,
-.legend-label,
-.status-badge {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.overdue-task-title,
-.workload-name {
-  overflow-wrap: anywhere;
-}
-
-.reports-header {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 24px !important;
-  min-height: 132px !important;
-}
-
-.reports-title {
-  max-width: 760px;
-}
-
-.reports-subtitle {
-  max-width: 620px;
-}
-
-.report-card {
-  min-width: 0;
-}
-
-.status-item,
-.priority-item,
-.legend-item,
-.workload-item,
-.overdue-task-card {
-  min-width: 0;
-}
-
-@media (max-width: 720px) {
-  .reports-header {
-    min-height: 0 !important;
-    align-items: flex-start !important;
-    flex-direction: column !important;
-  }
-
-  .reports-header::after {
-    width: 46px;
-    height: 46px;
-    right: 14px;
-    top: 14px;
-    opacity: 0.38;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .reports-header,
-  .report-stat-card,
-  .report-card {
-    animation: none !important;
-    transition: none !important;
-  }
-}
-
-.premium-select {
-  appearance: none;
-  background: var(--color-surface, #ffffff) url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") no-repeat right 8px center;
-  background-size: 14px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 6px;
-  padding: 6px 32px 6px 12px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-primary, #334155);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  margin-left: auto;
-}
-
-.premium-select:hover {
-  border-color: #cbd5e1;
-}
-
-.premium-select:focus {
-  outline: none;
-  border-color: var(--color-accent, #0ea5e9);
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-}
-
-[data-theme='dark'] .premium-select {
-  background-color: var(--color-surface);
-  border-color: var(--color-border);
-  color: var(--color-text-primary);
-}
-
 </style>

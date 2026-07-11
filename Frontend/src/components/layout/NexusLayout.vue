@@ -28,18 +28,34 @@
       class="ai-floating-btn"
       type="button"
       :title="aiCopy.floatingTitle"
+      :aria-label="aiCopy.floatingTitle"
+      aria-controls="ai-copilot-panel"
+      aria-expanded="false"
       @click="toggleAI"
     >
-      <i class="fa-solid fa-robot"></i>
-      <span>AI</span>
+      <span class="ai-pet-face" aria-hidden="true"><i class="fa-solid fa-sparkles"></i></span>
+      <span>Trợ lý</span>
     </button>
+
+    <div
+      v-if="selectedText && selectionPopover.visible && !aiVisible"
+      class="ai-selection-popover"
+      :style="{ left: `${selectionPopover.left}px`, top: `${selectionPopover.top}px` }"
+      role="toolbar"
+      aria-label="Thao tác với đoạn văn bản đã chọn"
+    >
+      <button type="button" @click="askAboutSelection('Giải thích')">Giải thích</button>
+      <button type="button" @click="askAboutSelection('Tóm tắt')">Tóm tắt</button>
+      <button type="button" @click="askAboutSelection('Hỏi AI')">Hỏi AI</button>
+      <button type="button" @click="askAboutSelection('Đề xuất công việc')">Đề xuất công việc</button>
+    </div>
 
     <transition name="ai-backdrop-fade">
       <div v-if="aiVisible && isMobile" class="ai-mobile-backdrop" @click="toggleAI"></div>
     </transition>
 
     <transition name="slide-right">
-      <aside v-if="aiVisible" class="ai-sidebar" aria-label="AI Assistant">
+      <aside v-if="aiVisible" id="ai-copilot-panel" class="ai-sidebar" role="dialog" aria-modal="false" :aria-label="aiCopy.title">
         <div class="ai-hero">
           <div class="ai-hero-top">
             <div class="ai-brand">
@@ -80,6 +96,14 @@
             </button>
           </div>
 
+          <div v-if="selectedText" class="ai-selected-text" role="status">
+            <i class="fa-solid fa-quote-left"></i>
+            <span>Dang dung doan da chon</span>
+            <button type="button" title="Xoa doan da chon" @click="clearSelectedText">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
           <div class="chat-thread">
             <div
               v-for="(message, index) in chatHistory"
@@ -94,8 +118,113 @@
               <div class="message-stack">
                 <span class="message-author">{{ message.role === 'bot' ? aiCopy.botName : aiCopy.you }}</span>
                 <div class="message-bubble">
-                  <i v-if="message.loading" class="fa-solid fa-spinner fa-spin"></i>
-                  <span>{{ message.content }}</span>
+                  <i v-if="message.loading" class="fa-solid fa-spinner fa-spin mr-2"></i>
+                  <div class="markdown-body text-sm whitespace-pre-wrap">{{ message.content }}</div>
+
+                  <!-- Cảnh báo (warnings) -->
+                  <div v-if="message.warnings && message.warnings.length" class="ai-warnings mt-3 bg-red-50 dark:bg-red-950/20 p-2.5 rounded border border-red-200 dark:border-red-900/50">
+                    <div class="text-xs font-semibold text-red-600 dark:text-red-400 mb-1 flex items-center gap-1.5">
+                      <i class="fa-solid fa-triangle-exclamation"></i> Cảnh báo rủi ro
+                    </div>
+                    <ul class="list-disc pl-4 text-xs text-red-700 dark:text-red-300 space-y-0.5">
+                      <li v-for="(warn, wIdx) in message.warnings" :key="wIdx">{{ warn }}</li>
+                    </ul>
+                  </div>
+
+                  <!-- Gợi ý hành động (suggestedActions) -->
+                  <div v-if="message.suggestedActions && message.suggestedActions.length" class="ai-actions mt-3 flex flex-col gap-2">
+                    <div v-for="(action, aIdx) in message.suggestedActions" :key="aIdx" class="action-card bg-primary-light dark:bg-primary-dark/30 p-2.5 rounded border border-gray-200 dark:border-gray-800">
+                      <p class="text-xs text-gray-700 dark:text-gray-300 font-medium">Chuyển công việc sang trạng thái mới:</p>
+                      <div class="flex justify-between items-center mt-2 gap-2">
+                        <span class="text-xs text-gray-500 font-semibold">{{ action.taskTitle }} &rarr; {{ action.statusName }}</span>
+                        <el-button 
+                          size="small" 
+                          type="success"
+                          :loading="action.loading"
+                          :disabled="action.completed || !canUpdateTaskInProject"
+                          @click="confirmSuggestedAction(action)"
+                        >
+                          {{ action.completed ? 'Đã thực hiện' : 'Xác nhận chuyển' }}
+                        </el-button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Đề xuất công việc (suggestedTasks) -->
+                  <div v-if="message.suggestedTasks && message.suggestedTasks.length" class="ai-suggested-tasks mt-3 p-3 bg-gray-50 dark:bg-gray-900/30 rounded border border-gray-200 dark:border-gray-800">
+                    <div class="flex justify-between items-center mb-2.5 pb-1.5 border-b border-gray-200 dark:border-gray-800">
+                      <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-list-check text-blue-500"></i> AI đề xuất công việc
+                      </span>
+                      <el-button 
+                        v-if="message.suggestedTasks.some(t => !t.created)"
+                        size="small" 
+                        type="primary" 
+                        link
+                        :disabled="!canCreateTaskInProject"
+                        @click="createAllSuggestedTasks(message)"
+                      >
+                        Tạo tất cả
+                      </el-button>
+                    </div>
+                    
+                    <div class="space-y-2.5 max-h-[300px] overflow-y-auto">
+                      <div v-for="(task, tIdx) in message.suggestedTasks" :key="tIdx" class="suggested-task-item p-2 bg-white dark:bg-gray-950 rounded border border-gray-100 dark:border-gray-900 text-xs">
+                        <div class="font-medium text-gray-800 dark:text-gray-200 flex justify-between gap-2">
+                          <span>{{ task.title }}</span>
+                          <span v-if="task.priority" class="text-[10px] px-1.5 py-0.5 rounded" :class="[
+                            task.priority === 1 ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' :
+                            task.priority === 2 ? 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300' :
+                            task.priority === 4 ? 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300' :
+                            'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                          ]">
+                            P{{ task.priority }}
+                          </span>
+                        </div>
+                        <p class="text-gray-500 dark:text-gray-400 mt-1 text-[11px] leading-relaxed">{{ task.description }}</p>
+                        
+                        <div class="mt-2.5 flex justify-between items-center text-[10px] text-gray-400">
+                          <span>Hạn: {{ task.dueDate || 'N/A' }}</span>
+                          <span>{{ task.assigneeEmail || '' }}</span>
+                        </div>
+
+                        <div class="mt-2.5 pt-2 border-t border-gray-100 dark:border-gray-900 flex justify-end">
+                          <span v-if="task.created" class="text-xs text-green-600 dark:text-green-400 font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-circle-check"></i> Đã tạo
+                          </span>
+                          <el-button 
+                            v-else
+                            size="small" 
+                            type="primary" 
+                            plain
+                            :loading="task.loading"
+                            :disabled="!canCreateTaskInProject"
+                            @click="createSuggestedTask(task, message)"
+                          >
+                            Tạo task này
+                          </el-button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div v-if="!canCreateTaskInProject" class="text-[10px] text-red-500 mt-2 text-center">
+                      Bạn không có quyền tạo công việc trong dự án này.
+                    </div>
+                  </div>
+
+                  <!-- Prompt gợi ý (suggestedPrompts) -->
+                  <div v-if="message.suggestedPrompts && message.suggestedPrompts.length" class="ai-suggested-prompts mt-3 pt-2.5 border-t border-dashed border-gray-200 dark:border-gray-800 flex flex-wrap gap-1.5">
+                    <button 
+                      v-for="(p, pIdx) in message.suggestedPrompts" 
+                      :key="pIdx"
+                      class="px-2.5 py-1.5 rounded-full bg-gray-100 dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-950 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 text-xs border border-gray-200 dark:border-gray-800 transition-colors text-left font-medium"
+                      type="button"
+                      @click="useQuickPrompt(p)"
+                    >
+                      <i class="fa-regular fa-lightbulb text-yellow-500 mr-1"></i>
+                      <span>{{ p }}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -107,6 +236,7 @@
             <textarea
               v-model="aiInput"
               rows="1"
+              :aria-label="aiCopy.placeholder"
               :placeholder="aiCopy.placeholder"
               @keydown.enter.exact.prevent="sendAiMessage"
             ></textarea>
@@ -125,11 +255,18 @@
 
     <CreateSpaceModal v-model:visible="createSpaceVisible" @created="handleSpaceCreated" />
     <CreateProjectModal v-model:visible="createVisible" @created="handleProjectCreated" />
+
+    <transition name="fade">
+      <div v-if="isOffline" class="offline-warning-banner" role="alert">
+        <i class="fa-solid fa-cloud-slash mr-2"></i>
+        <span>Bạn đang offline. Một số dữ liệu có thể không cập nhật.</span>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, defineProps } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, defineProps, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
@@ -140,6 +277,8 @@ import NexusSidebar from './NexusSidebar.vue'
 import { useI18nStore } from '@/store/useI18nStore'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 import { useProjectStore } from '@/store/useProjectStore'
+import { getStoredUserSession } from '@/utils/authSession'
+import { getDefaultPermissionMatrix, hasPermission } from '@/utils/permissionGuard'
 
 const props = defineProps({
   hideSidebar: {
@@ -160,6 +299,8 @@ const isMobile = ref(window.innerWidth <= 1024)
 const aiInput = ref('')
 const aiSending = ref(false)
 const aiContentRef = ref(null)
+const selectedText = ref('')
+const selectionPopover = ref({ visible: false, left: 0, top: 0 })
 const aiCopyMap = {
   vi: {
     floatingTitle: 'Mở AI Assistant',
@@ -265,7 +406,37 @@ const aiCopyOverrideMap = {
 }
 
 const aiCopy = computed(() => aiCopyOverrideMap[i18nStore.locale] || aiCopyOverrideMap.vi)
-const quickPrompts = computed(() => aiCopy.value.prompts)
+
+const pageSuggestions = {
+  'work-items': ['Tom tat tinh hinh du an nay', 'Cong viec nao dang tre han?', 'Ai dang bi qua tai?', 'Goi y uu tien hom nay', 'Giai thich cac cot Kanban hien tai'],
+  reports: ['Bao cao nay dang noi dieu gi?', 'Rui ro lon nhat cua du an la gi?', 'Nen xu ly van de nao truoc?'],
+  settings: ['Giai thich quyen cua toi trong du an nay', 'Workflow hien tai co hop ly khong?', 'Custom Fields nay dung de lam gi?'],
+  goals: ['Tom tat tien do muc tieu', 'Muc tieu nao dang co nguy co?', 'De xuat viec can lam de tang tien do'],
+  integration: ['Tom tat cac item moi', 'Item nao nen chuyen thanh cong viec?', 'Co noi dung nao can xu ly gap?'],
+  inbox: ['Tom tat cac item moi', 'Item nao nen chuyen thanh cong viec?', 'Co noi dung nao can xu ly gap?'],
+  dashboard: ['Tom tat dashboard hien tai', 'Rui ro nao can xu ly truoc?', 'Goi y uu tien hom nay'],
+  unknown: ['Toi co the giup gi cho ban trong SprintA?', 'Tom tat trang hien tai', 'Giai thich doan da chon']
+}
+
+const inferPageType = (path = '') => {
+  const value = path.toLowerCase()
+  if (value.includes('work-items') || value.includes('kanban')) return 'work-items'
+  if (value.includes('report')) return 'reports'
+  if (value.includes('setting')) return 'settings'
+  if (value.includes('goal')) return 'goals'
+  if (value.includes('integration')) return 'integration'
+  if (value.includes('inbox')) return 'inbox'
+  if (value.includes('dashboard')) return 'dashboard'
+  return 'unknown'
+}
+
+const pageType = computed(() => inferPageType(route.path))
+const quickPrompts = computed(() => (pageSuggestions[pageType.value] || pageSuggestions.unknown)
+  .map((text, index) => ({
+    label: text,
+    text,
+    icon: ['fa-regular fa-file-lines', 'fa-solid fa-arrow-up-wide-short', 'fa-solid fa-lightbulb'][index % 3]
+  })))
 
 const defaultChatHistory = () => [
   {
@@ -288,12 +459,33 @@ const updateSize = () => {
   }
 }
 
+const isOffline = ref(!navigator.onLine)
+const updateOnlineStatus = () => {
+  isOffline.value = !navigator.onLine
+}
+
+const handleGlobalKeydown = (event) => {
+  const isEscape = event.key === 'Escape' || event.key === 'Esc' || event.code === 'Escape' || event.keyCode === 27
+  if (!isEscape || !aiVisible.value) return
+  aiVisible.value = false
+}
+
 onMounted(() => {
   window.addEventListener('resize', updateSize)
+  window.addEventListener('online', updateOnlineStatus)
+  window.addEventListener('offline', updateOnlineStatus)
+  document.addEventListener('mouseup', captureSelectedText)
+  document.addEventListener('keyup', captureSelectedText)
+  window.addEventListener('keydown', handleGlobalKeydown, true)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateSize)
+  window.removeEventListener('online', updateOnlineStatus)
+  window.removeEventListener('offline', updateOnlineStatus)
+  document.removeEventListener('mouseup', captureSelectedText)
+  document.removeEventListener('keyup', captureSelectedText)
+  window.removeEventListener('keydown', handleGlobalKeydown, true)
 })
 
 const toggleSidebar = () => {
@@ -335,6 +527,95 @@ const currentProjectId = computed(() => {
   if (typeof routeId === 'string' && routeId.length >= 30) return routeId
   return projectStore.currentProject?.id || projectStore.currentProject?.Id || workTaskStore.currentProjectId || null
 })
+
+const currentWorkspaceId = computed(() => {
+  const routeWorkspaceId = route.params?.workspaceId || route.params?.spaceId
+  if (typeof routeWorkspaceId === 'string' && routeWorkspaceId.length >= 30) return routeWorkspaceId
+  const project = projectStore.currentProject
+  return project?.workspaceId || project?.WorkspaceId || workTaskStore.resolveWorkspaceId(currentProjectId.value) || null
+})
+
+const clearSelectedText = () => {
+  selectedText.value = ''
+  selectionPopover.value.visible = false
+}
+
+const captureSelectedText = () => {
+  const selection = window.getSelection?.()
+  if (!selection || selection.isCollapsed) {
+    selectionPopover.value.visible = false
+    return
+  }
+  const anchor = selection.anchorNode?.parentElement
+  if (anchor?.closest('input, textarea, select, [contenteditable="true"]')) {
+    selectionPopover.value.visible = false
+    return
+  }
+  const text = selection.toString().trim()
+  if (text) {
+    const rect = selection.getRangeAt(0).getBoundingClientRect()
+    selectedText.value = text.slice(0, 4000)
+    selectionPopover.value = {
+      visible: true,
+      left: Math.min(Math.max(12, rect.left), window.innerWidth - 300),
+      top: Math.min(rect.bottom + 8, window.innerHeight - 54)
+    }
+  }
+}
+
+const askAboutSelection = (action) => {
+  aiInput.value = `${action} đoạn văn bản sau:\n\n${selectedText.value}`
+  selectionPopover.value.visible = false
+  aiVisible.value = true
+}
+
+// ────────────────────────────────────────────
+// SME Permission Matrix for AI Sidebar
+// ────────────────────────────────────────────
+const permissionMatrix = ref(getDefaultPermissionMatrix())
+
+const loadPermissionMatrix = async () => {
+  const pId = currentProjectId.value
+  if (!pId) return
+  try {
+    const res = await axiosClient.get(`/settings/ProjectPermissions:${pId}`)
+    if (res.data?.data?.rolePermissions) {
+      permissionMatrix.value = JSON.parse(res.data.data.rolePermissions)
+    } else {
+      permissionMatrix.value = getDefaultPermissionMatrix()
+    }
+  } catch {
+    permissionMatrix.value = getDefaultPermissionMatrix()
+  }
+}
+
+const canCreateTaskInProject = computed(() => {
+  const user = getStoredUserSession()
+  if (!user) return false
+  
+  const wsRole = user.workspaceRole?.toUpperCase()
+  if (wsRole === 'OWNER' || wsRole === 'ADMIN') return true
+
+  const me = projectStore.currentProject?.myRole || projectStore.currentProject?.MyRole || 'Member'
+  return hasPermission(permissionMatrix.value, me, 'task.create')
+})
+
+const canUpdateTaskInProject = computed(() => {
+  const user = getStoredUserSession()
+  if (!user) return false
+  
+  const wsRole = user.workspaceRole?.toUpperCase()
+  if (wsRole === 'OWNER' || wsRole === 'ADMIN') return true
+
+  const me = projectStore.currentProject?.myRole || projectStore.currentProject?.MyRole || 'Member'
+  return hasPermission(permissionMatrix.value, me, 'task.update')
+})
+
+watch(currentProjectId, async (newVal) => {
+  if (newVal) {
+    await loadPermissionMatrix()
+  }
+}, { immediate: true })
 
 const currentTasks = computed(() => Array.isArray(workTaskStore.tasks) ? workTaskStore.tasks : [])
 
@@ -546,8 +827,52 @@ const tryHandleLocalAiCommand = async (message) => {
   const wantsPriority = /(uu tien|priority|nen lam|next action|goi y)/.test(normalized)
   const wantsChecklist = /(checklist|danh sach viec|cac buoc)/.test(normalized)
 
-  if (wantsCreate) return await createRealTasks(message)
-  if (wantsMove) return await moveTaskByPrompt(message)
+  if (wantsCreate) {
+    const finalTitles = splitTaskTitles(message).length ? splitTaskTitles(message) : [cleanTaskTitle(message, normalized)]
+    const dueDate = inferDueDate(normalized)
+    const priority = inferPriority(normalized)
+    const suggested = finalTitles.map(t => ({
+      title: t,
+      description: `Đề xuất tạo từ yêu cầu: "${message}"`,
+      priority,
+      dueDate
+    }))
+    return {
+      answer: "SprintA AI đã đề xuất tạo các công việc sau đây. Vui lòng kiểm tra và xác nhận:",
+      suggestedTasks: suggested
+    }
+  }
+
+  if (wantsMove) {
+    const tasks = await ensureProjectTasks()
+    const statusName = inferStatusName(normalized)
+    const sequenceMatch = message.match(/\b[A-Z0-9]+-\d+\b/i)
+    const quoted = message.match(/["“”']([^"“”']{2,})["“”']/)
+    const keyword = normalizeAiText(quoted?.[1] || sequenceMatch?.[0] || message.replace(/(chuyen|chuyển|move|dua|đưa|sang|vao|vào|to do|todo|done|in progress|dang lam|hoan thanh|xong)/gi, ''))
+    const task = tasks.find(item =>
+      (sequenceMatch && normalizeAiText(item.sequenceId) === normalizeAiText(sequenceMatch[0])) ||
+      (keyword && normalizeAiText(item.title).includes(keyword.trim()))
+    )
+
+    if (!task) {
+      return {
+        answer: "Mình chưa tìm thấy công việc cần chuyển. Hãy ghi rõ mã task hoặc đặt tên task trong dấu ngoặc kép."
+      }
+    }
+
+    return {
+      answer: `Bạn có muốn chuyển trạng thái công việc **${task.title}** sang **${statusName}** không?`,
+      suggestedActions: [
+        {
+          type: 'move-task',
+          taskId: task.id,
+          taskTitle: task.title,
+          statusName: statusName
+        }
+      ]
+    }
+  }
+
   if (wantsStats) {
     const stats = await buildProjectStats()
     return `Thống kê project:\n- Tổng task: ${stats.total}\n- Đã xong: ${stats.done}\n- Đang làm: ${stats.inProgress}\n- Cần làm: ${stats.todo}\n- Backlog: ${stats.backlog}\n- Quá hạn: ${stats.overdue}\n- Ưu tiên cao: ${stats.highPriority}`
@@ -562,6 +887,73 @@ const tryHandleLocalAiCommand = async (message) => {
   return null
 }
 
+const createSuggestedTask = async (task, messageItem) => {
+  if (!canCreateTaskInProject.value) {
+    ElMessage.error("Bạn không có quyền tạo công việc trong dự án này.")
+    return
+  }
+
+  task.loading = true
+  try {
+    const created = await workTaskStore.createTask(currentProjectId.value, {
+      title: task.title,
+      description: task.description || "Được tạo từ gợi ý của SprintA AI",
+      priority: task.priority || 3,
+      dueDate: task.dueDate || null,
+      typeName: "Task",
+      storyPoints: 0
+    })
+    task.created = true
+    task.createdTask = created
+    ElMessage.success(`Đã tạo thành công task: "${created.title || created.Title}"`)
+    // Refresh lists
+    window.dispatchEvent(new CustomEvent('sprinta-ai-task-created', {
+      detail: { projectId: currentProjectId.value, task: created }
+    }))
+  } catch (e) {
+    ElMessage.error(e.response?.data?.message || "Không thể tạo task gợi ý.")
+  } finally {
+    task.loading = false
+  }
+}
+
+const createAllSuggestedTasks = async (messageItem) => {
+  if (!canCreateTaskInProject.value) {
+    ElMessage.error("Bạn không có quyền tạo công việc trong dự án này.")
+    return
+  }
+
+  const uncreated = messageItem.suggestedTasks.filter(t => !t.created)
+  if (!uncreated.length) return
+
+  ElMessage.info(`Đang tạo ${uncreated.length} task gợi ý...`)
+  for (const task of uncreated) {
+    await createSuggestedTask(task, messageItem)
+  }
+}
+
+const confirmSuggestedAction = async (action) => {
+  if (action.type === 'move-task') {
+    if (!canUpdateTaskInProject.value) {
+      ElMessage.error("Bạn không có quyền cập nhật công việc trong dự án này.")
+      return
+    }
+
+    action.loading = true
+    try {
+      await workTaskStore.updateTaskStatus(currentProjectId.value, action.taskId, action.statusName)
+      action.completed = true
+      ElMessage.success(`Đã chuyển task "${action.taskTitle}" sang trạng thái ${action.statusName}.`)
+      // Refresh list
+      await workTaskStore.fetchTasks(currentProjectId.value)
+    } catch (e) {
+      ElMessage.error(e.response?.data?.message || "Không thể chuyển trạng thái task.")
+    } finally {
+      action.loading = false
+    }
+  }
+}
+
 const sendAiMessage = async () => {
   const outgoing = aiInput.value.trim()
   if (!outgoing || aiSending.value) return
@@ -573,44 +965,60 @@ const sendAiMessage = async () => {
   await scrollAiToBottom()
 
   try {
-    const localResult = await tryHandleLocalAiCommand(outgoing)
+    const localResult = null
     if (localResult) {
       chatHistory.value.pop()
-      chatHistory.value.push({ role: 'bot', content: localResult })
-      ElMessage.success('SprintA AI đã thao tác dữ liệu thật.')
+      if (typeof localResult === 'string') {
+        chatHistory.value.push({ role: 'bot', content: localResult })
+      } else {
+        chatHistory.value.push({
+          role: 'bot',
+          content: localResult.answer,
+          suggestedTasks: localResult.suggestedTasks,
+          suggestedActions: localResult.suggestedActions
+        })
+      }
+      ElMessage.success('SprintA AI đã xử lý yêu cầu.')
       return
     }
 
-    const history = chatHistory.value
-      .filter(item => !item.loading)
-      .map(item => ({
-        role: item.role === 'bot' ? 'assistant' : 'user',
-        content: item.content
-      }))
-
-    const response = await axiosClient.post('/ai/command', {
-      prompt: outgoing,
-      projectId: currentProjectId.value,
-      locale: i18nStore.locale || 'vi',
-      history
+    const visibleTasks = currentTasks.value.slice(0, 100)
+    const response = await axiosClient.post('/ai/context-chat', {
+      route: route.fullPath,
+      projectId: currentProjectId.value || null,
+      workspaceId: currentWorkspaceId.value || null,
+      message: outgoing,
+      selectedText: selectedText.value || null,
+      pageContext: {
+        pageType: pageType.value,
+        currentView: route.query?.view || route.name || '',
+        visibleTaskIds: visibleTasks.map(task => task.id || task.Id).filter(Boolean),
+        visibleStatuses: [...new Set(visibleTasks.map(task => task.statusName || task.StatusName || task.status?.name || task.Status?.Name).filter(Boolean))],
+        filters: {},
+        extra: {}
+      }
     })
+    const responseData = response.data?.data
 
     chatHistory.value.pop()
-    const responseData = response.data?.data
-    const message = responseData?.message || responseData || response.data?.message || aiCopy.value.emptyResponse
-    if (responseData?.action === 'create-task' && currentProjectId.value) {
-      await workTaskStore.fetchTasks(currentProjectId.value)
-      window.dispatchEvent(new CustomEvent('sprinta-ai-task-created', {
-        detail: { projectId: currentProjectId.value, task: responseData.createdTask }
-      }))
-    }
+    
     chatHistory.value.push({
       role: 'bot',
-      content: message
+      content: responseData?.answer || aiCopy.value.emptyResponse,
+      suggestedPrompts: responseData?.suggestions || [],
+      warnings: responseData?.warnings || [],
+      suggestedActions: []
     })
   } catch (error) {
     chatHistory.value.pop()
-    const message = error.response?.data?.message || aiCopy.value.sendFailed
+    const status = error.response?.status
+    const messages = {
+      400: 'Vui long nhap noi dung can hoi.',
+      401: 'Vui long dang nhap lai de su dung AI Copilot.',
+      403: 'Ban khong co quyen hoi AI trong du an nay.',
+      503: 'AI Copilot chua san sang. Vui long thu lai sau.'
+    }
+    const message = messages[status] || 'Khong the ket noi AI Copilot. Vui long thu lai.'
     chatHistory.value.push({ role: 'bot', content: message })
     ElMessage.error(message)
   } finally {
@@ -634,7 +1042,7 @@ const handleProjectCreated = (newProject) => {
 
 <style scoped>
 .dashboard-layout {
-  height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background:
@@ -693,6 +1101,32 @@ const handleProjectCreated = (newProject) => {
 @media (max-width: 1024px) {
   .content-area {
     padding: 0;
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  .sidebar-overlay {
+    z-index: 1000 !important;
+  }
+
+  :deep(.plane-sidebar) {
+    position: fixed !important;
+    left: 0 !important;
+    top: var(--sa-topbar-height, 52px) !important;
+    bottom: 0 !important;
+    height: calc(100vh - var(--sa-topbar-height, 52px)) !important;
+    height: calc(100dvh - var(--sa-topbar-height, 52px)) !important;
+    z-index: 1001 !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s ease !important;
+    transform: translateX(0);
+    width: 250px !important;
+  }
+
+  :deep(.plane-sidebar.collapsed) {
+    transform: translateX(-100%) !important;
+    width: 250px !important;
+    border-right: none !important;
   }
 }
 
@@ -700,7 +1134,7 @@ const handleProjectCreated = (newProject) => {
   position: fixed;
   right: 22px;
   bottom: 22px;
-  z-index: 1800;
+  z-index: 2600;
   height: 44px;
   min-width: 82px;
   display: inline-flex;
@@ -708,12 +1142,11 @@ const handleProjectCreated = (newProject) => {
   justify-content: center;
   gap: 8px;
   border: 1px solid color-mix(in srgb, var(--sa-primary) 42%, #ffffff);
-  border-radius: 999px;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--sa-primary) 94%, #2563eb 6%), #2563eb);
+  border-radius: 12px;
+  background: var(--color-surface-elevated);
   color: #ffffff;
   font-weight: 800;
-  box-shadow: 0 18px 44px rgba(14, 165, 233, 0.32);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--sa-primary) 24%, transparent);
   cursor: pointer;
 }
 
@@ -722,10 +1155,60 @@ const handleProjectCreated = (newProject) => {
   box-shadow: 0 22px 54px rgba(14, 165, 233, 0.40);
 }
 
+.ai-pet-face {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--sa-primary);
+  color: #fff;
+}
+
+.ai-selection-popover {
+  position: fixed;
+  z-index: 2700;
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface-elevated);
+  box-shadow: var(--shadow-popover);
+}
+
+.ai-selection-popover button {
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.ai-selection-popover button:hover,
+.ai-selection-popover button:focus-visible {
+  background: var(--sa-primary-soft);
+  color: var(--color-accent);
+  outline: none;
+}
+
+.ai-floating-btn:focus-visible,
+.close-ai:focus-visible,
+.quick-action:focus-visible,
+.send-btn:focus-visible,
+.ai-context-card button:focus-visible,
+.ai-selected-text button:focus-visible,
+.ai-input-foot button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--sa-primary) 55%, #ffffff);
+  outline-offset: 3px;
+}
+
 .ai-mobile-backdrop {
   position: fixed;
   inset: var(--sa-topbar-height, 52px) 0 0;
-  z-index: 1900;
+  z-index: 2900;
   background: rgba(2, 6, 23, 0.48);
   backdrop-filter: blur(3px);
 }
@@ -741,7 +1224,7 @@ const handleProjectCreated = (newProject) => {
   border: 1px solid color-mix(in srgb, var(--color-border) 82%, var(--sa-primary));
   border-radius: 16px;
   box-shadow: var(--shadow-popover), 0 24px 80px rgba(2, 8, 23, 0.22);
-  z-index: 2000;
+  z-index: 3000;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -896,6 +1379,42 @@ const handleProjectCreated = (newProject) => {
   background: var(--color-surface);
   color: var(--color-accent);
   cursor: pointer;
+}
+
+.ai-selected-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 14px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--sa-primary) 30%, var(--color-border));
+  border-radius: 8px;
+  background: var(--sa-primary-soft);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.ai-selected-text > i {
+  color: var(--color-accent);
+}
+
+.ai-selected-text span {
+  flex: 1;
+}
+
+.ai-selected-text button {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.ai-selected-text button:hover {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
 }
 
 .chat-thread {
@@ -1092,5 +1611,27 @@ const handleProjectCreated = (newProject) => {
     flex: 1 1 calc(50% - 6px);
     justify-content: center;
   }
+}
+
+.offline-warning-banner {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(220, 38, 38, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #ffffff;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.25), 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
 }
 </style>

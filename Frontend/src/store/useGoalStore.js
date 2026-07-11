@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import axiosClient from '@/api/axiosClient'
 import { useSiteStore } from '@/store/useSiteStore'
+import { ensureWorkspaceIdFromState, resolveWorkspaceIdFromState } from '@/utils/contextIds'
 
 export const useGoalStore = defineStore('goal', {
   state: () => ({ lessons: [], risks: [], decisions: [],
@@ -18,12 +19,28 @@ export const useGoalStore = defineStore('goal', {
     isSuccess: false
   }),
   actions: {
+    requireWorkspaceId() {
+      const workspaceId = this.getWorkspaceId()
+      if (!workspaceId) {
+        throw new Error('No workspace selected')
+      }
+      return workspaceId
+    },
+    async ensureWorkspaceId() {
+      const siteStore = useSiteStore()
+      const workspaceId = await ensureWorkspaceIdFromState({ siteStore })
+      if (!workspaceId) {
+        throw new Error('No workspace selected')
+      }
+      return workspaceId
+    },
     async fetchGoalTabs(goalId) {
       try {
+        const workspaceId = await this.ensureWorkspaceId()
         const [lessonsRes, risksRes, decisionsRes] = await Promise.all([
-          axiosClient.get(`/workspaces/${this.getWorkspaceId()}/goals/${goalId}/lessons`),
-          axiosClient.get(`/workspaces/${this.getWorkspaceId()}/goals/${goalId}/risks`),
-          axiosClient.get(`/workspaces/${this.getWorkspaceId()}/goals/${goalId}/decisions`)
+          axiosClient.get(`/workspaces/${workspaceId}/goals/${goalId}/lessons`),
+          axiosClient.get(`/workspaces/${workspaceId}/goals/${goalId}/risks`),
+          axiosClient.get(`/workspaces/${workspaceId}/goals/${goalId}/decisions`)
         ])
         this.lessons = (lessonsRes.data.data || lessonsRes.data)
         this.risks = (risksRes.data.data || risksRes.data)
@@ -34,21 +51,24 @@ export const useGoalStore = defineStore('goal', {
     },
     async addGoalLesson(goalId, payload) {
       try {
-        const res = await axiosClient.post(`/workspaces/${this.getWorkspaceId()}/goals/${goalId}/lessons`, payload)
+        const workspaceId = await this.ensureWorkspaceId()
+        const res = await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/lessons`, payload)
         this.lessons.unshift(res.data.data || res.data)
         return res.data
       } catch (err) { throw err }
     },
     async addGoalRisk(goalId, payload) {
       try {
-        const res = await axiosClient.post(`/workspaces/${this.getWorkspaceId()}/goals/${goalId}/risks`, payload)
+        const workspaceId = await this.ensureWorkspaceId()
+        const res = await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/risks`, payload)
         this.risks.unshift(res.data.data || res.data)
         return res.data
       } catch (err) { throw err }
     },
     async addGoalDecision(goalId, payload) {
       try {
-        const res = await axiosClient.post(`/workspaces/${this.getWorkspaceId()}/goals/${goalId}/decisions`, payload)
+        const workspaceId = await this.ensureWorkspaceId()
+        const res = await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/decisions`, payload)
         this.decisions.unshift(res.data.data || res.data)
         return res.data
       } catch (err) { throw err }
@@ -56,11 +76,7 @@ export const useGoalStore = defineStore('goal', {
 
     getWorkspaceId() {
       const siteStore = useSiteStore()
-      let id = siteStore.recentSite?.id || localStorage.getItem('recent_site_id')
-      if (!id || id === '1' || id.length < 36) {
-        id = '00000000-0000-0000-0000-000000000000'
-      }
-      return id
+      return resolveWorkspaceIdFromState({ siteStore })
     },
     async fetchGoals() {
       this.isLoading = true
@@ -68,8 +84,7 @@ export const useGoalStore = defineStore('goal', {
       this.isEmpty = false
       this.isSuccess = false
       try {
-        const workspaceId = this.getWorkspaceId()
-        if (!workspaceId) throw new Error('No workspace selected')
+        const workspaceId = await this.ensureWorkspaceId()
         
         const response = await axiosClient.get(`/workspaces/${workspaceId}/goals`)
         this.goals = response.data?.data || response.data || []
@@ -85,8 +100,7 @@ export const useGoalStore = defineStore('goal', {
     async createGoal(goalData) {
       this.isLoading = true
       try {
-        const workspaceId = this.getWorkspaceId()
-        if (!workspaceId) throw new Error('No workspace selected')
+        const workspaceId = await this.ensureWorkspaceId()
         
         const response = await axiosClient.post(`/workspaces/${workspaceId}/goals`, goalData)
         const newGoal = response.data?.data || response.data
@@ -108,8 +122,7 @@ export const useGoalStore = defineStore('goal', {
       this.isLoading = true
       this.error = null
       try {
-        const workspaceId = this.getWorkspaceId()
-        if (!workspaceId) throw new Error('No workspace selected')
+        const workspaceId = await this.ensureWorkspaceId()
         
         const response = await axiosClient.get(`/workspaces/${workspaceId}/goals/${id}`)
         const goal = response.data?.data || response.data
@@ -130,7 +143,7 @@ export const useGoalStore = defineStore('goal', {
       }
     },
     async addUpdate(goalId, data) {
-      const workspaceId = this.getWorkspaceId()
+      const workspaceId = await this.ensureWorkspaceId()
       const response = await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/updates`, data)
       const update = response.data?.data || response.data
       this.updates.unshift(update)
@@ -147,24 +160,24 @@ export const useGoalStore = defineStore('goal', {
       }
     },
     async addLesson(goalId, data) {
-      const workspaceId = this.getWorkspaceId()
+      const workspaceId = await this.ensureWorkspaceId()
       const response = await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/lessons`, data)
       this.lessons.push(response.data?.data || response.data)
     },
     async addRisk(goalId, data) {
-      const workspaceId = this.getWorkspaceId()
+      const workspaceId = await this.ensureWorkspaceId()
       const response = await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/risks`, data)
       this.risks.push(response.data?.data || response.data)
     },
     async addDecision(goalId, data) {
-      const workspaceId = this.getWorkspaceId()
+      const workspaceId = await this.ensureWorkspaceId()
       const response = await axiosClient.post(`/workspaces/${workspaceId}/goals/${goalId}/decisions`, data)
       this.decisions.push(response.data?.data || response.data)
     },
     async toggleArchive() {
       if (!this.currentGoal) return
       try {
-        const workspaceId = this.getWorkspaceId()
+        const workspaceId = await this.ensureWorkspaceId()
         await axiosClient.post(`/workspaces/${workspaceId}/goals/${this.currentGoal.id}/archive`)
         this.currentGoal.isArchived = !this.currentGoal.isArchived
       } catch (err) {
@@ -172,7 +185,7 @@ export const useGoalStore = defineStore('goal', {
       }
     },
     async toggleFollow(goalId) {
-      const workspaceId = this.getWorkspaceId()
+      const workspaceId = await this.ensureWorkspaceId()
       const response = await axiosClient.post(`/workspaces/${workspaceId}/followers/toggle`, null, {
         params: { entityType: 'Goal', entityId: goalId }
       })
@@ -186,7 +199,7 @@ export const useGoalStore = defineStore('goal', {
     async toggleStar() {
       if (!this.currentGoal) return
       try {
-        const workspaceId = this.getWorkspaceId()
+        const workspaceId = await this.ensureWorkspaceId()
         const response = await axiosClient.post(`/workspaces/${workspaceId}/starreditems/toggle`, null, { 
           params: { itemId: this.currentGoal.id, itemType: 'Goal' }
         })

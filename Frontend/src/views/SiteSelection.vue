@@ -13,7 +13,7 @@
         </div>
       </div>
       <div class="header-right">
-        <button class="pill-btn blue" @click="router.push('/')">{{ t('siteSelection.goToSprintA') }}</button>
+        <button type="button" class="pill-btn blue" @click="router.push('/')">{{ t('siteSelection.goToSprintA') }}</button>
         <div class="user-profile" v-if="userName">
           <div class="user-avatar-circle">{{ userInitials }}</div>
           <span class="user-name-text">{{ userName }}</span>
@@ -76,7 +76,13 @@
             </div>
           </div>
           <div class="site-card-right">
-            <button class="pill-btn orange" @click="goToSpaceProject(recentSite.id)">{{ t('siteSelection.goToSpace') }}</button>
+            <router-link
+              class="pill-btn orange site-entry-link"
+              to="/dashboard"
+              :data-site-id="getSiteId(recentSite)"
+              @click.stop.prevent="goToSpaceProject(getSiteId(recentSite))"
+              @keydown.enter.stop.prevent="goToSpaceProject(getSiteId(recentSite))"
+            >{{ t('siteSelection.goToSpace') }}</router-link>
           </div>
         </div>
 
@@ -188,7 +194,13 @@
                 <div class="site-list-item-url">{{ site.name }}</div>
               </div>
               <div class="site-list-item-right">
-                <button class="pill-btn blue small" @click="goToSpaceProject(site.id)">{{ t('siteSelection.goToSprintA') }}</button>
+                <router-link
+                  class="pill-btn blue small site-entry-link"
+                  to="/dashboard"
+                  :data-site-id="getSiteId(site)"
+                  @click.stop.prevent="goToSpaceProject(getSiteId(site))"
+                  @keydown.enter.stop.prevent="goToSpaceProject(getSiteId(site))"
+                >{{ t('siteSelection.goToSprintA') }}</router-link>
               </div>
             </div>
           </div>
@@ -228,6 +240,8 @@ const siteAvatarText = computed(() => {
   if (!recentSite.value?.name) return '?'
   return recentSite.value.name.substring(0, 2).toUpperCase()
 })
+
+const getSiteId = (site) => site?.id || site?.Id || null
 
 onMounted(async () => {
   await siteStore.fetchSites()
@@ -303,10 +317,20 @@ const submitCreateSite = async () => {
   }
 }
 
-const goToSpaceProject = (siteId) => {
+const setRecentSiteForNavigation = (site) => {
+  const siteId = getSiteId(site)
   if (!siteId) return
-  siteStore.setRecentSite(siteStore.sites.find(s => s.id === siteId) || { id: siteId })
-  router.push('/dashboard')
+  const matchedSite = siteStore.sites.find(s => getSiteId(s) === siteId)
+  siteStore.setRecentSite(matchedSite || { ...site, id: siteId })
+}
+
+const goToSpaceProject = async (siteId) => {
+  if (!siteId) return
+  const site = siteStore.sites.find(s => getSiteId(s) === siteId) || { id: siteId }
+  siteStore.setRecentSite(site)
+  isJoinModalOpen.value = false
+  isCreateModalOpen.value = false
+  await router.push('/dashboard')
 }
 </script>
 
@@ -387,6 +411,13 @@ const goToSpaceProject = (siteId) => {
   cursor: pointer;
   transition: background-color 0.2s;
   font-family: inherit;
+}
+
+.site-entry-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
 }
 
 .pill-btn.blue {

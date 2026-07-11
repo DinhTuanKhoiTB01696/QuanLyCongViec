@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="project-detail-wrapper" v-if="project">
     <!-- Module Header (matching the list view) -->
     <header class="module-header">
@@ -33,10 +33,10 @@
             <div class="target-date-badge">
               <i class="fa-regular fa-calendar"></i> {{ project.startDate ? new Date(project.startDate).toLocaleDateString('vi-VN') : 'Chưa có ngày' }}
             </div>
-            <button class="secondary-btn" @click="toggleFollow">
-              {{ project.isFollowing ? 'Đang theo dõi' : 'Theo dõi' }}
+            <button type="button" class="secondary-btn" @click.stop.prevent="toggleFollow" @keydown.enter.stop.prevent="toggleFollow">
+              {{ project.isFollowing ? 'Bỏ theo dõi' : 'Theo dõi' }}
             </button>
-            <button class="secondary-btn" @click="isShareModalOpen = true">
+            <button type="button" class="secondary-btn" @click.stop.prevent="openShareModal" @keydown.enter.stop.prevent="openShareModal">
               <i class="fa-solid fa-share-nodes"></i> Chia sẻ
             </button>
             <button class="icon-btn-header"><i class="fa-solid fa-link"></i></button>
@@ -528,9 +528,12 @@
 
     <!-- Share Modal -->
     <ShareModal 
-      :isOpen="isShareModalOpen" 
-      :projectId="route.params.id" 
-      :projectName="project.title" 
+      :is-open="isShareModalOpen" 
+      :entityId="route.params.id" 
+      entityType="Project"
+      :entityName="project.title"
+      :workspaceId="project.workspaceId"
+      :owner="projectOwner"
       @close="isShareModalOpen = false" 
     />
   </div>
@@ -827,6 +830,10 @@ const saveProjectDecision = async () => {
 
 const toggleFollow = async () => {
   if (project.value?.id) await projectStore.toggleFollow(project.value.id)
+}
+
+const openShareModal = () => {
+  isShareModalOpen.value = true
 }
 
 const getStatusClass = (status) => {

@@ -207,6 +207,52 @@ namespace TaskManagement.API.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { statusCode = 200, message = "Created.", count = targetUserIds.Count });
         }
+
+        [HttpPost("events/task-reminded")]
+        public async Task<IActionResult> CreateTaskRemindedNotification([FromBody] TaskRemindedNotificationRequest request)
+        {
+            var actorId = GetUserId();
+            if (actorId == null) return Unauthorized();
+            if (request.AssigneeUserId == Guid.Empty) return BadRequest("AssigneeUserId is required.");
+
+            if (request.AssigneeUserId == actorId.Value) 
+            {
+                return Ok(new { skipped = true, message = "Không gửi nhắc việc cho chính bạn." });
+            }
+
+            var task = await _context.WorkTasks.FirstOrDefaultAsync(t => t.Id == request.TaskId && t.ProjectId == request.ProjectId);
+            if (task == null) return NotFound("Task not found in the specified project.");
+
+            var isAssigned = await _context.TaskAssignments.AnyAsync(ta => ta.WorkTaskId == request.TaskId && ta.UserId == request.AssigneeUserId && ta.Status);
+            if (!isAssigned)
+            {
+                return BadRequest("Assignee is not assigned to this task or is inactive.");
+            }
+
+            var notificationId = Guid.NewGuid();
+            _context.Notifications.Add(new TaskManagement.Domain.Entities.Notification
+            {
+                Id = notificationId,
+                UserId = request.AssigneeUserId,
+                Title = request.ProjectName ?? "Nhắc việc",
+                Content = $"{request.ActorName ?? "Quản lý"} đã nhắc bạn xử lý công việc: {request.TaskTitle ?? task.Title}",
+                NotificationType = "TASK_REMINDED",
+                RelatedTaskId = request.TaskId,
+                RelatedProjectId = request.ProjectId,
+                TriggeredByUserId = actorId.Value,
+                LinkUrl = $"/space/{request.ProjectId}?task={request.TaskId}",
+                CreatedAt = DateTime.UtcNow,
+                IsRead = false
+            });
+
+            await _context.SaveChangesAsync();
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Đã gửi nhắc việc.",
+                data = new { notificationId }
+            });
+        }
     }
 
     public class TaskAssignedNotificationRequest
@@ -233,6 +279,16 @@ namespace TaskManagement.API.Controllers
     {
         public Guid ProjectId { get; set; }
         public Guid TaskId { get; set; }
+        public string? ProjectName { get; set; }
+        public string? TaskTitle { get; set; }
+        public string? ActorName { get; set; }
+    }
+
+    public class TaskRemindedNotificationRequest
+    {
+        public Guid ProjectId { get; set; }
+        public Guid TaskId { get; set; }
+        public Guid AssigneeUserId { get; set; }
         public string? ProjectName { get; set; }
         public string? TaskTitle { get; set; }
         public string? ActorName { get; set; }

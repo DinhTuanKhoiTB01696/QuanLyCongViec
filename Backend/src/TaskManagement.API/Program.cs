@@ -186,6 +186,15 @@ END;
 
             try
             {
+                // Legacy databases may contain StarredItems.ItemType values that are
+                // outside the supported domain before the check constraint migration.
+                await context.Database.ExecuteSqlRawAsync(@"
+IF OBJECT_ID('dbo.StarredItems', 'U') IS NOT NULL
+BEGIN
+    DELETE FROM dbo.StarredItems
+    WHERE ItemType NOT IN ('Goal', 'Project', 'Team', 'User');
+END;");
+
                 await context.Database.MigrateAsync();
             }
             catch (Exception migrationEx)
@@ -324,8 +333,19 @@ BEGIN
         CreatedAt datetime2 NOT NULL,
         CONSTRAINT PK_StarredItems PRIMARY KEY (Id),
         CONSTRAINT FK_StarredItems_Users_UserId FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE CASCADE,
-        CONSTRAINT FK_StarredItems_Workspaces_WorkspaceId FOREIGN KEY (WorkspaceId) REFERENCES dbo.Workspaces(Id)
+        CONSTRAINT FK_StarredItems_Workspaces_WorkspaceId FOREIGN KEY (WorkspaceId) REFERENCES dbo.Workspaces(Id),
+        CONSTRAINT CK_StarredItems_ItemType CHECK (ItemType IN ('Goal', 'Project', 'Team', 'User'))
     );
+END;
+IF OBJECT_ID('dbo.StarredItems', 'U') IS NOT NULL
+   AND COL_LENGTH('dbo.StarredItems', 'ItemType') = -1
+BEGIN
+    ALTER TABLE dbo.StarredItems ALTER COLUMN ItemType nvarchar(64) NOT NULL;
+END;
+IF OBJECT_ID('dbo.StarredItems', 'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_StarredItems_ItemType' AND parent_object_id = OBJECT_ID('dbo.StarredItems'))
+BEGIN
+    ALTER TABLE dbo.StarredItems ADD CONSTRAINT CK_StarredItems_ItemType CHECK (ItemType IN ('Goal', 'Project', 'Team', 'User'));
 END;
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_StarredItems_UserId_WorkspaceId_ItemType_ItemId' AND object_id = OBJECT_ID('dbo.StarredItems'))
 BEGIN

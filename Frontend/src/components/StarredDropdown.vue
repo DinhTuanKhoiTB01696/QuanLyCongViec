@@ -9,7 +9,7 @@
       <div v-if="starredProjects.length === 0 && starredTasks.length === 0" class="jd-empty-starred">
         <img src="https://jira-frontend-bifrost.prod-east.frontend.public.atl-paas.net/assets/starred-empty.svg" alt="Empty Starred" onerror="this.style.display='none'" />
         <h4>You haven't starred anything yet</h4>
-        <p>Mark items that are important to you with a star to quickly access them here.</p>
+        <p>Đánh dấu sao các mục quan trọng để truy cập nhanh tại đây.</p>
       </div>
 
       <div v-else class="jd-list">

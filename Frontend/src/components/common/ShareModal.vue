@@ -144,6 +144,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import axiosClient from '@/api/axiosClient'
 import { useSiteStore } from '@/store/useSiteStore'
 import { usePeopleStore } from '@/store/usePeopleStore'
+import { ensureWorkspaceIdFromState, resolveWorkspaceIdFromState } from '@/utils/contextIds'
 
 import UserAvatar from '@/components/common/UserAvatar.vue'
 
@@ -191,8 +192,13 @@ watch(() => props.isOpen, (newVal) => {
 })
 
 const fetchFollowers = async () => {
+  const workspaceId = await ensureWorkspaceId()
+  if (!workspaceId) {
+    followers.value = []
+    return
+  }
   try {
-    const res = await axiosClient.get(`/workspaces/${getWorkspaceId()}/followers/entity`, {
+    const res = await axiosClient.get(`/workspaces/${workspaceId}/followers/entity`, {
       params: {
         entityType: props.entityType,
         entityId: props.entityId
@@ -205,8 +211,17 @@ const fetchFollowers = async () => {
 }
 
 const getWorkspaceId = () => {
-  const id = props.workspaceId || siteStore.recentSite?.id || localStorage.getItem('recent_site_id')
-  return id && id.length >= 36 ? id : '00000000-0000-0000-0000-000000000000'
+  return resolveWorkspaceIdFromState({
+    explicitId: props.workspaceId,
+    siteStore
+  })
+}
+
+const ensureWorkspaceId = () => {
+  return ensureWorkspaceIdFromState({
+    explicitId: props.workspaceId,
+    siteStore
+  })
 }
 
 const normalizeFollowers = (items) => {
@@ -264,8 +279,11 @@ const handleShare = async () => {
   
   isSubmitting.value = true
   try {
+    const workspaceId = await ensureWorkspaceId()
+    if (!workspaceId) throw new Error('No workspace selected')
+
     if (addAsFollower.value) {
-      const res = await axiosClient.post(`/workspaces/${getWorkspaceId()}/followers/entity`, {
+      const res = await axiosClient.post(`/workspaces/${workspaceId}/followers/entity`, {
         userIds: selectedUsers.value.map(user => user.id)
       }, {
         params: {
