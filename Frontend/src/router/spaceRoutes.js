@@ -26,6 +26,7 @@ export default [
       {
         path: 'space/:id',
         component: () => import('../components/layout/ProjectLayoutWrapper.vue'),
+        meta: { isSpaceContext: true },
         children: [
           {
             path: '',
@@ -91,6 +92,11 @@ export default [
             name: 'ProjectSettings',
             component: () => import('../views/ProjectSettings.vue'),
             meta: { requiresProjectSettingsAccess: true }
+          },
+          {
+            path: 'ai-intake',
+            name: 'AiFileIntake',
+            component: () => import('../views/AiFileIntake.vue')
           }
         ]
       }

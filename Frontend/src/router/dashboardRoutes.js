@@ -2,6 +2,7 @@ export default [
   {
     path: '/',
     component: () => import('../components/layout/NexusLayoutWrapper.vue'),
+    meta: { isSpaceContext: true },
     children: [
       {
         path: 'dashboard',

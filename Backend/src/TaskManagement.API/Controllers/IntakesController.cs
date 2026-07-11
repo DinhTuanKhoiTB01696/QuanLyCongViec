@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Security.Claims;
+using System.Text.Json;
 using TaskManagement.Infrastructure.Data;
 using TaskManagement.Domain.Entities;
 
@@ -32,6 +34,8 @@ namespace TaskManagement.API.Controllers
                     i.Description,
                     i.Source,
                     i.Status,
+                    i.Priority,
+                    i.DesiredDueDate,
                     SubmittedByName = i.SubmittedBy != null ? i.SubmittedBy.FullName : null,
                     ReviewedByName = i.ReviewedBy != null ? i.ReviewedBy.FullName : null,
                     i.CreatedIssueId,
@@ -62,6 +66,8 @@ namespace TaskManagement.API.Controllers
                 Description = request.Description,
                 Source = request.Source ?? "MANUAL",
                 Status = "Pending",
+                Priority = request.Priority == 0 ? 3 : request.Priority,
+                DesiredDueDate = request.DesiredDueDate,
                 SubmittedById = parsedUserId,
                 CreatedAt = DateTime.UtcNow
             };
@@ -120,7 +126,8 @@ namespace TaskManagement.API.Controllers
                     TaskStatusId = todoStatus?.Id ?? Guid.Empty,
                     TaskTypeId = defaultType?.Id ?? Guid.Empty,
                     ReporterId = intake.SubmittedById ?? parsedUserId,
-                    Priority = 1,
+                    Priority = intake.Priority,
+                    DueDate = intake.DesiredDueDate,
                     SortOrder = maxSort + 65536,
                     SequenceId = sequenceId,
                     CreatedAt = DateTime.UtcNow,
@@ -142,6 +149,8 @@ namespace TaskManagement.API.Controllers
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? Source { get; set; }
+        public int Priority { get; set; } = 3;
+        public DateTime? DesiredDueDate { get; set; }
     }
 
     public class ReviewIntakeRequest

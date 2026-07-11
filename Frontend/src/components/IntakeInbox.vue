@@ -1,17 +1,29 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
+import { ElMessage } from 'element-plus'
 
 const props = defineProps({
   projectId: { type: String, required: true }
 })
 
 const emit = defineEmits(['task-created'])
+const router = useRouter()
 
 const intakes = ref([])
 const loading = ref(false)
 const showCreate = ref(false)
-const newIntake = ref({ title: '', description: '', source: 'MANUAL' })
+const showDetail = ref(false)
+const selectedIntake = ref(null)
+
+const newIntake = ref({
+  title: '',
+  description: '',
+  priority: 3,
+  dueDate: '',
+  source: 'FORM'
+})
 
 onMounted(() => loadIntakes())
 
@@ -30,38 +42,56 @@ async function loadIntakes() {
 
 async function createIntake() {
   if (!newIntake.value.title.trim()) return
+  
+  const payload = {
+    title: newIntake.value.title,
+    description: newIntake.value.description,
+    priority: newIntake.value.priority,
+    desiredDueDate: newIntake.value.dueDate || null,
+    source: 'FORM'
+  }
+
   try {
-    await axiosClient.post(`/projects/${props.projectId}/intakes`, newIntake.value)
-    newIntake.value = { title: '', description: '', source: 'MANUAL' }
+    await axiosClient.post(`/projects/${props.projectId}/intakes`, payload)
+    newIntake.value = { title: '', description: '', priority: 3, dueDate: '', source: 'FORM' }
     showCreate.value = false
+    ElMessage.success('Gửi yêu cầu thành công!')
     loadIntakes()
   } catch (e) {
-    alert(e.response?.data?.message || 'Lỗi khi tạo yêu cầu')
+    ElMessage.error(e.response?.data?.message || 'Không gửi được yêu cầu. Vui lòng thử lại.')
   }
 }
 
 async function updateStatus(id, status) {
   try {
     await axiosClient.put(`/projects/${props.projectId}/intakes/${id}/review`, { status })
+    ElMessage.success(status === 'Accepted' ? 'Đã duyệt yêu cầu và tạo công việc.' : 'Đã từ chối yêu cầu.')
     loadIntakes()
-    // When accepted, backend auto-creates a WorkTask. Notify parent to refresh task lists.
     if (status === 'Accepted') {
       emit('task-created')
     }
   } catch (e) {
-    alert(e.response?.data?.message || 'Lỗi khi cập nhật trạng thái')
+    ElMessage.error(e.response?.data?.message || 'Không thể cập nhật trạng thái yêu cầu.')
   }
+}
+
+function getPriorityInfo(priority) {
+  const map = {
+    1: { label: 'Khẩn cấp', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)' },
+    2: { label: 'Cao', color: '#f97316', bg: 'rgba(249, 115, 22, 0.08)' },
+    3: { label: 'Trung bình', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)' },
+    4: { label: 'Thấp', color: '#64748b', bg: 'rgba(100, 116, 139, 0.08)' }
+  }
+  return map[priority] || map[3]
 }
 
 function getStatusInfo(status) {
   const map = {
-    'Pending': { color: '#f59e0b', label: 'Đang chờ', icon: '⏳' },
-    'Accepted': { color: '#22c55e', label: 'Đã duyệt', icon: '✅' },
-    'Declined': { color: '#ef4444', label: 'Từ chối', icon: '❌' },
-    'Duplicate': { color: '#6b7280', label: 'Trùng lặp', icon: '🔄' },
-    'Snoozed': { color: '#8b5cf6', label: 'Tạm hoãn', icon: '💤' }
+    'Pending': { color: '#f59e0b', label: 'Chờ duyệt', icon: 'fa-regular fa-clock', bg: 'rgba(245, 158, 11, 0.08)' },
+    'Accepted': { color: '#10b981', label: 'Đã duyệt & Tạo việc', icon: 'fa-regular fa-circle-check', bg: 'rgba(16, 185, 129, 0.08)' },
+    'Declined': { color: '#ef4444', label: 'Từ chối', icon: 'fa-regular fa-circle-xmark', bg: 'rgba(239, 68, 68, 0.08)' }
   }
-  return map[status] || map['Pending']
+  return map[status] || { color: '#64748b', label: status, icon: 'fa-regular fa-question', bg: '#f1f5f9' }
 }
 
 function formatDate(d) {
@@ -71,163 +101,442 @@ function formatDate(d) {
     hour: '2-digit', minute: '2-digit'
   })
 }
+
+function formatDateOnly(d) {
+  if (!d) return 'Không có'
+  return new Date(d).toLocaleDateString('vi-VN', {
+    day: '2-digit', month: '2-digit', year: 'numeric'
+  })
+}
+
+function viewDetail(item) {
+  selectedIntake.value = item
+  showDetail.value = true
+}
+
+function navigateToTask(taskId) {
+  if (!taskId) return
+  router.push({
+    name: 'SpaceSummary',
+    params: { id: props.projectId },
+    query: { task: taskId }
+  })
+}
 </script>
 
 <template>
-  <div class="intake-inbox">
+  <div class="intake-portal">
+    <!-- Header -->
     <div class="intake-header">
-      <h3>📥 Hộp thư đến (Intake)</h3>
-      <el-button type="primary" size="small" @click="showCreate = true">+ Thêm yêu cầu</el-button>
+      <div class="header-titles">
+        <p class="intake-purpose">Yêu cầu là hàng chờ để người có quyền duyệt và chuyển thành công việc. Thành viên vẫn tạo task trực tiếp nếu có quyền.</p>
+        <h3>📥 Hộp thư yêu cầu (Intake Inbox)</h3>
+        <p class="subtitle text-xs text-[var(--color-text-muted)] mt-1">Duyệt các yêu cầu công việc được gửi từ nhân viên và chuyển thành công việc chính thức</p>
+      </div>
+      <button class="nexus-btn-primary" @click="showCreate = true">
+        <i class="fa-solid fa-plus mr-1"></i> Gửi yêu cầu mới
+      </button>
     </div>
 
-    <div v-loading="loading" class="intake-list">
-      <div v-for="item in intakes" :key="item.id" class="intake-item">
-        <div class="intake-left">
-          <span class="intake-icon">{{ getStatusInfo(item.status).icon }}</span>
-          <div class="intake-info">
-            <span class="intake-title">{{ item.title }}</span>
-            <span class="intake-meta">
-              {{ item.source }} · {{ formatDate(item.createdAt) }}
-              <template v-if="item.submittedByName"> · bởi {{ item.submittedByName }}</template>
-            </span>
-          </div>
+    <!-- Inbox List -->
+    <div v-loading="loading" class="intake-content-area">
+      
+      <!-- Empty State -->
+      <div v-if="!loading && intakes.length === 0" class="intake-empty-state">
+        <div class="empty-icon-wrapper">
+          <i class="fa-regular fa-envelope-open text-4xl text-[var(--color-text-muted)]"></i>
         </div>
-        <div class="intake-right">
-          <span class="intake-status" :style="{ color: getStatusInfo(item.status).color }">
-            {{ getStatusInfo(item.status).label }}
-          </span>
-          <div v-if="item.status === 'Pending'" class="intake-actions">
-            <el-button size="small" type="success" plain @click="updateStatus(item.id, 'Accepted')">Duyệt</el-button>
-            <el-button size="small" type="danger" plain @click="updateStatus(item.id, 'Declined')">Từ chối</el-button>
-          </div>
-        </div>
+        <h4 class="font-bold text-sm text-[var(--color-text-primary)] mt-4">Chưa có yêu cầu nào</h4>
+        <p class="text-xs text-[var(--color-text-muted)] mt-1 mb-4 max-w-sm">Hãy tạo form yêu cầu để nhân viên gửi công việc vào SprintA.</p>
+        <button class="nexus-btn-primary" @click="showCreate = true">
+          <i class="fa-solid fa-paper-plane mr-1"></i> Gửi yêu cầu mới
+        </button>
       </div>
 
-      <div v-if="!loading && intakes.length === 0" class="intake-empty">
-        <span class="empty-icon">📭</span>
-        <p>Hộp thư trống. Chưa có yêu cầu nào.</p>
+      <!-- Table Listing -->
+      <div v-else class="table-container">
+        <table class="intake-table">
+          <thead>
+            <tr>
+              <th>Tiêu đề yêu cầu</th>
+              <th>Người gửi</th>
+              <th>Mức độ ưu tiên</th>
+              <th>Hạn mong muốn</th>
+              <th>Trạng thái</th>
+              <th>Ngày tạo</th>
+              <th class="actions-header">Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in intakes" :key="item.id" class="table-row">
+              <td class="title-cell font-bold" @click="viewDetail(item)">
+                {{ item.title }}
+                <span class="source-tag text-[10px] ml-2">{{ item.source }}</span>
+              </td>
+              <td>{{ item.submittedByName || 'Khách vãng lai' }}</td>
+              <td>
+                <span 
+                  class="priority-badge"
+                  :style="{ 
+                    color: getPriorityInfo(item.priority).color, 
+                    backgroundColor: getPriorityInfo(item.priority).bg 
+                  }"
+                >
+                  {{ getPriorityInfo(item.priority).label }}
+                </span>
+              </td>
+              <td>{{ formatDateOnly(item.desiredDueDate) }}</td>
+              <td>
+                <span class="status-badge" :style="{ color: getStatusInfo(item.status).color, backgroundColor: getStatusInfo(item.status).bg }">
+                  <i :class="getStatusInfo(item.status).icon" class="mr-1"></i>
+                  {{ getStatusInfo(item.status).label }}
+                </span>
+              </td>
+              <td class="text-xs text-[var(--color-text-muted)]">{{ formatDate(item.createdAt) }}</td>
+              <td class="actions-cell">
+                <el-button size="small" link type="primary" @click="viewDetail(item)">Chi tiết</el-button>
+                
+                <template v-if="item.status === 'Pending'">
+                  <el-button size="small" type="success" plain @click="updateStatus(item.id, 'Accepted')">Duyệt</el-button>
+                  <el-button size="small" type="danger" plain @click="updateStatus(item.id, 'Declined')">Từ chối</el-button>
+                </template>
+
+                <template v-if="item.status === 'Accepted' && item.createdIssueId">
+                  <el-button size="small" type="primary" plain @click="navigateToTask(item.createdIssueId)">
+                    <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Xem việc
+                  </el-button>
+                </template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+
     </div>
 
-    <el-dialog v-model="showCreate" title="Gửi yêu cầu mới" width="480px">
+    <!-- Dialog: Gửi yêu cầu mới -->
+    <el-dialog v-model="showCreate" title="Gửi yêu cầu công việc mới" width="500px" destroy-on-close>
       <el-form label-position="top">
-        <el-form-item label="Tiêu đề">
-          <el-input v-model="newIntake.title" placeholder="VD: Lỗi khi đăng nhập trên mobile" />
+        <el-form-item label="Tiêu đề yêu cầu" required>
+          <el-input v-model="newIntake.title" placeholder="Nhập tiêu đề ngắn gọn..." />
         </el-form-item>
+        
         <el-form-item label="Mô tả chi tiết">
-          <el-input v-model="newIntake.description" type="textarea" :rows="4" placeholder="Chi tiết vấn đề..." />
+          <el-input v-model="newIntake.description" type="textarea" :rows="4" placeholder="Nhập chi tiết yêu cầu, lỗi gặp phải hoặc mục tiêu công việc..." />
         </el-form-item>
-        <el-form-item label="Nguồn">
-          <el-select v-model="newIntake.source">
-            <el-option value="MANUAL" label="Nhập thủ công" />
-            <el-option value="EMAIL" label="Email" />
-            <el-option value="API" label="API" />
-            <el-option value="FORM" label="Biểu mẫu" />
-          </el-select>
-        </el-form-item>
+
+        <div class="form-grid">
+          <el-form-item label="Mức độ ưu tiên">
+            <el-select v-model="newIntake.priority" class="w-full" style="width: 100%;">
+              <el-option :value="1" label="🚨 Khẩn cấp" />
+              <el-option :value="2" label="🟠 Cao" />
+              <el-option :value="3" label="🔵 Trung bình" />
+              <el-option :value="4" label="⚪ Thấp" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="Hạn mong muốn">
+            <el-date-picker 
+              v-model="newIntake.dueDate" 
+              type="date" 
+              placeholder="Chọn ngày hoàn thành mong muốn" 
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
+              class="w-full" 
+              style="width: 100%;"
+            />
+          </el-form-item>
+        </div>
       </el-form>
       <template #footer>
-        <el-button @click="showCreate = false">Hủy</el-button>
-        <el-button type="primary" @click="createIntake" :disabled="!newIntake.title.trim()">Gửi</el-button>
+        <div class="dialog-footer">
+          <el-button @click="showCreate = false">Hủy bỏ</el-button>
+          <el-button type="primary" @click="createIntake" :disabled="!newIntake.title.trim()">Gửi yêu cầu</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- Dialog: Chi tiết yêu cầu -->
+    <el-dialog v-model="showDetail" title="Chi tiết yêu cầu công việc" width="540px">
+      <div v-if="selectedIntake" class="intake-detail-modal">
+        <div class="detail-row">
+          <span class="detail-label">Tiêu đề:</span>
+          <span class="detail-val font-bold">{{ selectedIntake.title }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Trạng thái:</span>
+          <span class="status-badge" :style="{ color: getStatusInfo(selectedIntake.status).color, backgroundColor: getStatusInfo(selectedIntake.status).bg }">
+            <i :class="getStatusInfo(selectedIntake.status).icon" class="mr-1"></i>
+            {{ getStatusInfo(selectedIntake.status).label }}
+          </span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Mức độ ưu tiên:</span>
+          <span 
+            class="priority-badge" 
+            :style="{ 
+              color: getPriorityInfo(selectedIntake.priority).color, 
+              backgroundColor: getPriorityInfo(selectedIntake.priority).bg 
+            }"
+          >
+            {{ getPriorityInfo(selectedIntake.priority).label }}
+          </span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Hạn mong muốn:</span>
+          <span class="detail-val">{{ formatDateOnly(selectedIntake.desiredDueDate) }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Người gửi:</span>
+          <span class="detail-val">{{ selectedIntake.submittedByName || 'Khách vãng lai' }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Nguồn:</span>
+          <span class="detail-val">{{ selectedIntake.source }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Ngày gửi:</span>
+          <span class="detail-val">{{ formatDate(selectedIntake.createdAt) }}</span>
+        </div>
+        
+        <div class="detail-row block-row">
+          <span class="detail-label">Mô tả chi tiết:</span>
+          <div class="detail-desc-box">
+            {{ selectedIntake.description || 'Không có mô tả chi tiết.' }}
+          </div>
+        </div>
+        
+        <div v-if="selectedIntake.createdIssueId" class="detail-row link-row">
+          <span class="detail-label">Công việc đã tạo:</span>
+          <span class="task-link" @click="navigateToTask(selectedIntake.createdIssueId)">
+            <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Mở công việc trên Space Board
+          </span>
+        </div>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="showDetail = false">Đóng lại</el-button>
+          <template v-if="selectedIntake && selectedIntake.status === 'Pending'">
+            <el-button type="danger" plain @click="updateStatus(selectedIntake.id, 'Declined'); showDetail = false">Từ chối</el-button>
+            <el-button type="success" @click="updateStatus(selectedIntake.id, 'Accepted'); showDetail = false">Duyệt & Tạo việc</el-button>
+          </template>
+        </div>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <style scoped>
-.intake-inbox {
-  padding: 4px 0;
+.intake-portal {
+  width: 100%;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--color-text-primary);
 }
 
 .intake-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .intake-header h3 {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 800;
   color: var(--color-text-primary);
+  margin: 0;
 }
 
-.intake-list {
+.intake-purpose {
+  max-width: 720px;
+  margin: 6px 0 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.intake-content-area {
+  width: 100%;
+}
+
+/* Empty State */
+.intake-empty-state {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 24px;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
-.intake-item {
+.empty-icon-wrapper {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.08);
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 14px 16px;
-  border-radius: 10px;
+  justify-content: center;
+}
+
+/* Table Listing */
+.table-container {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  transition: all 0.15s;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
 }
 
-.intake-item:hover {
-  background: var(--color-surface-hover);
-  border-color: var(--el-color-primary);
+.intake-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
 }
 
-.intake-left {
-  display: flex;
+.intake-table th,
+.intake-table td {
+  padding: 14px 18px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.intake-table th {
+  background: rgba(148, 163, 184, 0.04);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.table-row {
+  transition: background-color 0.2s;
+}
+
+.table-row:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.title-cell {
+  cursor: pointer;
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.title-cell:hover {
+  color: var(--color-accent);
+}
+
+.source-tag {
+  background: rgba(14, 165, 233, 0.08);
+  color: var(--color-accent);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.priority-badge,
+.status-badge {
+  display: inline-flex;
   align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.actions-header {
+  text-align: right;
+}
+
+.actions-cell {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  align-items: center;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+/* Detail Modal */
+.intake-detail-modal {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
-.intake-icon {
-  font-size: 20px;
-}
-
-.intake-info {
+.detail-row {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
 }
 
-.intake-title {
-  font-size: 14px;
-  font-weight: 600;
+.block-row {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  border-bottom: none;
+}
+
+.detail-label {
+  width: 140px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.detail-val {
+  font-size: 13px;
   color: var(--color-text-primary);
 }
 
-.intake-meta {
-  font-size: 11px;
-  color: var(--color-text-muted);
+.detail-desc-box {
+  width: 100%;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.015);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
-.intake-right {
+.link-row {
+  background: rgba(16, 185, 129, 0.04);
+  border: 1px solid rgba(16, 185, 129, 0.12);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 8px;
+}
+
+.task-link {
+  font-size: 13px;
+  font-weight: 700;
+  color: #10b981;
+  cursor: pointer;
+}
+
+.task-link:hover {
+  text-decoration: underline;
+}
+
+.dialog-footer {
   display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.intake-status {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.intake-actions {
-  display: flex;
-  gap: 4px;
-}
-
-.intake-empty {
-  text-align: center;
-  padding: 40px;
-  color: var(--color-text-muted);
-}
-
-.empty-icon {
-  font-size: 32px;
-  display: block;
-  margin-bottom: 8px;
+  justify-content: flex-end;
+  gap: 8px;
 }
 </style>
-
-

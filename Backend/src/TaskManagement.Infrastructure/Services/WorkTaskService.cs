@@ -543,10 +543,14 @@ namespace TaskManagement.Infrastructure.Services
             bool isMovingToDone = newStatus.Name.Contains("Done", StringComparison.OrdinalIgnoreCase);
             if (isMovingToDone)
             {
-                bool hasUnfinishedSubtasks = await _context.WorkTasks
+                var subtaskStatuses = await _context.WorkTasks
                     .Include(wt => wt.TaskStatus)
-                    .AnyAsync(wt => wt.ParentTaskId == taskId && !wt.IsDeleted &&
-                                    !wt.TaskStatus.Name.Contains("Done", StringComparison.OrdinalIgnoreCase));
+                    .Where(wt => wt.ParentTaskId == taskId && !wt.IsDeleted)
+                    .Select(wt => wt.TaskStatus.Name)
+                    .ToListAsync();
+
+                bool hasUnfinishedSubtasks = subtaskStatuses
+                    .Any(statusName => !statusName.Contains("Done", StringComparison.OrdinalIgnoreCase));
                 if (hasUnfinishedSubtasks)
                     throw new InvalidOperationException("Không thể hoàn thành tác vụ cha khi vẫn còn subtask chưa hoàn thành.");
             }

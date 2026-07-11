@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import axiosClient from '@/api/axiosClient'
 import { useSiteStore } from '@/store/useSiteStore'
+import { ensureWorkspaceIdFromState, resolveWorkspaceIdFromState } from '@/utils/contextIds'
 
 export const useStarredStore = defineStore('starredStore', {
   state: () => ({
@@ -11,17 +12,17 @@ export const useStarredStore = defineStore('starredStore', {
   actions: {
     getWorkspaceId() {
       const siteStore = useSiteStore()
-      let id = siteStore.recentSite?.id || localStorage.getItem('recent_site_id')
-      if (!id || id === '1' || id.length < 36) {
-        id = '00000000-0000-0000-0000-000000000000'
-      }
-      return id
+      return resolveWorkspaceIdFromState({ siteStore })
+    },
+    async ensureWorkspaceId() {
+      const siteStore = useSiteStore()
+      return ensureWorkspaceIdFromState({ siteStore })
     },
     async fetchStarredItems() {
       this.loading = true
       this.error = null
       try {
-        const workspaceId = this.getWorkspaceId()
+        const workspaceId = await this.ensureWorkspaceId()
         if (!workspaceId) throw new Error('No workspace selected')
         
         const response = await axiosClient.get(`/workspaces/${workspaceId}/starreditems`)
@@ -35,7 +36,8 @@ export const useStarredStore = defineStore('starredStore', {
     },
     async toggleStar(itemType, itemId) {
       try {
-        const workspaceId = this.getWorkspaceId()
+        const workspaceId = await this.ensureWorkspaceId()
+        if (!workspaceId) throw new Error('No workspace selected')
         await axiosClient.post(`/workspaces/${workspaceId}/starreditems/toggle`, null, {
           params: { itemType, itemId }
         })

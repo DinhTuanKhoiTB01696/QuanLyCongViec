@@ -195,6 +195,8 @@ import { useHomeProjectStore } from '@/store/useHomeProjectStore'
 import { useStarredStore } from '@/store/useStarredStore'
 import { useFollowerStore } from '@/store/useFollowerStore'
 import { useI18nStore } from '@/store/useI18nStore'
+import { useSiteStore } from '@/store/useSiteStore'
+import { isValidEntityId } from '@/utils/contextIds'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import DropdownFilter from '@/components/common/DropdownFilter.vue'
 
@@ -203,6 +205,7 @@ const projectStore = useHomeProjectStore()
 const starredStore = useStarredStore()
 const followerStore = useFollowerStore()
 const i18nStore = useI18nStore()
+const siteStore = useSiteStore()
 
 const currentTab = ref('all')
 const searchQuery = ref('')
@@ -407,6 +410,7 @@ const pageTitle = computed(() => {
 })
 
 onMounted(async () => {
+  await siteStore.fetchSites()
   await projectStore.fetchProjects()
   await starredStore.fetchStarredItems()
   await followerStore.fetchFollowedItems()
@@ -423,7 +427,7 @@ const filteredProjects = computed(() => {
   let list = projectStore.projects || []
   
   const currentWorkspaceId = projectStore.getWorkspaceId()
-  if (currentWorkspaceId && currentWorkspaceId !== '00000000-0000-0000-0000-000000000000') {
+  if (isValidEntityId(currentWorkspaceId)) {
     list = list.filter(p => p.workspaceId === currentWorkspaceId)
   }
 

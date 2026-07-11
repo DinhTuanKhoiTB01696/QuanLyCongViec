@@ -16,9 +16,24 @@
         :description="t('Manage tasks, bugs, and features')"
       >
         <template #actions>
-          <button class="nexus-btn-primary" @click="openCreateTask('TO DO')">
-            <i class="fa-solid fa-plus"></i> {{ t('Add work item') }}
-          </button>
+          <div class="toolbar-actions-wrapper">
+            <el-button type="info" plain size="default" @click="showDataImportModal = true" :disabled="!canCurrentUserCreateTask" :title="!canCurrentUserCreateTask ? 'Bạn không có quyền nạp công việc' : ''">
+              <i class="fa-solid fa-file-import mr-1"></i> Nạp dữ liệu công việc
+            </el-button>
+            <el-button type="info" plain size="default" @click="handleExportTasks">
+              <i class="fa-solid fa-file-export mr-1"></i> Xuất Excel/CSV
+            </el-button>
+            <button class="nexus-btn-primary" @click="openCreateTask('TO DO')" :disabled="!canCurrentUserCreateTask" :title="!canCurrentUserCreateTask ? 'Bạn không có quyền tạo công việc' : ''">
+              <i class="fa-solid fa-plus"></i> {{ t('Add work item') }}
+            </button>
+          </div>
+          <TaskDataImportModal
+            v-model="showDataImportModal"
+            :projectId="currentProjectId"
+            :projectMembers="projectMembers"
+            :projectStatuses="projectStatuses"
+            @imported="fetchTasks"
+          />
         </template>
       </ProjectPageHeader>
 
@@ -84,8 +99,25 @@
         />
       </div>
 
+      <!-- Global Empty State for Work Items (List/Board views) -->
+      <div v-if="!store.loading && filteredTasksList.length === 0 && (currentTab === 'list' || currentTab === 'board')" class="empty-state-global" style="padding: 60px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--color-surface); border-radius: 12px; border: 1px dashed var(--color-border); margin: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);">
+        <div class="empty-illustration-wrapper" style="font-size: 54px; color: var(--color-text-muted); margin-bottom: 16px; opacity: 0.8;">
+          <i class="fa-solid fa-folder-open"></i>
+        </div>
+        <h3 style="font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin: 0 0 8px 0;">Chưa có công việc nào trong dự án này.</h3>
+        <p style="font-size: 13px; color: var(--color-text-muted); margin: 0 0 20px 0; max-width: 400px; line-height: 1.5;">Hãy tạo công việc đầu tiên hoặc nạp dữ liệu công việc từ Excel/CSV.</p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+          <el-button type="primary" size="default" @click="openCreateTask('TO DO')" :disabled="!canCurrentUserCreateTask">
+            <i class="fa-solid fa-plus mr-1"></i> Tạo công việc mới
+          </el-button>
+          <el-button type="info" plain size="default" @click="showDataImportModal = true" :disabled="!canCurrentUserCreateTask">
+            <i class="fa-solid fa-file-import mr-1"></i> Nạp dữ liệu công việc
+          </el-button>
+        </div>
+      </div>
+
       <!-- Other Tab Views -->
-      <div v-if="currentTab === 'list'" class="list-wrapper" style="padding: 16px;">
+      <div v-if="currentTab === 'list' && filteredTasksList.length > 0" class="list-wrapper" style="padding: 16px;">
          <div class="plane-list-view">
            <div v-for="group in listViewGroups" :key="group.id" class="list-group">
              <div class="group-header" @click="toggleListGroup(group.id)">
@@ -183,7 +215,7 @@
                </template>
 
                <div class="add-row-placeholder" @click="openCreateTask(group.statusName)">
-                 <i class="fa-solid fa-plus"></i> New work item
+                 <i class="fa-solid fa-plus"></i> {{ t('New work item', 'Tạo công việc mới') }}
                </div>
              </div>
            </div>
@@ -207,7 +239,7 @@
       </div>
 
       <!-- Kanban Board Layout -->
-      <div class="kanban-wrapper" v-if="currentTab === 'board'">
+      <div class="kanban-wrapper" v-if="currentTab === 'board' && filteredTasksList.length > 0">
         <!-- Loading indicator -->
         <div class="kanban-loading-bar" v-if="store.loading">
           <i class="fa-solid fa-spinner fa-spin"></i>
@@ -232,18 +264,25 @@
           <div class="col-head">
             <div class="col-title">
               <i :class="col.icon" :style="{ color: col.color }"></i>
-              <span>{{ col.name }}</span>
+              <span>{{ col.label || col.name }}</span>
               <span class="col-count">{{ col.items.length }}</span>
             </div>
-            <i class="fa-solid fa-plus add-btn" @click="openCreateTask(col.name)"></i>
+            <i v-if="canCurrentUserCreateTask && col.name !== 'FALLBACK_UNCLASSIFIED'" class="fa-solid fa-plus add-btn" @click="openCreateTask(col.name)"></i>
+          </div>
+
+          <div v-if="col.isFallback" class="fallback-desc-container" style="padding: 6px 12px; background: rgba(244, 63, 94, 0.05); border-bottom: 1px solid rgba(244, 63, 94, 0.1);">
+            <small style="color: #f43f5e; font-size: 11px; font-style: italic;">
+              {{ t('Các công việc có trạng thái không còn tồn tại trong workflow hiện tại.') }}
+            </small>
           </div>
 
           <div class="col-body">
             <draggable
               class="col-draggable"
               :list="col.items"
-              group="tasks"
+              :group="{ name: 'tasks', put: col.name !== 'FALLBACK_UNCLASSIFIED' }"
               item-key="id"
+              :disabled="!canCurrentUserUpdateTask || col.name === 'FALLBACK_UNCLASSIFIED'"
               @change="(evt) => handleDraggableChange(evt, col)"
             >
               <template #item="{ element }">
@@ -402,7 +441,7 @@
                  </button>
                </div>
             </div>
-            <div class="add-btn-bottom" v-else @click="openInlineCreate(col.id)">
+            <div class="add-btn-bottom" v-else-if="col.name !== 'FALLBACK_UNCLASSIFIED'" @click="openInlineCreate(col.id)">
                <i class="fa-solid fa-plus"></i> Thêm công việc
             </div>
           </div>
@@ -551,17 +590,24 @@
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageToolbar from '@/components/common/PageToolbar.vue'
+import TaskDataImportModal from '@/components/tasks/TaskDataImportModal.vue'
 
 // AI 3: CHUYÊN VIÊN GHÉP NỐI LOGIC FRONT-TO-BACK
 import { ref, onMounted, computed, defineAsyncComponent, watch, nextTick, onUnmounted } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
-  import { ElMessage } from 'element-plus'
-  import axiosClient from '@/api/axiosClient'
-  import { broadcastAdminRealtime, subscribeAdminRealtime } from '@/utils/adminRealtime'
-  import { getStoredUserSession } from '@/utils/authSession'
-  import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/projectContext'
-  import { signalRService } from '@/api/signalrService'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import axiosClient from '@/api/axiosClient'
+import { broadcastAdminRealtime, subscribeAdminRealtime } from '@/utils/adminRealtime'
+import { getStoredUserSession } from '@/utils/authSession'
+import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/projectContext'
+import { signalRService } from '@/api/signalrService'
 import { hasSystemAdminAccess, normalizeProjectRole } from '@/utils/permissions'
+import { 
+  getDefaultPermissionMatrix,
+  canCreateTask,
+  canUpdateTask,
+  canDeleteTask 
+} from '@/utils/permissionGuard'
 
 import draggable from 'vuedraggable'
 import TaskDetailModal from '@/components/TaskDetailModal.vue'
@@ -600,6 +646,23 @@ const isForbidden = ref(false)
 const showSubtasks = ref(false)
 const collapsedListGroups = ref({})
 const assigneeSearch = ref('')
+const showDataImportModal = ref(false)
+
+async function handleExportTasks() {
+  try {
+    const res = await axiosClient.get(`/projects/${currentProjectId.value}/WorkTasks/export`, { responseType: 'blob' })
+    const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `SprintA-Tasks-${currentProjectId.value}-${Date.now()}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    ElMessage.success('Xuất dữ liệu thành công.')
+  } catch (e) {
+    ElMessage.error('Không thể xuất dữ liệu công việc.')
+  }
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -1013,6 +1076,41 @@ const currentProjectRole = computed(() => {
     || project.value?.ProjectRole
 
   return normalizeProjectRole(role)
+})
+
+// ────────────────────────────────────────────
+// SME Permissions Guard State & Computed Guards
+// ────────────────────────────────────────────
+const permissionMatrix = ref(getDefaultPermissionMatrix())
+
+const loadProjectPermissionMatrix = async () => {
+  const pId = getProjectId()
+  if (!pId) return
+  try {
+    const res = await axiosClient.get(`/settings/ProjectPermissions:${pId}`)
+    if (res.data?.data?.rolePermissions) {
+      permissionMatrix.value = JSON.parse(res.data.data.rolePermissions)
+    } else {
+      permissionMatrix.value = getDefaultPermissionMatrix()
+    }
+  } catch (e) {
+    permissionMatrix.value = getDefaultPermissionMatrix()
+  }
+}
+
+const canCurrentUserCreateTask = computed(() => {
+  if (hasSystemAdminAccess(getStoredUserSession())) return true
+  return canCreateTask(permissionMatrix.value, currentProjectRole.value)
+})
+
+const canCurrentUserUpdateTask = computed(() => {
+  if (hasSystemAdminAccess(getStoredUserSession())) return true
+  return canUpdateTask(permissionMatrix.value, currentProjectRole.value)
+})
+
+const canCurrentUserDeleteTask = computed(() => {
+  if (hasSystemAdminAccess(getStoredUserSession())) return true
+  return canDeleteTask(permissionMatrix.value, currentProjectRole.value)
 })
 
 const canCurrentUserSeeTask = (task) => {
@@ -1450,6 +1548,7 @@ const kanbanColumns = computed(() => {
   const groups = taskStatusOptions.value.map((status, index) => ({
     id: `${status.name.toLowerCase().replace(/\s+/g, '-')}-${index}`,
     name: status.name,
+    label: status.label || status.name,
     color: status.color,
     icon: status.icon,
     bgColor: statusBgMap[status.name] || 'rgba(148, 163, 184, 0.04)',
@@ -1474,11 +1573,29 @@ const kanbanColumns = computed(() => {
      });
      return pGroups;
   } else {
+     const definedStatuses = taskStatusOptions.value.map(s => s.name.toUpperCase().trim())
+     const hasFallback = validTasks.some(t => !definedStatuses.includes((t.statusName || 'BACKLOG').toUpperCase().trim()))
+
+     if (hasFallback) {
+       groups.push({
+         id: 'fallback-unclassified-col',
+         name: 'FALLBACK_UNCLASSIFIED',
+         label: tr('Khác / Chưa phân loại', 'Khác / Chưa phân loại'),
+         color: '#f43f5e',
+         icon: 'fa-solid fa-triangle-exclamation',
+         bgColor: 'rgba(244, 63, 94, 0.05)',
+         priorityValue: null,
+         items: [],
+         isFallback: true
+       })
+     }
+
      validTasks.forEach(t => {
        const s = (t.statusName || 'BACKLOG').toUpperCase().trim();
-       let col;
-       col = groups.find(group => group.name === normalizeStatus(s)) || groups[0];
-
+       let col = groups.find(group => group.name === s)
+       if (!col) {
+         col = groups.find(group => group.name === 'FALLBACK_UNCLASSIFIED') || groups[0];
+       }
        col.items.push(t);
      });
      return groups;
@@ -1577,6 +1694,7 @@ const loadInitialData = async (options = {}) => {
     }
 
     await fetchTasks({ reset: false })
+    await loadProjectPermissionMatrix()
   } catch (error) {
     if (isForbiddenError(error)) {
       isForbidden.value = true
@@ -1852,6 +1970,12 @@ const handleDraggableChange = async (evt, group) => {
       const sortOrder = Number(task?.sortOrder);
       return Number.isFinite(sortOrder) ? sortOrder : fallback;
     };
+
+    if (group.name === 'FALLBACK_UNCLASSIFIED') {
+      ElMessage.warning('Không thể chuyển tác vụ vào cột Khác / Chưa phân loại.');
+      fetchTasks();
+      return;
+    }
 
     // Math cho LexoRank
     let newSortOrder = 65536;
@@ -3679,7 +3803,21 @@ onUnmounted(() => {
   background: rgba(15, 23, 42, 0.36) !important;
 }
 
+.toolbar-actions-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 @media (max-width: 760px) {
+  .toolbar-actions-wrapper {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    gap: 8px !important;
+    margin-top: 10px !important;
+  }
+
   .list-wrapper {
     padding: 12px !important;
   }

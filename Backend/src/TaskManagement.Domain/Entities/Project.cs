@@ -62,6 +62,6 @@ namespace TaskManagement.Domain.Entities
         public ICollection<ProjectLesson> Lessons { get; set; } = new List<ProjectLesson>();
         public ICollection<ProjectRisk> Risks { get; set; } = new List<ProjectRisk>();
         public ICollection<ProjectDecision> Decisions { get; set; } = new List<ProjectDecision>();
-
+        public ICollection<CustomFieldDefinition> CustomFieldDefinitions { get; set; } = new List<CustomFieldDefinition>();
     }
 }

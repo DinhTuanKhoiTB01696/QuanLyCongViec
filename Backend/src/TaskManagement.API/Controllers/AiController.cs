@@ -1,4 +1,6 @@
-﻿using System.Security.Claims;
+using System.IO;
+using System.Linq;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +24,15 @@ namespace TaskManagement.API.Controllers
         private readonly IWorkTaskService _workTaskService;
         private readonly ApplicationDbContext _dbContext;
         private const int GeminiRetryAttempts = 3;
+        private const long AiDocumentMaxBytes = 10 * 1024 * 1024;
+        private static readonly IReadOnlyDictionary<string, string[]> AiDocumentMimeTypes =
+            new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+            {
+                [".txt"] = ["text/plain"],
+                [".md"] = ["text/markdown", "text/plain"],
+                [".docx"] = ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+                [".pdf"] = ["application/pdf"]
+            };
         private static readonly string[] AiAssigneeAllowedProjectRoles = { "PM", "PO", "SM", "PROJECT_MANAGER", "SCRUM_MASTER", "Admin" };
         private static readonly string[] AiSystemOverrideRoles = { "SuperAdmin", "Admin", "System Admin", "Organization Admin", "AccessAdmin", "Access Admin" };
 
@@ -38,6 +49,77 @@ namespace TaskManagement.API.Controllers
             var userId = GetUserId();
             var usage = await _aiService.GetUsageAsync(userId);
             return Ok(ApiResponse<AiUsageDto>.Success(usage));
+        }
+
+        [HttpPost("analyze-file")]
+        [RequestSizeLimit(15 * 1024 * 1024)]
+        public async Task<IActionResult> AnalyzeFile(
+            [FromForm] IFormFile file,
+            [FromForm] Guid? projectId = null,
+            [FromForm] string? userPrompt = null,
+            [FromForm] string? previousAnalysisJson = null)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(ApiResponse<object>.Error("Vui lòng cung cấp file dữ liệu hợp lệ."));
+            }
+
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!AiDocumentMimeTypes.TryGetValue(ext, out var allowedMimeTypes))
+            {
+                return BadRequest(ApiResponse<object>.Error("Chỉ hỗ trợ tài liệu .txt, .md, .docx hoặc .pdf. Vui lòng dùng chức năng Import Excel/CSV cho dữ liệu bảng."));
+            }
+
+            var mimeType = (file.ContentType ?? string.Empty).Split(';', 2)[0].Trim();
+            if (!allowedMimeTypes.Contains(mimeType, StringComparer.OrdinalIgnoreCase))
+            {
+                return BadRequest(ApiResponse<object>.Error($"Loại nội dung '{mimeType}' không khớp với phần mở rộng {ext}."));
+            }
+
+            if (file.Length > AiDocumentMaxBytes)
+            {
+                return BadRequest(ApiResponse<object>.Error("Dung lượng file vượt quá giới hạn cho phép (10MB)."));
+            }
+
+            try
+            {
+                var userId = GetUserId();
+                if (projectId.HasValue && projectId.Value != Guid.Empty)
+                {
+                    if (!await UserHasProjectAccessAsync(userId, projectId.Value))
+                    {
+                        return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Error("Bạn không có quyền truy cập dự án này."));
+                    }
+                }
+
+                using var ms = new MemoryStream();
+                await file.CopyToAsync(ms);
+                var fileBytes = ms.ToArray();
+
+                if (!HasValidDocumentSignature(ext, fileBytes))
+                {
+                    return BadRequest(ApiResponse<object>.Error("Nội dung file không hợp lệ hoặc không khớp với định dạng đã chọn."));
+                }
+
+                var result = await _aiService.AnalyzeFileAsync(
+                    userId,
+                    file.FileName,
+                    mimeType,
+                    fileBytes,
+                    userPrompt,
+                    projectId,
+                    previousAnalysisJson);
+
+                return Ok(ApiResponse<AiFileAnalysisResultDto>.Success(result));
+            }
+            catch (InvalidOperationException ex) when (IsGeminiQuotaFailure(ex))
+            {
+                return StatusCode(StatusCodes.Status429TooManyRequests, ApiResponse<object>.Error("AI tạm thời hết hạn mức, vui lòng thử lại sau"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.Error(ex.Message));
+            }
         }
 
         [HttpPost("chat")]
@@ -78,6 +160,106 @@ namespace TaskManagement.API.Controllers
             }
         }
 
+        [HttpPost("project-assistant")]
+        public async Task<IActionResult> ProjectAssistant([FromBody] AiProjectAssistantRequestDto request)
+        {
+            if (request == null)
+            {
+                return BadRequest(ApiResponse<object>.Error("Request body khong hop le."));
+            }
+
+            if (request.ProjectId == Guid.Empty)
+            {
+                return BadRequest(ApiResponse<object>.Error("ID dự án không hợp lệ."));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Message))
+            {
+                return BadRequest(ApiResponse<object>.Error("Nội dung tin nhắn không được để trống."));
+            }
+
+            try
+            {
+                var userId = GetUserId();
+
+                if (!await UserHasProjectAccessAsync(userId, request.ProjectId))
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Error("Bạn không có quyền truy cập dự án này."));
+                }
+
+                var response = await _aiService.ProjectAssistantAsync(userId, request);
+                return Ok(ApiResponse<AiProjectAssistantResponseDto>.Success(response));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.Error(ex.Message));
+            }
+        }
+
+        private static bool HasValidDocumentSignature(string extension, byte[] bytes)
+        {
+            if (bytes.Length == 0) return false;
+            return extension switch
+            {
+                ".pdf" => bytes.Length >= 5 && bytes.AsSpan(0, 5).SequenceEqual("%PDF-"u8),
+                ".docx" => bytes.Length >= 4 && bytes[0] == 0x50 && bytes[1] == 0x4B &&
+                           bytes[2] is 0x03 or 0x05 or 0x07 && bytes[3] is 0x04 or 0x06 or 0x08,
+                ".txt" or ".md" => Array.IndexOf(bytes, (byte)0) < 0,
+                _ => false
+            };
+        }
+
+        [HttpPost("context-chat")]
+        public async Task<IActionResult> ContextChat([FromBody] AiContextChatRequestDto request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Message))
+            {
+                return BadRequest(ApiResponse<object>.Error("Message cannot be empty."));
+            }
+
+            var userId = GetUserId();
+            if (request.ProjectId.HasValue && request.ProjectId.Value != Guid.Empty)
+            {
+                var project = await _dbContext.Projects
+                    .AsNoTracking()
+                    .Where(p => p.Id == request.ProjectId.Value && !p.IsDeleted)
+                    .Select(p => new { p.Id, p.WorkspaceId })
+                    .FirstOrDefaultAsync();
+
+                if (project == null || !await UserHasProjectContextAccessAsync(userId, project.WorkspaceId, project.Id))
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden,
+                        ApiResponse<object>.Error("Bạn không có quyền truy cập dữ liệu dự án này."));
+                }
+
+                if (request.WorkspaceId.HasValue && request.WorkspaceId.Value != project.WorkspaceId)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden,
+                        ApiResponse<object>.Error("Workspace không khớp với dự án."));
+                }
+            }
+            else if (request.WorkspaceId.HasValue && request.WorkspaceId.Value != Guid.Empty &&
+                     !await UserHasWorkspaceAccessAsync(userId, request.WorkspaceId.Value))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Error("Bạn không có quyền truy cập workspace này."));
+            }
+
+            try
+            {
+                var response = await _aiService.ContextChatAsync(userId, request);
+                return Ok(ApiResponse<AiContextChatResponseDto>.Success(response));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, ApiResponse<object>.Error(ex.Message));
+            }
+            catch (HttpRequestException ex)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, ApiResponse<object>.Error(ex.Message));
+            }
+        }
+
         [HttpPost("command")]
         public async Task<IActionResult> Command([FromBody] AiCommandRequest request)
         {
@@ -90,6 +272,16 @@ namespace TaskManagement.API.Controllers
             var prompt = request.Prompt.Trim();
             var locale = string.Equals(request.Locale, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "vi";
             var lowered = prompt.ToLowerInvariant();
+
+            if (request.ProjectId.HasValue && request.ProjectId.Value != Guid.Empty)
+            {
+                if (!await UserHasProjectAccessAsync(userId, request.ProjectId.Value))
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Error(locale == "en"
+                        ? "You do not have permission to access this project."
+                        : "Bạn không có quyền truy cập dự án này."));
+                }
+            }
 
             if (ContainsAny(lowered, "tao task", "t\u1ea1o task", "tao cong viec", "t\u1ea1o c\u00f4ng vi\u1ec7c", "create task", "add task"))
             {
@@ -146,7 +338,11 @@ namespace TaskManagement.API.Controllers
                 var response = await _aiService.ChatAsync(userId, new AiChatRequestDto
                 {
                     Message = $"{languageInstruction}\n\nProjectId: {request.ProjectId?.ToString() ?? "none"}\nPrompt: {prompt}",
-                    History = request.History
+                    History = request.History?.Select(h => new TaskManagement.Application.DTOs.AI.AiChatMessageDto
+                    {
+                        Role = h.Role,
+                        Content = h.Content
+                    }).ToList()
                 });
 
                 return Ok(ApiResponse<object>.Success(new
@@ -447,6 +643,18 @@ namespace TaskManagement.API.Controllers
                 || message.Contains("timeout");
         }
 
+        private static bool IsGeminiQuotaFailure(Exception ex)
+        {
+            var message = ex.Message ?? string.Empty;
+
+            return message.Contains("Gemini API loi 429", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("Gemini Multimodal API loi 429", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("RESOURCE_EXHAUSTED", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("GenerateRequestsPerDayPerProjectPerModel-FreeTier", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("rate-limits", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("quota exceeded", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static string BuildGeminiFallbackMessage(string? title)
         {
             if (!string.IsNullOrWhiteSpace(title) &&
@@ -712,6 +920,52 @@ namespace TaskManagement.API.Controllers
             return userId;
         }
 
+        private async Task<bool> UserHasProjectAccessAsync(Guid userId, Guid projectId)
+        {
+            var workspaceMember = await _dbContext.WorkspaceMembers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(wm => wm.UserId == userId && wm.IsActive);
+
+            if (workspaceMember != null)
+            {
+                var wsRole = workspaceMember.WorkspaceRole.Trim().ToUpperInvariant();
+                if (wsRole == "OWNER" || wsRole == "ADMIN")
+                {
+                    return true;
+                }
+            }
+
+            return await _dbContext.ProjectMembers
+                .AsNoTracking()
+                .AnyAsync(pm => pm.ProjectId == projectId && pm.UserId == userId && pm.Status);
+        }
+
+        private async Task<bool> UserHasProjectContextAccessAsync(Guid userId, Guid workspaceId, Guid projectId)
+        {
+            var workspaceRole = await _dbContext.WorkspaceMembers
+                .AsNoTracking()
+                .Where(wm => wm.UserId == userId && wm.WorkspaceId == workspaceId && wm.IsActive)
+                .Select(wm => wm.WorkspaceRole)
+                .FirstOrDefaultAsync();
+
+            if (string.Equals(workspaceRole, "OWNER", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(workspaceRole, "ADMIN", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return await _dbContext.ProjectMembers
+                .AsNoTracking()
+                .AnyAsync(pm => pm.ProjectId == projectId && pm.UserId == userId && pm.Status);
+        }
+
+        private Task<bool> UserHasWorkspaceAccessAsync(Guid userId, Guid workspaceId)
+        {
+            return _dbContext.WorkspaceMembers
+                .AsNoTracking()
+                .AnyAsync(wm => wm.UserId == userId && wm.WorkspaceId == workspaceId && wm.IsActive);
+        }
+
         private async Task EnsureAiAssigneeAccessAsync(Guid userId, Guid projectId)
         {
             var user = await _dbContext.Users
@@ -751,7 +1005,7 @@ namespace TaskManagement.API.Controllers
         public string Prompt { get; set; } = string.Empty;
         public Guid? ProjectId { get; set; }
         public string? Locale { get; set; }
-        public List<AiChatMessageDto>? History { get; set; }
+        public List<TaskManagement.Application.Interfaces.AiChatMessageDto>? History { get; set; }
     }
 
     public class ProjectAiStats

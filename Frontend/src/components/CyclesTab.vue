@@ -687,7 +687,7 @@ onUnmounted(() => {
                   <span>{{ t('cyclesTab.workItemBurndown', 'Work item burndown') }}</span>
                   <span class="sub text-right">{{ percentLabel(cycle) }}</span>
                 </div>
-                <div class="chart-mockup" style="height: 140px;">
+                <div class="burndown-chart-panel" style="height: 140px;">
                   <v-chart v-if="burndownCharts[cycle.id]" :option="burndownCharts[cycle.id]" :theme="chartTheme" autoresize />
                   <div v-else class="text-muted text-xs text-center pt-8">{{ t('cyclesTab.noBurndownData', 'No burndown data yet.') }}</div>
                 </div>
@@ -1500,16 +1500,11 @@ onUnmounted(() => {
   background: color-mix(in srgb, var(--color-surface-hover) 58%, transparent) !important;
 }
 
-.chart-mockup {
+.burndown-chart-panel {
   min-height: 150px;
   border-radius: 8px;
   border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
-  background:
-    linear-gradient(color-mix(in srgb, var(--color-text-muted) 10%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--color-text-muted) 10%, transparent) 1px, transparent 1px),
-    radial-gradient(circle at 48% 54%, color-mix(in srgb, #3b82f6 12%, transparent), transparent 40%),
-    color-mix(in srgb, var(--color-bg) 38%, transparent);
-  background-size: 100% 26px, 64px 100%, auto, auto;
+  background: color-mix(in srgb, var(--color-bg) 38%, transparent);
 }
 
 .cs-title {
@@ -1625,7 +1620,7 @@ onUnmounted(() => {
   border-color: rgba(148, 163, 184, 0.18) !important;
 }
 
-[data-theme='dark'] .chart-mockup {
+[data-theme='dark'] .burndown-chart-panel {
   background:
     linear-gradient(rgba(203, 213, 225, 0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(203, 213, 225, 0.08) 1px, transparent 1px),
@@ -1701,7 +1696,7 @@ onUnmounted(() => {
   color: #0f172a !important;
 }
 
-[data-theme='light'] .chart-mockup {
+[data-theme='light'] .burndown-chart-panel {
   background:
     linear-gradient(rgba(71, 85, 105, 0.10) 1px, transparent 1px),
     linear-gradient(90deg, rgba(71, 85, 105, 0.09) 1px, transparent 1px),
@@ -1746,7 +1741,7 @@ onUnmounted(() => {
   margin-bottom: 10px !important;
 }
 
-.chart-mockup {
+.burndown-chart-panel {
   min-height: 112px !important;
   height: 112px !important;
 }

@@ -22,6 +22,12 @@ namespace TaskManagement.Domain.Entities
         /// <summary>Trạng thái: Pending, Accepted, Declined, Duplicate, Snoozed</summary>
         public string Status { get; set; } = "Pending";
 
+        /// <summary>Mức độ ưu tiên (1: Khẩn cấp, 2: Cao, 3: Trung bình, 4: Thấp)</summary>
+        public int Priority { get; set; } = 3;
+
+        /// <summary>Hạn mong muốn hoàn thành</summary>
+        public DateTime? DesiredDueDate { get; set; }
+
         public Guid ProjectId { get; set; }
         public Project Project { get; set; } = null!;
 

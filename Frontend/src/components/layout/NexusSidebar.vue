@@ -254,7 +254,8 @@ const closeStarredPopover = () => {
   starredVisible.value = false
 }
 const currentProjectId = computed(() => {
-  return route.params.id || getScopedCurrentProjectId() || 'default'
+  if (route.path.startsWith('/space') && route.params.id) return route.params.id
+  return getScopedCurrentProjectId() || 'default'
 })
 
 
@@ -316,7 +317,9 @@ let unsubscribeAdminRealtime = null
 
 onMounted(() => {
   unsubscribeAdminRealtime = subscribeAdminRealtime(async ({ type, payload }) => {
-    const activeProjectId = route.params.id || getScopedCurrentProjectId() || null
+    const activeProjectId = route.path.startsWith('/space') && route.params.id
+      ? route.params.id
+      : getScopedCurrentProjectId() || null
     if (payload?.projectId && activeProjectId && `${payload.projectId}` !== `${activeProjectId}`) {
       await projectStore.fetchAllProjects(true).catch(() => {})
       return

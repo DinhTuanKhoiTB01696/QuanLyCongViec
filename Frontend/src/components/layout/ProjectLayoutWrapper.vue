@@ -76,13 +76,14 @@ const projectNavLinks = computed(() => [
   { name: 'Cycles', path: 'cycles', label: t('Cycles', 'Chu kỳ'), icon: 'fa-solid fa-rotate' },
   { name: 'Modules', path: 'modules', label: t('Modules', 'Phân hệ'), icon: 'fa-solid fa-cubes' },
   { name: 'Reports', path: 'reports', label: t('Reports', 'Báo cáo'), icon: 'fa-solid fa-chart-line' },
+  { name: 'Intakes', path: 'intakes', label: t('Intakes', 'Yêu cầu (Intake)'), icon: 'fa-solid fa-inbox' },
   { name: 'Views', path: 'views', label: t('Views', 'Góc nhìn'), icon: 'fa-regular fa-eye' },
   { name: 'Pages', path: 'pages', label: t('Pages', 'Tài liệu'), icon: 'fa-regular fa-file-lines' },
   { name: 'Members', path: 'members', label: t('Members', 'Thành viên'), icon: 'fa-solid fa-users' }
 ])
 
 const loadProject = async () => {
-  if (projectId.value) {
+  if (projectId.value && route.path.startsWith('/space/')) {
     if (!projectStore.currentProject || projectStore.currentProject.id !== projectId.value) {
       // It's possible the store handles loading details somewhere else, 
       // but we ensure it's loaded if not.

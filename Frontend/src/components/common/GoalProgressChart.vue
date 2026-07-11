@@ -2,24 +2,31 @@
   <div class="goal-progress-chart-container">
     <div class="chart-header">
       <div class="chart-title">
-        <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #172B4D;">Theo dõi tiến độ hướng tới mục tiêu của bạn</h4>
-        <p style="margin: 0 0 0 0; font-size: 14px; color: #5E6C84; line-height: 1.5;">Biểu đồ mô phỏng lịch sử tiến độ (% hoàn thành) theo thời gian.</p>
+        <h4>Theo dõi tiến độ hướng tới mục tiêu của bạn</h4>
+        <p>Lịch sử tiến độ được tạo từ các bản cập nhật mục tiêu thật.</p>
       </div>
-      <div class="chart-filters">
+      <div class="chart-filters" v-if="hasProgressHistory">
         <button class="filter-btn" :class="{ active: timeRange === 'hour' }" @click="setTimeRange('hour')">Giờ</button>
         <button class="filter-btn" :class="{ active: timeRange === 'day' }" @click="setTimeRange('day')">Ngày</button>
         <button class="filter-btn" :class="{ active: timeRange === 'month' }" @click="setTimeRange('month')">Tháng</button>
         <button class="filter-btn" :class="{ active: timeRange === 'year' }" @click="setTimeRange('year')">Năm</button>
       </div>
     </div>
-    <div class="chart-body">
+
+    <div class="chart-empty-state" v-if="!hasProgressHistory">
+      <div class="empty-icon"><i class="fa-solid fa-chart-line"></i></div>
+      <h4>Chưa có dữ liệu tiến độ</h4>
+      <p>Hãy đăng cập nhật mục tiêu để tạo lịch sử tiến độ thật.</p>
+    </div>
+
+    <div class="chart-body" v-else>
       <apexchart type="line" height="250" :options="chartOptions" :series="series"></apexchart>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import Apexchart from 'vue3-apexcharts'
 
 const props = defineProps({
@@ -31,71 +38,66 @@ const props = defineProps({
 
 const timeRange = ref('day')
 
-// Helper to generate mock historical data based on current progress and created date
-const generateMockData = (range) => {
-  const currentProgress = props.goal.progress || 0
-  const createdAt = new Date(props.goal.createdAt || Date.now() - 30 * 24 * 60 * 60 * 1000)
-  const now = new Date()
-  
-  const data = []
-  
-  if (range === 'hour') {
-    // Generate data for the last 24 hours
-    for (let i = 24; i >= 0; i--) {
-      const t = new Date(now.getTime() - i * 60 * 60 * 1000)
-      // linear interpolation for mock
-      const val = Math.max(0, currentProgress - (i * (currentProgress / 24)))
-      data.push([t.getTime(), Math.round(val)])
-    }
-  } else if (range === 'day') {
-    // Generate data for the last 30 days
-    const daysDiff = Math.max(1, Math.floor((now - createdAt) / (1000 * 60 * 60 * 24)))
-    const dataPoints = Math.min(30, daysDiff)
-    for (let i = dataPoints; i >= 0; i--) {
-      const t = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
-      const val = Math.max(0, currentProgress - (i * (currentProgress / Math.max(1, dataPoints))))
-      data.push([t.getTime(), Math.round(val)])
-    }
-  } else if (range === 'month') {
-    // Generate data for the last 12 months
-    for (let i = 11; i >= 0; i--) {
-      const t = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const val = Math.max(0, currentProgress - (i * (currentProgress / 12)))
-      data.push([t.getTime(), Math.round(val)])
-    }
-  } else if (range === 'year') {
-    // Generate data for the last 3 years
-    for (let i = 2; i >= 0; i--) {
-      const t = new Date(now.getFullYear() - i, 0, 1)
-      const val = Math.max(0, currentProgress - (i * (currentProgress / 3)))
-      data.push([t.getTime(), Math.round(val)])
-    }
-  }
-  
-  // Ensure the last point is exactly the current progress
-  if (data.length > 0) {
-    data[data.length - 1][1] = currentProgress
-  }
-  
-  return data
+const getUpdateProgress = (update) => {
+  const value = update?.newProgress ?? update?.progress ?? update?.NewProgress ?? update?.Progress
+  const number = Number(value)
+  return Number.isFinite(number) ? Math.max(0, Math.min(100, number)) : null
 }
 
-const series = ref([{
+const getUpdateTimestamp = (update) => {
+  const value = update?.createdAt || update?.updatedAt || update?.CreatedAt || update?.UpdatedAt
+  const date = value ? new Date(value) : null
+  return date && !Number.isNaN(date.getTime()) ? date.getTime() : null
+}
+
+const progressHistory = computed(() => {
+  const updates = Array.isArray(props.goal?.updates)
+    ? props.goal.updates
+    : Array.isArray(props.goal?.Updates)
+      ? props.goal.Updates
+      : []
+
+  return updates
+    .map(update => {
+      const progress = getUpdateProgress(update)
+      const timestamp = getUpdateTimestamp(update)
+      return progress === null || timestamp === null ? null : [timestamp, progress]
+    })
+    .filter(Boolean)
+    .sort((left, right) => left[0] - right[0])
+})
+
+const hasProgressHistory = computed(() => progressHistory.value.length > 0)
+
+const filterProgressHistory = (range) => {
+  const points = progressHistory.value
+  if (!points.length) return []
+
+  const now = Date.now()
+  const windowMs = {
+    hour: 24 * 60 * 60 * 1000,
+    day: 30 * 24 * 60 * 60 * 1000,
+    month: 366 * 24 * 60 * 60 * 1000,
+    year: 3 * 366 * 24 * 60 * 60 * 1000
+  }[range]
+
+  const filtered = points.filter(point => now - point[0] <= windowMs)
+  return filtered.length ? filtered : points
+}
+
+const series = computed(() => ([{
   name: 'Tiến độ (%)',
-  data: generateMockData(timeRange.value)
-}])
+  data: filterProgressHistory(timeRange.value)
+}]))
 
 const setTimeRange = (range) => {
   timeRange.value = range
-  series.value = [{
-    name: 'Tiến độ (%)',
-    data: generateMockData(range)
-  }]
 }
 
-// Re-generate if goal progress changes
-watch(() => props.goal.progress, () => {
-  setTimeRange(timeRange.value)
+watch(progressHistory, () => {
+  if (!hasProgressHistory.value) {
+    timeRange.value = 'day'
+  }
 })
 
 const chartOptions = computed(() => {
@@ -126,7 +128,7 @@ const chartOptions = computed(() => {
       type: 'datetime',
       labels: {
         datetimeUTC: false,
-        format: format,
+        format,
         style: { colors: '#6B778C', fontSize: '12px' }
       },
       axisBorder: { show: false },
@@ -137,7 +139,7 @@ const chartOptions = computed(() => {
       max: 100,
       tickAmount: 5,
       labels: {
-        formatter: (val) => val + '%',
+        formatter: (val) => `${val}%`,
         style: { colors: '#6B778C', fontSize: '12px' }
       }
     },
@@ -157,8 +159,8 @@ const chartOptions = computed(() => {
     },
     tooltip: {
       theme: 'light',
-      x: { format: format },
-      y: { formatter: (val) => val + '%' }
+      x: { format },
+      y: { formatter: (val) => `${val}%` }
     }
   }
 })
@@ -177,6 +179,21 @@ const chartOptions = computed(() => {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 24px;
+  gap: 16px;
+}
+
+.chart-title h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #172B4D;
+}
+
+.chart-title p {
+  margin: 0;
+  font-size: 14px;
+  color: #5E6C84;
+  line-height: 1.5;
 }
 
 .chart-filters {
@@ -215,5 +232,38 @@ const chartOptions = computed(() => {
 
 .chart-body {
   position: relative;
+}
+
+.chart-empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  text-align: center;
+  border: 1px dashed #DFE1E6;
+  border-radius: 6px;
+  background: #FAFBFC;
+}
+
+.empty-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #0052CC;
+  background: #DEEBFF;
+}
+
+.chart-empty-state h4 {
+  margin: 0;
+  font-size: 15px;
+  color: #172B4D;
+}
+
+.chart-empty-state p {
+  margin: 0;
+  color: #5E6C84;
+  font-size: 14px;
 }
 </style>

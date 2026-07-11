@@ -93,7 +93,7 @@
               <h3>Key results</h3>
             </div>
             <div class="section-body">
-              <GoalProgressChart :goal="goal" />
+              <GoalProgressChart :goal="goalProgressChartData" />
             </div>
           </section>
 
@@ -755,6 +755,10 @@ const isEditingBio = ref(false)
 const tempBio = ref('')
 
 const goal = computed(() => goalStore.currentGoal)
+const goalProgressChartData = computed(() => ({
+  ...(goal.value || {}),
+  updates: goalStore.updates || []
+}))
 const sanitizeHtml = (value) => DOMPurify.sanitize(value || '')
 const safeGoalDescription = computed(() => sanitizeHtml(goal.value?.description || ''))
 const updates = computed(() => goalStore.updates || [])

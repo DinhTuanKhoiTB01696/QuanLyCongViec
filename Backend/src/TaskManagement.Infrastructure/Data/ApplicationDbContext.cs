@@ -107,6 +107,8 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<ProjectRisk> ProjectRisks { get; set; }
         public DbSet<ProjectDecision> ProjectDecisions { get; set; }
         public DbSet<EntityFollower> EntityFollowers { get; set; }
+        public DbSet<CustomFieldDefinition> CustomFieldDefinitions { get; set; }
+        public DbSet<CustomFieldValue> CustomFieldValues { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -120,6 +122,7 @@ namespace TaskManagement.Infrastructure.Data
             modelBuilder.Entity<Project>().HasQueryFilter(p => !p.IsDeleted);
             modelBuilder.Entity<WorkTask>().HasQueryFilter(wt => !wt.IsDeleted);
             modelBuilder.Entity<Workspace>().HasQueryFilter(w => !w.IsDeleted);
+            modelBuilder.Entity<CustomFieldDefinition>().HasQueryFilter(cfd => !cfd.IsDeleted);
 
             // =============================================
             // 0.5 Department - Project Relationship
@@ -801,6 +804,23 @@ namespace TaskManagement.Infrastructure.Data
                 .HasForeignKey(si => si.WorkspaceId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<StarredItem>()
+                .Property(si => si.ItemType)
+                .IsRequired()
+                .HasMaxLength(64);
+
+            modelBuilder.Entity<StarredItem>()
+                .HasIndex(si => new { si.UserId, si.WorkspaceId, si.ItemType, si.ItemId })
+                .IsUnique();
+
+            modelBuilder.Entity<StarredItem>()
+                .HasIndex(si => si.UserId);
+
+            modelBuilder.Entity<StarredItem>()
+                .ToTable("StarredItems", table => table.HasCheckConstraint(
+                    "CK_StarredItems_ItemType",
+                    "[ItemType] IN ('Goal', 'Project', 'Team', 'User')"));
+
             modelBuilder.Entity<ProjectLink>()
                 .HasOne(pl => pl.Project)
                 .WithMany()
@@ -820,6 +840,37 @@ namespace TaskManagement.Infrastructure.Data
             modelBuilder.ApplyConfiguration(new Configurations.ProjectDepartmentRoleConfiguration());
             modelBuilder.ApplyConfiguration(new Configurations.TenantConfigConfiguration());
             modelBuilder.ApplyConfiguration(new Configurations.RefreshTokenConfiguration());
+
+            // Custom Fields Configurations
+            modelBuilder.Entity<CustomFieldDefinition>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.HasOne(x => x.Project)
+                    .WithMany(p => p.CustomFieldDefinitions)
+                    .HasForeignKey(x => x.ProjectId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(x => new { x.ProjectId, x.Key })
+                    .IsUnique()
+                    .HasFilter("[IsDeleted] = 0");
+            });
+
+            modelBuilder.Entity<CustomFieldValue>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.HasOne(x => x.WorkTask)
+                    .WithMany(t => t.CustomFieldValues)
+                    .HasForeignKey(x => x.WorkTaskId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(x => x.FieldDefinition)
+                    .WithMany(fd => fd.CustomFieldValues)
+                    .HasForeignKey(x => x.FieldDefinitionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => new { x.WorkTaskId, x.FieldDefinitionId })
+                    .IsUnique();
+            });
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

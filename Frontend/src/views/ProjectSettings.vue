@@ -594,6 +594,149 @@
             </div>
           </div>
 
+          <div v-else-if="activeTab === 'permissions'" class="settings-card">
+            <div class="card-head">
+              <div>
+                <h2>Quản lý phân quyền</h2>
+                <p>Thiết lập vai trò và nhóm quyền sử dụng trong dự án SprintA.</p>
+              </div>
+            </div>
+
+            <!-- Role Selector Tabs -->
+            <div class="role-selector-tabs mt-3">
+              <button
+                v-for="role in ['Owner', 'Admin', 'Manager', 'Member', 'Viewer']"
+                :key="role"
+                type="button"
+                class="role-tab"
+                :class="{ active: selectedMatrixRole === role }"
+                @click="selectedMatrixRole = role"
+              >
+                {{ role }}
+              </button>
+            </div>
+
+            <!-- Permission Matrix Table -->
+            <div class="matrix-container mt-3">
+              <table class="matrix-table">
+                <thead>
+                  <tr>
+                    <th>Nhóm quyền</th>
+                    <th class="text-center">Xem (View)</th>
+                    <th class="text-center">Tạo (Create)</th>
+                    <th class="text-center">Sửa (Update)</th>
+                    <th class="text-center">Xóa (Delete)</th>
+                    <th class="text-center">Quyền khác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Project -->
+                  <tr>
+                    <td><strong>Dự án (Project)</strong></td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'project.view')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'project.view')" /></td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'project.create')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'project.create')" /></td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'project.update')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'project.update')" /></td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'project.delete')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'project.delete')" /></td>
+                    <td>—</td>
+                  </tr>
+                  <!-- Task -->
+                  <tr>
+                    <td><strong>Công việc (Task)</strong></td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'task.view')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'task.view')" /></td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'task.create')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'task.create')" /></td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'task.update')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'task.update')" /></td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'task.delete')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'task.delete')" /></td>
+                    <td>
+                      <div class="compact-checkboxes">
+                        <label class="compact-label"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'task.assign')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'task.assign')" /> Giao việc</label>
+                        <label class="compact-label"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'task.changeStatus')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'task.changeStatus')" /> Trạng thái</label>
+                      </div>
+                    </td>
+                  </tr>
+                  <!-- Goals -->
+                  <tr>
+                    <td><strong>Mục tiêu (Goals)</strong></td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'goal.view')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'goal.view')" /></td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'goal.create')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'goal.create')" /></td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'goal.update')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'goal.update')" /></td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'goal.delete')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'goal.delete')" /></td>
+                    <td>—</td>
+                  </tr>
+                  <!-- People -->
+                  <tr>
+                    <td><strong>Thành viên (People)</strong></td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'people.view')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'people.view')" /></td>
+                    <td class="text-center">—</td>
+                    <td class="text-center">—</td>
+                    <td class="text-center">—</td>
+                    <td>
+                      <div class="compact-checkboxes">
+                        <label class="compact-label"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'people.invite')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'people.invite')" /> Mời</label>
+                        <label class="compact-label"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'people.updateRole')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'people.updateRole')" /> Vai trò</label>
+                        <label class="compact-label"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'people.remove')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'people.remove')" /> Xóa</label>
+                      </div>
+                    </td>
+                  </tr>
+                  <!-- Reports -->
+                  <tr>
+                    <td><strong>Báo cáo (Reports)</strong></td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'report.view')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'report.view')" /></td>
+                    <td class="text-center">—</td>
+                    <td class="text-center">—</td>
+                    <td class="text-center">—</td>
+                    <td>
+                      <label class="compact-label"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'report.export')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'report.export')" /> Xuất dữ liệu</label>
+                    </td>
+                  </tr>
+                  <!-- Settings -->
+                  <tr>
+                    <td><strong>Cài đặt (Settings)</strong></td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'setting.view')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'setting.view')" /></td>
+                    <td class="text-center">—</td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'setting.update')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'setting.update')" /></td>
+                    <td class="text-center">—</td>
+                    <td>—</td>
+                  </tr>
+                  <!-- Permissions -->
+                  <tr>
+                    <td><strong>Phân quyền (Permissions)</strong></td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'permission.view')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'permission.view')" /></td>
+                    <td class="text-center">—</td>
+                    <td class="text-center"><input type="checkbox" :checked="isPermissionChecked(selectedMatrixRole, 'permission.update')" :disabled="!canEditPermissions || selectedMatrixRole === 'Owner'" @change="togglePermission(selectedMatrixRole, 'permission.update')" /></td>
+                    <td class="text-center">—</td>
+                    <td>—</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="matrix-actions mt-3">
+              <el-button type="info" plain @click="restoreDefaultMatrix" :disabled="!canEditPermissions">Khôi phục mặc định</el-button>
+              <el-button type="primary" :loading="savingMatrix" @click="savePermissionMatrix" :disabled="!canEditPermissions">Lưu thay đổi</el-button>
+            </div>
+
+            <!-- Project Members Assignment list -->
+            <div class="section-split mt-4">
+              <h3>Vai trò của thành viên trong dự án</h3>
+              <p>Gán vai trò trực tiếp cho các thành viên trong dự án này.</p>
+            </div>
+            <div v-if="members.length === 0" class="empty-state">Không tìm thấy thành viên nào.</div>
+            <div v-else class="stack-list">
+              <div v-for="member in members" :key="`permission-member-${member.userId}`" class="stack-row">
+                <div class="row-main">
+                  <strong>{{ member.fullName || member.email }}</strong>
+                  <p>{{ member.email }}</p>
+                </div>
+                <div class="row-actions">
+                  <select :value="member.projectRole" @change="updateMemberRole(member, $event.target.value)" :disabled="!canEditPermissions || member.userId === currentUser?.id">
+                    <option v-for="role in projectRoleOptions" :key="`matrix-role-opt-${member.userId}-${role}`" :value="role">{{ role }}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div v-else-if="activeTab === 'members'" class="settings-card">
             <div class="card-head">
               <div>
@@ -1092,6 +1235,59 @@
             </div>
           </div>
 
+          <div v-else-if="activeTab === 'custom-fields'" class="settings-card">
+            <div class="card-head">
+              <div>
+                <h2>Trường tùy chỉnh</h2>
+                <p>Tạo các trường riêng để bổ sung thông tin cho công việc trong dự án này.</p>
+              </div>
+              <button class="secondary-btn" type="button" @click="openCreateCustomField">
+                <i class="fa-solid fa-plus mr-1"></i> Thêm trường
+              </button>
+            </div>
+
+            <!-- Empty State -->
+            <div v-if="!customFields.length" class="empty-state-container" style="padding: 40px; text-align: center; color: var(--color-text-muted);">
+              <i class="fa-solid fa-folder-open" style="font-size: 48px; margin-bottom: 16px; color: var(--border-color);"></i>
+              <p>Dự án này chưa có trường tùy chỉnh. Hãy tạo trường đầu tiên để bổ sung thông tin riêng cho công việc.</p>
+            </div>
+
+            <!-- List Table -->
+            <div v-else class="table-container">
+              <table class="plane-table">
+                <thead>
+                  <tr>
+                    <th>Tên trường</th>
+                    <th>Loại dữ liệu</th>
+                    <th>Bắt buộc</th>
+                    <th>Hiển thị</th>
+                    <th>Thứ tự</th>
+                    <th style="width: 150px; text-align: right;">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="field in customFields" :key="field.id">
+                    <td><strong>{{ field.name }}</strong> <code style="font-size: 11px; color: var(--color-text-muted);">({{ field.key }})</code></td>
+                    <td><span class="badge" style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 12px; padding: 2px 8px; border-radius: 4px;">{{ field.type }}</span></td>
+                    <td>
+                      <i v-if="field.isRequired" class="fa-solid fa-circle-check text-green-500"></i>
+                      <i v-else class="fa-regular fa-circle text-gray-300"></i>
+                    </td>
+                    <td>
+                      <i v-if="field.isVisible" class="fa-solid fa-eye text-sky-500" title="Hiển thị ở task detail"></i>
+                      <i v-else class="fa-solid fa-eye-slash text-gray-300" title="Ẩn ở task detail"></i>
+                    </td>
+                    <td>{{ field.sortOrder }}</td>
+                    <td style="text-align: right;">
+                      <button class="secondary-btn small-btn mr-1" type="button" @click="openEditCustomField(field)">Sửa</button>
+                      <button class="danger-outline-btn small-btn" type="button" @click="deleteCustomField(field)">Xóa</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <div v-else class="settings-card danger-card">
             <div class="card-head">
               <div>
@@ -1110,6 +1306,49 @@
         </section>
       </div>
     </div>
+
+    <!-- Dialog thêm/sửa trường tùy chỉnh -->
+    <el-dialog
+      v-model="showCustomFieldModal"
+      :title="isEditingCustomField ? 'Sửa trường tùy chỉnh' : 'Thêm trường tùy chỉnh'"
+      width="480px"
+      custom-class="plane-dialog"
+    >
+      <div class="dialog-form" style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label" style="display: block; margin-bottom: 6px; font-weight: 500;">Tên trường <span class="text-red-500">*</span></label>
+          <input type="text" class="form-control" v-model="customFieldForm.name" placeholder="Ví dụ: Mã khách hàng, Ngày bàn giao" style="width: 100%; height: 36px; border: 1px solid var(--border-color); border-radius: 4px; padding: 0 12px; background: var(--bg-primary); color: var(--text-primary);" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="display: block; margin-bottom: 6px; font-weight: 500;">Loại dữ liệu <span class="text-red-500">*</span></label>
+          <el-select v-model="customFieldForm.type" placeholder="Chọn loại dữ liệu" style="width: 100%;" :disabled="isEditingCustomField">
+            <el-option label="Văn bản (Text)" value="Text" />
+            <el-option label="Số (Number)" value="Number" />
+            <el-option label="Ngày (Date)" value="Date" />
+            <el-option label="Lựa chọn (Select)" value="Select" />
+            <el-option label="Hộp kiểm (Checkbox)" value="Checkbox" />
+          </el-select>
+        </div>
+        <div class="form-group" v-if="customFieldForm.type === 'Select'">
+          <label class="form-label" style="display: block; margin-bottom: 6px; font-weight: 500;">Tùy chọn (Options) <span class="text-red-500">*</span></label>
+          <textarea class="form-control" v-model="customFieldForm.optionsText" rows="4" placeholder="Nhập mỗi tùy chọn trên một dòng (Ví dụ:&#10;Thấp&#10;Trung bình&#10;Cao)" style="width: 100%; border: 1px solid var(--border-color); border-radius: 4px; padding: 8px 12px; background: var(--bg-primary); color: var(--text-primary); font-family: inherit;"></textarea>
+        </div>
+        <div class="form-group flex items-center gap-4" style="display: flex; gap: 24px; margin-top: 8px;">
+          <el-checkbox v-model="customFieldForm.isRequired">Bắt buộc nhập</el-checkbox>
+          <el-checkbox v-model="customFieldForm.isVisible">Hiển thị trên Task Detail</el-checkbox>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="display: block; margin-bottom: 6px; font-weight: 500;">Thứ tự hiển thị (Sort Order)</label>
+          <input type="number" class="form-control" v-model.number="customFieldForm.sortOrder" min="0" style="width: 100%; height: 36px; border: 1px solid var(--border-color); border-radius: 4px; padding: 0 12px; background: var(--bg-primary); color: var(--text-primary);" />
+        </div>
+      </div>
+      <template #footer>
+        <span class="dialog-footer" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
+          <el-button @click="showCustomFieldModal = false">Hủy</el-button>
+          <el-button type="primary" :loading="savingCustomField" @click="saveCustomField">Lưu thay đổi</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -1121,6 +1360,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import axiosClient from '@/api/axiosClient'
 import { broadcastAdminRealtime, subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { signalRService } from '@/api/signalrService'
+
+import { getStoredUserSession } from '@/utils/authSession'
+import { getDefaultPermissionMatrix, normalizeRole } from '@/utils/permissionGuard'
 
 const route = useRoute()
 const router = useRouter()
@@ -1134,12 +1376,13 @@ const tabs = [
   { key: 'milestones', label: 'Cột mốc', caption: 'theo dõi phát hành' },
   { key: 'capacity', label: 'Tải công việc', caption: 'ngưỡng workload' },
   { key: 'dashboard', label: 'Bảng vận hành', caption: 'sức khoẻ dự án' },
+  { key: 'permissions', label: 'Quản lý phân quyền', caption: 'vai trò & nhóm quyền' },
   { key: 'members', label: 'Thành viên & vai trò', caption: 'quyền truy cập' },
   { key: 'states', label: 'Trạng thái', caption: 'quy trình' },
   { key: 'labels', label: 'Nhãn', caption: 'phân loại' },
-  { key: 'modules', label: 'Module', caption: 'lập kế hoạch' },
   { key: 'cycles', label: 'Chu kỳ', caption: 'vòng lặp' },
   { key: 'integrations', label: 'Tích hợp', caption: 'kết nối dự án' },
+  { key: 'custom-fields', label: 'Trường tùy chỉnh', caption: 'cấu hình trường riêng' },
   { key: 'danger', label: 'Vùng nguy hiểm', caption: 'thao tác nhạy cảm' }
 ]
 
@@ -1177,6 +1420,19 @@ const pointManagement = ref({
   history: []
 })
 const milestones = ref([])
+const customFields = ref([])
+const savingCustomField = ref(false)
+const showCustomFieldModal = ref(false)
+const isEditingCustomField = ref(false)
+const customFieldForm = ref({
+  id: null,
+  name: '',
+  type: 'Text',
+  isRequired: false,
+  optionsText: '',
+  isVisible: true,
+  sortOrder: 0
+})
 const operationalDashboard = ref({
   overview: {},
   rewardHealth: {},
@@ -1194,6 +1450,50 @@ const generalForm = ref({
   startDate: '',
   endDate: ''
 })
+
+// ────────────────────────────────────────────
+// SME Permission Matrix State Variables
+// ────────────────────────────────────────────
+const currentUser = computed(() => getStoredUserSession() || {})
+const selectedMatrixRole = ref('Manager')
+const localMatrix = ref(getDefaultPermissionMatrix())
+const savingMatrix = ref(false)
+
+const currentUserProjectRole = computed(() => {
+  const me = members.value.find(m => m.userId === currentUser.value?.id)
+  return me?.projectRole || 'Member'
+})
+
+const canEditPermissions = computed(() => {
+  const user = currentUser.value
+  if (!user) return false
+  
+  const wsRole = user.workspaceRole?.toUpperCase()
+  if (wsRole === 'OWNER' || wsRole === 'ADMIN') return true
+
+  const pRole = normalizeRole(currentUserProjectRole.value)
+  return ['PM', 'PO', 'PROJECT_MANAGER', 'PROJECT_LEAD', 'ADMIN'].includes(pRole)
+})
+
+const isPermissionChecked = (role, permissionKey) => {
+  if (role === 'Owner') return true
+  const list = localMatrix.value[role] || []
+  return list.includes(permissionKey)
+}
+
+const togglePermission = (role, permissionKey) => {
+  if (role === 'Owner') return
+  if (!localMatrix.value[role]) {
+    localMatrix.value[role] = []
+  }
+  const list = localMatrix.value[role]
+  const idx = list.indexOf(permissionKey)
+  if (idx > -1) {
+    list.splice(idx, 1)
+  } else {
+    list.push(permissionKey)
+  }
+}
 
 const executionRulesForm = ref({
   enableRoleBasedTaskVisibility: false,
@@ -1441,7 +1741,7 @@ const notifyProjectSettingsRealtime = (type = 'project-settings-updated') => {
 const loadProjectSettings = async () => {
   loading.value = true
   try {
-    const [settingsRes, labelsRes, modulesRes, cyclesRes, statusesRes, integrationsRes, executionRulesRes, rewardRulesRes, capacityRulesRes, baselineSettingsRes, milestonesRes, pointsRes, dashboardRes] = await Promise.all([
+    const [settingsRes, labelsRes, modulesRes, cyclesRes, statusesRes, integrationsRes, executionRulesRes, rewardRulesRes, capacityRulesRes, baselineSettingsRes, milestonesRes, pointsRes, dashboardRes, customFieldsRes] = await Promise.all([
       axiosClient.get(`/projects/${projectId}/settings`),
       axiosClient.get(`/projects/${projectId}/labels`),
       axiosClient.get(`/projects/${projectId}/modules`, { params: { page: 1, pageSize: 50, includeDisabled: true } }),
@@ -1454,7 +1754,8 @@ const loadProjectSettings = async () => {
       axiosClient.get(`/projects/${projectId}/management/baseline-settings`),
       axiosClient.get(`/projects/${projectId}/management/milestones`),
       axiosClient.get(`/projects/${projectId}/management/points`),
-      axiosClient.get(`/projects/${projectId}/management/operational-dashboard`)
+      axiosClient.get(`/projects/${projectId}/management/operational-dashboard`),
+      axiosClient.get(`/projects/${projectId}/custom-fields`).catch(() => ({ data: { data: [] } }))
     ])
 
     const settings = settingsRes.data?.data || {}
@@ -1486,6 +1787,11 @@ const loadProjectSettings = async () => {
     integrations.value = (integrationsRes.data?.data || [])
       .map(normalizeIntegration)
       .filter(integration => integration.provider === 'github')
+
+    customFields.value = (customFieldsRes.data?.data || []).map(field => ({
+      ...field,
+      options: parseOptions(field.optionsJson)
+    }))
 
     generalForm.value = {
       name: project.value.name || '',
@@ -1565,6 +1871,45 @@ const loadProjectSettings = async () => {
     loading.value = false
   }
 }
+
+// ────────────────────────────────────────────
+// SME Permission Matrix Operations
+// ────────────────────────────────────────────
+const loadPermissionMatrix = async () => {
+  try {
+    const res = await axiosClient.get(`/settings/ProjectPermissions:${projectId}`)
+    if (res.data?.data?.rolePermissions) {
+      localMatrix.value = JSON.parse(res.data.data.rolePermissions)
+    } else {
+      localMatrix.value = getDefaultPermissionMatrix()
+    }
+  } catch (e) {
+    localMatrix.value = getDefaultPermissionMatrix()
+  }
+}
+
+const savePermissionMatrix = async () => {
+  savingMatrix.value = true
+  try {
+    await axiosClient.put(`/settings/ProjectPermissions:${projectId}`, {
+      settings: {
+        rolePermissions: JSON.stringify(localMatrix.value)
+      }
+    })
+    ElMessage.success('Cập nhật ma trận phân quyền thành công.')
+    notifyProjectSettingsRealtime()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || 'Không thể cập nhật phân quyền.')
+  } finally {
+    savingMatrix.value = false
+  }
+}
+
+const restoreDefaultMatrix = () => {
+  localMatrix.value = getDefaultPermissionMatrix()
+  ElMessage.info('Đã khôi phục ma trận quyền mặc định trên giao diện. Nhấn "Lưu thay đổi" để lưu.')
+}
+
 
 const loadManagementData = async () => {
   try {
@@ -1920,11 +2265,11 @@ const createState = async () => {
       colorCode: '#3b82f6',
       position: taskStatuses.value.length + 1
     }
-    ElMessage.success('State created')
+    ElMessage.success('Đã tạo trạng thái thành công.')
     await loadProjectSettings()
     notifyProjectSettingsRealtime()
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || 'Could not create state')
+    ElMessage.error(error.response?.data?.message || 'Không thể tạo trạng thái.')
   } finally {
     savingState.value = false
   }
@@ -1937,24 +2282,34 @@ const saveState = async (status) => {
       colorCode: status.colorCode,
       position: status.position
     })
-    ElMessage.success('State updated')
+    ElMessage.success('Đã cập nhật trạng thái thành công.')
+    await loadProjectSettings()
     notifyProjectSettingsRealtime()
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || 'Could not update state')
+    ElMessage.error(error.response?.data?.message || 'Không thể cập nhật trạng thái.')
     await loadProjectSettings()
   }
 }
 
 const deleteState = async (status) => {
   try {
-    await ElMessageBox.confirm(`Delete state "${status.name}"?`, 'Delete state', { type: 'warning' })
+    await ElMessageBox.confirm(`Bạn có chắc chắn muốn xóa trạng thái "${status.name}"?`, 'Xóa trạng thái', {
+      type: 'warning',
+      confirmButtonText: 'Xóa',
+      cancelButtonText: 'Hủy'
+    })
     await axiosClient.delete(`/projects/${projectId}/task-statuses/${status.id}`)
-    ElMessage.success('State deleted')
+    ElMessage.success('Đã xóa trạng thái thành công.')
     await loadProjectSettings()
     notifyProjectSettingsRealtime()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error(error.response?.data?.message || 'Could not delete state')
+      const detail = error.response?.data?.message || ''
+      const isStatusInUse = detail.includes('dang duoc task su dung') || detail.includes('in use') || detail.includes('đang được task sử dụng')
+      const errorMsg = isStatusInUse
+        ? 'Không thể xóa trạng thái đang có công việc. Vui lòng chuyển các công việc sang trạng thái khác trước.'
+        : (detail || 'Không thể xóa trạng thái.')
+      ElMessage.error(errorMsg)
     }
   }
 }
@@ -2357,6 +2712,88 @@ const deleteProject = async () => {
   }
 }
 
+const openCreateCustomField = () => {
+  isEditingCustomField.value = false
+  customFieldForm.value = {
+    id: null,
+    name: '',
+    type: 'Text',
+    isRequired: false,
+    optionsText: '',
+    isVisible: true,
+    sortOrder: customFields.value.length + 1
+  }
+  showCustomFieldModal.value = true
+}
+
+const openEditCustomField = (field) => {
+  isEditingCustomField.value = true
+  customFieldForm.value = {
+    id: field.id,
+    name: field.name,
+    type: field.type,
+    isRequired: field.isRequired,
+    optionsText: field.options ? field.options.join('\n') : '',
+    isVisible: field.isVisible,
+    sortOrder: field.sortOrder
+  }
+  showCustomFieldModal.value = true
+}
+
+const saveCustomField = async () => {
+  if (!customFieldForm.value.name || !customFieldForm.value.name.trim()) {
+    ElMessage.warning('Tên trường không được để trống.')
+    return
+  }
+
+  const payload = {
+    name: customFieldForm.value.name.trim(),
+    type: customFieldForm.value.type,
+    isRequired: customFieldForm.value.isRequired,
+    isVisible: customFieldForm.value.isVisible,
+    sortOrder: customFieldForm.value.sortOrder,
+    options: customFieldForm.value.type === 'Select'
+      ? customFieldForm.value.optionsText.split('\n').map(x => x.trim()).filter(Boolean)
+      : null
+  }
+
+  savingCustomField.value = true
+  try {
+    if (isEditingCustomField.value) {
+      await axiosClient.put(`/projects/${projectId}/custom-fields/${customFieldForm.value.id}`, payload)
+      ElMessage.success('Đã cập nhật trường tùy chỉnh.')
+    } else {
+      await axiosClient.post(`/projects/${projectId}/custom-fields`, payload)
+      ElMessage.success('Đã tạo trường tùy chỉnh.')
+    }
+    showCustomFieldModal.value = false
+    await loadProjectSettings()
+    notifyProjectSettingsRealtime()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || 'Có lỗi xảy ra khi lưu trường tùy chỉnh.')
+  } finally {
+    savingCustomField.value = false
+  }
+}
+
+const deleteCustomField = async (field) => {
+  try {
+    await ElMessageBox.confirm(`Bạn có chắc chắn muốn xóa trường tùy chỉnh "${field.name}"? Dữ liệu lịch sử đã lưu trên các công việc sẽ được bảo lưu.`, 'Xóa trường tùy chỉnh', {
+      type: 'warning',
+      confirmButtonText: 'Xóa',
+      cancelButtonText: 'Hủy'
+    })
+    await axiosClient.delete(`/projects/${projectId}/custom-fields/${field.id}`)
+    ElMessage.success('Đã xóa trường tùy chỉnh thành công.')
+    await loadProjectSettings()
+    notifyProjectSettingsRealtime()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.response?.data?.message || 'Không thể xóa trường tùy chỉnh.')
+    }
+  }
+}
+
 const goBack = () => {
   router.push(`/space/${projectId}`)
 }
@@ -2374,6 +2811,7 @@ let projectRealtimeHandler = null
 
 onMounted(async () => {
   await loadProjectSettings()
+  await loadPermissionMatrix()
   await signalRService.startConnection(`${projectId}`)
   if (projectRealtimeHandler) {
     signalRService.off('ProjectRealtimeEvent', projectRealtimeHandler)
@@ -2859,11 +3297,141 @@ input:disabled {
   }
 
   .settings-nav {
-    grid-template-columns: 1fr;
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    gap: 8px !important;
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid var(--color-border) !important;
+    margin-bottom: 16px !important;
+    -webkit-overflow-scrolling: touch;
+    width: 100% !important;
+  }
+
+  .nav-tab {
+    flex: 0 0 auto !important;
+    padding: 8px 14px !important;
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    border-radius: 8px !important;
   }
 
   .state-row {
     grid-template-columns: 1fr;
   }
+}
+
+/* ────────────────────────────────────────────
+ * SME Permission Matrix Styles
+ * ──────────────────────────────────────────── */
+.role-selector-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #1f232a;
+  padding-bottom: 12px;
+}
+
+.role-tab {
+  background: #16181d;
+  border: 1px solid #27272a;
+  color: #a1a1aa;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.role-tab:hover {
+  border-color: #38bdf8;
+  color: #fff;
+}
+
+.role-tab.active {
+  background: #0ea5e9;
+  border-color: #0ea5e9;
+  color: #fff;
+}
+
+.matrix-container {
+  overflow-x: auto;
+  border: 1px solid #1f232a;
+  border-radius: 10px;
+  background: #0b0d11;
+}
+
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.matrix-table th,
+.matrix-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #1f232a;
+}
+
+.matrix-table th {
+  background: #16181d;
+  color: #a1a1aa;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.matrix-table td {
+  color: #e4e4e7;
+  font-size: 14px;
+}
+
+.matrix-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.matrix-table input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #0ea5e9;
+  cursor: pointer;
+  border: 1px solid #27272a;
+  border-radius: 4px;
+  background: #0f1115;
+}
+
+.matrix-table input[type="checkbox"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.compact-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.compact-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #d4d4d8;
+  cursor: pointer;
+}
+
+.compact-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.matrix-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 </style>
