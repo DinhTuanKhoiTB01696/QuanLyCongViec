@@ -26,25 +26,31 @@ namespace TaskManagement.Infrastructure.Data
             const string demoProjectName = "Demo Plane Project";
             var standardRoles = new[]
             {
-                new { Name = "Admin", Description = "System Administrator" },
-                new { Name = "PM", Description = "Project Manager" },
-                new { Name = "Project Lead", Description = "Project lead access" },
-                new { Name = "PO", Description = "Product Owner" },
-                new { Name = "Developer", Description = "Developer access" },
-                new { Name = "QA", Description = "Quality Assurance" },
-                new { Name = "Accountant", Description = "Accounting access" }
+                new { Name = "Admin", Description = "System Administrator", IsProtected = true },
+                new { Name = "PM", Description = "Project Manager", IsProtected = true },
+                new { Name = "Project Lead", Description = "Project lead access", IsProtected = false },
+                new { Name = "PO", Description = "Product Owner", IsProtected = false },
+                new { Name = "Developer", Description = "Developer access", IsProtected = false },
+                new { Name = "QA", Description = "Quality Assurance", IsProtected = false },
+                new { Name = "Accountant", Description = "Accounting access", IsProtected = false }
             };
 
             foreach (var roleSeed in standardRoles)
             {
-                if (!await context.Roles.AnyAsync(role => role.Name == roleSeed.Name))
+                var role = await context.Roles.FirstOrDefaultAsync(r => r.Name == roleSeed.Name);
+                if (role == null)
                 {
                     context.Roles.Add(new Role
                     {
                         Id = Guid.NewGuid(),
                         Name = roleSeed.Name,
-                        Description = roleSeed.Description
+                        Description = roleSeed.Description,
+                        IsProtected = roleSeed.IsProtected
                     });
+                }
+                else if (role.IsProtected != roleSeed.IsProtected)
+                {
+                    role.IsProtected = roleSeed.IsProtected;
                 }
             }
 
@@ -52,6 +58,8 @@ namespace TaskManagement.Infrastructure.Data
             {
                 await context.SaveChangesAsync();
             }
+
+            await SeedPermissionsAsync(context);
 
             // Homesite must run on real user-entered data. Keep only system roles by default;
             // demo users, workspaces, projects, tasks, and kudos require an explicit opt-in.
@@ -455,6 +463,226 @@ namespace TaskManagement.Infrastructure.Data
                 CreatedAt = now,
                 UpdatedAt = now
             });
+        }
+
+        private static async Task SeedPermissionsAsync(ApplicationDbContext context)
+        {
+            var permissions = new[]
+            {
+                new { Module = "admin.roles", Code = "admin.roles.view", Description = "View admin roles" },
+                new { Module = "admin.roles", Code = "admin.roles.create", Description = "Create admin roles" },
+                new { Module = "admin.roles", Code = "admin.roles.edit", Description = "Edit admin roles" },
+                new { Module = "admin.roles", Code = "admin.roles.delete", Description = "Delete admin roles" },
+                new { Module = "admin.roles", Code = "admin.roles.manage_permissions", Description = "Manage permissions admin roles" },
+
+                new { Module = "admin.security", Code = "admin.security.view", Description = "View admin security" },
+                new { Module = "admin.security", Code = "admin.security.manage_2fa", Description = "Manage 2fa admin security" },
+                new { Module = "admin.security", Code = "admin.security.manage_ip_whitelist", Description = "Manage ip whitelist admin security" },
+
+                new { Module = "admin.settings", Code = "admin.settings.view", Description = "View admin settings" },
+                new { Module = "admin.settings", Code = "admin.settings.edit", Description = "Edit admin settings" },
+
+                new { Module = "admin.users", Code = "admin.users.view", Description = "View admin users" },
+                new { Module = "admin.users", Code = "admin.users.invite", Description = "Invite admin users" },
+                new { Module = "admin.users", Code = "admin.users.edit", Description = "Edit admin users" },
+                new { Module = "admin.users", Code = "admin.users.suspend", Description = "Suspend admin users" },
+                new { Module = "admin.users", Code = "admin.users.delete", Description = "Delete admin users" },
+
+                new { Module = "ai_assistant", Code = "ai_assistant.view", Description = "View ai_assistant" },
+                new { Module = "ai_assistant", Code = "ai_assistant.use", Description = "Use ai_assistant" },
+
+                new { Module = "analytics", Code = "analytics.view", Description = "View analytics" },
+                new { Module = "analytics", Code = "analytics.export", Description = "Export analytics" },
+
+                new { Module = "archives", Code = "archives.view", Description = "View archives" },
+                new { Module = "archives", Code = "archives.restore", Description = "Restore archives" },
+                new { Module = "archives", Code = "archives.delete", Description = "Delete archives" },
+
+                new { Module = "audit_log", Code = "audit_log.view", Description = "View audit_log" },
+                new { Module = "audit_log", Code = "audit_log.export", Description = "Export audit_log" },
+
+                new { Module = "chat", Code = "chat.view", Description = "View chat" },
+                new { Module = "chat", Code = "chat.send", Description = "Send chat" },
+                new { Module = "chat", Code = "chat.edit", Description = "Edit chat" },
+                new { Module = "chat", Code = "chat.delete", Description = "Delete chat" },
+                new { Module = "chat", Code = "chat.manage_channel", Description = "Manage channel chat" },
+
+                new { Module = "checkin", Code = "checkin.view", Description = "View checkin" },
+                new { Module = "checkin", Code = "checkin.submit", Description = "Submit checkin" },
+                new { Module = "checkin", Code = "checkin.review", Description = "Review checkin" },
+
+                new { Module = "dashboard", Code = "dashboard.view", Description = "View dashboard" },
+
+                new { Module = "drafts", Code = "drafts.view", Description = "View drafts" },
+                new { Module = "drafts", Code = "drafts.create", Description = "Create drafts" },
+                new { Module = "drafts", Code = "drafts.edit", Description = "Edit drafts" },
+                new { Module = "drafts", Code = "drafts.delete", Description = "Delete drafts" },
+
+                new { Module = "feed", Code = "feed.view", Description = "View feed" },
+                new { Module = "feed", Code = "feed.post", Description = "Post feed" },
+                new { Module = "feed", Code = "feed.comment", Description = "Comment feed" },
+                new { Module = "feed", Code = "feed.like", Description = "Like feed" },
+
+                new { Module = "goals", Code = "goals.view", Description = "View goals" },
+                new { Module = "goals", Code = "goals.create", Description = "Create goals" },
+                new { Module = "goals", Code = "goals.edit", Description = "Edit goals" },
+                new { Module = "goals", Code = "goals.delete", Description = "Delete goals" },
+                new { Module = "goals", Code = "goals.update_progress", Description = "Update progress goals" },
+                new { Module = "goals", Code = "goals.manage_metrics", Description = "Manage metrics goals" },
+
+                new { Module = "integrations", Code = "integrations.view", Description = "View integrations" },
+                new { Module = "integrations", Code = "integrations.manage", Description = "Manage integrations" },
+
+                new { Module = "notifications", Code = "notifications.view", Description = "View notifications" },
+                new { Module = "notifications", Code = "notifications.manage", Description = "Manage notifications" },
+
+                new { Module = "people", Code = "people.view", Description = "View people" },
+                new { Module = "people", Code = "people.manage", Description = "Manage people" },
+
+                new { Module = "priority", Code = "priority.view", Description = "View priority" },
+                new { Module = "priority", Code = "priority.manage", Description = "Manage priority" },
+
+                new { Module = "profile", Code = "profile.view", Description = "View profile" },
+                new { Module = "profile", Code = "profile.edit", Description = "Edit profile" },
+
+                new { Module = "projects", Code = "projects.view", Description = "View projects" },
+                new { Module = "projects", Code = "projects.create", Description = "Create projects" },
+                new { Module = "projects", Code = "projects.edit", Description = "Edit projects" },
+                new { Module = "projects", Code = "projects.delete", Description = "Delete projects" },
+                new { Module = "projects", Code = "projects.archive", Description = "Archive projects" },
+                new { Module = "projects", Code = "projects.restore", Description = "Restore projects" },
+                new { Module = "projects", Code = "projects.export", Description = "Export projects" },
+                new { Module = "projects", Code = "projects.import", Description = "Import projects" },
+                new { Module = "projects", Code = "projects.manage_settings", Description = "Manage settings projects" },
+
+                new { Module = "rewards", Code = "rewards.view", Description = "View rewards" },
+                new { Module = "rewards", Code = "rewards.manage", Description = "Manage rewards" },
+
+                new { Module = "space.cycles", Code = "space.cycles.view", Description = "View space cycles" },
+                new { Module = "space.cycles", Code = "space.cycles.create", Description = "Create space cycles" },
+                new { Module = "space.cycles", Code = "space.cycles.edit", Description = "Edit space cycles" },
+                new { Module = "space.cycles", Code = "space.cycles.delete", Description = "Delete space cycles" },
+
+                new { Module = "space.dashboard", Code = "space.dashboard.view", Description = "View space dashboard" },
+                new { Module = "space.dashboard", Code = "space.dashboard.edit", Description = "Edit space dashboard" },
+
+                new { Module = "space.intakes", Code = "space.intakes.view", Description = "View space intakes" },
+                new { Module = "space.intakes", Code = "space.intakes.manage", Description = "Manage space intakes" },
+
+                new { Module = "space.members", Code = "space.members.view", Description = "View space members" },
+                new { Module = "space.members", Code = "space.members.invite", Description = "Invite space members" },
+                new { Module = "space.members", Code = "space.members.remove", Description = "Remove space members" },
+                new { Module = "space.members", Code = "space.members.manage_roles", Description = "Manage roles space members" },
+
+                new { Module = "space.modules", Code = "space.modules.view", Description = "View space modules" },
+                new { Module = "space.modules", Code = "space.modules.manage", Description = "Manage space modules" },
+
+                new { Module = "space.pages", Code = "space.pages.view", Description = "View space pages" },
+                new { Module = "space.pages", Code = "space.pages.create", Description = "Create space pages" },
+                new { Module = "space.pages", Code = "space.pages.edit", Description = "Edit space pages" },
+                new { Module = "space.pages", Code = "space.pages.delete", Description = "Delete space pages" },
+
+                new { Module = "space.reports", Code = "space.reports.view", Description = "View space reports" },
+                new { Module = "space.reports", Code = "space.reports.create", Description = "Create space reports" },
+                new { Module = "space.reports", Code = "space.reports.export", Description = "Export space reports" },
+
+                new { Module = "space.settings", Code = "space.settings.view", Description = "View space settings" },
+                new { Module = "space.settings", Code = "space.settings.edit", Description = "Edit space settings" },
+
+                new { Module = "space.timeline", Code = "space.timeline.view", Description = "View space timeline" },
+                new { Module = "space.timeline", Code = "space.timeline.edit", Description = "Edit space timeline" },
+
+                new { Module = "space.views", Code = "space.views.view", Description = "View space views" },
+                new { Module = "space.views", Code = "space.views.create", Description = "Create space views" },
+                new { Module = "space.views", Code = "space.views.edit", Description = "Edit space views" },
+                new { Module = "space.views", Code = "space.views.delete", Description = "Delete space views" },
+
+                new { Module = "space.work_items", Code = "space.work_items.view", Description = "View space work_items" },
+                new { Module = "space.work_items", Code = "space.work_items.create", Description = "Create space work_items" },
+                new { Module = "space.work_items", Code = "space.work_items.edit", Description = "Edit space work_items" },
+                new { Module = "space.work_items", Code = "space.work_items.delete", Description = "Delete space work_items" },
+                new { Module = "space.work_items", Code = "space.work_items.assign", Description = "Assign space work_items" },
+                new { Module = "space.work_items", Code = "space.work_items.change_status", Description = "Change status space work_items" },
+                new { Module = "space.work_items", Code = "space.work_items.comment", Description = "Comment space work_items" },
+                new { Module = "space.work_items", Code = "space.work_items.attachment", Description = "Attachment space work_items" },
+
+                new { Module = "spaces", Code = "spaces.view", Description = "View spaces" },
+                new { Module = "spaces", Code = "spaces.create", Description = "Create spaces" },
+                new { Module = "spaces", Code = "spaces.edit", Description = "Edit spaces" },
+                new { Module = "spaces", Code = "spaces.delete", Description = "Delete spaces" },
+                new { Module = "spaces", Code = "spaces.archive", Description = "Archive spaces" },
+                new { Module = "spaces", Code = "spaces.restore", Description = "Restore spaces" },
+                new { Module = "spaces", Code = "spaces.manage_settings", Description = "Manage settings spaces" },
+
+                new { Module = "starred", Code = "starred.view", Description = "View starred" },
+                new { Module = "starred", Code = "starred.manage", Description = "Manage starred" },
+
+                new { Module = "stickies", Code = "stickies.view", Description = "View stickies" },
+                new { Module = "stickies", Code = "stickies.create", Description = "Create stickies" },
+                new { Module = "stickies", Code = "stickies.edit", Description = "Edit stickies" },
+                new { Module = "stickies", Code = "stickies.delete", Description = "Delete stickies" },
+
+                new { Module = "system_status", Code = "system_status.view", Description = "View system_status" },
+
+                new { Module = "teams", Code = "teams.view", Description = "View teams" },
+                new { Module = "teams", Code = "teams.create", Description = "Create teams" },
+                new { Module = "teams", Code = "teams.edit", Description = "Edit teams" },
+                new { Module = "teams", Code = "teams.delete", Description = "Delete teams" },
+                new { Module = "teams", Code = "teams.manage_members", Description = "Manage members teams" },
+
+                new { Module = "views", Code = "views.view", Description = "View views" },
+                new { Module = "views", Code = "views.create", Description = "Create views" },
+                new { Module = "views", Code = "views.edit", Description = "Edit views" },
+                new { Module = "views", Code = "views.delete", Description = "Delete views" },
+
+                new { Module = "your_work", Code = "your_work.view", Description = "View your_work" },
+
+            };
+
+            foreach (var perm in permissions)
+            {
+                var existing = await context.Permissions.FirstOrDefaultAsync(p => p.Code == perm.Code);
+                if (existing == null)
+                {
+                    context.Permissions.Add(new Permission
+                    {
+                        Id = Guid.NewGuid(),
+                        Module = perm.Module,
+                        Code = perm.Code,
+                        Description = perm.Description
+                    });
+                }
+                else if (existing.Description != perm.Description || existing.Module != perm.Module)
+                {
+                    existing.Description = perm.Description;
+                    existing.Module = perm.Module;
+                }
+            }
+            await context.SaveChangesAsync();
+
+            // Assign all permissions to Admin role
+            var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
+            if (adminRole != null)
+            {
+                var allPermissions = await context.Permissions.ToListAsync();
+                var existingRolePerms = await context.RolePermissions
+                    .Where(rp => rp.RoleId == adminRole.Id)
+                    .Select(rp => rp.PermissionId)
+                    .ToListAsync();
+
+                foreach (var perm in allPermissions)
+                {
+                    if (!existingRolePerms.Contains(perm.Id))
+                    {
+                        context.RolePermissions.Add(new RolePermission
+                        {
+                            RoleId = adminRole.Id,
+                            PermissionId = perm.Id
+                        });
+                    }
+                }
+                await context.SaveChangesAsync();
+            }
         }
     }
 }

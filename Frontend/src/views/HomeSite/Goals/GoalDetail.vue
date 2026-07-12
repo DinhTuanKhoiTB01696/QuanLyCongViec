@@ -1,19 +1,19 @@
-﻿<template>
+<template>
   <div class="goal-detail-wrapper" v-if="goal">
     <!-- Module Header (matching the list view) -->
-    <header class="module-header">
-      <div class="header-content">
-        <h1>Mục tiêu</h1>
-        <div class="header-actions">
+    <header class="module-header" style="padding-bottom: 0;">
+      <AppPageHeader title="Mục tiêu" @back="router.push('/home/goals')" :back="true">
+        <template #actions>
           <button class="primary-btn">Tạo mục tiêu</button>
-        </div>
-      </div>
-      
-      <div class="tabs-nav">
-        <router-link to="/home/goals" class="tab-link">Thư mục mục tiêu</router-link>
-        <router-link to="/home/goals" class="tab-link">Đang theo dõi</router-link>
-        <router-link to="/home/goals" class="tab-link">Đã lưu trữ</router-link>
-      </div>
+        </template>
+        <template #bottom>
+          <div class="tabs-nav" style="margin-top: 16px;">
+            <router-link to="/home/goals" class="tab-link">Thư mục mục tiêu</router-link>
+            <router-link to="/home/goals" class="tab-link">Đang theo dõi</router-link>
+            <router-link to="/home/goals" class="tab-link">Đã lưu trữ</router-link>
+          </div>
+        </template>
+      </AppPageHeader>
     </header>
 
     <!-- Entity Header -->
@@ -46,9 +46,7 @@
         
         <!-- Quick Status Row -->
         <div class="quick-status-row">
-          <span class="status-badge" :class="getStatusClass(goal.status)">
-            <span class="status-dot"></span> {{ goal.status }}
-          </span>
+          <AppStatusBadge :status="goal.status" :statusText="goal.status" />
           <span class="update-text" v-if="goal.lastUpdate">Cập nhật: {{ goal.lastUpdate }}</span>
         </div>
       </div>
@@ -113,7 +111,7 @@
               </div>
               <div v-else>
                 <div class="timeline-item" v-for="entry in goalHistory" :key="entry.id" style="display: flex; align-items: flex-start; gap: 12px;">
-                   <UserAvatar :user="{ fullName: entry.actor, email: entry.email }" :size="24" :fontSize="10" />
+                   <AppAvatar :user="{ fullName: entry.actor, email: entry.email }" :size="24" />
                    <div style="flex: 1;">
                       <div style="display: flex; justify-content: space-between; align-items: center;">
                          <span style="font-size: 14px; color: #172B4D;"><strong>{{ entry.actor }}</strong> {{ entry.action }}</span>
@@ -157,15 +155,15 @@
               <div class="editor-field">
                 <label>Trạng thái hiện tại</label>
                 <div class="status-dropdown-wrapper">
-                  <span class="status-badge" :class="getStatusClass(newUpdateForm.status)" @click="showStatusMenu = !showStatusMenu" style="cursor: pointer;">
-                    {{ newUpdateForm.status }} <i class="fa-solid fa-chevron-down ms-1"></i>
+                  <span @click="showStatusMenu = !showStatusMenu" style="cursor: pointer; display: inline-block;">
+                    <AppStatusBadge :status="newUpdateForm.status" :statusText="newUpdateForm.status + ' ▾'" />
                   </span>
                   <div class="status-dropdown-menu" v-if="showStatusMenu">
-                    <div class="status-option" @click="selectStatus('ĐANG CHỜ XỬ LÝ')"><span class="status-badge status-pending">ĐANG CHỜ XỬ LÝ</span></div>
-                    <div class="status-option" @click="selectStatus('ĐÚNG TIẾN ĐỘ')"><span class="status-badge status-on-track">ĐÚNG TIẾN ĐỘ</span></div>
-                    <div class="status-option" @click="selectStatus('CÓ RỦI RO')"><span class="status-badge status-at-risk">CÓ RỦI RO</span></div>
-                    <div class="status-option" @click="selectStatus('CHẬM TIẾN ĐỘ')"><span class="status-badge status-off-track">CHẬM TIẾN ĐỘ</span></div>
-                    <div class="status-option" @click="selectStatus('ĐÃ HOÀN TẤT')"><span class="status-badge status-done">ĐÃ HOÀN TẤT <i class="fa-solid fa-flag ms-1"></i></span></div>
+                    <div class="status-option" @click="selectStatus('ĐANG CHỜ XỬ LÝ')"><AppStatusBadge status="ĐANG CHỜ XỬ LÝ" statusText="ĐANG CHỜ XỬ LÝ" /></div>
+                    <div class="status-option" @click="selectStatus('ĐÚNG TIẾN ĐỘ')"><AppStatusBadge status="ĐÚNG TIẾN ĐỘ" statusText="ĐÚNG TIẾN ĐỘ" /></div>
+                    <div class="status-option" @click="selectStatus('CÓ RỦI RO')"><AppStatusBadge status="CÓ RỦI RO" statusText="CÓ RỦI RO" /></div>
+                    <div class="status-option" @click="selectStatus('CHẬM TIẾN ĐỘ')"><AppStatusBadge status="CHẬM TIẾN ĐỘ" statusText="CHẬM TIẾN ĐỘ" /></div>
+                    <div class="status-option" @click="selectStatus('ĐÃ HOÀN TẤT')"><AppStatusBadge status="ĐÃ HOÀN TẤT" statusText="ĐÃ HOÀN TẤT" /></div>
                     <div class="divider"></div>
                     <div class="status-option text-option" @click="selectStatus('ĐÃ TẠM DỪNG')">ĐÃ TẠM DỪNG</div>
                     <div class="status-option text-option" @click="selectStatus('ĐÃ HỦY')">ĐÃ HỦY</div>
@@ -214,14 +212,14 @@
             <div class="timeline-post" style="margin-bottom: 24px; border: 1px solid #DFE1E6; padding: 16px; border-radius: 3px; background: white;" v-for="update in goalStore.updates" :key="update.id">
               <div class="post-header">
                 <div class="post-user">
-                  <UserAvatar :user="{ id: update.userId, fullName: update.userName, avatarUrl: update.userAvatar }" :size="32" :fontSize="12" />
+                  <AppAvatar :user="{ id: update.userId, fullName: update.userName, avatarUrl: update.userAvatar }" :size="32" />
                   <div class="user-info">
                     <span class="user-name">{{ update.userName }}</span>
                     <span class="post-time">{{ new Date(update.createdAt).toLocaleString('vi-VN') }}</span>
                   </div>
                 </div>
                 <div class="post-status-meta">
-                  <span class="status-badge" :class="getStatusClass(update.status)">{{ update.status }}</span> cho <div class="target-date-badge"><i class="fa-regular fa-calendar"></i> {{ goal?.endDate ? new Date(goal.endDate).toLocaleDateString('vi-VN', { day: 'numeric', month: 'short' }) : 'Không có' }}</div>
+                  <AppStatusBadge :status="update.status" :statusText="update.status" /> cho <div class="target-date-badge"><i class="fa-regular fa-calendar"></i> {{ goal?.endDate ? new Date(goal.endDate).toLocaleDateString('vi-VN', { day: 'numeric', month: 'short' }) : 'Không có' }}</div>
                 </div>
               </div>
               
@@ -236,10 +234,10 @@
                 <p v-else style="white-space: pre-wrap;">{{ update.content }}</p>
                 <div class="status-change-log" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
                   <div v-if="getPreviousStatus(update) && getPreviousStatus(update) !== getCurrentStatus(update)">
-                    Đã thay đổi trạng thái từ <span class="status-badge mx-1" :class="getStatusClass(update.previousStatus)">{{ update.previousStatus }}</span> <i class="fa-solid fa-arrow-right text-gray-400 mx-1 text-xs"></i> <span class="status-badge mx-1" :class="getStatusClass(update.status)">{{ update.status }}</span>
+                    Đã thay đổi trạng thái từ <AppStatusBadge :status="update.previousStatus" :statusText="update.previousStatus" /> <i class="fa-solid fa-arrow-right text-gray-400 mx-1 text-xs"></i> <AppStatusBadge :status="update.status" :statusText="update.status" />
                   </div>
                   <div v-else>
-                    Đã giữ nguyên trạng thái <span class="status-badge mx-1" :class="getStatusClass(update.status)">{{ update.status }}</span>
+                    Đã giữ nguyên trạng thái <AppStatusBadge :status="update.status" :statusText="update.status" />
                   </div>
                   <div v-if="update.progress !== undefined && update.progress !== null" style="color: #5E6C84; font-size: 13px;">
                     <i class="fa-solid fa-chart-line"></i> Tiến độ: <strong>{{ update.progress }}%</strong>
@@ -272,15 +270,7 @@
               </div>
             </div>
           </div>
-                    <div v-else class="empty-state-large-tab">
-            <div class="empty-illustration">
-              <i class="fa-regular fa-message" style="color: #0052CC; font-size: 56px;"></i>
-            </div>
-            <div class="empty-content">
-              <h3>Chưa có bản cập nhật nào.</h3>
-              <p>Các bản cập nhật mục tiêu sẽ xuất hiện ở đây sau khi được đăng.</p>
-            </div>
-          </div>
+                    <AppEmptyState v-else icon="fa-regular fa-message" title="Chưa có bản cập nhật nào." description="Các bản cập nhật mục tiêu sẽ xuất hiện ở đây sau khi được đăng." />
         </template>
 
         <!-- JIRA TAB -->
@@ -300,7 +290,7 @@
                    <button class="secondary-btn" @click="isSprintAInputOpen = !isSprintAInputOpen" style="background: white; border: 1px solid #DFE1E6; font-weight: 600;">Thêm hạng mục công việc SprintA</button>
                    
                    <!-- SprintA Input Dropdown -->
-                   <div v-if="isSprintAInputOpen" class="dropdown-menu" style="position: absolute; top: 100%; left: 0; margin-top: 8px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 320px; z-index: 100; padding: 16px;">
+                   <div v-if="isSprintAInputOpen" class="dropdown-menu" style="position: absolute; top: 100%; left: 0; margin-top: 8px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 320px; z-index: 1000; padding: 16px;">
                       <input type="text" placeholder="Dán URL SprintA" style="width: 100%; padding: 8px 12px; border: 2px solid #4C9AFF; border-radius: 3px; font-size: 14px; outline: none; box-sizing: border-box; margin-bottom: 12px;" />
                       <div style="display: flex; justify-content: flex-end; gap: 8px;">
                         <button class="cancel-btn" @click="isSprintAInputOpen = false">Hủy</button>
@@ -330,7 +320,7 @@
                    <button class="secondary-btn" @click="isProjectSearchOpen = !isProjectSearchOpen" style="background: white; border: 1px solid #DFE1E6; font-weight: 600;">Thêm dự án</button>
                    
                    <!-- Project Search Dropdown -->
-                   <div v-if="isProjectSearchOpen" class="dropdown-menu" style="position: absolute; top: 100%; left: 0; margin-top: 8px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 320px; z-index: 100; padding: 12px 0;">
+                   <div v-if="isProjectSearchOpen" class="dropdown-menu" style="position: absolute; top: 100%; left: 0; margin-top: 8px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 320px; z-index: 1000; padding: 12px 0;">
                       <div style="padding: 0 12px 12px;">
                         <input type="text" placeholder="Tìm kiếm dự án" style="width: 100%; padding: 8px 12px; border: 2px solid #DFE1E6; border-radius: 3px; font-size: 14px; outline: none; box-sizing: border-box;" onfocus="this.style.borderColor='#4C9AFF'" onblur="this.style.borderColor='#DFE1E6'" />
                       </div>
@@ -352,18 +342,11 @@
 
         <!-- BÀI HỌC RÚT RA TAB -->
         <template v-if="currentTab === 'learnings'">
-          <div v-if="!editing.learnings && !goalStore.lessons?.length" class="empty-state-large-tab">
-            <div class="empty-illustration">
-              <i class="fa-solid fa-lightbulb" style="color: #0052CC; font-size: 64px;"></i>
-            </div>
-            <div class="empty-text-content">
-              <h4>Những bộ óc vĩ đại có tư duy giống nhau sẽ chia sẻ kiến thức của họ</h4>
-              <p>Chia sẻ những gì bạn đã học được với công ty của bạn để giúp những người khác có một khởi đầu thuận lợi khi làm việc trên các mục tiêu tương tự.</p>
-              <div class="empty-actions">
-                <button class="secondary-btn" @click="editing.learnings = true">Thêm bài học rút ra mới</button>
-              </div>
-            </div>
-          </div>
+          <AppEmptyState v-if="!editing.learnings && !goalStore.lessons?.length" icon="fa-solid fa-lightbulb" title="Những bộ óc vĩ đại có tư duy giống nhau sẽ chia sẻ kiến thức của họ" description="Chia sẻ những gì bạn đã học được với công ty của bạn để giúp những người khác có một khởi đầu thuận lợi khi làm việc trên các mục tiêu tương tự.">
+            <template #actions>
+              <button class="secondary-btn" @click="editing.learnings = true">Thêm bài học rút ra mới</button>
+            </template>
+          </AppEmptyState>
           <div v-else>
             <div v-if="editing.learnings" class="tab-item-editor" style="margin-bottom: 24px; padding-top: 16px;">
                 <RichTextEditor v-model="newItem.text" @save="saveLearning" @cancel="editing.learnings = false; newItem.title = ''; newItem.text = ''" placeholder="Dùng không gian này để chia sẻ bài học rút ra...">
@@ -383,7 +366,7 @@
             <div class="timeline-post" v-for="item in goalStore.lessons" :key="item.id" style="margin-bottom: 16px;">
                 <div class="post-header">
                   <div class="post-user">
-                    <UserAvatar :user="{ id: item.creatorId, fullName: item.creatorName, avatarUrl: item.creatorAvatarUrl, email: item.creatorEmail }" :size="32" :fontSize="12" />
+                    <AppAvatar :user="{ id: item.creatorId, fullName: item.creatorName, avatarUrl: item.creatorAvatarUrl, email: item.creatorEmail }" :size="32" />
                     <div class="user-info">
                       <span class="user-name">{{ item.creatorName }}</span>
                       <span class="post-time">{{ new Date(item.createdAt).toLocaleString('vi-VN') }}</span>
@@ -400,18 +383,11 @@
 
         <!-- RỦI RO TAB -->
         <template v-if="currentTab === 'risks'">
-          <div v-if="!editing.risks && !goalStore.risks?.length" class="empty-state-large-tab">
-            <div class="empty-illustration">
-              <i class="fa-solid fa-triangle-exclamation" style="color: #FF5630; font-size: 64px;"></i>
-            </div>
-            <div class="empty-text-content">
-              <h4>Nắm bắt các rủi ro đã biết</h4>
-              <p>Theo dõi mọi rủi ro liên quan đến mục tiêu này để tránh những bất ngờ sau này.</p>
-              <div class="empty-actions">
-                <button class="secondary-btn" @click="editing.risks = true">Thêm rủi ro mới</button>
-              </div>
-            </div>
-          </div>
+          <AppEmptyState v-if="!editing.risks && !goalStore.risks?.length" icon="fa-solid fa-triangle-exclamation" title="Nắm bắt các rủi ro đã biết" description="Theo dõi mọi rủi ro liên quan đến mục tiêu này để tránh những bất ngờ sau này.">
+            <template #actions>
+              <button class="secondary-btn" @click="editing.risks = true">Thêm rủi ro mới</button>
+            </template>
+          </AppEmptyState>
           <div v-else>
             <div v-if="editing.risks" class="tab-item-editor" style="margin-bottom: 24px; padding-top: 16px;">
                 <RichTextEditor v-model="newItem.text" @save="saveRisk" @cancel="editing.risks = false; newItem.title = ''; newItem.text = ''" placeholder="Mô tả rủi ro...">
@@ -431,7 +407,7 @@
             <div class="timeline-post" v-for="item in goalStore.risks" :key="item.id" style="margin-bottom: 16px;">
                 <div class="post-header">
                   <div class="post-user">
-                    <UserAvatar :user="{ id: item.creatorId, fullName: item.creatorName, avatarUrl: item.creatorAvatarUrl, email: item.creatorEmail }" :size="32" :fontSize="12" />
+                    <AppAvatar :user="{ id: item.creatorId, fullName: item.creatorName, avatarUrl: item.creatorAvatarUrl, email: item.creatorEmail }" :size="32" />
                     <div class="user-info">
                       <span class="user-name">{{ item.creatorName }}</span>
                       <span class="post-time">{{ new Date(item.createdAt).toLocaleString('vi-VN') }}</span>
@@ -448,18 +424,11 @@
 
         <!-- QUYẾT ĐỊNH TAB -->
         <template v-if="currentTab === 'decisions'">
-          <div v-if="!editing.decisions && !goalStore.decisions?.length" class="empty-state-large-tab">
-            <div class="empty-illustration">
-              <i class="fa-solid fa-check-circle" style="color: #36B37E; font-size: 64px;"></i>
-            </div>
-            <div class="empty-text-content">
-              <h4>Truyền đạt các quyết định lớn</h4>
-              <p>Ghi lại các quyết định lớn cho mục tiêu này tại đây để chia sẻ trong bản cập nhật mới nhất của bạn.</p>
-              <div class="empty-actions">
-                <button class="secondary-btn" @click="editing.decisions = true">Thêm quyết định mới</button>
-              </div>
-            </div>
-          </div>
+          <AppEmptyState v-if="!editing.decisions && !goalStore.decisions?.length" icon="fa-solid fa-check-circle" title="Truyền đạt các quyết định lớn" description="Ghi lại các quyết định lớn cho mục tiêu này tại đây để chia sẻ trong bản cập nhật mới nhất của bạn.">
+            <template #actions>
+              <button class="secondary-btn" @click="editing.decisions = true">Thêm quyết định mới</button>
+            </template>
+          </AppEmptyState>
           <div v-else>
             <div v-if="editing.decisions" class="tab-item-editor" style="margin-bottom: 24px; padding-top: 16px;">
                 <RichTextEditor v-model="newItem.text" @save="saveDecision" @cancel="editing.decisions = false; newItem.title = ''; newItem.text = ''" placeholder="Mô tả quyết định...">
@@ -479,7 +448,7 @@
             <div class="timeline-post" v-for="item in goalStore.decisions" :key="item.id" style="margin-bottom: 16px;">
                 <div class="post-header">
                   <div class="post-user">
-                    <UserAvatar :user="{ id: item.creatorId, fullName: item.creatorName, avatarUrl: item.creatorAvatarUrl, email: item.creatorEmail }" :size="32" :fontSize="12" />
+                    <AppAvatar :user="{ id: item.creatorId, fullName: item.creatorName, avatarUrl: item.creatorAvatarUrl, email: item.creatorEmail }" :size="32" />
                     <div class="user-info">
                       <span class="user-name">{{ item.creatorName }}</span>
                       <span class="post-time">{{ new Date(item.createdAt).toLocaleString('vi-VN') }}</span>
@@ -516,7 +485,7 @@
               <div class="detail-label">Chủ sở hữu</div>
               <div class="detail-value">
                 <div class="owner-chip">
-                  <UserAvatar :user="{ id: goal.creatorId || goal.ownerId, avatarColor: goal.creatorColor || goal.ownerColor, fullName: goal.creatorName || goal.ownerName || goal.owner, avatarUrl: goal.creatorAvatarUrl || goal.ownerAvatarUrl, email: goal.creatorEmail || goal.ownerEmail }" :size="24" :fontSize="11" class="owner-avatar-micro" />
+                  <AppAvatar :user="{ id: goal.creatorId || goal.ownerId, avatarColor: goal.creatorColor || goal.ownerColor, fullName: goal.creatorName || goal.ownerName || goal.owner, avatarUrl: goal.creatorAvatarUrl || goal.ownerAvatarUrl, email: goal.creatorEmail || goal.ownerEmail }" :size="24" class="owner-avatar-micro" />
                   <span>{{ goal.creatorName || goal.ownerName || goal.owner || 'Chưa có' }}</span>
                 </div>
               </div>
@@ -680,7 +649,16 @@ import { useTeamStore } from '@/store/useTeamStore'
 import RichTextEditor from '@/components/common/RichTextEditor.vue'
 import ShareModal from '@/components/common/ShareModal.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
-import UserAvatar from '@/components/common/UserAvatar.vue'
+
+import AppPageLayout from '@/components/common/Foundation/AppPageLayout.vue'
+import AppPageHeader from '@/components/common/Foundation/AppPageHeader.vue'
+import AppToolbar from '@/components/common/Foundation/AppToolbar.vue'
+import AppSearchInput from '@/components/common/Foundation/AppSearchInput.vue'
+import AppCard from '@/components/common/Foundation/AppCard.vue'
+import AppEmptyState from '@/components/common/Foundation/AppEmptyState.vue'
+import AppStatusBadge from '@/components/common/Foundation/AppStatusBadge.vue'
+import AppAvatar from '@/components/common/Foundation/AppAvatar.vue'
+
 import DOMPurify from 'dompurify'
 
 const route = useRoute()

@@ -382,8 +382,7 @@
             <div class="detail-label">Chủ sở hữu</div>
             <div class="detail-value">
               <div class="owner-chip">
-                <UserAvatar :user="projectOwner" :size="24" :fontSize="11" class="owner-avatar-micro" />
-                <span class="owner-name">{{ projectOwner.name }}</span>
+                <AppUserChip :name="projectOwner.name" :src="projectOwner.avatarUrl" compact />
               </div>
             </div>
           </div>
@@ -393,9 +392,8 @@
             <div class="detail-label">Người đóng góp <span class="badge-count">1</span> <button class="icon-btn-micro"><i class="fa-solid fa-plus"></i></button></div>
             <div class="detail-value">
               <div class="owner-chip">
-                  <UserAvatar :user="projectOwner" :size="24" :fontSize="11" class="owner-avatar-micro" />
+                  <AppUserChip :name="projectOwner.name" :src="projectOwner.avatarUrl" compact />
                 <div class="owner-info">
-                  <span class="owner-name">{{ projectOwner.name }}</span>
                   <span class="owner-role">{{ projectOwner.role }}</span>
                 </div>
               </div>
@@ -550,6 +548,7 @@ import RichTextEditor from '@/components/common/RichTextEditor.vue'
 import ShareModal from '@/components/common/ShareModal.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import { AppUserChip } from '@/components/common/Foundation'
 
 const route = useRoute()
 const projectStore = useHomeProjectStore()

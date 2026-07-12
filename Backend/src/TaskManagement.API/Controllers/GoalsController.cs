@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
 using TaskManagement.Application.Interfaces;
+using TaskManagement.API.Filters;
 
 namespace TaskManagement.API.Controllers
 {
@@ -34,6 +35,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPost]
+        [RequirePermission("goals.dashboard.create")]
         public async Task<IActionResult> Create(Guid workspaceId, [FromBody] object dto)
         {
             var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
@@ -42,6 +44,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [RequirePermission("goals.dashboard.edit")]
         public async Task<IActionResult> Update(Guid workspaceId, Guid id, [FromBody] object dto)
         {
             var result = await _goalService.UpdateAsync(id, dto);
@@ -49,6 +52,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPost("{id}/archive")]
+        [RequirePermission("goals.dashboard.delete")]
         public async Task<IActionResult> Archive(Guid workspaceId, Guid id)
         {
             await _goalService.ArchiveAsync(id);
@@ -56,6 +60,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [RequirePermission("goals.dashboard.delete")]
         public async Task<IActionResult> Delete(Guid workspaceId, Guid id)
         {
             await _goalService.DeleteAsync(id);

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TaskManagement.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using TaskManagement.Infrastructure.Data;
 namespace TaskManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260705122440_UpdateRolePermissionEntities")]
+    partial class UpdateRolePermissionEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -310,88 +313,6 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.HasIndex("MentionedUserId");
 
                     b.ToTable("CommentMentions");
-                });
-
-            modelBuilder.Entity("TaskManagement.Domain.Entities.CustomFieldDefinition", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsRequired")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsVisible")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OptionsJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProjectId", "Key")
-                        .IsUnique()
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.ToTable("CustomFieldDefinitions");
-                });
-
-            modelBuilder.Entity("TaskManagement.Domain.Entities.CustomFieldValue", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("FieldDefinitionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Value")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("WorkTaskId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FieldDefinitionId");
-
-                    b.HasIndex("WorkTaskId", "FieldDefinitionId")
-                        .IsUnique();
-
-                    b.ToTable("CustomFieldValues");
                 });
 
             modelBuilder.Entity("TaskManagement.Domain.Entities.Department", b =>
@@ -758,12 +679,6 @@ namespace TaskManagement.Infrastructure.Migrations
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DesiredDueDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Priority")
-                        .HasColumnType("int");
 
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uniqueidentifier");
@@ -1215,21 +1130,12 @@ namespace TaskManagement.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("DependencyJson")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
 
                     b.Property<string>("Module")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("RiskLevel")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -1748,9 +1654,6 @@ namespace TaskManagement.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Badge")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
@@ -1868,8 +1771,7 @@ namespace TaskManagement.Infrastructure.Migrations
 
                     b.Property<string>("ItemType")
                         .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
@@ -1883,13 +1785,7 @@ namespace TaskManagement.Infrastructure.Migrations
 
                     b.HasIndex("WorkspaceId");
 
-                    b.HasIndex("UserId", "WorkspaceId", "ItemType", "ItemId")
-                        .IsUnique();
-
-                    b.ToTable("StarredItems", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_StarredItems_ItemType", "[ItemType] IN ('Goal', 'Project', 'Team', 'User')");
-                        });
+                    b.ToTable("StarredItems");
                 });
 
             modelBuilder.Entity("TaskManagement.Domain.Entities.StickyNote", b =>
@@ -2738,36 +2634,6 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("Comment");
 
                     b.Navigation("MentionedUser");
-                });
-
-            modelBuilder.Entity("TaskManagement.Domain.Entities.CustomFieldDefinition", b =>
-                {
-                    b.HasOne("TaskManagement.Domain.Entities.Project", "Project")
-                        .WithMany("CustomFieldDefinitions")
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Project");
-                });
-
-            modelBuilder.Entity("TaskManagement.Domain.Entities.CustomFieldValue", b =>
-                {
-                    b.HasOne("TaskManagement.Domain.Entities.CustomFieldDefinition", "FieldDefinition")
-                        .WithMany("CustomFieldValues")
-                        .HasForeignKey("FieldDefinitionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("TaskManagement.Domain.Entities.WorkTask", "WorkTask")
-                        .WithMany("CustomFieldValues")
-                        .HasForeignKey("WorkTaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("FieldDefinition");
-
-                    b.Navigation("WorkTask");
                 });
 
             modelBuilder.Entity("TaskManagement.Domain.Entities.Department", b =>
@@ -3779,11 +3645,6 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("CommentAttachments");
                 });
 
-            modelBuilder.Entity("TaskManagement.Domain.Entities.CustomFieldDefinition", b =>
-                {
-                    b.Navigation("CustomFieldValues");
-                });
-
             modelBuilder.Entity("TaskManagement.Domain.Entities.Department", b =>
                 {
                     b.Navigation("Children");
@@ -3836,8 +3697,6 @@ namespace TaskManagement.Infrastructure.Migrations
 
             modelBuilder.Entity("TaskManagement.Domain.Entities.Project", b =>
                 {
-                    b.Navigation("CustomFieldDefinitions");
-
                     b.Navigation("Decisions");
 
                     b.Navigation("Intakes");
@@ -3953,8 +3812,6 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("AuditLogs");
 
                     b.Navigation("ChildTasks");
-
-                    b.Navigation("CustomFieldValues");
 
                     b.Navigation("IssueLabels");
 

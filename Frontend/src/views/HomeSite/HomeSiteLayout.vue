@@ -1,5 +1,5 @@
 <template>
-  <div class="home-site-container">
+  <div class="home-site-container sprinta-layout-container">
     <AppTopBar @toggle-create="showCreateModal = true" />
 
     <div class="home-content-wrapper">
@@ -423,7 +423,7 @@ const goToSiteSelection = () => {
 .main-content {
   flex: 1;
   overflow-y: auto;
-  background-color: #ffffff;
+  background-color: #FAFBFC;
   position: relative;
 }
 </style>

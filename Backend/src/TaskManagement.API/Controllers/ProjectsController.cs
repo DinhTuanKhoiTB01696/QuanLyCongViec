@@ -609,6 +609,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPost]
+        // [RequirePermission("projects.dashboard.create")]
         public async Task<IActionResult> Create([FromBody] CreateProjectDto dto)
         {
             try
@@ -716,6 +717,7 @@ namespace TaskManagement.API.Controllers
 
         [HttpPut("{projectId:guid}")]
         [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,SM,Admin")]
+        [RequirePermission("projects.dashboard.edit")]
         public async Task<IActionResult> Update(Guid projectId, [FromBody] UpdateProjectDto dto)
         {
             try
@@ -734,6 +736,7 @@ namespace TaskManagement.API.Controllers
         /// </summary>
         [HttpPut("{projectId:guid}/archive")]
         [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,SM,Admin")]
+        [RequirePermission("projects.dashboard.delete")]
         public async Task<IActionResult> Archive(Guid projectId)
         {
             try
