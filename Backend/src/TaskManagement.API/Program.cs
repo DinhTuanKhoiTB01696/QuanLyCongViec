@@ -55,7 +55,11 @@ builder.Services.AddCors(options =>
                       policy =>
                       {
                           // Cho phép Vue.js gọi vào (các port dev server có thể khác nhau)
-                          policy.WithOrigins("http://localhost:5173", "http://localhost:5174")
+                          var allowedOrigins = builder.Environment.IsDevelopment()
+                              ? new[] { "http://localhost:5173", "http://localhost:4173" }
+                              : builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
+                          policy.WithOrigins(allowedOrigins)
                               .AllowAnyHeader()
                               .AllowAnyMethod()
                               .AllowCredentials();

@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import './style.css'
+import './assets/styles/sprinta-theme.css'
 import './utils/theme.js'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'

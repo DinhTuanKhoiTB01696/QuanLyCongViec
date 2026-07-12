@@ -2,18 +2,18 @@
   <ProjectPageContainer class="space-reports-page">
     <ProjectPageHeader 
       icon="fa-solid fa-chart-line" 
-      :title="t('projectTabs.reports', 'Báo cáo & Vận hành')" 
-      :description="t('reports.analyticsAndInsights', 'Thông tin tổng quan và phân tích tiến độ cho sếp')"
+      :title="t('projectTabs.reports')"
+      :description="t('reports.analyticsAndInsights')"
     >
       <template #actions>
-        <button class="nexus-btn-outlined" @click="fetchData">
-          <i class="fa-solid fa-rotate-right" :class="{ 'fa-spin': loading }"></i> Cập nhật số liệu
+        <button class="nexus-btn-outlined" @click="fetchData" :aria-label="t('reports.refresh')">
+          <i class="fa-solid fa-rotate-right" :class="{ 'fa-spin': loading }"></i> {{ t('reports.refresh') }}
         </button>
       </template>
     </ProjectPageHeader>
 
     <!-- Loading State -->
-    <ProjectLoadingState v-if="loading" :text="t('reports.analyzingProjectData', 'Đang tính toán dữ liệu tiến độ...')" />
+    <ProjectLoadingState v-if="loading" :text="t('reports.analyzingProjectData')" />
     
     <!-- Error State -->
     <div v-else-if="error" class="reports-error">
@@ -25,12 +25,12 @@
     <ProjectEmptyState 
       v-else-if="allTasks.length === 0"
       icon="fa-solid fa-chart-line"
-      title="Chưa có dữ liệu tiến độ"
-      description="Chưa có dữ liệu tiến độ. Hãy tạo công việc và đặt hạn để SprintA phân tích tình hình dự án."
+      :title="t('reports.noTasksPlaceholder')"
+      :description="t('reports.noTasksPlaceholderDesc')"
     >
       <template #action>
         <button class="nexus-btn-primary" @click="router.push(`/space/${projectId}/work-items`)">
-          <i class="fa-solid fa-plus"></i> Tạo công việc
+          <i class="fa-solid fa-plus"></i> {{ t('reports.createWorkItem') }}
         </button>
       </template>
     </ProjectEmptyState>
@@ -44,7 +44,7 @@
           <i class="fa-solid" :class="projectHealth.icon"></i>
         </div>
         <div class="health-details">
-          <h2 class="health-status-title">Trạng thái vận hành: {{ projectHealth.text }}</h2>
+          <h2 class="health-status-title">{{ t('reports.healthStatus', { status: projectHealth.text }) }}</h2>
           <p class="health-desc">{{ projectHealth.desc }}</p>
         </div>
       </div>
@@ -59,7 +59,7 @@
               <i class="fa-solid fa-list-check"></i>
             </div>
             <div class="stat-info">
-              <span class="label">Tổng công việc</span>
+              <span class="label">{{ t('reports.totalTasks') }}</span>
               <span class="value">{{ allTasks.length }}</span>
             </div>
           </div>
@@ -73,7 +73,7 @@
               <i class="fa-solid fa-circle-check"></i>
             </div>
             <div class="stat-info">
-              <span class="label">Đã hoàn thành</span>
+              <span class="label">{{ t('reports.completedTasks') }}</span>
               <span class="value">
                 {{ completedTasksCount }}
                 <span class="percentage-tag">{{ completionRate }}%</span>
@@ -90,7 +90,7 @@
               <i class="fa-solid fa-clock-rotate-left"></i>
             </div>
             <div class="stat-info">
-              <span class="label">Đang thực hiện</span>
+              <span class="label">{{ t('reports.inProgress') }}</span>
               <span class="value">{{ inProgressTasksCount }}</span>
             </div>
           </div>
@@ -104,7 +104,7 @@
               <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
             <div class="stat-info">
-              <span class="label">Công việc quá hạn</span>
+              <span class="label">{{ t('reports.overdueTasks') }}</span>
               <span class="value text-danger">{{ overdueTasksCount }}</span>
             </div>
           </div>
@@ -120,7 +120,7 @@
           <!-- Việc cần chú ý Accordions -->
           <div class="report-card attention-panel">
             <h3 class="card-title">
-              <i class="fa-solid fa-bell text-rose-500"></i> Việc sếp cần chú ý
+              <i class="fa-solid fa-bell text-rose-500"></i> {{ t('reports.attentionTitle') }}
             </h3>
 
             <div class="attention-accordions">
@@ -130,29 +130,29 @@
                 <div class="accordion-header" @click="activeAccordion = activeAccordion === 'overdue' ? '' : 'overdue'">
                   <div class="header-left">
                     <span class="badge danger-bg">{{ overdueTasksCount }}</span>
-                    <span class="header-text">Công việc quá hạn</span>
+                    <span class="header-text">{{ t('reports.overdueTasks') }}</span>
                   </div>
                   <i class="fa-solid" :class="activeAccordion === 'overdue' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                 </div>
                 <div class="accordion-content" v-show="activeAccordion === 'overdue'">
                   <div v-if="overdueTasks.length === 0" class="empty-substate text-success">
-                    <i class="fa-solid fa-circle-check mr-2"></i> Không có công việc quá hạn nào!
+                    <i class="fa-solid fa-circle-check mr-2"></i> {{ t('reports.noOverdueTasks') }}
                   </div>
                   <div v-else class="attention-list">
                     <div v-for="task in overdueTasks" :key="task.id" class="attention-task-row">
                       <div class="task-info" @click="navigateToTask(task.id)">
                         <span class="task-key">{{ task.sequenceId || 'TASK' }}</span>
                         <span class="task-title">{{ task.title }}</span>
-                        <span class="task-assignee">Người làm: {{ getAssigneeNames(task) }}</span>
-                        <span class="task-due-date text-danger">Hạn: {{ formatDate(task.dueDate) }}</span>
+                        <span class="task-assignee">{{ t('reports.assignee') }}: {{ getAssigneeNames(task) }}</span>
+                        <span class="task-due-date text-danger">{{ t('reports.dueDate') }} {{ formatDate(task.dueDate) }}</span>
                       </div>
                       <button 
                         class="remind-btn" 
                         @click="triggerReminder(task)"
                         :disabled="sendingReminders[task.id] || !task.assignees || task.assignees.length === 0"
-                        :title="(!task.assignees || task.assignees.length === 0) ? 'Công việc chưa có người phụ trách' : ''"
+                        :title="(!task.assignees || task.assignees.length === 0) ? t('reports.unassignedTooltip') : ''"
                       >
-                        <i class="fa-solid fa-paper-plane"></i> Nhắc việc
+                        <i class="fa-solid fa-paper-plane"></i> {{ t('reports.remind') }}
                       </button>
                     </div>
                   </div>
@@ -164,29 +164,29 @@
                 <div class="accordion-header" @click="activeAccordion = activeAccordion === 'upcoming' ? '' : 'upcoming'">
                   <div class="header-left">
                     <span class="badge warning-bg">{{ upcomingTasks.length }}</span>
-                    <span class="header-text">Công việc sắp tới hạn (trong 48h)</span>
+                    <span class="header-text">{{ t('reports.upcomingTasks') }}</span>
                   </div>
                   <i class="fa-solid" :class="activeAccordion === 'upcoming' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                 </div>
                 <div class="accordion-content" v-show="activeAccordion === 'upcoming'">
                   <div v-if="upcomingTasks.length === 0" class="empty-substate">
-                    Không có công việc nào sắp tới hạn trong 48h tới.
+                    {{ t('reports.noUpcomingTasks') }}
                   </div>
                   <div v-else class="attention-list">
                     <div v-for="task in upcomingTasks" :key="task.id" class="attention-task-row">
                       <div class="task-info" @click="navigateToTask(task.id)">
                         <span class="task-key">{{ task.sequenceId || 'TASK' }}</span>
                         <span class="task-title">{{ task.title }}</span>
-                        <span class="task-assignee">Người làm: {{ getAssigneeNames(task) }}</span>
-                        <span class="task-due-date text-warning">Hạn: {{ formatDate(task.dueDate) }}</span>
+                        <span class="task-assignee">{{ t('reports.assignee') }}: {{ getAssigneeNames(task) }}</span>
+                        <span class="task-due-date text-warning">{{ t('reports.dueDate') }} {{ formatDate(task.dueDate) }}</span>
                       </div>
                       <button 
                         class="remind-btn" 
                         @click="triggerReminder(task)"
                         :disabled="sendingReminders[task.id] || !task.assignees || task.assignees.length === 0"
-                        :title="(!task.assignees || task.assignees.length === 0) ? 'Công việc chưa có người phụ trách' : ''"
+                        :title="(!task.assignees || task.assignees.length === 0) ? t('reports.unassignedTooltip') : ''"
                       >
-                        <i class="fa-solid fa-paper-plane"></i> Nhắc việc
+                        <i class="fa-solid fa-paper-plane"></i> {{ t('reports.remind') }}
                       </button>
                     </div>
                   </div>
@@ -198,22 +198,22 @@
                 <div class="accordion-header" @click="activeAccordion = activeAccordion === 'unassigned' ? '' : 'unassigned'">
                   <div class="header-left">
                     <span class="badge gray-bg">{{ unassignedTasks.length }}</span>
-                    <span class="header-text">Công việc chưa giao cho ai</span>
+                    <span class="header-text">{{ t('reports.unassignedTasks') }}</span>
                   </div>
                   <i class="fa-solid" :class="activeAccordion === 'unassigned' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                 </div>
                 <div class="accordion-content" v-show="activeAccordion === 'unassigned'">
                   <div v-if="unassignedTasks.length === 0" class="empty-substate text-success">
-                    <i class="fa-solid fa-circle-check mr-2"></i> Tất cả công việc đã được giao đầy đủ!
+                    <i class="fa-solid fa-circle-check mr-2"></i> {{ t('reports.allTasksAssigned') }}
                   </div>
                   <div v-else class="attention-list">
                     <div v-for="task in unassignedTasks" :key="task.id" class="attention-task-row plain-row" @click="navigateToTask(task.id)">
                       <div class="task-info">
                         <span class="task-key">{{ task.sequenceId || 'TASK' }}</span>
                         <span class="task-title">{{ task.title }}</span>
-                        <span class="task-due-date">Hạn: {{ formatDate(task.dueDate) || 'Không có hạn' }}</span>
+                        <span class="task-due-date">{{ t('reports.dueDate') }} {{ formatDate(task.dueDate) || t('reports.noDueDate') }}</span>
                       </div>
-                      <span class="unassigned-badge"><i class="fa-solid fa-user-slash"></i> Chưa giao</span>
+                      <span class="unassigned-badge"><i class="fa-solid fa-user-slash"></i> {{ t('reports.unassigned') }}</span>
                     </div>
                   </div>
                 </div>
@@ -224,30 +224,30 @@
                 <div class="accordion-header" @click="activeAccordion = activeAccordion === 'stuck' ? '' : 'stuck'">
                   <div class="header-left">
                     <span class="badge info-bg">{{ stuckTasks.length }}</span>
-                    <span class="header-text">Công việc bị kẹt lâu (> 14 ngày)</span>
+                    <span class="header-text">{{ t('reports.stuckTasks') }}</span>
                   </div>
                   <i class="fa-solid" :class="activeAccordion === 'stuck' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                 </div>
                 <div class="accordion-content" v-show="activeAccordion === 'stuck'">
                   <div v-if="stuckTasks.length === 0" class="empty-substate">
-                    Không có công việc nào bị kẹt quá lâu.
+                    {{ t('reports.noStuckTasks') }}
                   </div>
                   <div v-else class="attention-list">
                     <div v-for="task in stuckTasks" :key="task.id" class="attention-task-row">
                       <div class="task-info" @click="navigateToTask(task.id)">
                         <span class="task-key">{{ task.sequenceId || 'TASK' }}</span>
                         <span class="task-title">{{ task.title }}</span>
-                        <span class="task-assignee">Người làm: {{ getAssigneeNames(task) }}</span>
-                        <span class="task-status">Trạng thái: {{ getStatusLabel(task.statusName) }}</span>
-                        <span class="task-due-date">Cập nhật cuối: {{ formatDate(task.updatedAt || task.createdAt) }}</span>
+                        <span class="task-assignee">{{ t('reports.assignee') }}: {{ getAssigneeNames(task) }}</span>
+                        <span class="task-status">{{ t('reports.status') }}: {{ getStatusLabel(task.statusName) }}</span>
+                        <span class="task-due-date">{{ t('reports.lastUpdated') }}: {{ formatDate(task.updatedAt || task.createdAt) }}</span>
                       </div>
                       <button 
                         class="remind-btn" 
                         @click="triggerReminder(task)"
                         :disabled="sendingReminders[task.id] || !task.assignees || task.assignees.length === 0"
-                        :title="(!task.assignees || task.assignees.length === 0) ? 'Công việc chưa có người phụ trách' : ''"
+                        :title="(!task.assignees || task.assignees.length === 0) ? t('reports.unassignedTooltip') : ''"
                       >
-                        <i class="fa-solid fa-paper-plane"></i> Đôn đốc
+                        <i class="fa-solid fa-paper-plane"></i> {{ t('reports.followUp') }}
                       </button>
                     </div>
                   </div>
@@ -260,13 +260,13 @@
           <!-- Thành viên cần nhắc (Overloaded / Pending workload) -->
           <div class="report-card workload-panel">
             <h3 class="card-title">
-              <i class="fa-solid fa-users text-emerald-500"></i> Thành viên cần đôn đốc
+              <i class="fa-solid fa-users text-emerald-500"></i> {{ t('reports.membersToRemind') }}
             </h3>
             
             <div v-if="membersToRemind.length === 0" class="workload-empty">
               <i class="fa-solid fa-circle-check text-4xl mb-3 text-green-400"></i>
-              <span class="text-sm font-semibold">Tất cả thành viên đều thong thả!</span>
-              <p class="text-xs text-[var(--color-text-muted)] mt-1">Không có thành viên nào đang giữ công việc chưa hoàn tất hoặc quá hạn.</p>
+              <span class="text-sm font-semibold">{{ t('reports.allMembersOnTrack') }}</span>
+              <p class="text-xs text-[var(--color-text-muted)] mt-1">{{ t('reports.noMemberWorkload') }}</p>
             </div>
 
             <div v-else class="workload-list">
@@ -276,11 +276,11 @@
                   <div class="member-details">
                     <span class="member-name">{{ member.fullName }}</span>
                     <div class="member-stats">
-                      <span class="badge gray-bg">{{ member.pendingCount }} việc chưa xong</span>
-                      <span class="badge danger-bg" v-if="member.overdueCount > 0">{{ member.overdueCount }} việc quá hạn</span>
+                      <span class="badge gray-bg">{{ t('reports.pendingCount', { count: member.pendingCount }) }}</span>
+                      <span class="badge danger-bg" v-if="member.overdueCount > 0">{{ t('reports.overdueCount', { count: member.overdueCount }) }}</span>
                     </div>
                     <p class="deadline-tip" v-if="member.nearestDeadlineTask">
-                      <i class="fa-solid fa-hourglass-half"></i> Gần nhất: 
+                      <i class="fa-solid fa-hourglass-half"></i> {{ t('reports.nearestDeadline') }}:
                       <strong @click="navigateToTask(member.nearestDeadlineTask.id)" class="hover-task-link">{{ member.nearestDeadlineTask.title }}</strong> 
                       ({{ formatDate(member.nearestDeadlineTask.dueDate) }})
                     </p>
@@ -291,7 +291,7 @@
                   @click="triggerMemberReminder(member)"
                   :disabled="sendingMemberReminders[member.userId]"
                 >
-                  <i class="fa-solid fa-bell"></i> Nhắc nhở
+                  <i class="fa-solid fa-bell"></i> {{ t('reports.remind') }}
                 </button>
               </div>
             </div>
@@ -305,7 +305,7 @@
           <!-- Status Distribution Card -->
           <div class="report-card">
             <h3 class="card-title">
-              <i class="fa-solid fa-chart-bar text-sky-500"></i> Phân phối theo trạng thái công việc
+              <i class="fa-solid fa-chart-bar text-sky-500"></i> {{ t('reports.statusDistribution') }}
             </h3>
             <div class="status-list">
               <div v-for="status in statusDistribution" :key="status.name" class="status-item">
@@ -332,7 +332,7 @@
           <!-- Priority Distribution Card -->
           <div class="report-card">
             <h3 class="card-title">
-              <i class="fa-solid fa-chart-pie text-indigo-500"></i> Phân phối theo mức độ ưu tiên
+              <i class="fa-solid fa-chart-pie text-indigo-500"></i> {{ t('reports.priorityDistribution') }}
             </h3>
             <div class="priority-chart-container">
               <!-- Custom Donut Chart (SVG) -->
@@ -355,7 +355,7 @@
                 </svg>
                 <div class="donut-center">
                   <span class="donut-number">{{ allTasks.length }}</span>
-                  <span class="donut-label">Công việc</span>
+                  <span class="donut-label">{{ t('reports.tasks') }}</span>
                 </div>
               </div>
 
@@ -442,7 +442,7 @@ const todayStr = new Date().toISOString().slice(0, 10)
 // 1. Project status logic (Green / Yellow / Red)
 const projectHealth = computed(() => {
   const total = allTasks.value.length
-  if (total === 0) return { level: 'gray', text: 'Chưa có dữ liệu', icon: 'fa-triangle-exclamation', desc: 'Chưa có dữ liệu tiến độ. Hãy tạo công việc và đặt hạn để SprintA phân tích tình hình dự án.' }
+  if (total === 0) return { level: 'gray', text: t('reports.health.noData'), icon: 'fa-triangle-exclamation', desc: t('reports.health.noDataDesc') }
   
   const completed = completedTasksCount.value
   const overdue = overdueTasksCount.value
@@ -452,23 +452,23 @@ const projectHealth = computed(() => {
   if (overdueRate >= 30 || compRate < 40) {
     return {
       level: 'red',
-      text: 'Đỏ (Nguy hiểm)',
+      text: t('reports.health.red'),
       icon: 'fa-circle-xmark',
-      desc: `Dự án đang trong tình trạng đáng báo động. Tỷ lệ hoàn thành thấp (${compRate}%) hoặc số lượng việc quá hạn cao (${overdue} việc, chiếm ${overdueRate}%). Sếp nên đôn đốc thành viên xử lý gấp.`
+      desc: t('reports.health.redDesc', { completion: compRate, overdue, overdueRate })
     }
   } else if (overdue > 0 || compRate < 70) {
     return {
       level: 'yellow',
-      text: 'Vàng (Cần theo dõi)',
+      text: t('reports.health.yellow'),
       icon: 'fa-triangle-exclamation',
-      desc: `Dự án bắt đầu xuất hiện rủi ro chậm tiến độ. Đang có ${overdue} công việc quá hạn (chiếm ${overdueRate}%) hoặc tỷ lệ hoàn thành ở mức trung bình (${compRate}%).`
+      desc: t('reports.health.yellowDesc', { overdue, overdueRate, completion: compRate })
     }
   } else {
     return {
       level: 'green',
-      text: 'Xanh (Ổn định)',
+      text: t('reports.health.green'),
       icon: 'fa-circle-check',
-      desc: `Dự án đang vận hành vô cùng tốt! Tỷ lệ hoàn thành đạt ${compRate}%, và không có bất kỳ công việc nào bị trễ hạn.`
+      desc: t('reports.health.greenDesc', { completion: compRate })
     }
   }
 })
@@ -545,7 +545,7 @@ const membersToRemind = computed(() => {
       if (!uid) return
       
       if (!membersMap[uid]) {
-        const name = assignee.fullName || assignee.name || 'Thành viên'
+        const name = assignee.fullName || assignee.name || t('reports.member')
         membersMap[uid] = {
           userId: uid,
           fullName: name,
@@ -587,17 +587,17 @@ const membersToRemind = computed(() => {
 const triggerReminder = async (task) => {
   const assignees = task.assignees || []
   if (assignees.length === 0) {
-    ElMessage.warning('Công việc này chưa được giao cho ai nên không thể gửi nhắc nhở.')
+    ElMessage.warning(t('reports.remindUnassignedError'))
     return
   }
 
   sendingReminders.value[task.id] = true
   const currentUser = getStoredUser()
-  const actorName = currentUser?.fullName || currentUser?.username || 'Sếp'
+  const actorName = currentUser?.fullName || currentUser?.username || t('reports.manager')
   let succeedCount = 0
   let skippedCount = 0
   let hasFailed = false
-  let errorMsg = 'Không gửi được nhắc việc. Vui lòng thử lại.'
+  let errorMsg = t('reports.remindError')
 
   for (const assignee of assignees) {
     const uid = assignee.userId || assignee.id
@@ -631,10 +631,10 @@ const triggerReminder = async (task) => {
   }
 
   if (succeedCount > 0) {
-    ElMessage.success(`Đã gửi nhắc việc cho người phụ trách.`)
+    ElMessage.success(t('reports.remindSuccess'))
   }
   if (skippedCount > 0 && succeedCount === 0) {
-    ElMessage.warning('Không gửi nhắc việc cho chính bạn.')
+    ElMessage.warning(t('reports.remindSelfWarning'))
   }
   if (hasFailed) {
     ElMessage.error(errorMsg)
@@ -645,11 +645,11 @@ const triggerReminder = async (task) => {
 const triggerMemberReminder = async (member) => {
   sendingMemberReminders.value[member.userId] = true
   const currentUser = getStoredUser()
-  const actorName = currentUser?.fullName || currentUser?.username || 'Sếp'
+  const actorName = currentUser?.fullName || currentUser?.username || t('reports.manager')
   const pendingTasks = member.tasks || []
   
   if (pendingTasks.length === 0) {
-    ElMessage.info('Thành viên này hiện không có công việc nào chưa hoàn tất.')
+    ElMessage.info(t('reports.memberNoPending'))
     sendingMemberReminders.value[member.userId] = false
     return
   }
@@ -668,13 +668,13 @@ const triggerMemberReminder = async (member) => {
   try {
     const res = await axiosClient.post('/notifications/events/task-reminded', payload)
     if (res.data && res.data.skipped) {
-      ElMessage.warning('Không gửi nhắc việc cho chính bạn.')
+      ElMessage.warning(t('reports.remindSelfWarning'))
     } else if (res.data && res.data.data && res.data.data.notificationId) {
-      ElMessage.success(`Đã gửi đôn đốc thành viên "${member.fullName}" thực hiện các công việc chưa hoàn thành.`)
+      ElMessage.success(t('reports.memberRemindSuccess', { name: member.fullName }))
     }
   } catch (err) {
     console.error('Failed to remind member via backend', err)
-    let errorMsg = 'Không gửi được nhắc việc. Vui lòng thử lại.'
+    let errorMsg = t('reports.remindError')
     if (err.response?.data?.message) {
       errorMsg = err.response.data.message
     } else if (err.response?.data) {
@@ -692,7 +692,7 @@ const statusDistribution = computed(() => {
   
   const statusCounts = {}
   allTasks.value.forEach(task => {
-    const s = (task.statusName || 'Không trạng thái').trim()
+    const s = (task.statusName || t('reports.noStatus')).trim()
     statusCounts[s] = (statusCounts[s] || 0) + 1
   })
 
@@ -741,15 +741,15 @@ const prioritySegments = computed(() => {
 })
 
 const getStatusLabel = (statusName) => {
-  if (!statusName) return 'Chưa tạo'
+  if (!statusName) return t('reports.statusNotCreated')
   const norm = statusName.toLowerCase().trim()
   const keyMap = {
-    'backlog': 'Ý tưởng / Backlog',
-    'to do': 'Cần làm',
-    'in progress': 'Đang làm',
-    'in review': 'Đang duyệt',
-    'done': 'Đã hoàn thành',
-    'cancelled': 'Đã hủy'
+    'backlog': t('workItems.statusLabels.backlog'),
+    'to do': t('workItems.statusLabels.toDo'),
+    'in progress': t('workItems.statusLabels.inProgress'),
+    'in review': t('workItems.statusLabels.inReview'),
+    'done': t('workItems.statusLabels.done'),
+    'cancelled': t('workItems.statusLabels.cancelled')
   }
   return keyMap[norm] || statusName
 }
@@ -770,8 +770,8 @@ const getStatusBgColor = (statusName) => {
 }
 
 const getAssigneeNames = (task) => {
-  if (!task.assignees || task.assignees.length === 0) return 'Chưa phân công'
-  return task.assignees.map(a => a.fullName || a.name || 'Ẩn danh').join(', ')
+  if (!task.assignees || task.assignees.length === 0) return t('reports.unassigned')
+  return task.assignees.map(a => a.fullName || a.name || t('reports.anonymous')).join(', ')
 }
 
 const formatDate = (value) => {
@@ -798,7 +798,7 @@ const fetchData = async () => {
   try {
     await workTaskStore.fetchTasks(projectId.value)
   } catch (e) {
-    error.value = "Không thể tải báo cáo của dự án. Vui lòng làm mới trang."
+    error.value = t('reports.loadError')
     console.error(e)
   } finally {
     loading.value = false

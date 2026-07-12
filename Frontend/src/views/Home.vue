@@ -19,12 +19,34 @@ import {
   Users,
   Zap
 } from 'lucide-vue-next'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 import dashboardPreview from '../assets/task_management_dashboard_preview_1773375713763.png'
 import focusImage from '../assets/modern_desk_setup_product_design_1773375736492.png'
 import motionGif from '../assets/Motion_graphics_animation_the_cyan_and_blue.gif'
 import logoImg from '../assets/logo_QLCV.png'
 import { currentTheme, toggleTheme } from '@/utils/theme'
+
+const guestPetOpen = ref(false)
+let revealObserver
+
+onMounted(() => {
+  revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-revealed')
+        revealObserver?.unobserve(entry.target)
+      }
+    })
+  }, { threshold: 0.14, rootMargin: '0px 0px -48px' })
+
+  document.querySelectorAll('.landing-page .reveal-on-scroll').forEach((element) => revealObserver.observe(element))
+})
+
+onBeforeUnmount(() => {
+  revealObserver?.disconnect()
+  revealObserver = undefined
+})
 
 const promoVideoSrc = ''
 
@@ -82,7 +104,7 @@ const timeline = [
         <div class="hero-orbit orbit-two"></div>
 
         <div class="container hero-grid">
-          <div class="hero-copy">
+          <div class="hero-copy reveal-on-scroll">
             <div class="eyebrow">
               <Sparkles :size="16" />
               SPRINTA AGILE WORKSPACE
@@ -111,7 +133,7 @@ const timeline = [
             </div>
           </div>
 
-          <div class="hero-visual" aria-label="SprintA dashboard preview">
+          <div class="hero-visual reveal-on-scroll" aria-label="SprintA dashboard preview">
             <div class="preview-shell">
               <div class="preview-topbar">
                 <span></span>
@@ -141,7 +163,7 @@ const timeline = [
         </div>
       </section>
 
-      <section id="features" class="feature-strip">
+      <section id="features" class="feature-strip reveal-on-scroll">
         <div class="container">
           <div class="section-heading">
             <span class="eyebrow small">Product suite</span>
@@ -150,7 +172,7 @@ const timeline = [
           </div>
 
           <div class="module-grid">
-            <article v-for="module in modules" :key="module.title" class="module-card">
+            <article v-for="(module, index) in modules" :key="module.title" class="module-card reveal-on-scroll" :style="{ '--reveal-delay': `${Math.min(index, 4) * 55}ms` }">
               <div class="module-icon">
                 <component :is="module.icon" :size="22" />
               </div>
@@ -161,7 +183,7 @@ const timeline = [
         </div>
       </section>
 
-      <section id="video" class="video-section">
+      <section id="video" class="video-section reveal-on-scroll">
         <div class="container video-grid">
           <div class="video-copy">
             <span class="eyebrow small">Showcase video</span>
@@ -194,7 +216,7 @@ const timeline = [
         </div>
       </section>
 
-      <section id="workflow" class="workflow-section">
+      <section id="workflow" class="workflow-section reveal-on-scroll">
         <div class="container workflow-grid">
           <div class="workflow-visual">
             <img :src="focusImage" alt="Modern workspace" />
@@ -225,6 +247,33 @@ const timeline = [
         </div>
       </section>
     </main>
+
+    <div class="guest-pet-wrap" :class="{ 'is-open': guestPetOpen }">
+      <div v-if="guestPetOpen" class="guest-pet-guide" role="dialog" aria-label="SprintA AI hướng dẫn">
+        <div class="guest-pet-guide-head">
+          <div>
+            <span>SPRINTA AI</span>
+            <strong>Trợ lý workspace</strong>
+          </div>
+          <button type="button" aria-label="Đóng hướng dẫn" @click="guestPetOpen = false">×</button>
+        </div>
+        <p>SprintA giúp đội nhóm quản lý công việc, báo cáo và tiến độ rõ ràng hơn.</p>
+        <div class="guest-pet-actions">
+          <a href="#features">Xem tính năng</a>
+          <router-link to="/login">Đăng nhập</router-link>
+          <router-link class="primary" to="/register">Dùng thử</router-link>
+        </div>
+      </div>
+      <button
+        class="guest-pet"
+        type="button"
+        aria-label="Mở hướng dẫn SprintA AI"
+        :aria-expanded="guestPetOpen"
+        @click="guestPetOpen = !guestPetOpen"
+      >
+        <img src="/ai-sprinta/idle.png" alt="SprintA AI" />
+      </button>
+    </div>
 
     <footer class="footer">
       <div class="container footer-row">
@@ -397,6 +446,21 @@ const timeline = [
   border-radius: 16px;
   background: linear-gradient(135deg, #00c2ff 0%, #3662ff 52%, #8b5cf6 100%);
   box-shadow: 0 16px 34px rgba(54, 98, 255, 0.28);
+}
+
+.nav-primary:hover,
+.primary-cta:hover,
+.secondary-cta:hover,
+.play-button:hover {
+  filter: brightness(1.04);
+  transform: translateY(-2px);
+}
+
+.nav-primary:active,
+.primary-cta:active,
+.secondary-cta:active,
+.play-button:active {
+  transform: scale(0.98);
 }
 
 .nav-primary {
@@ -660,7 +724,7 @@ const timeline = [
 
 .module-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
   margin-top: 30px;
 }
@@ -678,10 +742,30 @@ const timeline = [
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
+.module-card:nth-child(1),
+.module-card:nth-child(4) {
+  grid-column: span 2;
+}
+
 .module-card:hover {
   transform: translateY(-6px);
   border-color: color-mix(in srgb, #22d3ee 42%, var(--page-border));
   box-shadow: var(--page-shadow);
+}
+
+.module-card:first-child::after {
+  position: absolute;
+  inset: -1px;
+  border: 1px solid color-mix(in srgb, #22d3ee 34%, transparent);
+  border-radius: inherit;
+  content: '';
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.module-card:first-child:hover::after {
+  opacity: 1;
 }
 
 .module-icon {
@@ -858,6 +942,126 @@ const timeline = [
   width: fit-content;
 }
 
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 480ms ease, transform 480ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal-on-scroll.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.guest-pet-wrap {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 110;
+  display: grid;
+  justify-items: end;
+  gap: 12px;
+}
+
+.guest-pet {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, #19a7e8 48%, var(--page-border));
+  border-radius: 50%;
+  background: var(--page-surface-strong);
+  box-shadow: 0 12px 30px color-mix(in srgb, #0b8fd6 22%, transparent);
+  cursor: pointer;
+  animation: guest-pet-bob 3.4s ease-in-out infinite;
+}
+
+.guest-pet:hover {
+  transform: translateY(-3px) scale(1.02);
+}
+
+.guest-pet img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.guest-pet-guide {
+  width: min(330px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid var(--page-border);
+  border-radius: 18px;
+  color: var(--page-text);
+  background: var(--page-surface-strong);
+  box-shadow: var(--page-shadow);
+  animation: guest-guide-in 220ms ease both;
+}
+
+.guest-pet-guide-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.guest-pet-guide-head span,
+.guest-pet-guide-head strong {
+  display: block;
+}
+
+.guest-pet-guide-head span {
+  color: #0b8fd6;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.guest-pet-guide-head strong {
+  margin-top: 3px;
+  font-size: 16px;
+}
+
+.guest-pet-guide-head button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--page-border);
+  border-radius: 8px;
+  color: var(--page-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.guest-pet-guide p {
+  margin: 12px 0;
+  color: var(--page-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.guest-pet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.guest-pet-actions a {
+  padding: 8px 10px;
+  border: 1px solid var(--page-border);
+  border-radius: 9px;
+  color: var(--page-text);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.guest-pet-actions a.primary {
+  color: #fff;
+  border-color: #0b8fd6;
+  background: #0b8fd6;
+}
+
 .footer {
   padding: 28px 0 38px;
   border-top: 1px solid var(--page-border);
@@ -933,6 +1137,11 @@ const timeline = [
   .module-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .module-card:nth-child(1),
+  .module-card:nth-child(4) {
+    grid-column: span 1;
+  }
 }
 
 @media (max-width: 680px) {
@@ -965,6 +1174,26 @@ const timeline = [
     grid-template-columns: 1fr;
   }
 
+  .module-card:nth-child(1),
+  .module-card:nth-child(4) {
+    grid-column: span 1;
+  }
+
+  .guest-pet-wrap {
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .guest-pet {
+    width: 58px;
+    height: 58px;
+  }
+
+  .guest-pet img {
+    width: 52px;
+    height: 52px;
+  }
+
   .video-grid {
     padding: 18px;
     border-radius: 24px;
@@ -979,8 +1208,25 @@ const timeline = [
 @media (prefers-reduced-motion: reduce) {
   .preview-shell,
   .floating-card,
-  .hero-orbit {
+  .hero-orbit,
+  .guest-pet {
     animation: none;
   }
+
+  .reveal-on-scroll {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+@keyframes guest-pet-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes guest-guide-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 </style>

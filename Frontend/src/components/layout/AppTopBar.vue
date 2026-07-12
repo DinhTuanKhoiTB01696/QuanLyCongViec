@@ -91,7 +91,7 @@
       </button>
 
       <button class="icon-btn ai-topbar-btn hidden-mobile" @click="emit('toggle-ai')" title="AI Assistant">
-        <i class="fa-solid fa-robot"></i>
+        <img src="/ai-sprinta/idle.png" alt="" aria-hidden="true" />
       </button>
 
       <div class="hidden-mobile">
@@ -648,6 +648,24 @@ onUnmounted(() => {
 .nav-right button:hover i,
 .nav-right button:hover svg {
   color: #ffffff;
+}
+
+.ai-topbar-btn {
+  overflow: hidden;
+  padding: 3px;
+  border-color: rgba(226, 239, 255, 0.18);
+}
+
+.ai-topbar-btn img {
+  width: 25px;
+  height: 25px;
+  object-fit: contain;
+  display: block;
+}
+
+.ai-topbar-btn:hover {
+  border-color: rgba(226, 239, 255, 0.34);
+  background: rgba(255, 255, 255, 0.10);
 }
 
 .theme-toggle-btn.active {
