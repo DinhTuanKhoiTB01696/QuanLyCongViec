@@ -49,6 +49,7 @@ CodeCoverage/
 # MSBuild Binary and Structured Log
 *.binlog
 Backend/build-*.log
+Backend/**/*.log
 
 # MSTest test Results
 [Tt]est[Rr]esult*/
@@ -81,5 +82,10 @@ temp_pdf.txt
 temp_spec_pdf.txt
 parse_pdf.js
 scratch/
+.codex_docx_*/
+markdown.md
+backend-browser-test.*
+Backend/src/TaskManagement.API/codex_ai_action_run.*
 temp_pdf/
 *.lnk
+*.bak

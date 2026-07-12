@@ -1,15 +1,21 @@
 using System.IO;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using TaskManagement.Application.Common;
 using TaskManagement.Application.DTOs.AI;
 using TaskManagement.Application.DTOs.Common;
+using TaskManagement.Application.DTOs.Project;
 using TaskManagement.Application.DTOs.WorkTask;
 using TaskManagement.Application.Interfaces;
+using TaskManagement.Domain.Entities;
 using TaskManagement.Infrastructure.Data;
 
 namespace TaskManagement.API.Controllers
@@ -22,6 +28,8 @@ namespace TaskManagement.API.Controllers
     {
         private readonly IAiService _aiService;
         private readonly IWorkTaskService _workTaskService;
+        private readonly IProjectService _projectService;
+        private readonly IGoalService _goalService;
         private readonly ApplicationDbContext _dbContext;
         private const int GeminiRetryAttempts = 3;
         private const long AiDocumentMaxBytes = 10 * 1024 * 1024;
@@ -35,11 +43,19 @@ namespace TaskManagement.API.Controllers
             };
         private static readonly string[] AiAssigneeAllowedProjectRoles = { "PM", "PO", "SM", "PROJECT_MANAGER", "SCRUM_MASTER", "Admin" };
         private static readonly string[] AiSystemOverrideRoles = { "SuperAdmin", "Admin", "System Admin", "Organization Admin", "AccessAdmin", "Access Admin" };
+        private static readonly string[] AiProjectWriteRoles = { "pm", "po", "sm", "project_lead", "admin" };
 
-        public AiController(IAiService aiService, IWorkTaskService workTaskService, ApplicationDbContext dbContext)
+        public AiController(
+            IAiService aiService,
+            IWorkTaskService workTaskService,
+            IProjectService projectService,
+            IGoalService goalService,
+            ApplicationDbContext dbContext)
         {
             _aiService = aiService;
             _workTaskService = workTaskService;
+            _projectService = projectService;
+            _goalService = goalService;
             _dbContext = dbContext;
         }
 
@@ -257,6 +273,84 @@ namespace TaskManagement.API.Controllers
             catch (HttpRequestException ex)
             {
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, ApiResponse<object>.Error(ex.Message));
+            }
+        }
+
+        [HttpPost("actions/execute")]
+        public async Task<IActionResult> ExecuteAction([FromBody] AiExecuteActionRequestDto request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Type))
+            {
+                return BadRequest(ApiResponse<object>.Error("Action type is required."));
+            }
+
+            var actionType = NormalizeActionType(request.Type);
+            if (!AiActionRegistry.ContainsKey(actionType))
+            {
+                return BadRequest(ApiResponse<object>.Error("Action is not allowed."));
+            }
+
+            var userId = GetUserId();
+            var idempotencyKey = BuildIdempotencyKey(userId, actionType, request.IdempotencyKey, request.Payload);
+            var existingLog = await _dbContext.SystemAuditLogs
+                .AsNoTracking()
+                .Where(log => log.Action == "AI_ACTION_EXECUTE" &&
+                              log.Resource == idempotencyKey &&
+                              log.Status == "Success")
+                .OrderByDescending(log => log.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (existingLog != null && TryReadExecutedAction(existingLog.Details, out var replay))
+            {
+                replay.IdempotentReplay = true;
+                return Ok(ApiResponse<AiExecuteActionResponseDto>.Success(replay, "Idempotent replay."));
+            }
+
+            try
+            {
+                var result = actionType switch
+                {
+                    "create_project" => await ExecuteCreateProjectAsync(userId, request),
+                    "create_task" => await ExecuteCreateTaskAsync(userId, request),
+                    "create_cycle" => await ExecuteCreateCycleAsync(userId, request),
+                    "create_module" => await ExecuteCreateModuleAsync(userId, request),
+                    "create_page" => await ExecuteCreatePageAsync(userId, request),
+                    "create_view" => await ExecuteCreateViewAsync(userId, request),
+                    "create_intake_request" => await ExecuteCreateIntakeRequestAsync(userId, request),
+                    "update_task_status" => await ExecuteUpdateTaskStatusAsync(userId, request),
+                    "update_task_priority" => await ExecuteUpdateTaskPriorityAsync(userId, request),
+                    "update_task_due_date" => await ExecuteUpdateTaskDueDateAsync(userId, request),
+                    "assign_task" => await ExecuteAssignTaskAsync(userId, request),
+                    "add_comment" => await ExecuteAddCommentAsync(userId, request),
+                    "create_goal" => await ExecuteCreateGoalAsync(userId, request),
+                    "summarize_dashboard" => await ExecuteSummarizeDashboardAsync(userId, request),
+                    "summarize_project" => await ExecuteSummarizeProjectAsync(userId, request),
+                    "list_overdue_tasks" => await ExecuteListOverdueTasksAsync(userId, request),
+                    "get_workload" => await ExecuteGetWorkloadAsync(userId, request),
+                    "explain_report" => await ExecuteExplainReportAsync(userId, request),
+                    "summarize_page" => await ExecuteSummarizePageAsync(userId, request),
+                    "summarize_intakes" => await ExecuteSummarizeIntakesAsync(userId, request),
+                    "suggest_view_filter" => await ExecuteSuggestViewFilterAsync(userId, request),
+                    _ => throw new InvalidOperationException("Unsupported action.")
+                };
+
+                await WriteAiActionAuditAsync(userId, idempotencyKey, actionType, "Success", result);
+                return Ok(ApiResponse<AiExecuteActionResponseDto>.Success(result));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                await WriteAiActionAuditAsync(userId, idempotencyKey, actionType, "Denied", null, ex.Message);
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Error(ex.Message));
+            }
+            catch (ArgumentException ex)
+            {
+                await WriteAiActionAuditAsync(userId, idempotencyKey, actionType, "ValidationFailed", null, ex.Message);
+                return BadRequest(ApiResponse<object>.Error(ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                await WriteAiActionAuditAsync(userId, idempotencyKey, actionType, "ValidationFailed", null, ex.Message);
+                return BadRequest(ApiResponse<object>.Error(ex.Message));
             }
         }
 
@@ -964,6 +1058,1198 @@ namespace TaskManagement.API.Controllers
             return _dbContext.WorkspaceMembers
                 .AsNoTracking()
                 .AnyAsync(wm => wm.UserId == userId && wm.WorkspaceId == workspaceId && wm.IsActive);
+        }
+
+        private static readonly IReadOnlyDictionary<string, AiActionDefinition> AiActionRegistry =
+            new Dictionary<string, AiActionDefinition>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["create_project"] = new("Project", true),
+                ["create_task"] = new("WorkTask", true),
+                ["create_cycle"] = new("Sprint", true),
+                ["create_module"] = new("Module", true),
+                ["create_page"] = new("Page", true),
+                ["create_view"] = new("ProjectView", true),
+                ["create_intake_request"] = new("Intake", true),
+                ["update_task_status"] = new("WorkTask", true),
+                ["update_task_priority"] = new("WorkTask", true),
+                ["update_task_due_date"] = new("WorkTask", true),
+                ["assign_task"] = new("WorkTask", true),
+                ["add_comment"] = new("Comment", true),
+                ["create_goal"] = new("Goal", true),
+                ["summarize_dashboard"] = new("Summary", false),
+                ["summarize_project"] = new("Summary", false),
+                ["list_overdue_tasks"] = new("WorkTaskList", false),
+                ["get_workload"] = new("Workload", false),
+                ["explain_report"] = new("ReportExplanation", false),
+                ["summarize_page"] = new("PageSummary", false),
+                ["summarize_intakes"] = new("IntakeSummary", false),
+                ["suggest_view_filter"] = new("ViewFilterSuggestion", false)
+            };
+
+        private static readonly JsonSerializerOptions AiActionJsonOptions = new(JsonSerializerDefaults.Web);
+
+        private sealed record AiActionDefinition(string EntityType, bool RequiresConfirmation);
+
+        private async Task<AiExecuteActionResponseDto> ExecuteCreateProjectAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var workspaceId = await ResolveActionWorkspaceAsync(userId, request.WorkspaceId);
+            await EnsureWorkspaceWriteAccessAsync(userId, workspaceId);
+
+            var firstWorkspaceId = await _dbContext.WorkspaceMembers
+                .AsNoTracking()
+                .Where(member => member.UserId == userId && member.IsActive)
+                .OrderBy(member => member.JoinedAt)
+                .Select(member => (Guid?)member.WorkspaceId)
+                .FirstOrDefaultAsync();
+
+            if (firstWorkspaceId.HasValue && firstWorkspaceId.Value != workspaceId)
+            {
+                throw new UnauthorizedAccessException("AI create_project chi ho tro workspace runtime mac dinh cua user hien tai.");
+            }
+
+            var name = GetPayloadString(request.Payload, "name", "title");
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException("Project name is required.");
+            }
+
+            var created = await _projectService.CreateAsync(userId, new CreateProjectDto
+            {
+                Name = LimitActionText(name, 300) ?? name.Trim(),
+                Key = LimitActionText(GetPayloadString(request.Payload, "key", "identifier"), 24),
+                Description = LimitActionText(GetPayloadString(request.Payload, "description"), 4000),
+                StartDate = GetPayloadDate(request.Payload, "startDate") ?? DateTime.UtcNow.Date,
+                EndDate = GetPayloadDate(request.Payload, "endDate"),
+                NetworkType = GetPayloadString(request.Payload, "networkType") ?? "Public"
+            });
+
+            return new AiExecuteActionResponseDto
+            {
+                Type = "create_project",
+                EntityType = "Project",
+                EntityId = created.Id,
+                Entity = created,
+                Message = $"Created project {created.Name}."
+            };
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteCreateTaskAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectWriteAccessAsync(userId, projectId);
+
+            var title = GetPayloadString(request.Payload, "title", "name");
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                throw new ArgumentException("Task title is required.");
+            }
+
+            var assigneeId = GetPayloadGuid(request.Payload, "assigneeId", "assignedUserId");
+            var created = await _workTaskService.CreateAsync(userId, new CreateWorkTaskDto
+            {
+                ProjectId = projectId,
+                Title = LimitActionText(title, 300) ?? title.Trim(),
+                Description = LimitActionText(GetPayloadString(request.Payload, "description"), 4000),
+                Priority = Math.Clamp(GetPayloadInt(request.Payload, "priority") ?? 3, 1, 4),
+                StoryPoints = Math.Max(0, GetPayloadDouble(request.Payload, "storyPoints") ?? 0),
+                DueDate = GetPayloadDate(request.Payload, "dueDate"),
+                AssignedUserId = assigneeId,
+                AssigneeIds = assigneeId.HasValue ? new List<Guid> { assigneeId.Value } : null,
+                TypeName = GetPayloadString(request.Payload, "typeName") ?? "Task",
+                StatusName = GetPayloadString(request.Payload, "statusName")
+            });
+
+            return new AiExecuteActionResponseDto
+            {
+                Type = "create_task",
+                EntityType = "WorkTask",
+                EntityId = created.Id,
+                Entity = created,
+                Message = $"Created task {created.Title}."
+            };
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteCreateCycleAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectWriteAccessAsync(userId, projectId);
+
+            var name = GetPayloadString(request.Payload, "name", "title");
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException("Cycle name is required.");
+            }
+
+            var startDate = GetPayloadDate(request.Payload, "startDate") ?? DateTime.UtcNow.Date;
+            var endDate = GetPayloadDate(request.Payload, "endDate") ?? startDate.AddDays(13);
+            if (endDate < startDate)
+            {
+                throw new ArgumentException("Cycle endDate must be after startDate.");
+            }
+
+            var cycle = new Sprint
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = projectId,
+                Name = LimitActionText(name, 300) ?? name.Trim(),
+                StartDate = startDate,
+                EndDate = endDate,
+                Status = GetPayloadBool(request.Payload, "active", "status") ?? false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _dbContext.Sprints.Add(cycle);
+            await _dbContext.SaveChangesAsync();
+
+            return new AiExecuteActionResponseDto
+            {
+                Type = "create_cycle",
+                EntityType = "Sprint",
+                EntityId = cycle.Id,
+                Entity = new { cycle.Id, cycle.ProjectId, cycle.Name, cycle.StartDate, cycle.EndDate, cycle.Status },
+                Message = $"Created cycle {cycle.Name}."
+            };
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteCreateModuleAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectWriteAccessAsync(userId, projectId);
+
+            var name = GetPayloadString(request.Payload, "name", "title");
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException("Module name is required.");
+            }
+
+            var leadId = GetPayloadGuid(request.Payload, "leadId");
+            if (leadId.HasValue && !await IsActiveProjectMemberAsync(projectId, leadId.Value))
+            {
+                throw new ArgumentException("Lead is not an active project member.");
+            }
+
+            var module = new Module
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = projectId,
+                Name = LimitActionText(name, 300) ?? name.Trim(),
+                Description = LimitActionText(GetPayloadString(request.Payload, "description"), 4000),
+                StartDate = GetPayloadDate(request.Payload, "startDate"),
+                TargetDate = GetPayloadDate(request.Payload, "targetDate", "endDate", "dueDate"),
+                Status = GetPayloadString(request.Payload, "status") ?? "Backlog",
+                LeadId = leadId ?? userId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _dbContext.Modules.Add(module);
+            await _dbContext.SaveChangesAsync();
+
+            return new AiExecuteActionResponseDto
+            {
+                Type = "create_module",
+                EntityType = "Module",
+                EntityId = module.Id,
+                Entity = new { module.Id, module.ProjectId, module.Name, module.Status, module.LeadId },
+                Message = $"Created module {module.Name}."
+            };
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteCreatePageAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectWriteAccessAsync(userId, projectId);
+
+            var title = GetPayloadString(request.Payload, "title", "name");
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                throw new ArgumentException("Page title is required.");
+            }
+
+            var maxSort = await _dbContext.Pages
+                .Where(page => page.ProjectId == projectId)
+                .MaxAsync(page => (int?)page.SortOrder) ?? 0;
+
+            var page = new Page
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = projectId,
+                Title = LimitActionText(title, 300) ?? title.Trim(),
+                Content = GetPayloadString(request.Payload, "content", "description") ?? string.Empty,
+                SortOrder = maxSort + 1,
+                CreatedById = userId,
+                UpdatedById = userId,
+                IsPrivate = GetPayloadBool(request.Payload, "isPrivate") ?? false,
+                IsStarred = GetPayloadBool(request.Payload, "isStarred") ?? false,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _dbContext.Pages.Add(page);
+            await _dbContext.SaveChangesAsync();
+
+            return new AiExecuteActionResponseDto
+            {
+                Type = "create_page",
+                EntityType = "Page",
+                EntityId = page.Id,
+                Entity = new { page.Id, page.ProjectId, page.Title, page.SortOrder },
+                Message = $"Created page {page.Title}."
+            };
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteCreateViewAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectWriteAccessAsync(userId, projectId);
+
+            var name = GetPayloadString(request.Payload, "name", "title");
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException("View name is required.");
+            }
+
+            var queryMetadata = GetPayloadString(request.Payload, "queryMetadata", "filters") ?? "{}";
+            if (!IsValidJsonObject(queryMetadata))
+            {
+                throw new ArgumentException("View queryMetadata must be a JSON object.");
+            }
+
+            var view = new ProjectView
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = projectId,
+                Name = LimitActionText(name, 300) ?? name.Trim(),
+                Description = LimitActionText(GetPayloadString(request.Payload, "description"), 1000),
+                QueryMetadata = queryMetadata,
+                CreatedById = userId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _dbContext.ProjectViews.Add(view);
+            await _dbContext.SaveChangesAsync();
+
+            return new AiExecuteActionResponseDto
+            {
+                Type = "create_view",
+                EntityType = "ProjectView",
+                EntityId = view.Id,
+                Entity = new { view.Id, view.ProjectId, view.Name, view.QueryMetadata },
+                Message = $"Created view {view.Name}."
+            };
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteCreateIntakeRequestAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectWriteAccessAsync(userId, projectId);
+
+            var title = GetPayloadString(request.Payload, "title", "name");
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                throw new ArgumentException("Intake title is required.");
+            }
+
+            var intake = new Intake
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = projectId,
+                Title = LimitActionText(title, 300) ?? title.Trim(),
+                Description = LimitActionText(GetPayloadString(request.Payload, "description"), 4000),
+                Source = GetPayloadString(request.Payload, "source") ?? "AI",
+                Status = "Pending",
+                Priority = Math.Clamp(GetPayloadInt(request.Payload, "priority") ?? 3, 1, 4),
+                DesiredDueDate = GetPayloadDate(request.Payload, "desiredDueDate", "dueDate"),
+                SubmittedById = userId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _dbContext.Intakes.Add(intake);
+            await _dbContext.SaveChangesAsync();
+
+            return new AiExecuteActionResponseDto
+            {
+                Type = "create_intake_request",
+                EntityType = "Intake",
+                EntityId = intake.Id,
+                Entity = new { intake.Id, intake.ProjectId, intake.Title, intake.Status, intake.Priority },
+                Message = $"Created intake request {intake.Title}."
+            };
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteUpdateTaskStatusAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var taskId = RequirePayloadGuid(request.Payload, "taskId", "workTaskId");
+            var statusName = GetPayloadString(request.Payload, "statusName", "status");
+            var statusId = GetPayloadGuid(request.Payload, "taskStatusId", "statusId") ?? Guid.Empty;
+            if (statusId == Guid.Empty && string.IsNullOrWhiteSpace(statusName))
+            {
+                throw new ArgumentException("StatusName or taskStatusId is required.");
+            }
+
+            var projectId = await ResolveTaskProjectIdAsync(taskId);
+            await EnsureProjectWriteAccessAsync(userId, projectId);
+
+            await _workTaskService.UpdateTaskStatusAsync(taskId, userId, new UpdateTaskStatusRequestDto
+            {
+                TaskStatusId = statusId,
+                StatusName = statusName,
+                RowVersion = Array.Empty<byte>()
+            });
+
+            var task = await _dbContext.WorkTasks
+                .AsNoTracking()
+                .Include(item => item.TaskStatus)
+                .Where(item => item.Id == taskId)
+                .Select(item => new
+                {
+                    item.Id,
+                    item.Title,
+                    item.ProjectId,
+                    StatusName = item.TaskStatus.Name
+                })
+                .FirstAsync();
+
+            return new AiExecuteActionResponseDto
+            {
+                Type = "update_task_status",
+                EntityType = "WorkTask",
+                EntityId = task.Id,
+                Entity = task,
+                Message = $"Updated task status to {task.StatusName}."
+            };
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteUpdateTaskPriorityAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var taskId = RequirePayloadGuid(request.Payload, "taskId", "workTaskId");
+            var priority = GetPayloadInt(request.Payload, "priority");
+            if (!priority.HasValue)
+            {
+                throw new ArgumentException("Priority is required.");
+            }
+
+            var task = await LoadWritableTaskAsync(userId, taskId);
+            task.Priority = Math.Clamp(priority.Value, 1, 4);
+            task.UpdatedAt = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync();
+
+            return new AiExecuteActionResponseDto
+            {
+                Type = "update_task_priority",
+                EntityType = "WorkTask",
+                EntityId = task.Id,
+                Entity = new { task.Id, task.ProjectId, task.Title, task.Priority },
+                Message = $"Updated task priority to P{task.Priority}."
+            };
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteUpdateTaskDueDateAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var taskId = RequirePayloadGuid(request.Payload, "taskId", "workTaskId");
+            if (!request.Payload.ContainsKey("dueDate"))
+            {
+                throw new ArgumentException("dueDate is required.");
+            }
+
+            var task = await LoadWritableTaskAsync(userId, taskId);
+            task.DueDate = GetPayloadDate(request.Payload, "dueDate");
+            task.UpdatedAt = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync();
+
+            return new AiExecuteActionResponseDto
+            {
+                Type = "update_task_due_date",
+                EntityType = "WorkTask",
+                EntityId = task.Id,
+                Entity = new { task.Id, task.ProjectId, task.Title, task.DueDate },
+                Message = task.DueDate.HasValue
+                    ? $"Updated task due date to {task.DueDate.Value:yyyy-MM-dd}."
+                    : "Cleared task due date."
+            };
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteAssignTaskAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var taskId = RequirePayloadGuid(request.Payload, "taskId", "workTaskId");
+            var assigneeId = RequirePayloadGuid(request.Payload, "assigneeId", "userId", "assignedUserId");
+            var task = await _dbContext.WorkTasks
+                .Include(item => item.TaskAssignments)
+                .FirstOrDefaultAsync(item => item.Id == taskId && !item.IsDeleted);
+
+            if (task == null)
+            {
+                throw new ArgumentException("Task does not exist.");
+            }
+
+            await EnsureProjectManagerOrReporterAsync(userId, task.ProjectId, task.ReporterId);
+            var assigneeIsMember = await _dbContext.ProjectMembers
+                .AnyAsync(member => member.ProjectId == task.ProjectId && member.UserId == assigneeId && member.Status);
+
+            if (!assigneeIsMember)
+            {
+                throw new ArgumentException("Assignee is not an active project member.");
+            }
+
+            task.AssignedUserId = assigneeId;
+            task.UpdatedAt = DateTime.UtcNow;
+            var assignment = task.TaskAssignments.FirstOrDefault(item => item.UserId == assigneeId);
+            if (assignment == null)
+            {
+                _dbContext.TaskAssignments.Add(new TaskAssignment
+                {
+                    WorkTaskId = task.Id,
+                    UserId = assigneeId,
+                    Status = true,
+                    ProgressPercent = 0
+                });
+            }
+            else
+            {
+                assignment.Status = true;
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            var result = await _dbContext.WorkTasks
+                .AsNoTracking()
+                .Include(item => item.AssignedUser)
+                .Where(item => item.Id == taskId)
+                .Select(item => new
+                {
+                    item.Id,
+                    item.Title,
+                    item.ProjectId,
+                    item.AssignedUserId,
+                    AssigneeName = item.AssignedUser != null ? item.AssignedUser.FullName ?? item.AssignedUser.Email : null
+                })
+                .FirstAsync();
+
+            return new AiExecuteActionResponseDto
+            {
+                Type = "assign_task",
+                EntityType = "WorkTask",
+                EntityId = result.Id,
+                Entity = result,
+                Message = $"Assigned task to {result.AssigneeName ?? assigneeId.ToString()}."
+            };
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteAddCommentAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var entityId = RequirePayloadGuid(request.Payload, "entityId", "taskId", "workTaskId");
+            var entityType = GetPayloadString(request.Payload, "entityType") ?? "WorkTask";
+            var content = GetPayloadString(request.Payload, "content", "message");
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                throw new ArgumentException("Comment content is required.");
+            }
+
+            var normalizedEntityType = NormalizeCommentEntityType(entityType);
+            await EnsureCommentEntityAccessAsync(userId, normalizedEntityType, entityId);
+
+            var comment = new Comment
+            {
+                Id = Guid.NewGuid(),
+                EntityId = entityId,
+                EntityType = normalizedEntityType,
+                UserId = userId,
+                Content = LimitActionText(content, 4000) ?? content.Trim(),
+                ParentCommentId = GetPayloadGuid(request.Payload, "parentCommentId"),
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _dbContext.Comments.Add(comment);
+            await _dbContext.SaveChangesAsync();
+
+            return new AiExecuteActionResponseDto
+            {
+                Type = "add_comment",
+                EntityType = "Comment",
+                EntityId = comment.Id,
+                Entity = new { comment.Id, comment.EntityType, comment.EntityId, comment.Content, comment.CreatedAt },
+                Message = "Added comment."
+            };
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteCreateGoalAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var workspaceId = GetPayloadGuid(request.Payload, "workspaceId") ?? request.WorkspaceId;
+            if (!workspaceId.HasValue || workspaceId.Value == Guid.Empty)
+            {
+                workspaceId = await ResolveActionWorkspaceAsync(userId, null);
+            }
+
+            await EnsureWorkspaceWriteAccessAsync(userId, workspaceId.Value);
+
+            var title = GetPayloadString(request.Payload, "title", "name");
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                throw new ArgumentException("Goal title is required.");
+            }
+
+            var goalPayload = new Dictionary<string, object?>
+            {
+                ["title"] = LimitActionText(title, 300),
+                ["description"] = LimitActionText(GetPayloadString(request.Payload, "description"), 4000),
+                ["dueDate"] = GetPayloadDate(request.Payload, "dueDate"),
+                ["ownerId"] = GetPayloadGuid(request.Payload, "ownerId") ?? userId,
+                ["progress"] = Math.Clamp(GetPayloadInt(request.Payload, "progress") ?? 0, 0, 100),
+                ["status"] = GetPayloadString(request.Payload, "status") ?? "On Track"
+            };
+
+            var created = await _goalService.CreateAsync(userId, workspaceId.Value, goalPayload);
+            var entityId = TryExtractEntityId(created);
+
+            return new AiExecuteActionResponseDto
+            {
+                Type = "create_goal",
+                EntityType = "Goal",
+                EntityId = entityId,
+                Entity = created,
+                Message = $"Created goal {title}."
+            };
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteSummarizeDashboardAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var workspaceId = await ResolveActionWorkspaceAsync(userId, request.WorkspaceId);
+            var projectIds = await GetAccessibleProjectIdsAsync(userId, workspaceId);
+            var now = DateTime.UtcNow;
+            var summary = await _dbContext.WorkTasks
+                .AsNoTracking()
+                .Include(task => task.TaskStatus)
+                .Where(task => projectIds.Contains(task.ProjectId) && !task.IsDeleted && !task.IsArchived)
+                .GroupBy(_ => 1)
+                .Select(group => new
+                {
+                    Total = group.Count(),
+                    Done = group.Count(task => task.TaskStatus.Name.Contains("Done") || task.TaskStatus.Name.Contains("Complete")),
+                    InProgress = group.Count(task => task.TaskStatus.Name.Contains("Progress")),
+                    Overdue = group.Count(task => task.DueDate.HasValue && task.DueDate.Value < now && !(task.TaskStatus.Name.Contains("Done") || task.TaskStatus.Name.Contains("Complete")))
+                })
+                .FirstOrDefaultAsync() ?? new { Total = 0, Done = 0, InProgress = 0, Overdue = 0 };
+
+            return ReadOnlyAction("summarize_dashboard", "Summary", summary, $"Dashboard has {summary.Total} tasks, {summary.Done} done, {summary.Overdue} overdue.");
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteSummarizeProjectAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectActionAccessAsync(userId, projectId);
+            var now = DateTime.UtcNow;
+            var project = await _dbContext.Projects
+                .AsNoTracking()
+                .Where(item => item.Id == projectId)
+                .Select(item => new { item.Id, item.Name, item.Description, item.StartDate, item.EndDate })
+                .FirstAsync();
+            var taskStats = await _dbContext.WorkTasks
+                .AsNoTracking()
+                .Include(task => task.TaskStatus)
+                .Where(task => task.ProjectId == projectId && !task.IsDeleted)
+                .GroupBy(_ => 1)
+                .Select(group => new
+                {
+                    Total = group.Count(),
+                    Done = group.Count(task => task.TaskStatus.Name.Contains("Done") || task.TaskStatus.Name.Contains("Complete")),
+                    InProgress = group.Count(task => task.TaskStatus.Name.Contains("Progress")),
+                    Overdue = group.Count(task => task.DueDate.HasValue && task.DueDate.Value < now && !(task.TaskStatus.Name.Contains("Done") || task.TaskStatus.Name.Contains("Complete")))
+                })
+                .FirstOrDefaultAsync() ?? new { Total = 0, Done = 0, InProgress = 0, Overdue = 0 };
+
+            var data = new { Project = project, Tasks = taskStats };
+            return ReadOnlyAction("summarize_project", "Summary", data, $"Project {project.Name}: {taskStats.Total} tasks, {taskStats.Done} done.");
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteListOverdueTasksAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectActionAccessAsync(userId, projectId);
+            var now = DateTime.UtcNow;
+            var tasks = await _dbContext.WorkTasks
+                .AsNoTracking()
+                .Include(task => task.TaskStatus)
+                .Include(task => task.AssignedUser)
+                .Where(task => task.ProjectId == projectId && !task.IsDeleted && task.DueDate.HasValue && task.DueDate.Value < now)
+                .Where(task => !(task.TaskStatus.Name.Contains("Done") || task.TaskStatus.Name.Contains("Complete")))
+                .OrderBy(task => task.DueDate)
+                .Take(20)
+                .Select(task => new
+                {
+                    task.Id,
+                    task.Title,
+                    task.Priority,
+                    task.DueDate,
+                    StatusName = task.TaskStatus.Name,
+                    AssigneeName = task.AssignedUser != null ? task.AssignedUser.FullName ?? task.AssignedUser.Email : null
+                })
+                .ToListAsync();
+
+            return ReadOnlyAction("list_overdue_tasks", "WorkTaskList", tasks, $"Found {tasks.Count} overdue tasks.");
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteGetWorkloadAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectActionAccessAsync(userId, projectId);
+            var workload = await _dbContext.ProjectMembers
+                .AsNoTracking()
+                .Where(member => member.ProjectId == projectId && member.Status)
+                .Select(member => new
+                {
+                    member.UserId,
+                    Name = member.User.FullName ?? member.User.Email,
+                    member.ProjectRole,
+                    ActiveTasks = _dbContext.WorkTasks.Count(task => task.ProjectId == projectId && !task.IsDeleted && task.AssignedUserId == member.UserId && !(task.TaskStatus.Name.Contains("Done") || task.TaskStatus.Name.Contains("Complete"))),
+                    OverdueTasks = _dbContext.WorkTasks.Count(task => task.ProjectId == projectId && !task.IsDeleted && task.AssignedUserId == member.UserId && task.DueDate.HasValue && task.DueDate.Value < DateTime.UtcNow && !(task.TaskStatus.Name.Contains("Done") || task.TaskStatus.Name.Contains("Complete")))
+                })
+                .OrderByDescending(item => item.ActiveTasks)
+                .ToListAsync();
+
+            return ReadOnlyAction("get_workload", "Workload", workload, $"Loaded workload for {workload.Count} members.");
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteExplainReportAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectActionAccessAsync(userId, projectId);
+            var data = await BuildReportSnapshotAsync(projectId);
+            return ReadOnlyAction("explain_report", "ReportExplanation", data, "Generated report explanation data.");
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteSummarizePageAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var pageId = RequirePayloadGuid(request.Payload, "pageId");
+            var page = await _dbContext.Pages
+                .AsNoTracking()
+                .Where(item => item.Id == pageId && !item.IsArchived)
+                .Select(item => new { item.Id, item.ProjectId, item.Title, item.Content, item.UpdatedAt })
+                .FirstOrDefaultAsync();
+
+            if (page == null)
+            {
+                throw new ArgumentException("Page does not exist.");
+            }
+
+            await EnsureProjectActionAccessAsync(userId, page.ProjectId);
+            var content = LimitActionText(page.Content, 1200) ?? string.Empty;
+            return ReadOnlyAction("summarize_page", "PageSummary", new { page.Id, page.Title, ContentPreview = content, page.UpdatedAt }, $"Page {page.Title}: {content.Length} preview characters.");
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteSummarizeIntakesAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectActionAccessAsync(userId, projectId);
+            var data = await _dbContext.Intakes
+                .AsNoTracking()
+                .Where(item => item.ProjectId == projectId)
+                .GroupBy(item => item.Status)
+                .Select(group => new { Status = group.Key, Count = group.Count(), Urgent = group.Count(item => item.Priority == 1) })
+                .OrderBy(item => item.Status)
+                .ToListAsync();
+
+            return ReadOnlyAction("summarize_intakes", "IntakeSummary", data, $"Summarized intakes across {data.Count} statuses.");
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteSuggestViewFilterAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectActionAccessAsync(userId, projectId);
+            var statusNames = await _dbContext.TaskStatuses
+                .AsNoTracking()
+                .Where(status => status.ProjectId == projectId)
+                .OrderBy(status => status.Position)
+                .Select(status => status.Name)
+                .ToListAsync();
+
+            var priority = GetPayloadInt(request.Payload, "priority");
+            var filter = new Dictionary<string, object?>
+            {
+                ["status"] = statusNames.FirstOrDefault(name => name.Contains("Progress", StringComparison.OrdinalIgnoreCase)) ?? statusNames.FirstOrDefault(),
+                ["priority"] = priority,
+                ["assigneeId"] = GetPayloadGuid(request.Payload, "assigneeId")
+            }
+            .Where(pair => pair.Value != null)
+            .ToDictionary(pair => pair.Key, pair => pair.Value);
+
+            return ReadOnlyAction("suggest_view_filter", "ViewFilterSuggestion", filter, "Suggested a saved-view filter from project statuses.");
+        }
+
+        private static AiExecuteActionResponseDto ReadOnlyAction(string type, string entityType, object entity, string message)
+        {
+            return new AiExecuteActionResponseDto
+            {
+                Type = type,
+                Status = "completed",
+                EntityType = entityType,
+                Entity = entity,
+                Message = message
+            };
+        }
+
+        private async Task<WorkTask> LoadWritableTaskAsync(Guid userId, Guid taskId)
+        {
+            var task = await _dbContext.WorkTasks
+                .FirstOrDefaultAsync(item => item.Id == taskId && !item.IsDeleted);
+
+            if (task == null)
+            {
+                throw new ArgumentException("Task does not exist.");
+            }
+
+            await EnsureProjectWriteAccessAsync(userId, task.ProjectId);
+            return task;
+        }
+
+        private async Task EnsureCommentEntityAccessAsync(Guid userId, string entityType, Guid entityId)
+        {
+            if (entityType == "WorkTask")
+            {
+                var projectId = await ResolveTaskProjectIdAsync(entityId);
+                await EnsureProjectActionAccessAsync(userId, projectId);
+                return;
+            }
+
+            if (entityType == "Project")
+            {
+                await EnsureProjectActionAccessAsync(userId, entityId);
+                return;
+            }
+
+            if (entityType == "Goal")
+            {
+                var workspaceId = await _dbContext.Goals
+                    .AsNoTracking()
+                    .Where(goal => goal.Id == entityId && !goal.IsArchived)
+                    .Select(goal => (Guid?)goal.WorkspaceId)
+                    .FirstOrDefaultAsync();
+
+                if (!workspaceId.HasValue || !await UserHasWorkspaceAccessAsync(userId, workspaceId.Value))
+                {
+                    throw new UnauthorizedAccessException("You do not have permission for this goal.");
+                }
+
+                return;
+            }
+
+            throw new ArgumentException("Unsupported comment entity type.");
+        }
+
+        private static string NormalizeCommentEntityType(string entityType)
+        {
+            var normalized = entityType.Trim().Replace("-", string.Empty).Replace("_", string.Empty);
+            if (string.Equals(normalized, "task", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalized, "worktask", StringComparison.OrdinalIgnoreCase))
+            {
+                return "WorkTask";
+            }
+
+            if (string.Equals(normalized, "project", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Project";
+            }
+
+            if (string.Equals(normalized, "goal", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Goal";
+            }
+
+            return entityType.Trim();
+        }
+
+        private static bool IsValidJsonObject(string value)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(value);
+                return document.RootElement.ValueKind == JsonValueKind.Object;
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
+        }
+
+        private async Task<bool> IsActiveProjectMemberAsync(Guid projectId, Guid memberId)
+        {
+            return await _dbContext.ProjectMembers
+                .AsNoTracking()
+                .AnyAsync(member => member.ProjectId == projectId && member.UserId == memberId && member.Status);
+        }
+
+        private async Task<List<Guid>> GetAccessibleProjectIdsAsync(Guid userId, Guid workspaceId)
+        {
+            var workspaceRole = await _dbContext.WorkspaceMembers
+                .AsNoTracking()
+                .Where(member => member.WorkspaceId == workspaceId && member.UserId == userId && member.IsActive)
+                .Select(member => member.WorkspaceRole)
+                .FirstOrDefaultAsync();
+
+            if (string.Equals(workspaceRole, "OWNER", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(workspaceRole, "ADMIN", StringComparison.OrdinalIgnoreCase))
+            {
+                return await _dbContext.Projects
+                    .AsNoTracking()
+                    .Where(project => project.WorkspaceId == workspaceId && !project.IsDeleted)
+                    .Select(project => project.Id)
+                    .ToListAsync();
+            }
+
+            return await _dbContext.ProjectMembers
+                .AsNoTracking()
+                .Where(member => member.UserId == userId && member.Status && member.Project.WorkspaceId == workspaceId)
+                .Select(member => member.ProjectId)
+                .ToListAsync();
+        }
+
+        private async Task<object> BuildReportSnapshotAsync(Guid projectId)
+        {
+            var now = DateTime.UtcNow;
+            var byStatus = await _dbContext.WorkTasks
+                .AsNoTracking()
+                .Include(task => task.TaskStatus)
+                .Where(task => task.ProjectId == projectId && !task.IsDeleted)
+                .GroupBy(task => task.TaskStatus.Name)
+                .Select(group => new { Status = group.Key, Count = group.Count() })
+                .OrderBy(item => item.Status)
+                .ToListAsync();
+
+            var byPriority = await _dbContext.WorkTasks
+                .AsNoTracking()
+                .Where(task => task.ProjectId == projectId && !task.IsDeleted)
+                .GroupBy(task => task.Priority)
+                .Select(group => new { Priority = group.Key, Count = group.Count() })
+                .OrderBy(item => item.Priority)
+                .ToListAsync();
+
+            var overdueCount = await _dbContext.WorkTasks
+                .AsNoTracking()
+                .Include(task => task.TaskStatus)
+                .CountAsync(task => task.ProjectId == projectId && !task.IsDeleted && task.DueDate.HasValue && task.DueDate.Value < now && !(task.TaskStatus.Name.Contains("Done") || task.TaskStatus.Name.Contains("Complete")));
+
+            return new { ByStatus = byStatus, ByPriority = byPriority, OverdueCount = overdueCount };
+        }
+
+        private async Task EnsureProjectActionAccessAsync(Guid userId, Guid projectId)
+        {
+            var project = await _dbContext.Projects
+                .AsNoTracking()
+                .Where(item => item.Id == projectId && !item.IsDeleted)
+                .Select(item => new { item.Id, item.WorkspaceId })
+                .FirstOrDefaultAsync();
+
+            if (project == null || !await UserHasProjectContextAccessAsync(userId, project.WorkspaceId, project.Id))
+            {
+                throw new UnauthorizedAccessException("You do not have permission for this project.");
+            }
+        }
+
+        private async Task EnsureProjectWriteAccessAsync(Guid userId, Guid projectId)
+        {
+            var project = await _dbContext.Projects
+                .AsNoTracking()
+                .Where(item => item.Id == projectId && !item.IsDeleted)
+                .Select(item => new { item.Id, item.WorkspaceId })
+                .FirstOrDefaultAsync();
+
+            if (project == null)
+            {
+                throw new UnauthorizedAccessException("You do not have permission to modify this project.");
+            }
+
+            if (await UserHasWorkspaceWriteAccessAsync(userId, project.WorkspaceId))
+            {
+                return;
+            }
+
+            var projectRole = await _dbContext.ProjectMembers
+                .AsNoTracking()
+                .Where(member => member.ProjectId == project.Id && member.UserId == userId && member.Status)
+                .Select(member => member.ProjectRole)
+                .FirstOrDefaultAsync();
+
+            var normalizedRole = ProjectExecutionRuleHelper.NormalizeProjectRole(projectRole);
+            if (!AiProjectWriteRoles.Contains(normalizedRole, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new UnauthorizedAccessException("You do not have permission to modify this project.");
+            }
+        }
+
+        private async Task EnsureWorkspaceWriteAccessAsync(Guid userId, Guid workspaceId)
+        {
+            if (!await UserHasWorkspaceWriteAccessAsync(userId, workspaceId))
+            {
+                throw new UnauthorizedAccessException("You do not have permission to modify this workspace.");
+            }
+        }
+
+        private async Task<bool> UserHasWorkspaceWriteAccessAsync(Guid userId, Guid workspaceId)
+        {
+            var workspaceRole = await _dbContext.WorkspaceMembers
+                .AsNoTracking()
+                .Where(member => member.WorkspaceId == workspaceId && member.UserId == userId && member.IsActive)
+                .Select(member => member.WorkspaceRole)
+                .FirstOrDefaultAsync();
+
+            return string.Equals(workspaceRole, "OWNER", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(workspaceRole, "ADMIN", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task EnsureProjectManagerOrReporterAsync(Guid userId, Guid projectId, Guid reporterId)
+        {
+            if (reporterId == userId)
+            {
+                return;
+            }
+
+            var role = await _dbContext.ProjectMembers
+                .AsNoTracking()
+                .Where(member => member.ProjectId == projectId && member.UserId == userId && member.Status)
+                .Select(member => member.ProjectRole)
+                .FirstOrDefaultAsync();
+
+            if (!AiAssigneeAllowedProjectRoles.Contains(role ?? string.Empty, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new UnauthorizedAccessException("You do not have permission to assign this task.");
+            }
+        }
+
+        private async Task<Guid> ResolveActionWorkspaceAsync(Guid userId, Guid? requestedWorkspaceId)
+        {
+            if (requestedWorkspaceId.HasValue && requestedWorkspaceId.Value != Guid.Empty)
+            {
+                if (!await UserHasWorkspaceAccessAsync(userId, requestedWorkspaceId.Value))
+                {
+                    throw new UnauthorizedAccessException("You do not have access to this workspace.");
+                }
+
+                return requestedWorkspaceId.Value;
+            }
+
+            var workspaceId = await _dbContext.WorkspaceMembers
+                .AsNoTracking()
+                .Where(member => member.UserId == userId && member.IsActive)
+                .OrderBy(member => member.JoinedAt)
+                .Select(member => (Guid?)member.WorkspaceId)
+                .FirstOrDefaultAsync();
+
+            return workspaceId ?? throw new UnauthorizedAccessException("User has no active workspace.");
+        }
+
+        private Guid ResolveProjectId(AiExecuteActionRequestDto request)
+        {
+            var projectId = GetPayloadGuid(request.Payload, "projectId") ?? request.ProjectId;
+            if (!projectId.HasValue || projectId.Value == Guid.Empty)
+            {
+                throw new ArgumentException("ProjectId is required.");
+            }
+
+            return projectId.Value;
+        }
+
+        private async Task<Guid> ResolveTaskProjectIdAsync(Guid taskId)
+        {
+            var projectId = await _dbContext.WorkTasks
+                .AsNoTracking()
+                .Where(task => task.Id == taskId && !task.IsDeleted)
+                .Select(task => (Guid?)task.ProjectId)
+                .FirstOrDefaultAsync();
+
+            return projectId ?? throw new ArgumentException("Task does not exist.");
+        }
+
+        private async Task WriteAiActionAuditAsync(
+            Guid userId,
+            string idempotencyKey,
+            string actionType,
+            string status,
+            AiExecuteActionResponseDto? result,
+            string? error = null)
+        {
+            var details = JsonSerializer.Serialize(new
+            {
+                actionType,
+                result,
+                error
+            }, AiActionJsonOptions);
+
+            _dbContext.SystemAuditLogs.Add(new SystemAuditLog
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Action = "AI_ACTION_EXECUTE",
+                Resource = idempotencyKey,
+                Status = status,
+                IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                Details = details,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            if (result?.EntityId is Guid entityId)
+            {
+                _dbContext.SiteAuditLogs.Add(new SiteAuditLog
+                {
+                    EntityId = entityId,
+                    EntityType = result.EntityType,
+                    Action = $"AI_{actionType}",
+                    NewValue = result.Message,
+                    UserId = userId,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            await _dbContext.SaveChangesAsync();
+        }
+
+        private static bool TryReadExecutedAction(string? details, out AiExecuteActionResponseDto response)
+        {
+            response = new AiExecuteActionResponseDto();
+            if (string.IsNullOrWhiteSpace(details))
+            {
+                return false;
+            }
+
+            try
+            {
+                using var document = JsonDocument.Parse(details);
+                if (!document.RootElement.TryGetProperty("result", out var result) ||
+                    result.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+                {
+                    return false;
+                }
+
+                response = result.Deserialize<AiExecuteActionResponseDto>(AiActionJsonOptions) ?? new AiExecuteActionResponseDto();
+                return true;
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
+        }
+
+        private static string NormalizeActionType(string actionType)
+        {
+            return actionType.Trim().Replace("-", "_").ToLowerInvariant();
+        }
+
+        private static string BuildIdempotencyKey(Guid userId, string actionType, string? clientKey, Dictionary<string, object?> payload)
+        {
+            var raw = string.IsNullOrWhiteSpace(clientKey)
+                ? JsonSerializer.Serialize(payload.OrderBy(item => item.Key), AiActionJsonOptions)
+                : clientKey.Trim();
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"{userId:N}:{actionType}:{raw}"));
+            return $"ai-action:{Convert.ToHexString(bytes).ToLowerInvariant()}";
+        }
+
+        private static string? GetPayloadString(Dictionary<string, object?> payload, params string[] keys)
+        {
+            foreach (var key in keys)
+            {
+                if (!payload.TryGetValue(key, out var value) || value == null)
+                {
+                    continue;
+                }
+
+                if (value is JsonElement element)
+                {
+                    if (element.ValueKind == JsonValueKind.String)
+                    {
+                        return element.GetString();
+                    }
+
+                    return element.ToString();
+                }
+
+                return value.ToString();
+            }
+
+            return null;
+        }
+
+        private static Guid RequirePayloadGuid(Dictionary<string, object?> payload, params string[] keys)
+        {
+            return GetPayloadGuid(payload, keys) ?? throw new ArgumentException($"{keys[0]} is required.");
+        }
+
+        private static Guid? GetPayloadGuid(Dictionary<string, object?> payload, params string[] keys)
+        {
+            var value = GetPayloadString(payload, keys);
+            return Guid.TryParse(value, out var parsed) && parsed != Guid.Empty ? parsed : null;
+        }
+
+        private static int? GetPayloadInt(Dictionary<string, object?> payload, params string[] keys)
+        {
+            var value = GetPayloadString(payload, keys);
+            return int.TryParse(value, out var parsed) ? parsed : null;
+        }
+
+        private static bool? GetPayloadBool(Dictionary<string, object?> payload, params string[] keys)
+        {
+            var value = GetPayloadString(payload, keys);
+            if (bool.TryParse(value, out var parsed))
+            {
+                return parsed;
+            }
+
+            if (int.TryParse(value, out var numeric))
+            {
+                return numeric != 0;
+            }
+
+            return null;
+        }
+
+        private static double? GetPayloadDouble(Dictionary<string, object?> payload, params string[] keys)
+        {
+            var value = GetPayloadString(payload, keys);
+            return double.TryParse(value, out var parsed) ? parsed : null;
+        }
+
+        private static DateTime? GetPayloadDate(Dictionary<string, object?> payload, params string[] keys)
+        {
+            var value = GetPayloadString(payload, keys);
+            if (!DateTime.TryParse(value, out var parsed))
+            {
+                return null;
+            }
+
+            return parsed.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(parsed.Date, DateTimeKind.Utc)
+                : parsed.ToUniversalTime();
+        }
+
+        private static string? LimitActionText(string? value, int maxLength)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            var trimmed = value.Trim();
+            return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength];
+        }
+
+        private static Guid? TryExtractEntityId(object? entity)
+        {
+            if (entity == null)
+            {
+                return null;
+            }
+
+            using var document = JsonDocument.Parse(JsonSerializer.Serialize(entity, AiActionJsonOptions));
+            if (document.RootElement.TryGetProperty("id", out var id) && Guid.TryParse(id.ToString(), out var parsed))
+            {
+                return parsed;
+            }
+
+            if (document.RootElement.TryGetProperty("Id", out var upperId) && Guid.TryParse(upperId.ToString(), out parsed))
+            {
+                return parsed;
+            }
+
+            return null;
         }
 
         private async Task EnsureAiAssigneeAccessAsync(Guid userId, Guid projectId)

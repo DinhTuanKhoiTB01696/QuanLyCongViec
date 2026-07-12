@@ -24,17 +24,19 @@
     </div>
 
     <button
-      v-if="!aiVisible"
-      class="ai-floating-btn"
+      class="ai-floating-btn ai-pet"
       type="button"
       :title="aiCopy.floatingTitle"
       :aria-label="aiCopy.floatingTitle"
       aria-controls="ai-copilot-panel"
-      aria-expanded="false"
-      @click="toggleAI"
+      :aria-expanded="aiVisible"
+      :aria-pressed="petPinned"
+      :class="{ 'is-dragging': petDragging }"
+      :style="petStyle"
+      @pointerdown="beginPetDrag"
+      @click="openFromPet"
     >
-      <span class="ai-pet-face" aria-hidden="true"><i class="fa-solid fa-sparkles"></i></span>
-      <span>Trợ lý</span>
+      <img class="ai-pet-image" :src="petAsset" alt="" aria-hidden="true" draggable="false" />
     </button>
 
     <div
@@ -59,7 +61,7 @@
         <div class="ai-hero">
           <div class="ai-hero-top">
             <div class="ai-brand">
-              <span class="ai-brand-icon"><i class="fa-solid fa-robot"></i></span>
+              <span class="ai-brand-icon"><img src="/ai-sprinta/idle.png" alt="" aria-hidden="true" /></span>
               <div>
                 <p>{{ aiCopy.brand }}</p>
                 <h4>{{ aiCopy.title }}</h4>
@@ -70,6 +72,10 @@
             </button>
           </div>
           <p class="ai-hero-copy">{{ aiCopy.hero }}</p>
+          <button class="ai-pin-toggle" type="button" @click="togglePetPinned">
+            <i :class="petPinned ? 'fa-solid fa-thumbtack' : 'fa-solid fa-location-dot'"></i>
+            {{ petPinned ? 'Đã ghim vị trí' : 'Thả cho pet di chuyển' }}
+          </button>
         </div>
 
         <div ref="aiContentRef" class="ai-content">
@@ -111,15 +117,24 @@
               class="chat-message"
               :class="message.role"
             >
-              <div class="message-avatar">
-                <i v-if="message.role === 'bot'" class="fa-solid fa-robot"></i>
-                <i v-else class="fa-regular fa-user"></i>
+              <div class="message-avatar" :class="message.role === 'user' ? 'user-avatar' : 'ai-avatar'">
+                <img v-if="message.role === 'bot'" src="/ai-sprinta/idle.png" alt="Mascot SprintA AI" />
+                <img v-else-if="profileAvatar" :src="profileAvatar" :alt="`Ảnh đại diện của ${profileName}`" />
+                <span v-else aria-hidden="true">{{ profileInitials }}</span>
               </div>
               <div class="message-stack">
                 <span class="message-author">{{ message.role === 'bot' ? aiCopy.botName : aiCopy.you }}</span>
                 <div class="message-bubble">
                   <i v-if="message.loading" class="fa-solid fa-spinner fa-spin mr-2"></i>
-                  <div class="markdown-body text-sm whitespace-pre-wrap">{{ message.content }}</div>
+                  <div class="markdown-body" v-html="renderMarkdown(message.content)"></div>
+                  <div v-if="message.role === 'bot' && !message.loading" class="message-tools" aria-label="Thao tác với câu trả lời">
+                    <button type="button" title="Sao chép câu trả lời" @click="copyAiMessage(message.content)">
+                      <i class="fa-regular fa-copy"></i>
+                    </button>
+                    <button type="button" title="Hỏi tiếp từ câu trả lời" @click="continueFromAiMessage(message.content)">
+                      <i class="fa-solid fa-reply"></i>
+                    </button>
+                  </div>
 
                   <!-- Cảnh báo (warnings) -->
                   <div v-if="message.warnings && message.warnings.length" class="ai-warnings mt-3 bg-red-50 dark:bg-red-950/20 p-2.5 rounded border border-red-200 dark:border-red-900/50">
@@ -132,6 +147,35 @@
                   </div>
 
                   <!-- Gợi ý hành động (suggestedActions) -->
+                  <div v-if="message.actions && message.actions.length" class="ai-action-preview-list" aria-label="AI action previews">
+                    <article v-for="(action, aIdx) in message.actions" :key="`${action.type}-${aIdx}`" class="ai-action-preview-card" :class="{ 'is-pending': action.uiStatus === 'pending' }">
+                      <div class="ai-action-preview-head">
+                        <div>
+                          <span class="ai-action-eyebrow">AI ACTION PREVIEW</span>
+                          <strong>{{ actionLabel(action.type) }}</strong>
+                        </div>
+                        <span class="ai-action-status" :class="`is-${action.uiStatus || 'pending'}`">{{ actionStatusLabel(action) }}</span>
+                      </div>
+                      <p class="ai-action-description">{{ action.description || actionSummary(action) }}</p>
+                      <dl class="ai-action-details">
+                        <template v-for="detail in actionDetails(action)" :key="detail.label">
+                          <dt>{{ detail.label }}</dt>
+                          <dd>{{ detail.value }}</dd>
+                        </template>
+                      </dl>
+                      <p v-if="action.error" class="ai-action-error" role="alert">{{ action.error }}</p>
+                      <p v-if="action.result?.message" class="ai-action-result" role="status">{{ action.result.message }}</p>
+                      <div class="ai-action-controls">
+                        <button v-if="!isReadOnlyAction(action.type)" type="button" class="ai-action-cancel" :disabled="action.loading || action.uiStatus === 'success'" @click="cancelAiAction(action)">Hủy</button>
+                        <button type="button" class="ai-action-confirm" :disabled="action.loading || action.uiStatus === 'success'" @click="executeAiAction(action)">
+                          <i v-if="action.loading" class="fa-solid fa-spinner fa-spin"></i>
+                          <i v-else-if="action.uiStatus === 'success'" class="fa-solid fa-check"></i>
+                          {{ action.uiStatus === 'success' ? 'Đã thực hiện' : (isReadOnlyAction(action.type) ? 'Xem kết quả' : 'Xác nhận') }}
+                        </button>
+                      </div>
+                    </article>
+                  </div>
+
                   <div v-if="message.suggestedActions && message.suggestedActions.length" class="ai-actions mt-3 flex flex-col gap-2">
                     <div v-for="(action, aIdx) in message.suggestedActions" :key="aIdx" class="action-card bg-primary-light dark:bg-primary-dark/30 p-2.5 rounded border border-gray-200 dark:border-gray-800">
                       <p class="text-xs text-gray-700 dark:text-gray-300 font-medium">Chuyển công việc sang trạng thái mới:</p>
@@ -268,7 +312,8 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, defineProps, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useRoute } from 'vue-router'
+import DOMPurify from 'dompurify'
+import { useRoute, useRouter } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
 import CreateProjectModal from '../CreateProjectModal.vue'
 import CreateSpaceModal from '../CreateSpaceModal.vue'
@@ -277,6 +322,7 @@ import NexusSidebar from './NexusSidebar.vue'
 import { useI18nStore } from '@/store/useI18nStore'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 import { useProjectStore } from '@/store/useProjectStore'
+import { useGoalStore } from '@/store/useGoalStore'
 import { getStoredUserSession } from '@/utils/authSession'
 import { getDefaultPermissionMatrix, hasPermission } from '@/utils/permissionGuard'
 
@@ -288,9 +334,11 @@ const props = defineProps({
 })
 
 const route = useRoute()
+const router = useRouter()
 const i18nStore = useI18nStore()
 const workTaskStore = useWorkTaskStore()
 const projectStore = useProjectStore()
+const goalStore = useGoalStore()
 const sidebarVisible = ref(window.innerWidth > 1024)
 const aiVisible = ref(false)
 const createVisible = ref(false)
@@ -301,6 +349,44 @@ const aiSending = ref(false)
 const aiContentRef = ref(null)
 const selectedText = ref('')
 const selectionPopover = ref({ visible: false, left: 0, top: 0 })
+const petPinned = ref(localStorage.getItem('sprinta-ai-pet-pinned') !== 'false')
+const petPosition = ref(loadPetPosition())
+const petDragging = ref(false)
+const petMoved = ref(false)
+const petDragOffset = ref({ x: 0, y: 0 })
+let wanderTimer = null
+
+function loadPetPosition() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('sprinta-ai-pet-position') || 'null')
+    if (stored && Number.isFinite(stored.x) && Number.isFinite(stored.y)) return stored
+  } catch {}
+  return { x: Math.max(12, window.innerWidth - 88), y: Math.max(64, window.innerHeight - 116) }
+}
+
+const clampPetPosition = (position = petPosition.value) => ({
+  x: Math.min(Math.max(8, position.x), Math.max(8, window.innerWidth - 76)),
+  y: Math.min(Math.max(56, position.y), Math.max(56, window.innerHeight - 76))
+})
+
+const savePetPosition = () => {
+  petPosition.value = clampPetPosition()
+  localStorage.setItem('sprinta-ai-pet-position', JSON.stringify(petPosition.value))
+}
+
+const petAsset = computed(() => {
+  if (petDragging.value || (!petPinned.value && !aiVisible.value && !isMobile.value)) return '/ai-sprinta/walk.png'
+  if (selectedText.value && selectionPopover.value.visible) return '/ai-sprinta/guide.png'
+  return '/ai-sprinta/idle.png'
+})
+
+const petStyle = computed(() => ({
+  transform: `translate3d(${petPosition.value.x}px, ${petPosition.value.y}px, 0)`
+}))
+const storedProfile = computed(() => getStoredUserSession() || {})
+const profileAvatar = computed(() => storedProfile.value.avatarUrl || storedProfile.value.AvatarUrl || '')
+const profileName = computed(() => storedProfile.value.fullName || storedProfile.value.FullName || storedProfile.value.username || storedProfile.value.email || 'Bạn')
+const profileInitials = computed(() => profileName.value.split(/\s+/).filter(Boolean).slice(-2).map(part => part[0]).join('').toUpperCase() || 'B')
 const aiCopyMap = {
   vi: {
     floatingTitle: 'Mở AI Assistant',
@@ -405,7 +491,23 @@ const aiCopyOverrideMap = {
   }
 }
 
-const aiCopy = computed(() => aiCopyOverrideMap[i18nStore.locale] || aiCopyOverrideMap.vi)
+const viAiCopy = {
+  floatingTitle: 'Mở trợ lý AI', closeTitle: 'Đóng trợ lý AI', brand: 'SPRINTA AI',
+  title: 'Trợ lý công việc',
+  hero: 'Hỏi nhanh, tóm tắt tiến độ, tạo checklist hoặc xin gợi ý ưu tiên từ trang hiện tại.',
+  contextTitle: 'Ngữ cảnh hiện tại', currentPagePrompt: 'Tóm tắt trang hiện tại', botName: 'SprintA AI', you: 'Bạn',
+  placeholder: 'Ví dụ: tạo task sửa UI deadline mai, thống kê dự án, tóm tắt trang…', enterHint: 'Enter để gửi', reset: 'Làm mới',
+  thinking: 'Đang đọc dữ liệu thật và xử lý…', emptyResponse: 'AI chưa trả về nội dung.', sendFailed: 'Không gửi được tin nhắn tới AI.',
+  needProject: 'Bạn cần mở một dự án trước khi yêu cầu AI tạo hoặc cập nhật task.',
+  welcome: 'Xin chào Khôi. Mình có thể tạo task thật, cập nhật trạng thái, tóm tắt trang và gợi ý ưu tiên từ dữ liệu hiện tại.',
+  prompts: [
+    { label: 'Tạo task', icon: 'fa-solid fa-square-plus', text: 'Tạo task mới: Hoàn thiện phần demo hôm nay, deadline ngày mai, ưu tiên cao.' },
+    { label: 'Thống kê dự án', icon: 'fa-solid fa-chart-simple', text: 'Thống kê dự án hiện tại.' },
+    { label: 'Tóm tắt trang', icon: 'fa-regular fa-file-lines', text: 'Tóm tắt trang hiện tại và nêu 3 điểm cần chú ý.' },
+    { label: 'Gợi ý ưu tiên', icon: 'fa-solid fa-arrow-up-wide-short', text: 'Gợi ý 5 việc nên làm tiếp theo dựa trên task hiện tại.' }
+  ]
+}
+const aiCopy = computed(() => i18nStore.locale === 'en' ? aiCopyOverrideMap.en : viAiCopy)
 
 const pageSuggestions = {
   'work-items': ['Tom tat tinh hinh du an nay', 'Cong viec nao dang tre han?', 'Ai dang bi qua tai?', 'Goi y uu tien hom nay', 'Giai thich cac cot Kanban hien tai'],
@@ -431,7 +533,15 @@ const inferPageType = (path = '') => {
 }
 
 const pageType = computed(() => inferPageType(route.path))
-const quickPrompts = computed(() => (pageSuggestions[pageType.value] || pageSuggestions.unknown)
+const localizedPageSuggestions = {
+  'work-items': ['Tóm tắt tình hình dự án này', 'Công việc nào đang trễ hạn?', 'Ai đang bị quá tải?', 'Gợi ý ưu tiên hôm nay', 'Giải thích các cột Kanban hiện tại'],
+  reports: ['Báo cáo này đang nói điều gì?', 'Rủi ro lớn nhất của dự án là gì?', 'Nên xử lý vấn đề nào trước?'],
+  settings: ['Giải thích quyền của tôi trong dự án này', 'Quy trình hiện tại có hợp lý không?', 'Trường tùy chỉnh này dùng để làm gì?'],
+  goals: ['Tóm tắt tiến độ mục tiêu', 'Mục tiêu nào đang có nguy cơ?', 'Đề xuất việc cần làm để tăng tiến độ'],
+  dashboard: ['Tóm tắt dashboard hiện tại', 'Rủi ro nào cần xử lý trước?', 'Gợi ý ưu tiên hôm nay'],
+  unknown: ['Tôi có thể giúp gì cho bạn trong SprintA?', 'Tóm tắt trang hiện tại', 'Giải thích đoạn đã chọn']
+}
+const quickPrompts = computed(() => (localizedPageSuggestions[pageType.value] || localizedPageSuggestions.unknown)
   .map((text, index) => ({
     label: text,
     text,
@@ -457,6 +567,9 @@ const updateSize = () => {
   if (!isMobile.value) {
     sidebarVisible.value = true
   }
+  petPosition.value = clampPetPosition()
+  if (isMobile.value || aiVisible.value) stopPetWandering()
+  else startPetWandering()
 }
 
 const isOffline = ref(!navigator.onLine)
@@ -464,10 +577,98 @@ const updateOnlineStatus = () => {
   isOffline.value = !navigator.onLine
 }
 
+const persistPetPinned = () => localStorage.setItem('sprinta-ai-pet-pinned', String(petPinned.value))
+
+const togglePetPinned = () => {
+  petPinned.value = !petPinned.value
+  persistPetPinned()
+  if (!petPinned.value && !isMobile.value && !aiVisible.value) startPetWandering()
+  else stopPetWandering()
+}
+
+const stopPetWandering = () => {
+  if (wanderTimer) window.clearInterval(wanderTimer)
+  wanderTimer = null
+}
+
+const petOverlapsUnsafeZone = (position) => {
+  const petRect = { left: position.x, top: position.y, right: position.x + 68, bottom: position.y + 68 }
+  const selectors = ['.app-topbar', '.plane-sidebar', '.ai-sidebar', '.el-overlay', '.el-dialog', '.modal-content', '[role="dialog"]']
+  return selectors.some(selector => [...document.querySelectorAll(selector)].some(element => {
+    const rect = element.getBoundingClientRect()
+    return rect.width > 0 && rect.height > 0 && petRect.left < rect.right && petRect.right > rect.left && petRect.top < rect.bottom && petRect.bottom > rect.top
+  }))
+}
+
+const chooseSafePetPosition = () => {
+  const current = clampPetPosition()
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const candidate = clampPetPosition({
+      x: 24 + Math.random() * Math.max(24, window.innerWidth - 116),
+      y: Math.max(70, 64 + Math.random() * Math.max(30, window.innerHeight - 150))
+    })
+    if (!petOverlapsUnsafeZone(candidate)) return candidate
+  }
+  return current
+}
+
+const startPetWandering = () => {
+  stopPetWandering()
+  if (petPinned.value || isMobile.value || aiVisible.value || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  wanderTimer = window.setInterval(() => {
+    if (petPinned.value || isMobile.value || aiVisible.value || petDragging.value || document.querySelector('.el-overlay')) return
+    petPosition.value = chooseSafePetPosition()
+    savePetPosition()
+  }, 20000)
+}
+
+const beginPetDrag = (event) => {
+  if (event.button !== undefined && event.button !== 0) return
+  petDragging.value = true
+  petMoved.value = false
+  petDragOffset.value = { x: event.clientX - petPosition.value.x, y: event.clientY - petPosition.value.y }
+  event.currentTarget?.setPointerCapture?.(event.pointerId)
+}
+
+const movePet = (event) => {
+  if (!petDragging.value) return
+  petMoved.value = true
+  petPosition.value = clampPetPosition({
+    x: event.clientX - petDragOffset.value.x,
+    y: event.clientY - petDragOffset.value.y
+  })
+}
+
+const endPetDrag = () => {
+  if (!petDragging.value) return
+  petDragging.value = false
+  savePetPosition()
+  window.setTimeout(() => { petMoved.value = false }, 0)
+  startPetWandering()
+}
+
+const openFromPet = (event) => {
+  if (petMoved.value) {
+    event.preventDefault()
+    return
+  }
+  toggleAI()
+}
+
 const handleGlobalKeydown = (event) => {
   const isEscape = event.key === 'Escape' || event.key === 'Esc' || event.code === 'Escape' || event.keyCode === 27
   if (!isEscape || !aiVisible.value) return
+  // Element Plus owns Escape while a real modal overlay is open. The AI panel
+  // is not an overlay, so only close it when no modal is currently active.
+  const hasActiveElementPlusOverlay = [...document.querySelectorAll('.el-overlay')].some((overlay) => {
+    const style = window.getComputedStyle(overlay)
+    return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0'
+  })
+  if (hasActiveElementPlusOverlay) return
+  event.preventDefault()
+  event.stopImmediatePropagation()
   aiVisible.value = false
+  stopPetWandering()
 }
 
 onMounted(() => {
@@ -477,6 +678,9 @@ onMounted(() => {
   document.addEventListener('mouseup', captureSelectedText)
   document.addEventListener('keyup', captureSelectedText)
   window.addEventListener('keydown', handleGlobalKeydown, true)
+  window.addEventListener('pointermove', movePet)
+  window.addEventListener('pointerup', endPetDrag)
+  startPetWandering()
 })
 
 onUnmounted(() => {
@@ -486,6 +690,9 @@ onUnmounted(() => {
   document.removeEventListener('mouseup', captureSelectedText)
   document.removeEventListener('keyup', captureSelectedText)
   window.removeEventListener('keydown', handleGlobalKeydown, true)
+  window.removeEventListener('pointermove', movePet)
+  window.removeEventListener('pointerup', endPetDrag)
+  stopPetWandering()
 })
 
 const toggleSidebar = () => {
@@ -501,6 +708,8 @@ const scrollAiToBottom = async () => {
 
 const toggleAI = async () => {
   aiVisible.value = !aiVisible.value
+  if (aiVisible.value) stopPetWandering()
+  else startPetWandering()
   if (aiVisible.value) {
     await scrollAiToBottom()
   }
@@ -512,6 +721,185 @@ const toggleCreate = () => {
 
 const useQuickPrompt = (prompt) => {
   aiInput.value = prompt
+}
+
+const readOnlyActionTypes = new Set([
+  'summarize_dashboard', 'summarize_project', 'list_overdue_tasks', 'get_workload',
+  'explain_report', 'summarize_page', 'summarize_intakes', 'suggest_view_filter'
+])
+
+const isReadOnlyAction = (type) => readOnlyActionTypes.has(String(type || '').toLowerCase())
+
+const escapeHtml = (value = '') => `${value}`
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;')
+
+const renderMarkdown = (value = '') => {
+  const source = `${value || ''}`.replace(/\r\n/g, '\n').trim()
+  if (!source) return ''
+  const codeBlocks = []
+  let safe = escapeHtml(source).replace(/```([\w-]*)\n?([\s\S]*?)```/g, (_, language, code) => {
+    const index = codeBlocks.push(`<pre><code class="language-${language || 'text'}">${code.trim()}</code></pre>`) - 1
+    return `@@CODE_BLOCK_${index}@@`
+  })
+  safe = safe
+    .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+    .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+    .replace(/^\s*[-*] (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+    .replace(/^(\d+)\. (.+)$/gm, '<li><span class="md-list-index">$1.</span> $2</li>')
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/@@CODE_BLOCK_(\d+)@@/g, (_, index) => codeBlocks[Number(index)])
+  return DOMPurify.sanitize(`<p>${safe}</p>`, { USE_PROFILES: { html: true } })
+}
+
+const actionLabel = (type = '') => ({
+  create_project: 'Tạo project mới',
+  create_task: 'Tạo task mới',
+  create_cycle: 'Tạo chu kỳ mới',
+  create_module: 'Tạo mô-đun mới',
+  create_page: 'Tạo tài liệu mới',
+  create_view: 'Tạo bộ lọc đã lưu',
+  create_intake_request: 'Tạo yêu cầu mới',
+  update_task_status: 'Cập nhật trạng thái task',
+  update_task_priority: 'Cập nhật độ ưu tiên',
+  update_task_due_date: 'Cập nhật hạn task',
+  assign_task: 'Giao task cho thành viên',
+  add_comment: 'Thêm bình luận',
+  create_goal: 'Tạo mục tiêu mới',
+  summarize_dashboard: 'Tóm tắt dashboard',
+  summarize_project: 'Tóm tắt dự án',
+  list_overdue_tasks: 'Liệt kê task quá hạn',
+  get_workload: 'Xem tải công việc',
+  explain_report: 'Giải thích báo cáo',
+  summarize_page: 'Tóm tắt tài liệu',
+  summarize_intakes: 'Tóm tắt hàng chờ yêu cầu',
+  suggest_view_filter: 'Gợi ý bộ lọc'
+}[String(type).toLowerCase()] || 'Thực hiện thay đổi')
+
+const actionStatusLabel = (action) => ({
+  pending: 'Chờ xác nhận',
+  loading: 'Đang xử lý',
+  success: 'Thành công',
+  cancelled: 'Đã hủy',
+  error: 'Thất bại'
+}[action.uiStatus || 'pending'] || 'Chờ xác nhận')
+
+const actionPayload = (action) => action?.payload || {}
+const payloadValue = (action, ...keys) => {
+  const payload = actionPayload(action)
+  const key = keys.find(item => payload[item] !== undefined && payload[item] !== null && `${payload[item]}`.trim() !== '')
+  return key ? payload[key] : ''
+}
+
+const actionSummary = (action) => {
+  const type = String(action?.type || '').toLowerCase()
+  if (type === 'create_project') return `Tạo project “${payloadValue(action, 'name', 'projectName') || 'Chưa đặt tên'}”.`
+  if (type === 'create_task') return `Tạo task “${payloadValue(action, 'title', 'taskTitle') || 'Chưa đặt tên'}”.`
+  if (type === 'create_goal') return `Tạo mục tiêu “${payloadValue(action, 'title', 'name') || 'Chưa đặt tên'}”.`
+  if (type === 'update_task_status') return `Chuyển task sang “${payloadValue(action, 'statusName', 'status') || 'trạng thái mới'}”.`
+  if (type === 'assign_task') return 'Giao task cho thành viên được chỉ định.'
+  if (isReadOnlyAction(type)) return 'Đọc dữ liệu hiện tại để trả về một tóm tắt có căn cứ.'
+  return 'AI đề xuất một thay đổi cần bạn xác nhận.'
+}
+
+const actionDetails = (action) => {
+  const type = String(action?.type || '').toLowerCase()
+  const details = []
+  const add = (label, value) => { if (value !== '' && value !== null && value !== undefined) details.push({ label, value: `${value}` }) }
+  if (type === 'create_project') {
+    add('Tên project', payloadValue(action, 'name', 'projectName'))
+    add('Mô tả', payloadValue(action, 'description'))
+  } else if (type === 'create_task') {
+    add('Tiêu đề', payloadValue(action, 'title', 'taskTitle'))
+    add('Hạn', payloadValue(action, 'dueDate', 'plannedEndDate'))
+    add('Ưu tiên', payloadValue(action, 'priority'))
+  } else if (type === 'create_goal') {
+    add('Tên mục tiêu', payloadValue(action, 'title', 'name'))
+    add('Mô tả', payloadValue(action, 'description'))
+  } else if (type === 'update_task_status') {
+    add('Task', payloadValue(action, 'taskTitle', 'taskId'))
+    add('Trạng thái mới', payloadValue(action, 'statusName', 'status'))
+  } else if (type === 'assign_task') {
+    add('Task', payloadValue(action, 'taskTitle', 'taskId'))
+    add('Người nhận', payloadValue(action, 'assigneeName', 'assigneeId', 'assignedUserId'))
+  } else if (['create_cycle', 'create_module', 'create_page', 'create_view', 'create_intake_request'].includes(type)) {
+    add('Tên', payloadValue(action, 'name', 'title'))
+    add('Dự án', payloadValue(action, 'projectName', 'projectId'))
+    add('Bắt đầu', payloadValue(action, 'startDate'))
+    add('Kết thúc', payloadValue(action, 'endDate'))
+  } else if (['update_task_priority', 'update_task_due_date'].includes(type)) {
+    add('Task', payloadValue(action, 'taskTitle', 'taskId'))
+    add(type === 'update_task_priority' ? 'Độ ưu tiên mới' : 'Hạn mới', payloadValue(action, type === 'update_task_priority' ? 'priority' : 'dueDate'))
+  } else if (type === 'add_comment') {
+    add('Đối tượng', payloadValue(action, 'entityType', 'entityId'))
+    add('Nội dung', payloadValue(action, 'content'))
+  }
+  return details
+}
+
+const cancelAiAction = (action) => {
+  if (action.loading || action.uiStatus === 'success') return
+  action.uiStatus = 'cancelled'
+  action.error = ''
+}
+
+const refreshAfterAiAction = async (action, result) => {
+  const entityId = result?.entityId || result?.EntityId
+  const entityType = String(result?.entityType || result?.EntityType || '').toLowerCase()
+  const projectId = currentProjectId.value || payloadValue(action, 'projectId')
+  await Promise.all([
+    projectStore.fetchAllProjects(true).catch(() => []),
+    projectId ? workTaskStore.fetchTasks(projectId, { reset: false }).catch(() => []) : Promise.resolve(),
+    entityType === 'goal' ? goalStore.fetchGoals().catch(() => {}) : Promise.resolve()
+  ])
+  return { entityId, entityType, projectId }
+}
+
+const navigateToAiEntity = async ({ entityId, entityType, projectId }) => {
+  if (!entityId) return
+  if (entityType === 'project') return router.push(`/space/${entityId}/dashboard`)
+  if (entityType === 'worktask' || entityType === 'task') {
+    return router.push({ path: `/space/${projectId || currentProjectId.value}/work-items`, query: { task: entityId } })
+  }
+  if (entityType === 'goal') return router.push(`/home/goals/${entityId}`)
+}
+
+const executeAiAction = async (action) => {
+  if (!action || action.loading || action.uiStatus === 'success' || action.uiStatus === 'cancelled') return
+  action.loading = true
+  action.uiStatus = 'loading'
+  action.error = ''
+  try {
+    const response = await axiosClient.post('/ai/actions/execute', {
+      type: action.type,
+      idempotencyKey: action.idempotencyKey || `${action.type}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      workspaceId: currentWorkspaceId.value || null,
+      projectId: currentProjectId.value || actionPayload(action).projectId || null,
+      payload: actionPayload(action)
+    })
+    const result = response.data?.data
+    action.result = result
+    action.uiStatus = 'success'
+    const navigation = await refreshAfterAiAction(action, result)
+    ElMessage.success(result?.message || 'AI đã thực hiện thay đổi thành công.')
+    await navigateToAiEntity(navigation)
+  } catch (error) {
+    action.uiStatus = 'error'
+    action.error = error.response?.data?.message || 'Không thể thực hiện action. Vui lòng thử lại.'
+    ElMessage.error(action.error)
+  } finally {
+    action.loading = false
+  }
 }
 
 const normalizeAiText = (value = '') =>
@@ -538,6 +926,21 @@ const currentWorkspaceId = computed(() => {
 const clearSelectedText = () => {
   selectedText.value = ''
   selectionPopover.value.visible = false
+}
+
+const copyAiMessage = async (content) => {
+  if (!content) return
+  try {
+    await navigator.clipboard.writeText(content)
+    ElMessage.success('Đã sao chép câu trả lời.')
+  } catch {
+    ElMessage.info('Không thể sao chép tự động trên trình duyệt này.')
+  }
+}
+
+const continueFromAiMessage = (content) => {
+  aiInput.value = `Hãy giải thích thêm và đưa ra bước tiếp theo từ câu trả lời này:\n${content.slice(0, 600)}`
+  nextTick(() => document.querySelector('.ai-input-wrapper textarea')?.focus())
 }
 
 const captureSelectedText = () => {
@@ -1007,7 +1410,16 @@ const sendAiMessage = async () => {
       content: responseData?.answer || aiCopy.value.emptyResponse,
       suggestedPrompts: responseData?.suggestions || [],
       warnings: responseData?.warnings || [],
-      suggestedActions: []
+      actions: (responseData?.actions || []).map(action => ({
+        ...action,
+        type: String(action.type || '').toLowerCase(),
+        payload: action.payload || {},
+        uiStatus: 'pending',
+        loading: false,
+        error: '',
+        result: null
+      })),
+      suggestedActions: responseData?.suggestedActions || []
     })
   } catch (error) {
     chatHistory.value.pop()
@@ -1132,42 +1544,45 @@ const handleProjectCreated = (newProject) => {
 
 .ai-floating-btn {
   position: fixed;
-  right: 22px;
-  bottom: 22px;
-  z-index: 2600;
-  height: 44px;
-  min-width: 82px;
-  display: inline-flex;
+  top: 0;
+  left: 0;
+  z-index: 1400;
+  width: 68px;
+  height: 68px;
+  display: grid;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  border: 1px solid color-mix(in srgb, var(--sa-primary) 42%, #ffffff);
-  border-radius: 12px;
-  background: var(--color-surface-elevated);
-  color: #ffffff;
-  font-weight: 800;
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--sa-primary) 24%, transparent);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
   cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  will-change: transform;
+  transition: filter 220ms ease;
 }
 
 .ai-floating-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 22px 54px rgba(14, 165, 233, 0.40);
+  filter: brightness(1.04);
 }
 
-.ai-pet-face {
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  border-radius: 9px;
-  background: var(--sa-primary);
-  color: #fff;
+.ai-floating-btn.is-dragging { cursor: grabbing; filter: brightness(1.08); }
+.ai-floating-btn.is-dragging .ai-pet-image { animation: none; }
+
+.ai-pet-image {
+  display: block;
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+  pointer-events: none;
+  animation: sprinta-pet-idle 3.2s ease-in-out infinite;
 }
 
 .ai-selection-popover {
   position: fixed;
-  z-index: 2700;
+  z-index: 1450;
   display: flex;
   gap: 4px;
   padding: 5px;
@@ -1208,7 +1623,7 @@ const handleProjectCreated = (newProject) => {
 .ai-mobile-backdrop {
   position: fixed;
   inset: var(--sa-topbar-height, 52px) 0 0;
-  z-index: 2900;
+  z-index: 1490;
   background: rgba(2, 6, 23, 0.48);
   backdrop-filter: blur(3px);
 }
@@ -1218,30 +1633,124 @@ const handleProjectCreated = (newProject) => {
   right: 16px;
   top: 68px;
   bottom: 16px;
-  width: min(520px, calc(100vw - 32px));
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 94%, var(--sa-primary) 6%), var(--color-surface));
-  border: 1px solid color-mix(in srgb, var(--color-border) 82%, var(--sa-primary));
-  border-radius: 16px;
-  box-shadow: var(--shadow-popover), 0 24px 80px rgba(2, 8, 23, 0.22);
-  z-index: 3000;
+  width: min(448px, calc(100vw - 32px));
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  box-shadow: 0 24px 70px rgb(15 35 60 / 0.22), 0 1px 0 rgb(255 255 255 / 0.18) inset;
+  z-index: 1500;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
 .ai-hero {
-  padding: 16px;
+  padding: 18px 18px 15px;
   border-bottom: 1px solid var(--color-border);
-  background:
-    radial-gradient(circle at top right, color-mix(in srgb, var(--sa-primary) 24%, transparent), transparent 44%),
-    color-mix(in srgb, var(--color-surface) 88%, var(--sa-primary-soft) 12%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 96%, var(--sa-primary) 4%), var(--color-surface));
 }
 
 .ai-hero-top,
 .ai-brand,
 .quick-actions,
 .ai-context-card,
+.ai-action-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ai-action-preview-card {
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.ai-action-preview-card.is-pending {
+  border-color: color-mix(in srgb, var(--sa-primary) 42%, var(--color-border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sa-primary) 12%, transparent), var(--shadow-sm);
+}
+
+.ai-action-preview-card.is-pending .ai-action-status {
+  animation: ai-status-breathe 1.8s ease-in-out infinite;
+}
+
+.ai-action-preview-head,
+.ai-action-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ai-action-preview-head strong,
+.ai-action-eyebrow {
+  display: block;
+}
+
+.ai-action-eyebrow {
+  margin-bottom: 3px;
+  color: var(--color-accent);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.ai-action-preview-head strong {
+  color: var(--color-text-primary);
+  font-size: 13px;
+}
+
+.ai-action-status {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.ai-action-status.is-success { color: #16803c; }
+.ai-action-status.is-error { color: #c2410c; }
+.ai-action-description,
+.ai-action-result,
+.ai-action-error {
+  margin: 9px 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ai-action-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 8px;
+  margin: 0 0 11px;
+  font-size: 11px;
+}
+
+.ai-action-details dt { color: var(--color-text-muted); }
+.ai-action-details dd { margin: 0; color: var(--color-text-primary); overflow-wrap: anywhere; }
+.ai-action-error { color: #dc2626; }
+.ai-action-result { color: #16803c; }
+
+.ai-action-controls { justify-content: flex-end; }
+.ai-action-controls button {
+  min-height: 30px;
+  padding: 6px 11px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.ai-action-controls button:disabled { cursor: not-allowed; opacity: .55; }
+.ai-action-cancel { border: 1px solid var(--color-border); background: transparent; color: var(--color-text-secondary); }
+.ai-action-confirm { border: 1px solid var(--sa-primary); background: var(--sa-primary); color: #fff; }
+
 .chat-message,
 .message-bubble,
 .ai-input-wrapper,
@@ -1267,9 +1776,15 @@ const handleProjectCreated = (newProject) => {
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: var(--sa-primary);
-  color: #ffffff;
-  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.24);
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.ai-brand-icon img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
 }
 
 .ai-brand p,
@@ -1316,6 +1831,7 @@ const handleProjectCreated = (newProject) => {
   flex: 1;
   padding: 14px;
   overflow-y: auto;
+  scrollbar-color: var(--color-border) transparent;
 }
 
 .quick-actions {
@@ -1381,6 +1897,27 @@ const handleProjectCreated = (newProject) => {
   cursor: pointer;
 }
 
+.ai-pin-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 9px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ai-pin-toggle:hover,
+.ai-pin-toggle:focus-visible {
+  border-color: var(--sa-primary);
+  color: var(--color-accent);
+}
+
 .ai-selected-text {
   display: flex;
   align-items: center;
@@ -1442,6 +1979,12 @@ const handleProjectCreated = (newProject) => {
   color: var(--color-text-secondary);
 }
 
+.message-avatar img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
 .chat-message.bot .message-avatar {
   background: var(--sa-primary-soft);
   color: var(--color-accent);
@@ -1482,7 +2025,33 @@ const handleProjectCreated = (newProject) => {
   font-size: 13px;
   line-height: 1.55;
   white-space: pre-wrap;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 6px 18px rgb(15 35 60 / 0.06);
+  position: relative;
+}
+
+.message-tools {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--color-border);
+}
+
+.message-tools button {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.message-tools button:hover,
+.message-tools button:focus-visible {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+  outline: none;
 }
 
 .chat-message.user .message-bubble {
@@ -1510,8 +2079,24 @@ const handleProjectCreated = (newProject) => {
 
 .ai-input-wrapper:focus-within {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sa-primary) 18%, transparent);
+  box-shadow: none;
 }
+
+.markdown-body { min-width: 0; overflow-wrap: anywhere; }
+.markdown-body p { margin: 0 0 8px; }
+.markdown-body p:last-child { margin-bottom: 0; }
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 { margin: 0 0 8px; color: var(--color-text-primary); line-height: 1.3; }
+.markdown-body h2 { font-size: 15px; }
+.markdown-body h3 { font-size: 14px; }
+.markdown-body h4 { font-size: 13px; }
+.markdown-body ul { margin: 6px 0 10px; padding-left: 18px; }
+.markdown-body li { margin: 4px 0; }
+.markdown-body code { padding: 2px 5px; border-radius: 5px; background: var(--color-surface-hover); font: 600 11px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.markdown-body pre { margin: 9px 0; padding: 10px 12px; overflow-x: auto; border: 1px solid var(--color-border); border-radius: 9px; background: color-mix(in srgb, var(--color-bg) 72%, var(--color-surface)); }
+.markdown-body pre code { padding: 0; background: transparent; font-weight: 500; white-space: pre; }
+.markdown-body .md-list-index { color: var(--color-accent); font-weight: 800; }
 
 .ai-input-wrapper textarea {
   flex: 1;
@@ -1601,10 +2186,13 @@ const handleProjectCreated = (newProject) => {
   }
 
   .ai-floating-btn {
-    right: 14px;
-    bottom: 14px;
-    height: 42px;
-    min-width: 74px;
+    width: 58px;
+    height: 58px;
+  }
+
+  .ai-pet-image {
+    width: 58px;
+    height: 58px;
   }
 
   .quick-action {
@@ -1633,5 +2221,22 @@ const handleProjectCreated = (newProject) => {
   border: 1px solid rgba(255, 255, 255, 0.15);
   pointer-events: none;
   transition: opacity 0.3s ease;
+}
+
+@keyframes sprinta-pet-idle {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3px) rotate(-1deg); }
+}
+
+@keyframes ai-status-breathe {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-pet-image,
+  .ai-action-preview-card.is-pending .ai-action-status {
+    animation: none;
+  }
 }
 </style>

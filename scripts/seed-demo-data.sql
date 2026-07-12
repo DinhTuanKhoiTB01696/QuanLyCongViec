@@ -1716,6 +1716,64 @@ FROM (VALUES
 WHERE NOT EXISTS (SELECT 1 FROM WorkTasks task WHERE task.SequenceId = item.SequenceId AND task.ProjectId = @PrimaryProjectId);
 GO
 
+-- ============================================================================
+-- 28. WAVE A ACTION FIXTURES (stable, realistic, and safe to re-run)
+-- ============================================================================
+-- These records give the Actionable AI demo a known project context for
+-- Cycle, Module, Page, View, Intake and task update/assignment/comment flows.
+DECLARE @WaveANow DATETIME2 = GETUTCDATE();
+DECLARE @WaveAProjectId UNIQUEIDENTIFIER = 'C0000001-0001-0001-0001-000000000001';
+DECLARE @WaveAOwnerId UNIQUEIDENTIFIER = 'D0000001-0001-0001-0001-000000000001';
+
+IF NOT EXISTS (SELECT 1 FROM Sprints WHERE Id = '7A000001-0001-0001-0001-000000000001')
+    INSERT INTO Sprints (Id, ProjectId, Name, StartDate, EndDate, Status, IsFavorite, CreatedAt)
+    VALUES ('7A000001-0001-0001-0001-000000000001', @WaveAProjectId, N'Chu kỳ demo AI: Hoàn thiện trải nghiệm Copilot',
+        DATEADD(DAY, -2, @WaveANow), DATEADD(DAY, 12, @WaveANow), 1, 1, @WaveANow);
+
+IF NOT EXISTS (SELECT 1 FROM Modules WHERE Id = '7A000002-0001-0001-0001-000000000001')
+    INSERT INTO Modules (Id, Name, Description, ProjectId, StartDate, TargetDate, Status, LeadId, CreatedAt, UpdatedAt)
+    VALUES ('7A000002-0001-0001-0001-000000000001', N'Copilot có thể thao tác',
+        N'Hoàn thiện luồng xem trước, xác nhận và thực thi action có kiểm soát cho người dùng demo.',
+        @WaveAProjectId, DATEADD(DAY, -3, @WaveANow), DATEADD(DAY, 12, @WaveANow), 'InProgress', @WaveAOwnerId, @WaveANow, @WaveANow);
+
+IF NOT EXISTS (SELECT 1 FROM Pages WHERE Id = '7A000003-0001-0001-0001-000000000001')
+    INSERT INTO Pages (Id, Title, Content, ProjectId, CreatedById, SortOrder, IsLocked, IsArchived, IsPrivate, IsStarred, CreatedAt, UpdatedAt)
+    VALUES ('7A000003-0001-0001-0001-000000000001', N'Kịch bản demo AI Copilot',
+        N'{"type":"doc","content":[{"type":"heading","attrs":{"level":1},"content":[{"type":"text","text":"Kịch bản demo AI Copilot"}]},{"type":"paragraph","content":[{"type":"text","text":"Tạo chu kỳ, mô-đun, tài liệu, bộ lọc đã lưu và yêu cầu mới. Mọi thay đổi phải được xem trước và xác nhận trước khi thực thi."}]},{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Kiểm tra action chỉ tạo một thực thể khi xác nhận hai lần."}]}]},{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Làm mới trang để xác nhận dữ liệu vẫn được lưu."}]}]}]}]}',
+        @WaveAProjectId, @WaveAOwnerId, 90, 0, 0, 0, 1, @WaveANow, @WaveANow);
+
+IF NOT EXISTS (SELECT 1 FROM ProjectViews WHERE Id = '7A000004-0001-0001-0001-000000000001')
+    INSERT INTO ProjectViews (Id, ProjectId, Name, Description, QueryMetadata, IsFavorite, CreatedById, CreatedAt, UpdatedAt)
+    VALUES ('7A000004-0001-0001-0001-000000000001', @WaveAProjectId, N'Việc cần xử lý trong tuần',
+        N'Hiển thị các công việc chưa hoàn thành, ưu tiên cao hoặc đã quá hạn để điều phối demo.',
+        N'{"status":["BACKLOG","TO DO","IN PROGRESS","IN REVIEW"],"priority":[1,2],"due":"this_week"}', 1, @WaveAOwnerId, @WaveANow, @WaveANow);
+
+IF NOT EXISTS (SELECT 1 FROM Intakes WHERE Id = '7A000005-0001-0001-0001-000000000001')
+    INSERT INTO Intakes (Id, Title, Description, Source, Status, Priority, DesiredDueDate, ProjectId, SubmittedById, ReviewedById, CreatedIssueId, CreatedAt, ReviewedAt)
+    VALUES ('7A000005-0001-0001-0001-000000000001', N'Khách hàng cần xuất báo cáo tiến độ theo tuần',
+        N'Đề nghị thêm báo cáo tuần có trạng thái công việc, tải của thành viên và danh sách việc quá hạn.',
+        'FORM', 'Pending', 2, DATEADD(DAY, 7, @WaveANow), @WaveAProjectId,
+        'D0000001-0001-0001-0001-000000000013', NULL, NULL, @WaveANow, NULL);
+
+IF NOT EXISTS (SELECT 1 FROM WorkTasks WHERE Id = '7A000006-0001-0001-0001-000000000001')
+    INSERT INTO WorkTasks (Id, ProjectId, SprintId, TaskTypeId, TaskStatusId, Title, Description, Priority, StoryPoints, PlannedStartDate, PlannedEndDate, ReporterId, AssignedUserId, DueDate, CreatedAt, UpdatedAt, IsDeleted, IsArchived, TotalEstimatedHours, TotalActualHours, SortOrder, SequenceId, WorkspaceId)
+    VALUES ('7A000006-0001-0001-0001-000000000001', @WaveAProjectId, '7A000001-0001-0001-0001-000000000001',
+        'F0000001-0001-0001-0001-000000000001', 'E0000001-0001-0001-0001-000000000002', N'Xác nhận luồng action Wave A',
+        N'Công việc mẫu để kiểm tra cập nhật trạng thái, ưu tiên, hạn hoàn thành, giao việc và bình luận từ AI Copilot.',
+        2, 3, @WaveANow, DATEADD(DAY, 5, @WaveANow), @WaveAOwnerId, 'D0000001-0001-0001-0001-000000000006', DATEADD(DAY, 5, @WaveANow),
+        @WaveANow, @WaveANow, 0, 0, 8, 0, 360000, 'SPRINT-WAVEA-01', 'A0000001-0001-0001-0001-000000000001');
+
+IF NOT EXISTS (SELECT 1 FROM TaskAssignments WHERE WorkTaskId = '7A000006-0001-0001-0001-000000000001' AND UserId = 'D0000001-0001-0001-0001-000000000006')
+    INSERT INTO TaskAssignments (WorkTaskId, UserId, Status, ProgressPercent, ContributionWeight, EstimatedHours, TotalActualHours, ActualStartDate, ActualEndDate, Description, Priority)
+    VALUES ('7A000006-0001-0001-0001-000000000001', 'D0000001-0001-0001-0001-000000000006', 0, 0, 1.0, 8, 0, @WaveANow, @WaveANow,
+        N'Người phụ trách kiểm tra luồng thao tác AI.', 2);
+
+IF NOT EXISTS (SELECT 1 FROM Comments WHERE Id = '7A000007-0001-0001-0001-000000000001')
+    INSERT INTO Comments (Id, EntityId, EntityType, UserId, Content, CreatedAt, UpdatedAt, IsDeleted)
+    VALUES ('7A000007-0001-0001-0001-000000000001', '7A000006-0001-0001-0001-000000000001', 'WorkTask', @WaveAOwnerId,
+        N'Bình luận mẫu: chỉ thực thi action sau khi người dùng xác nhận trên thẻ xem trước.', @WaveANow, @WaveANow, 0);
+GO
+
 PRINT N'============================================================================';
 PRINT N'🎉 SPRINTA DEMO DATA SEEDED SUCCESSFULLY FOR NOVATECH SOLUTIONS 🎉';
 PRINT N'============================================================================';

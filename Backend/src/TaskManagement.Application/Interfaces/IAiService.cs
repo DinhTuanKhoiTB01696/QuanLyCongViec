@@ -96,8 +96,37 @@ namespace TaskManagement.Application.Interfaces
 
     public class AiSuggestedActionDto
     {
+        public string ActionId { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
-        public Dictionary<string, string> Payload { get; set; } = new();
+        public string Description { get; set; } = string.Empty;
+        public Dictionary<string, object?> PayloadPreview { get; set; } = new();
+        public bool RequiresConfirmation { get; set; } = true;
+        public double Confidence { get; set; } = 0.75;
+        public DateTime? ExpiresAt { get; set; }
+        public DateTime? ExecutedAt { get; set; }
+        public object? ExecutionResult { get; set; }
+        public Dictionary<string, object?> Payload { get; set; } = new();
+    }
+
+    public class AiExecuteActionRequestDto
+    {
+        public string Type { get; set; } = string.Empty;
+        public string? IdempotencyKey { get; set; }
+        public Guid? WorkspaceId { get; set; }
+        public Guid? ProjectId { get; set; }
+        public Dictionary<string, object?> Payload { get; set; } = new();
+    }
+
+    public class AiExecuteActionResponseDto
+    {
+        public string Type { get; set; } = string.Empty;
+        public string Status { get; set; } = "executed";
+        public bool IdempotentReplay { get; set; }
+        public Guid? EntityId { get; set; }
+        public string EntityType { get; set; } = string.Empty;
+        public object? Entity { get; set; }
+        public string Message { get; set; } = string.Empty;
     }
 }
