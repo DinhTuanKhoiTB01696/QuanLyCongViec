@@ -857,7 +857,7 @@ function pageMenuItems(page) {
 .page-icon-fallback { color: var(--color-text-muted); font-size: 13px; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 4px 0; }
 
 .editor-tiptap-content :deep(.ProseMirror) { min-height: 400px; outline: none; font-size: 16px; line-height: 1.7; color: var(--color-text-primary); }
-.editor-tiptap-content :deep(.ProseMirror p.is-editor-empty:first-child::before) { content: "Press '/' for commands..."; float: left; color: var(--color-text-disabled); pointer-events: none; height: 0; font-style: italic; opacity: 0.5; }
+.editor-tiptap-content :deep(.ProseMirror p.is-editor-empty:first-child::before) { content: "Nhấn '/' để hiển thị lệnh..."; float: left; color: var(--color-text-disabled); pointer-events: none; height: 0; font-style: italic; opacity: 0.5; }
 .editor-tiptap-content :deep(p) { margin-bottom: 1.2em; }
 .editor-tiptap-content :deep(h1) { font-size: 2.2em; font-weight: 800; margin: 1.5em 0 0.8em; }
 .editor-tiptap-content :deep(h2) { font-size: 1.8em; font-weight: 700; margin: 1.2em 0 0.6em; }

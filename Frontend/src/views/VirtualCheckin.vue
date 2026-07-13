@@ -1,18 +1,18 @@
 <template>
-  <div class="checkin-container admin-page">
+  <div class="checkin-container admin-page sp-page-shell">
     <div class="page-header flex justify-between items-center mb-6">
       <div>
         <h1 class="page-title" style="display:flex; align-items:center;">
           <i class="fa-solid fa-calendar-check text-success" style="margin-right: 10px; flex-shrink: 0;"></i>
-          <span>Virtual Check-in Hàng Ngày</span>
+          <span>{{ t('checkin.title') }}</span>
         </h1>
-        <p class="page-subtitle">Cập nhật nhanh tiến độ làm việc, mục tiêu trong ngày và chia sẻ khó khăn với các đồng nghiệp.</p>
+        <p class="page-subtitle">{{ t('checkin.subtitle') }}</p>
       </div>
 
       <!-- Quick Action: Submit Checkin -->
       <div v-if="!userCheckedIn">
         <el-button class="btn-primary" type="primary" @click="openCheckinModal">
-          <i class="fa-solid fa-plus" style="margin-right: 6px;"></i>Báo cáo Check-in
+          <i class="fa-solid fa-plus" style="margin-right: 6px;"></i>{{ t('checkin.report') }}
         </el-button>
       </div>
       <div v-else>
@@ -27,19 +27,19 @@
       <div class="flex justify-between items-center mb-3 border-bottom pb-2">
         <div style="display:flex; align-items:center; gap: 10px;">
           <i class="fa-solid fa-brain text-accent" style="font-size: 20px; flex-shrink: 0;"></i>
-          <h2 class="font-bold" style="font-size: 16px; margin: 0;">AI Tóm Tắt Cuộc Họp &amp; Check-in</h2>
+          <h2 class="font-bold" style="font-size: 16px; margin: 0;">{{ t('checkin.aiTitle') }}</h2>
         </div>
         <el-button size="small" class="btn-secondary" :loading="aiLoading" @click="generateAiSummary">
-          <i class="fa-solid fa-wand-magic-sparkles" style="margin-right: 6px;"></i>Trích xuất bằng AI
+          <i class="fa-solid fa-wand-magic-sparkles" style="margin-right: 6px;"></i>{{ t('checkin.aiAction') }}
         </el-button>
       </div>
       <div class="summary-body">
-        <p v-if="!aiSummaryText" class="text-sm text-muted italic">Nhấp vào nút bên phải để AI tự động phân tích và tóm tắt nhanh tình trạng check-in hôm nay của cả đội.</p>
+        <p v-if="!aiSummaryText" class="text-sm text-muted italic">{{ t('checkin.aiHint') }}</p>
         <div v-else class="ai-response-box">
           <p class="text-sm leading-relaxed text-secondary mb-2 whitespace-pre-line">{{ aiSummaryText }}</p>
           <div class="flex gap-2 mt-3">
-            <el-tag size="small" type="success">3/5 Thành viên đã làm</el-tag>
-            <el-tag size="small" type="danger">Có 1 Blocker (Khôi)</el-tag>
+          <el-tag size="small" type="success">{{ t('checkin.doneCount') }}</el-tag>
+            <el-tag size="small" type="danger">{{ t('checkin.blockerCount') }}</el-tag>
           </div>
         </div>
       </div>
@@ -144,6 +144,9 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18nStore } from '@/store/useI18nStore'
+
+const { t } = useI18nStore()
 
 const userCheckedIn = ref(false)
 const checkinModalOpen = ref(false)

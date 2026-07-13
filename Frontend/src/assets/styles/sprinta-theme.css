@@ -37,6 +37,10 @@
   --sp-z-overlay: 3900;
   --sp-z-modal: 4000;
   --sp-z-toast: 5000;
+  --sp-content-max: 1600px;
+  --sp-page-gutter: clamp(16px, 2.5vw, 40px);
+  --sp-control-height: 40px;
+  --sp-font-display: 'Be Vietnam Pro', system-ui, sans-serif;
 }
 
 [data-theme='dark'] {
@@ -50,6 +54,102 @@
   --sp-shadow-xs: 0 1px 2px rgb(0 0 0 / 0.24);
   --sp-shadow-sm: 0 10px 30px rgb(0 0 0 / 0.26);
   --sp-shadow-md: 0 20px 48px rgb(0 0 0 / 0.34);
+}
+
+.sp-page-shell {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  padding: var(--sp-page-gutter);
+  color: var(--sp-text);
+  background: var(--sp-bg);
+}
+
+.sp-page-shell > * {
+  min-width: 0;
+}
+
+.sp-page-shell .page-header,
+.sp-page-shell .df-header,
+.sp-page-shell .hero-shell,
+.sp-page-shell .stats-grid,
+.sp-page-shell .reports-content,
+.sp-page-shell .team-checkins-grid,
+.sp-page-shell .rewards-page > * {
+  width: 100%;
+  max-width: var(--sp-content-max);
+  margin-inline: auto;
+}
+
+.sp-page-shell .page-header,
+.sp-page-shell .df-header {
+  gap: var(--sp-space-5);
+}
+
+.sp-page-shell input,
+.sp-page-shell select,
+.sp-page-shell textarea,
+.sp-page-shell .el-input__wrapper,
+.sp-page-shell .el-select__wrapper,
+.sp-page-shell button {
+  border-radius: var(--sp-radius-sm);
+}
+
+.sp-page-shell .card,
+.sp-page-shell .panel,
+.sp-page-shell .report-card,
+.sp-page-shell .report-stat-card,
+.sp-page-shell .checkin-card {
+  border-color: var(--sp-border);
+  background: var(--sp-surface);
+  box-shadow: var(--sp-shadow-xs);
+}
+
+@media (max-width: 900px) {
+  .sp-page-shell .page-header,
+  .sp-page-shell .df-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.sp-page-shell h1,
+.sp-page-shell h2,
+.sp-page-shell h3 {
+  font-family: var(--sp-font-display);
+  color: var(--sp-text);
+}
+
+.sp-page-shell .spaces-header,
+.sp-page-shell .page-header,
+.sp-page-shell .sp-toolbar {
+  width: 100%;
+  max-width: var(--sp-content-max);
+  margin-inline: auto;
+}
+
+.sp-page-shell .spaces-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-space-5);
+  padding: var(--sp-space-5);
+  border: 1px solid var(--sp-border);
+  border-radius: var(--sp-radius-lg);
+  background: var(--sp-surface);
+  box-shadow: var(--sp-shadow-xs);
+}
+
+.sp-page-shell .projects-scroll-panel {
+  width: 100%;
+  max-width: var(--sp-content-max);
+  margin: var(--sp-space-5) auto 0;
+}
+
+@media (max-width: 760px) {
+  .sp-page-shell { padding: 12px; }
+  .sp-page-shell .spaces-header { align-items: stretch; flex-direction: column; }
+  .sp-page-shell .sh-right { flex-wrap: wrap; }
 }
 
 button,

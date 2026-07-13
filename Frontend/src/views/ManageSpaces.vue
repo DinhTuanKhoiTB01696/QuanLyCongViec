@@ -1,17 +1,16 @@
 <template>
-  <AdminLayout>
-    <div class="manage-spaces-page" style="padding: 0;">
+  <div class="manage-spaces-page sp-page-shell">
       <!-- Plane Style Header -->
           <header class="spaces-header">
             <div class="sh-left">
               <i class="fa-solid fa-briefcase"></i>
-              <h1>Projects</h1>
+              <h1>{{ t('Projects') }}</h1>
             </div>
 
         <div class="sh-right">
           <div class="search-box">
              <i class="fa-solid fa-magnifying-glass"></i>
-             <input type="text" placeholder="Search spaces..." v-model="searchQuery" />
+             <input type="text" :placeholder="t('Search spaces...')" v-model="searchQuery" />
           </div>
           <div style="display: flex; gap: 4px; border: 1px solid var(--color-border); padding: 4px; border-radius: 8px;">
             <button class="plane-btn-secondary outline-btn" style="border: none; margin: 0; padding: 6px 10px;" :class="{ active: viewMode === 'table' }" type="button" @click="setViewMode('table')" title="List view">
@@ -38,22 +37,22 @@
             </div>
           </div>
           <button class="plane-btn-primary" @click="isCreateModalVisible = true">
-            Add Project
+            {{ t('Add Project') }}
           </button>
         </div>
       </header>
 
       <section class="projects-scroll-panel">
       <div v-if="loading" class="loading-state">
-         <i class="fa-solid fa-spinner fa-spin"></i> Loading projects...
+         <i class="fa-solid fa-spinner fa-spin"></i> {{ t('Loading projects...') }}
       </div>
       <div v-else-if="filteredSpaces.length === 0" class="empty-state">
          <div class="empty-icon-wrap" style="width: 80px; height: 80px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
            <i class="fa-solid fa-folder-open empty-icon" style="margin-bottom: 0;"></i>
          </div>
-         <h3 class="empty-title" style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: var(--color-text-primary);">No projects found</h3>
+         <h3 class="empty-title" style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: var(--color-text-primary);">{{ t('No projects found') }}</h3>
          <p style="margin: 0 0 24px 0; font-size: 14px; color: var(--color-text-muted);">It looks like there are no projects here. Let's create your first one!</p>
-         <button class="plane-btn-primary" @click="isCreateModalVisible = true">Create your first project</button>
+         <button class="plane-btn-primary" @click="isCreateModalVisible = true">{{ t('Create your first project') }}</button>
       </div>
       <div v-else>
         <div v-if="viewMode === 'grid'" class="spaces-grid">
@@ -166,14 +165,12 @@
 
       <CreateSpaceModal v-model:visible="isCreateModalVisible" @created="fetchSpaces" />
     </div>
-  </AdminLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
-import AdminLayout from '@/components/layout/AdminLayout.vue'
 import CreateSpaceModal from '@/components/CreateSpaceModal.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useProjectStore } from '@/store/useProjectStore'
@@ -189,7 +186,7 @@ const handleSwitchSettings = (path) => {
 }
 
 const projectStore = useProjectStore()
-const { language } = useI18n()
+const { language, t } = useI18n()
 const loading = ref(false)
 const spaces = ref([])
 const searchQuery = ref('')

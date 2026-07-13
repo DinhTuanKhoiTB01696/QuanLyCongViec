@@ -1,5 +1,5 @@
 <template>
-  <div class="df-page">
+  <div class="df-page sp-page-shell">
 
       <!-- ══ HEADER ══ -->
       <header class="df-header">
