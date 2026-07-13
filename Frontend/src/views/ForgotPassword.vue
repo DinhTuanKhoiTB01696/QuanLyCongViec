@@ -3,13 +3,13 @@
     <header class="auth-navbar">
       <div class="container nav-content">
         <router-link to="/" class="logo">
-          <img :src="logoImg" alt="SprintA Logo" class="custom-logo" />
+          <span role="img" aria-label="SprintA logo" class="custom-logo"></span>
           <span>SprintA</span>
         </router-link>
         <div class="nav-actions">
           <button class="theme-toggle" type="button" aria-label="Toggle theme" @click="toggleTheme()">
-            <Sun v-if="currentTheme === 'dark'" :size="18" />
-            <Moon v-else :size="18" />
+            <Moon v-if="currentTheme === 'dark'" :size="18" />
+            <Sun v-else :size="18" />
           </button>
           <router-link class="nav-link" to="/login">{{ t('Sign In', 'Đăng nhập') }}</router-link>
           <router-link class="nav-primary" to="/register">{{ t('Sign Up', 'Đăng ký') }}</router-link>
@@ -149,7 +149,6 @@ import { LockKeyhole, MailCheck, Moon, ShieldCheck, Sun } from 'lucide-vue-next'
 import axiosClient from '../api/axiosClient'
 import { useLocale } from '@/composables/useLocale'
 import { currentTheme, toggleTheme } from '@/utils/theme'
-import logoImg from '../assets/logo_QLCV.png'
 
 const router = useRouter()
 const { t } = useLocale()
@@ -347,10 +346,14 @@ const handleResetPassword = async () => {
 }
 
 .custom-logo {
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
+  display: block;
+  width: 12px;
+  height: 11px;
+  flex: 0 0 12px;
+  background: center / contain no-repeat url('/sprinta-mark-light.png');
 }
+
+:global([data-theme='dark'] .custom-logo) { background-image: url('/sprinta-mark-dark.png'); filter: none; }
 
 .nav-actions {
   gap: 10px;

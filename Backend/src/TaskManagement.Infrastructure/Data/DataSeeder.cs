@@ -135,13 +135,11 @@ namespace TaskManagement.Infrastructure.Data
                 }
             }
 
-            var workspaceWasCreated = false;
             var workspace = await context.Workspaces
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(w => w.Slug == demoWorkspaceSlug);
             if (workspace == null)
             {
-                workspaceWasCreated = true;
                 workspace = new Workspace
                 {
                     Id = Guid.NewGuid(),
@@ -156,47 +154,9 @@ namespace TaskManagement.Infrastructure.Data
                 await context.SaveChangesAsync();
             }
 
-            var ownerWorkspaceMember = await context.WorkspaceMembers
-                .FirstOrDefaultAsync(m => m.WorkspaceId == workspace.Id && m.UserId == owner.Id);
-            if (ownerWorkspaceMember == null)
-            {
-                context.WorkspaceMembers.Add(new WorkspaceMember
-                {
-                    WorkspaceId = workspace.Id,
-                    UserId = owner.Id,
-                    WorkspaceRole = "OWNER",
-                    JoinedAt = now,
-                    IsActive = true
-                });
-            }
-
-            var testWorkspaceMember = await context.WorkspaceMembers
-                .FirstOrDefaultAsync(m => m.WorkspaceId == workspace.Id && m.UserId == testUser.Id);
-            if (testWorkspaceMember == null)
-            {
-                context.WorkspaceMembers.Add(new WorkspaceMember
-                {
-                    WorkspaceId = workspace.Id,
-                    UserId = testUser.Id,
-                    WorkspaceRole = "MEMBER",
-                    JoinedAt = now,
-                    IsActive = true
-                });
-            }
-
-            var devAdminWorkspaceMember = await context.WorkspaceMembers
-                .FirstOrDefaultAsync(m => m.WorkspaceId == workspace.Id && m.UserId == devAdmin.Id);
-            if (devAdminWorkspaceMember == null)
-            {
-                context.WorkspaceMembers.Add(new WorkspaceMember
-                {
-                    WorkspaceId = workspace.Id,
-                    UserId = devAdmin.Id,
-                    WorkspaceRole = "OWNER",
-                    JoinedAt = now,
-                    IsActive = true
-                });
-            }
+            await EnsureWorkspaceMemberAsync(context, workspace.Id, owner.Id, "OWNER", now);
+            await EnsureWorkspaceMemberAsync(context, workspace.Id, testUser.Id, "MEMBER", now);
+            await EnsureWorkspaceMemberAsync(context, workspace.Id, devAdmin.Id, "OWNER", now);
 
             if (context.ChangeTracker.HasChanges())
             {
@@ -210,11 +170,6 @@ namespace TaskManagement.Infrastructure.Data
                     && (p.Identifier == demoProjectIdentifier || p.Name == demoProjectName));
             if (project == null)
             {
-                if (!workspaceWasCreated)
-                {
-                    return;
-                }
-
                 project = new Project
                 {
                     Id = Guid.NewGuid(),
@@ -243,47 +198,9 @@ namespace TaskManagement.Infrastructure.Data
                 await context.SaveChangesAsync();
             }
 
-            var ownerProjectMember = await context.ProjectMembers
-                .FirstOrDefaultAsync(m => m.ProjectId == project.Id && m.UserId == owner.Id);
-            if (ownerProjectMember == null)
-            {
-                context.ProjectMembers.Add(new ProjectMember
-                {
-                    ProjectId = project.Id,
-                    UserId = owner.Id,
-                    ProjectRole = "PM",
-                    JoinedAt = now,
-                    Status = true
-                });
-            }
-
-            var testProjectMember = await context.ProjectMembers
-                .FirstOrDefaultAsync(m => m.ProjectId == project.Id && m.UserId == testUser.Id);
-            if (testProjectMember == null)
-            {
-                context.ProjectMembers.Add(new ProjectMember
-                {
-                    ProjectId = project.Id,
-                    UserId = testUser.Id,
-                    ProjectRole = "PM",
-                    JoinedAt = now,
-                    Status = true
-                });
-            }
-
-            var devAdminProjectMember = await context.ProjectMembers
-                .FirstOrDefaultAsync(m => m.ProjectId == project.Id && m.UserId == devAdmin.Id);
-            if (devAdminProjectMember == null)
-            {
-                context.ProjectMembers.Add(new ProjectMember
-                {
-                    ProjectId = project.Id,
-                    UserId = devAdmin.Id,
-                    ProjectRole = "Admin",
-                    JoinedAt = now,
-                    Status = true
-                });
-            }
+            await EnsureProjectMemberAsync(context, project.Id, owner.Id, "PM", now);
+            await EnsureProjectMemberAsync(context, project.Id, testUser.Id, "PM", now);
+            await EnsureProjectMemberAsync(context, project.Id, devAdmin.Id, "Admin", now);
 
             if (context.ChangeTracker.HasChanges())
             {
@@ -364,6 +281,140 @@ namespace TaskManagement.Infrastructure.Data
             {
                 await context.SaveChangesAsync();
             }
+
+            await SeedTerraDemoDataAsync(context, workspace, project, owner, now);
+            if (context.ChangeTracker.HasChanges())
+            {
+                await context.SaveChangesAsync();
+            }
+        }
+
+        private static async Task SeedTerraDemoDataAsync(
+            ApplicationDbContext context,
+            Workspace workspace,
+            Project project,
+            User owner,
+            DateTime now)
+        {
+            // Covers are local metadata only; this seed intentionally does not hotlink external assets.
+            if (string.IsNullOrWhiteSpace(project.CoverUrl))
+            {
+                project.CoverUrl = "/uploads/demo/project-covers/cybwf-gradient.svg";
+                project.CoverAltText = "Demo SprintA project cover";
+                project.UpdatedAt = now;
+            }
+
+            var plans = new[]
+            {
+                new { Code = "free", Name = "Free", Credits = 100, Users = (int?)3 },
+                new { Code = "team", Name = "Team", Credits = 0, Users = (int?)null },
+                new { Code = "business", Name = "Business", Credits = 0, Users = (int?)null }
+            };
+            foreach (var item in plans)
+            {
+                var plan = await context.AiPricingPlans.SingleOrDefaultAsync(x => x.Code == item.Code);
+                if (plan == null)
+                {
+                    context.AiPricingPlans.Add(new AiPricingPlan
+                    {
+                        Id = Guid.NewGuid(), Code = item.Code, Name = item.Name,
+                        IncludedAiCredits = item.Credits, IncludedUsers = item.Users,
+                        MonthlyPriceVnd = null, PricingStatus = "PendingConfirmation",
+                        CreatedAt = now, UpdatedAt = now
+                    });
+                }
+            }
+
+            const string disclaimer = "Mức sử dụng là ước tính và có thể thay đổi theo độ dài nội dung.";
+            foreach (var action in new[] { "summarize_project", "create_project", "create_task", "create_cycle", "create_goal", "list_overdue_tasks" })
+            {
+                var rule = await context.AiCreditRules.SingleOrDefaultAsync(x => x.ActionType == action);
+                if (rule == null)
+                {
+                    context.AiCreditRules.Add(new AiCreditRule
+                    {
+                        Id = Guid.NewGuid(), ActionType = action, EstimatedCredits = 1,
+                        Disclaimer = disclaimer, CreatedAt = now, UpdatedAt = now
+                    });
+                }
+            }
+
+            var demoTask = await context.WorkTasks.SingleOrDefaultAsync(x => x.ProjectId == project.Id && x.SequenceId == "CYBWF-4");
+            if (demoTask != null)
+            {
+                const string contingencyRisk = "Key delivery owner becomes unavailable before the sprint planning deadline.";
+                if (!await context.TaskContingencyPlans.AnyAsync(x => x.WorkTaskId == demoTask.Id && x.Risk == contingencyRisk))
+                {
+                    context.TaskContingencyPlans.Add(new TaskContingencyPlan
+                    {
+                        Id = Guid.NewGuid(), WorkTaskId = demoTask.Id, Risk = contingencyRisk,
+                        Cause = "Unplanned leave or competing production incident.",
+                        ResponsePlan = "Transfer the prepared backlog and planning notes to the support owner.",
+                        SupportPersonId = owner.Id, ReplacementDeadline = now.AddDays(2),
+                        ImpactLevel = "High", TriggerCondition = "Owner is unavailable for one business day.",
+                        Status = "Open", CreatedAt = now, UpdatedAt = now,
+                        CreatedById = owner.Id, UpdatedById = owner.Id
+                    });
+                }
+            }
+
+            const string usageKey = "demo-ai-usage-cybwf-2026-07";
+            if (!await context.AiUsageLedgerEntries.AnyAsync(x => x.IdempotencyKey == usageKey))
+            {
+                context.AiUsageLedgerEntries.Add(new AiUsageLedger
+                {
+                    Id = Guid.NewGuid(), WorkspaceId = workspace.Id, UserId = owner.Id, ProjectId = project.Id,
+                    ActionType = "summarize_project", CreditsConsumed = 1, ProviderTokens = 0,
+                    IdempotencyKey = usageKey, OccurredAt = now
+                });
+            }
+
+            foreach (var category in new[] { "Task", "Project", "Workspace", "AI", "Deadline", "Mention", "Comment", "Invitation", "Permission", "Report", "Document", "DailyFocus", "Calendar", "Cycle" })
+            {
+                if (!await context.NotificationPreferences.AnyAsync(x => x.UserId == owner.Id && x.Category == category))
+                {
+                    context.NotificationPreferences.Add(new NotificationPreference
+                    {
+                        Id = Guid.NewGuid(), UserId = owner.Id, Category = category,
+                        InAppEnabled = true, EmailEnabled = false, Priority = "Normal",
+                        CreatedAt = now, UpdatedAt = now
+                    });
+                }
+            }
+        }
+
+        private static async Task EnsureWorkspaceMemberAsync(
+            ApplicationDbContext context, Guid workspaceId, Guid userId, string role, DateTime now)
+        {
+            var tracked = context.WorkspaceMembers.Local
+                .FirstOrDefault(x => x.WorkspaceId == workspaceId && x.UserId == userId);
+            if (tracked != null || await context.WorkspaceMembers.AnyAsync(x => x.WorkspaceId == workspaceId && x.UserId == userId))
+            {
+                return;
+            }
+
+            context.WorkspaceMembers.Add(new WorkspaceMember
+            {
+                WorkspaceId = workspaceId, UserId = userId, WorkspaceRole = role,
+                JoinedAt = now, IsActive = true
+            });
+        }
+
+        private static async Task EnsureProjectMemberAsync(
+            ApplicationDbContext context, Guid projectId, Guid userId, string role, DateTime now)
+        {
+            var tracked = context.ProjectMembers.Local
+                .FirstOrDefault(x => x.ProjectId == projectId && x.UserId == userId);
+            if (tracked != null || await context.ProjectMembers.AnyAsync(x => x.ProjectId == projectId && x.UserId == userId))
+            {
+                return;
+            }
+
+            context.ProjectMembers.Add(new ProjectMember
+            {
+                ProjectId = projectId, UserId = userId, ProjectRole = role,
+                JoinedAt = now, Status = true
+            });
         }
 
         private static async Task<TaskManagement.Domain.Entities.TaskStatus> EnsureTaskStatusAsync(

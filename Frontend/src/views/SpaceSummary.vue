@@ -239,7 +239,11 @@
       </div>
 
       <!-- Kanban Board Layout -->
-      <div class="kanban-wrapper" v-if="currentTab === 'board' && filteredTasksList.length > 0">
+      <div
+        class="kanban-wrapper"
+        v-if="currentTab === 'board' && filteredTasksList.length > 0"
+        @wheel="handleKanbanWheel"
+      >
         <!-- Loading indicator -->
         <div class="kanban-loading-bar" v-if="store.loading">
           <i class="fa-solid fa-spinner fa-spin"></i>
@@ -647,6 +651,15 @@ const showSubtasks = ref(false)
 const collapsedListGroups = ref({})
 const assigneeSearch = ref('')
 const showDataImportModal = ref(false)
+
+const handleKanbanWheel = (event) => {
+  const board = event.currentTarget
+  if (!board || board.scrollWidth <= board.clientWidth) return
+  if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
+
+  event.preventDefault()
+  board.scrollLeft += event.deltaY
+}
 
 async function handleExportTasks() {
   try {
@@ -3267,7 +3280,7 @@ onUnmounted(() => {
   backdrop-filter: blur(2px);
 }
 .analytics-panel {
-  width: min(860px, 92vw);
+  width: min(760px, 88vw);
   max-width: 92vw;
   background:
     linear-gradient(180deg, rgba(14, 165, 233, 0.10), transparent 280px),
@@ -3286,7 +3299,7 @@ onUnmounted(() => {
   max-width: 100vw;
 }
 .ap-header {
-  padding: 20px 24px;
+  padding: 14px 18px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -3301,7 +3314,7 @@ onUnmounted(() => {
 .icon-btn:hover { color: var(--color-text-primary); }
 
 .ap-body {
-  padding: 22px 24px 30px;
+  padding: 16px 18px 22px;
   overflow-y: auto;
   flex: 1;
 }
@@ -3319,7 +3332,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  padding: 14px;
+  padding: 11px 12px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 8px;
   background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
@@ -3331,21 +3344,21 @@ onUnmounted(() => {
   width: 3px;
   background: var(--stat-accent, #38bdf8);
 }
-.stat-box:nth-child(1) { --stat-accent: #38bdf8; }
-.stat-box:nth-child(2) { --stat-accent: #3b82f6; }
-.stat-box:nth-child(3) { --stat-accent: #94a3b8; }
-.stat-box:nth-child(4) { --stat-accent: #f59e0b; }
+.stat-box:nth-child(1) { --stat-accent: #41c0f2; }
+.stat-box:nth-child(2) { --stat-accent: #0d519c; }
+.stat-box:nth-child(3) { --stat-accent: #5c6795; }
+.stat-box:nth-child(4) { --stat-accent: #0b4fd9; }
 .stat-box:nth-child(5) { --stat-accent: #22c55e; }
 .stat-box:hover {
   border-color: color-mix(in srgb, var(--stat-accent) 56%, var(--color-border));
   background: color-mix(in srgb, var(--color-surface) 86%, var(--stat-accent) 14%);
 }
 .stat-box .lbl { color: var(--color-text-muted); font-size: 11px; font-weight: 650; line-height: 1.35; }
-.stat-box .val { color: var(--color-text-primary); font-size: 24px; font-weight: 850; line-height: 1; }
+.stat-box .val { color: var(--color-text-primary); font-size: 21px; font-weight: 850; line-height: 1; }
 
 .ap-chart-card {
-  margin-top: 16px;
-  padding: 16px;
+  margin-top: 12px;
+  padding: 13px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 10px;
   background:
@@ -3353,7 +3366,7 @@ onUnmounted(() => {
     color-mix(in srgb, var(--color-surface) 78%, transparent);
 }
 .ap-chart-card h4 { margin: 0; font-size: 14px; font-weight: 800; color: var(--color-text-primary); }
-.chart-container { height: 260px; }
+.chart-container { height: 220px; }
 
 .line-chart-mock {
   position: relative;
@@ -3846,6 +3859,29 @@ onUnmounted(() => {
   gap: 14px !important;
   padding: 12px 4px 16px !important;
   scroll-padding: 12px;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
+}
+
+.kanban-wrapper::-webkit-scrollbar {
+  height: 12px !important;
+}
+
+.kanban-wrapper::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sp-blue-600) 8%, var(--color-bg)) !important;
+}
+
+.kanban-wrapper::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, var(--sp-blue-600), var(--sp-sky-400)) padding-box !important;
+}
+
+.kanban-wrapper::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, var(--sp-blue-700), var(--sp-sky-400)) padding-box !important;
 }
 
 .kanban-col {

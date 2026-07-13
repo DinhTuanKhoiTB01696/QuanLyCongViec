@@ -28,13 +28,18 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
-    <div style="background-color: var(--color-bg); height: 100vh; overflow-y: auto;">
-      <CyclesTab v-if="isReady && projectId && projectId !== 'default'" :projectId="projectId" />
-      <div v-else-if="isReady" class="text-muted text-center pt-10">No project available to load Cycles.</div>
-    </div>
+  <div class="cycles-route-shell">
+    <CyclesTab v-if="isReady && projectId && projectId !== 'default'" :projectId="projectId" />
+    <div v-else-if="isReady" class="text-muted text-center pt-10">No project available to load Cycles.</div>
   </div>
 </template>
 
-
+<style scoped>
+.cycles-route-shell {
+  min-height: 100%;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--sp-font-ui);
+}
+</style>
 
