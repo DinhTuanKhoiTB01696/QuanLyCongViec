@@ -76,6 +76,7 @@
               <el-select
                 v-model="row.projectRole"
                 size="small"
+                popper-class="members-role-popper"
                 @change="(newRole) => updateMemberRole(row.userId, newRole)"
                 :disabled="isCurrentUser(row.userId)"
               >
@@ -215,7 +216,7 @@
               :loading="isSearchingUsers"
               class="w-full"
             >
-              <el-option
+                <el-option
                 v-for="user in systemUsers"
                 :key="user.id"
                 :label="user.fullName || user.email"
@@ -244,7 +245,7 @@
       <div class="mb-4">
         <label class="block text-sm font-medium mb-1">Vai trò</label>
         <el-select v-model="inviteForm.role" class="w-full">
-          <el-option
+                <el-option
             v-for="role in roleOptions"
             :key="role.value"
             :label="role.label"
@@ -421,11 +422,24 @@ const roleOptions = ref([
   { label: 'Member', value: 'Member' }
 ])
 
+const normalizeMemberRole = (value) => {
+  const role = String(value || '').toUpperCase().replace(/[-\s]+/g, '_')
+  if (role === 'PROJECT_MANAGER' || role === 'PM') return 'PM'
+  if (role === 'PRODUCT_OWNER' || role === 'PO') return 'PO'
+  if (role === 'PROJECT_LEAD') return 'Project Lead'
+  if (role === 'DEVELOPER' || role === 'DEV') return 'Developer'
+  if (role === 'QA') return 'QA'
+  return 'Member'
+}
+
 const fetchMembers = async () => {
   loadingMembers.value = true
   try {
     const res = await axiosClient.get(`/projects/${projectId.value}/members`)
-    members.value = res.data?.data || []
+    members.value = (res.data?.data || []).map(member => ({
+      ...member,
+      projectRole: normalizeMemberRole(member.projectRole || member.ProjectRole || member.role)
+    }))
   } catch (error) {
     ElMessage.error('Không thể tải danh sách thành viên.')
   } finally {
@@ -732,4 +746,8 @@ onMounted(() => {
 :deep(.nexus-table .el-select__wrapper) { background: var(--color-input-bg) !important; box-shadow: 0 0 0 1px var(--color-input-border) inset !important; }
 .member-email { color: var(--color-text-muted) !important; }
 .team-option.is-selected { background: var(--sa-primary-soft); border-color: var(--color-accent); }
+:global(.members-role-popper) { background: var(--color-surface) !important; border: 1px solid var(--color-border) !important; box-shadow: var(--sp-shadow-sm) !important; }
+:global(.members-role-popper .el-select-dropdown__item) { color: var(--color-text-primary) !important; }
+:global(.members-role-popper .el-select-dropdown__item.is-hovering),
+:global(.members-role-popper .el-select-dropdown__item:hover) { background: var(--color-surface-hover) !important; color: var(--color-text-primary) !important; }
 </style>

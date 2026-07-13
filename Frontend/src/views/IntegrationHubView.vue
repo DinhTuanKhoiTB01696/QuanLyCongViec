@@ -1,5 +1,5 @@
 <template>
-  <main class="integration-page">
+    <main class="integration-page sp-page-shell">
       <section class="hero-shell">
         <div class="hero-copy">
           <p class="kicker">Khôi · Integration Hub</p>

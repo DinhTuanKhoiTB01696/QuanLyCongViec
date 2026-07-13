@@ -1,32 +1,32 @@
 <template>
   <div>
-    <div class="rewards-page">
+    <div class="rewards-page sp-page-shell">
       <header class="nexus-feature-header">
         <div class="header-info">
-          <p class="eyebrow">Hệ thống điểm</p>
-          <h1>Phần thưởng</h1>
-          <p class="muted">Theo dõi điểm thưởng, cấp độ nghề nghiệp, tỷ lệ đóng góp và thưởng hoàn thành sớm.</p>
+          <p class="eyebrow">{{ t('rewards.eyebrow') }}</p>
+          <h1>{{ t('rewards.title') }}</h1>
+          <p class="muted">{{ t('rewards.subtitle') }}</p>
         </div>
         <button class="refresh-btn" type="button" :disabled="loading" @click="loadRewards">
-          <i class="fa-solid fa-rotate"></i> {{ loading ? 'Đang cập nhật...' : 'Làm mới' }}
+          <i class="fa-solid fa-rotate"></i> {{ loading ? t('rewards.refreshing') : t('rewards.refresh') }}
         </button>
       </header>
 
       <section class="wallet-band">
         <div class="wallet-card">
-          <span class="label">Số dư hiện tại</span>
+          <span class="label">{{ t('rewards.balance') }}</span>
           <strong>{{ wallet.totalPoints }}</strong>
           <span class="unit">điểm</span>
         </div>
         <div class="wallet-card">
-          <span class="label">Cấp độ nghề nghiệp</span>
+          <span class="label">{{ t('rewards.level') }}</span>
           <strong>{{ career.level }}</strong>
           <span class="unit">{{ career.title }}</span>
         </div>
         <div class="wallet-card wide">
           <div class="wallet-card-head">
-            <span class="label">Tiến độ cấp độ</span>
-            <span class="unit">{{ pointsToNext }} điểm đến cấp tiếp theo</span>
+            <span class="label">{{ t('rewards.progress') }}</span>
+            <span class="unit">{{ pointsToNext }} {{ t('rewards.pointsToNext') }}</span>
           </div>
           <div class="progress-container">
             <div class="progress-track">
@@ -40,24 +40,24 @@
       <section class="formula-band">
         <div class="panel">
           <div class="panel-head">
-            <h2>Công thức tính điểm</h2>
+            <h2>{{ t('rewards.formula') }}</h2>
             <span>{{ formula.expression }}</span>
           </div>
           <div class="formula-grid">
             <div class="formula-cell">
-              <span>Độ khó</span>
+            <span>{{ t('rewards.difficulty') }}</span>
               <strong>{{ formula.sample.difficulty }}</strong>
             </div>
             <div class="formula-cell">
-              <span>Thời lượng</span>
+              <span>{{ t('rewards.duration') }}</span>
               <strong>{{ formula.sample.duration }}</strong>
             </div>
             <div class="formula-cell">
-              <span>Tỷ lệ</span>
+              <span>{{ t('rewards.share') }}</span>
               <strong>{{ formula.sample.share }}%</strong>
             </div>
             <div class="formula-cell total">
-              <span>Điểm cuối cùng</span>
+              <span>{{ t('rewards.finalPoints') }}</span>
               <strong>{{ formula.sample.total }}</strong>
             </div>
           </div>
@@ -71,8 +71,8 @@
 
         <div class="panel">
           <div class="panel-head">
-            <h2>Tổng kết</h2>
-            <span>Sprint này</span>
+            <h2>{{ t('rewards.summary') }}</h2>
+            <span>{{ t('rewards.thisSprint') }}</span>
           </div>
           <div class="summary-list">
             <div class="summary-row"><span>Công việc hoàn thành</span><strong>{{ summary.completedTasks }}</strong></div>
@@ -166,6 +166,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18nStore } from '@/store/useI18nStore'
+
+const { t } = useI18nStore()
 
 import axiosClient from '@/api/axiosClient'
 import UserAvatar from '@/components/common/UserAvatar.vue'

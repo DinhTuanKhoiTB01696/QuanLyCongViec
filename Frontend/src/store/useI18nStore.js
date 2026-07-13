@@ -551,6 +551,25 @@ const dictionary = {
   }
 }
 
+Object.assign(dictionary.en, {
+  'Search spaces...': 'Search spaces...', 'Add Project': 'Add project', 'Loading projects...': 'Loading projects...', 'No projects found': 'No projects found', 'Create your first project': 'Create your first project',
+  'yourWork.overview': 'Overview', 'yourWork.created': 'Work items created', 'yourWork.assigned': 'Work items assigned', 'yourWork.subscribed': 'Work items subscribed',
+  'yourWork.workload': 'Workload', 'yourWork.backlog': 'Backlog', 'yourWork.notStarted': 'Not started', 'yourWork.inProgress': 'In progress', 'yourWork.completed': 'Completed', 'yourWork.canceled': 'Canceled',
+  'yourWork.byPriority': 'Work items by priority', 'yourWork.byState': 'Work items by state', 'yourWork.empty': 'No work items yet', 'yourWork.recentActivity': 'Recent activity', 'yourWork.allWorkItems': 'All work items', 'yourWork.downloadActivity': "Download today's activity",
+  'yourWork.tabs.summary': 'Summary', 'yourWork.tabs.assigned': 'Assigned', 'yourWork.tabs.created': 'Created', 'yourWork.tabs.subscribed': 'Subscribed', 'yourWork.tabs.activity': 'Activity',
+  'checkin.title': 'Daily virtual check-in', 'checkin.subtitle': 'Quickly share progress, daily goals, and blockers with your team.', 'checkin.report': 'Report check-in', 'checkin.aiTitle': 'AI meeting summary & check-in', 'checkin.aiAction': 'Extract with AI', 'checkin.aiHint': 'Use AI to analyze and summarize today\'s team check-ins.', 'checkin.doneCount': '3/5 members checked in', 'checkin.blockerCount': '1 blocker (Khoi)',
+  'rewards.eyebrow': 'Points system', 'rewards.title': 'Rewards', 'rewards.subtitle': 'Track points, career level, contribution, and early-completion rewards.', 'rewards.refresh': 'Refresh', 'rewards.refreshing': 'Updating...', 'rewards.balance': 'Current balance', 'rewards.level': 'Career level', 'rewards.progress': 'Level progress', 'rewards.pointsToNext': 'points to next level', 'rewards.formula': 'Points formula', 'rewards.difficulty': 'Difficulty', 'rewards.duration': 'Duration', 'rewards.share': 'Share', 'rewards.finalPoints': 'Final points', 'rewards.summary': 'Summary', 'rewards.thisSprint': 'This sprint'
+})
+Object.assign(dictionary.vi, {
+  'Search spaces...': 'Tìm kiếm dự án...', 'Add Project': 'Thêm dự án', 'Loading projects...': 'Đang tải dự án...', 'No projects found': 'Không tìm thấy dự án', 'Create your first project': 'Tạo dự án đầu tiên',
+  'yourWork.overview': 'Tổng quan', 'yourWork.created': 'Công việc đã tạo', 'yourWork.assigned': 'Công việc được giao', 'yourWork.subscribed': 'Công việc đang theo dõi',
+  'yourWork.workload': 'Khối lượng công việc', 'yourWork.backlog': 'Tồn đọng', 'yourWork.notStarted': 'Chưa bắt đầu', 'yourWork.inProgress': 'Đang thực hiện', 'yourWork.completed': 'Đã hoàn thành', 'yourWork.canceled': 'Đã hủy',
+  'yourWork.byPriority': 'Công việc theo mức ưu tiên', 'yourWork.byState': 'Công việc theo trạng thái', 'yourWork.empty': 'Chưa có công việc', 'yourWork.recentActivity': 'Hoạt động gần đây', 'yourWork.allWorkItems': 'Tất cả công việc', 'yourWork.downloadActivity': 'Tải hoạt động hôm nay',
+  'yourWork.tabs.summary': 'Tổng quan', 'yourWork.tabs.assigned': 'Được giao', 'yourWork.tabs.created': 'Đã tạo', 'yourWork.tabs.subscribed': 'Theo dõi', 'yourWork.tabs.activity': 'Hoạt động',
+  'checkin.title': 'Check-in hằng ngày', 'checkin.subtitle': 'Cập nhật nhanh tiến độ, mục tiêu trong ngày và khó khăn với đồng đội.', 'checkin.report': 'Báo cáo check-in', 'checkin.aiTitle': 'AI tóm tắt cuộc họp & check-in', 'checkin.aiAction': 'Trích xuất bằng AI', 'checkin.aiHint': 'Dùng AI để phân tích và tóm tắt check-in của cả đội hôm nay.', 'checkin.doneCount': '3/5 thành viên đã check-in', 'checkin.blockerCount': 'Có 1 blocker (Khôi)',
+  'rewards.eyebrow': 'Hệ thống điểm', 'rewards.title': 'Phần thưởng', 'rewards.subtitle': 'Theo dõi điểm thưởng, cấp độ nghề nghiệp, đóng góp và thưởng hoàn thành sớm.', 'rewards.refresh': 'Làm mới', 'rewards.refreshing': 'Đang cập nhật...', 'rewards.balance': 'Số dư hiện tại', 'rewards.level': 'Cấp độ nghề nghiệp', 'rewards.progress': 'Tiến độ cấp độ', 'rewards.pointsToNext': 'điểm đến cấp tiếp theo', 'rewards.formula': 'Công thức tính điểm', 'rewards.difficulty': 'Độ khó', 'rewards.duration': 'Thời lượng', 'rewards.share': 'Tỷ lệ', 'rewards.finalPoints': 'Điểm cuối cùng', 'rewards.summary': 'Tổng kết', 'rewards.thisSprint': 'Sprint này'
+})
+
 export const useI18nStore = defineStore('i18n', {
   state: () => ({
     locale: localStorage.getItem('app_language') || localStorage.getItem('sprinta_locale') || localStorage.getItem('admin_locale') || 'vi'

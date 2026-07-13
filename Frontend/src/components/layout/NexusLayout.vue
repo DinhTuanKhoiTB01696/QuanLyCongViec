@@ -320,6 +320,7 @@ import CreateSpaceModal from '../CreateSpaceModal.vue'
 import AppTopBar from './AppTopBar.vue'
 import NexusSidebar from './NexusSidebar.vue'
 import { useI18nStore } from '@/store/useI18nStore'
+import { useAiPetStore } from '@/store/useAiPetStore'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useGoalStore } from '@/store/useGoalStore'
@@ -340,7 +341,8 @@ const workTaskStore = useWorkTaskStore()
 const projectStore = useProjectStore()
 const goalStore = useGoalStore()
 const sidebarVisible = ref(window.innerWidth > 1024)
-const aiVisible = ref(false)
+const aiPetStore = useAiPetStore()
+const aiVisible = computed({ get: () => aiPetStore.isPanelOpen, set: value => aiPetStore.setPanelOpen(value) })
 const createVisible = ref(false)
 const createSpaceVisible = ref(false)
 const isMobile = ref(window.innerWidth <= 1024)
@@ -349,8 +351,8 @@ const aiSending = ref(false)
 const aiContentRef = ref(null)
 const selectedText = ref('')
 const selectionPopover = ref({ visible: false, left: 0, top: 0 })
-const petPinned = ref(localStorage.getItem('sprinta-ai-pet-pinned') !== 'false')
-const petPosition = ref(loadPetPosition())
+const petPinned = computed({ get: () => aiPetStore.isPinned, set: value => aiPetStore.setPinned(value) })
+const petPosition = computed({ get: () => aiPetStore.position, set: value => aiPetStore.setPosition(value) })
 const petDragging = ref(false)
 const petMoved = ref(false)
 const petDragOffset = ref({ x: 0, y: 0 })
@@ -568,6 +570,7 @@ const updateSize = () => {
     sidebarVisible.value = true
   }
   petPosition.value = clampPetPosition()
+  nextTick(() => window.setTimeout(normalizePetPosition, 80))
   if (isMobile.value || aiVisible.value) stopPetWandering()
   else startPetWandering()
 }
@@ -593,23 +596,68 @@ const stopPetWandering = () => {
 
 const petOverlapsUnsafeZone = (position) => {
   const petRect = { left: position.x, top: position.y, right: position.x + 68, bottom: position.y + 68 }
-  const selectors = ['.app-topbar', '.plane-sidebar', '.ai-sidebar', '.el-overlay', '.el-dialog', '.modal-content', '[role="dialog"]']
-  return selectors.some(selector => [...document.querySelectorAll(selector)].some(element => {
+  const selectors = [
+    { selector: '.app-topbar', minOverlap: 1 },
+    { selector: '.plane-sidebar', minOverlap: 1 },
+    { selector: '.ai-sidebar', minOverlap: 1 },
+    { selector: '.el-overlay', minOverlap: 1 },
+    { selector: '.el-dialog', minOverlap: 1 },
+    { selector: '.modal-content', minOverlap: 1 },
+    { selector: '[role="dialog"]', minOverlap: 1 },
+    { selector: '.report-card', minOverlap: 1200 },
+    { selector: '.health-alert-card', minOverlap: 1200 },
+    { selector: '.reports-stats-grid', minOverlap: 1200 },
+    { selector: '.page-editor', minOverlap: 1200 },
+    { selector: '.editor-content', minOverlap: 1200 },
+    { selector: '.nexus-btn-primary', minOverlap: 800 },
+    { selector: '.project-tabs', minOverlap: 1 },
+    { selector: '.project-tab', minOverlap: 1 },
+    { selector: '.project-nav', minOverlap: 1 },
+    { selector: '.space-tabs', minOverlap: 1 },
+    { selector: '.workspace-nav', minOverlap: 1 },
+    { selector: '.nav-tabs', minOverlap: 1 },
+    { selector: '.project-page-header', minOverlap: 1 },
+    { selector: '.project-global-header', minOverlap: 1 },
+    { selector: '.project-horizontal-nav', minOverlap: 1 },
+    { selector: '.nav-item', minOverlap: 1 }
+  ]
+  return selectors.some(({ selector, minOverlap }) => [...document.querySelectorAll(selector)].some(element => {
     const rect = element.getBoundingClientRect()
-    return rect.width > 0 && rect.height > 0 && petRect.left < rect.right && petRect.right > rect.left && petRect.top < rect.bottom && petRect.bottom > rect.top
+    if (rect.width <= 0 || rect.height <= 0) return false
+    const overlapX = Math.max(0, Math.min(petRect.right, rect.right) - Math.max(petRect.left, rect.left))
+    const overlapY = Math.max(0, Math.min(petRect.bottom, rect.bottom) - Math.max(petRect.top, rect.top))
+    return overlapX * overlapY >= minOverlap
   }))
 }
 
+const edgePetPosition = () => clampPetPosition({
+  x: window.innerWidth - 76,
+  y: Math.max(96, Math.min(window.innerHeight - 96, Math.round(window.innerHeight * 0.82)))
+})
+
 const chooseSafePetPosition = () => {
   const current = clampPetPosition()
+  const edge = edgePetPosition()
+  if (!petOverlapsUnsafeZone(edge)) return edge
   for (let attempt = 0; attempt < 12; attempt += 1) {
     const candidate = clampPetPosition({
       x: 24 + Math.random() * Math.max(24, window.innerWidth - 116),
-      y: Math.max(70, 64 + Math.random() * Math.max(30, window.innerHeight - 150))
+      y: Math.max(220, 160 + Math.random() * Math.max(30, window.innerHeight - 246))
     })
     if (!petOverlapsUnsafeZone(candidate)) return candidate
   }
-  return current
+  return petOverlapsUnsafeZone(current) ? edge : current
+}
+
+const normalizePetPosition = () => {
+  if (petDragging.value || isMobile.value) return
+  const current = clampPetPosition()
+  if (petOverlapsUnsafeZone(current)) {
+    petPosition.value = chooseSafePetPosition()
+  } else {
+    petPosition.value = current
+  }
+  savePetPosition()
 }
 
 const startPetWandering = () => {
@@ -657,7 +705,7 @@ const openFromPet = (event) => {
 
 const handleGlobalKeydown = (event) => {
   const isEscape = event.key === 'Escape' || event.key === 'Esc' || event.code === 'Escape' || event.keyCode === 27
-  if (!isEscape || !aiVisible.value) return
+  if (!isEscape || !aiPetStore.isPanelOpen) return
   // Element Plus owns Escape while a real modal overlay is open. The AI panel
   // is not an overlay, so only close it when no modal is currently active.
   const hasActiveElementPlusOverlay = [...document.querySelectorAll('.el-overlay')].some((overlay) => {
@@ -666,8 +714,8 @@ const handleGlobalKeydown = (event) => {
   })
   if (hasActiveElementPlusOverlay) return
   event.preventDefault()
-  event.stopImmediatePropagation()
-  aiVisible.value = false
+  event.stopPropagation()
+  aiPetStore.setPanelOpen(false)
   stopPetWandering()
 }
 
@@ -677,9 +725,10 @@ onMounted(() => {
   window.addEventListener('offline', updateOnlineStatus)
   document.addEventListener('mouseup', captureSelectedText)
   document.addEventListener('keyup', captureSelectedText)
-  window.addEventListener('keydown', handleGlobalKeydown, true)
+  window.addEventListener('keydown', handleGlobalKeydown)
   window.addEventListener('pointermove', movePet)
   window.addEventListener('pointerup', endPetDrag)
+  nextTick(() => window.setTimeout(normalizePetPosition, 120))
   startPetWandering()
 })
 
@@ -689,10 +738,14 @@ onUnmounted(() => {
   window.removeEventListener('offline', updateOnlineStatus)
   document.removeEventListener('mouseup', captureSelectedText)
   document.removeEventListener('keyup', captureSelectedText)
-  window.removeEventListener('keydown', handleGlobalKeydown, true)
+  window.removeEventListener('keydown', handleGlobalKeydown)
   window.removeEventListener('pointermove', movePet)
   window.removeEventListener('pointerup', endPetDrag)
   stopPetWandering()
+})
+
+watch(() => route.fullPath, () => {
+  nextTick(() => window.setTimeout(normalizePetPosition, 160))
 })
 
 const toggleSidebar = () => {
@@ -1633,7 +1686,7 @@ const handleProjectCreated = (newProject) => {
   right: 16px;
   top: 68px;
   bottom: 16px;
-  width: min(448px, calc(100vw - 32px));
+  width: min(456px, calc(100vw - 32px));
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 18px;
@@ -1645,20 +1698,24 @@ const handleProjectCreated = (newProject) => {
 }
 
 .ai-hero {
-  padding: 18px 18px 15px;
+  padding: 20px 20px 17px;
   border-bottom: 1px solid var(--color-border);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 96%, var(--sa-primary) 4%), var(--color-surface));
+  background: var(--color-surface);
 }
 
-.ai-hero-top,
-.ai-brand,
 .quick-actions,
-.ai-context-card,
 .ai-action-preview-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-top: 12px;
+}
+
+.ai-hero-top,
+.ai-brand,
+.ai-context-card {
+  display: flex;
+  flex-direction: row;
 }
 
 .ai-action-preview-card {
@@ -1829,7 +1886,7 @@ const handleProjectCreated = (newProject) => {
 
 .ai-content {
   flex: 1;
-  padding: 14px;
+  padding: 16px 18px 20px;
   overflow-y: auto;
   scrollbar-color: var(--color-border) transparent;
 }
@@ -1837,6 +1894,7 @@ const handleProjectCreated = (newProject) => {
 .quick-actions {
   gap: 8px;
   margin-bottom: 12px;
+  flex-direction: row;
   flex-wrap: wrap;
 }
 
@@ -2062,7 +2120,7 @@ const handleProjectCreated = (newProject) => {
 }
 
 .ai-input-area {
-  padding: 16px;
+  padding: 14px 18px 16px;
   border-top: 1px solid var(--color-border);
   background: color-mix(in srgb, var(--color-surface) 92%, var(--color-surface-hover));
 }
@@ -2071,9 +2129,9 @@ const handleProjectCreated = (newProject) => {
   align-items: flex-end;
   gap: 10px;
   border: 1px solid color-mix(in srgb, var(--color-border) 84%, var(--sa-primary));
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--color-surface);
-  padding: 10px;
+  padding: 8px 9px 8px 12px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
@@ -2113,11 +2171,11 @@ const handleProjectCreated = (newProject) => {
 }
 
 .send-btn {
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
   border: 0;
-  border-radius: 11px;
+  border-radius: 12px;
   background: var(--color-accent);
   color: #ffffff;
   cursor: pointer;
