@@ -1,13 +1,8 @@
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$Server,
-
-    [Parameter(Mandatory = $true)]
-    [string]$Database,
-
-    [string]$InputFile,
-
-    [string]$Query
+    [string]$Server = ".\SQLEXPRESS01",
+    [string]$Database = "TaskManagementDB",
+    [string]$InputFile = "",
+    [string]$Query = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -18,7 +13,8 @@ if ([string]::IsNullOrWhiteSpace($InputFile) -and [string]::IsNullOrWhiteSpace($
 
 Add-Type -AssemblyName System.Data
 
-$connectionString = "Data Source=$Server;Initial Catalog=$Database;Integrated Security=SSPI;TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=True"
+# Build connection string matching appsettings.json
+$connectionString = "Data Source=$Server;Initial Catalog=$Database;Integrated Security=SSPI;TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=True;Connection Timeout=300"
 $connection = New-Object System.Data.SqlClient.SqlConnection($connectionString)
 $connection.Open()
 

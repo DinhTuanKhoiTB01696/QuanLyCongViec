@@ -1,19 +1,19 @@
 <template>
-  <div class="goals-wrapper">
-    <header class="module-header">
-      <div class="header-content">
-        <h1>{{ labels.title }}</h1>
-        <div class="header-actions">
+  <AppPageLayout>
+    <template #header>
+      <AppPageHeader :title="labels.title">
+        <template #actions>
           <button class="primary-btn" @click="openCreateModal">{{ labels.createGoal }}</button>
-        </div>
-      </div>
-      
-      <div class="tabs-nav">
-        <button class="tab-btn" :class="{ active: currentTab === 'all' }" @click="currentTab = 'all'">{{ labels.goalDirectory }}</button>
-        <button class="tab-btn" :class="{ active: currentTab === 'following' }" @click="currentTab = 'following'">{{ labels.following }}</button>
-        <button class="tab-btn" :class="{ active: currentTab === 'archived' }" @click="currentTab = 'archived'">{{ labels.archived }}</button>
-      </div>
-    </header>
+        </template>
+        <template #bottom>
+          <div class="tabs-nav" style="padding: 0 40px; margin-top: 16px;">
+            <button class="tab-btn" :class="{ active: currentTab === 'all' }" @click="currentTab = 'all'">{{ labels.goalDirectory }}</button>
+            <button class="tab-btn" :class="{ active: currentTab === 'following' }" @click="currentTab = 'following'">{{ labels.following }}</button>
+            <button class="tab-btn" :class="{ active: currentTab === 'archived' }" @click="currentTab = 'archived'">{{ labels.archived }}</button>
+          </div>
+        </template>
+      </AppPageHeader>
+    </template>
 
     <div class="module-content">
       <!-- Tab: Dành cho bạn -->
@@ -39,29 +39,26 @@
 
       <!-- Tab: Tất cả mục tiêu & Đã lưu trữ -->
       <div v-else class="tab-all-archived">
-        <div class="list-controls">
-          <div class="search-box-wrapper">
-            <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input type="text" v-model="searchQuery" :placeholder="labels.search" class="search-input" />
-          </div>
-          <div class="filter-actions">
-            <button class="active-filter-pill" v-if="currentTab === 'following'">{{ labels.following }} <i class="fa-solid fa-xmark"></i></button>
-            
-            
-            
-          </div>
-          <div class="filter-chips" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; width: 100%;">
-            <DropdownFilter :label="labels.status" :options="statusOptions" v-model="filters.status" />
-            <DropdownFilter :label="labels.owner" :options="ownerOptions" v-model="filters.owner" />
-            <DropdownFilter :label="labels.progress" :options="progressOptions" v-model="filters.progress" />
-            <DropdownFilter :label="labels.favorite" :options="booleanOptions" v-model="filters.favorite" />
-            <DropdownFilter :label="labels.follow" :options="booleanOptions" v-model="filters.following" />
-            <button v-if="hasActiveFilters" class="clear-filters-btn" @click="clearFilters">{{ labels.clearFilters }}</button>
-          </div>
+        <AppToolbar>
+          <template #search>
+            <AppSearchInput v-model="searchQuery" :placeholder="labels.search" width="250px" />
+            <div class="filter-actions">
+              <button class="active-filter-pill" v-if="currentTab === 'following'">{{ labels.following }} <i class="fa-solid fa-xmark"></i></button>
+            </div>
+          </template>
+          <template #filters>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <DropdownFilter :label="labels.status" :options="statusOptions" v-model="filters.status" />
+              <DropdownFilter :label="labels.owner" :options="ownerOptions" v-model="filters.owner" />
+              <DropdownFilter :label="labels.progress" :options="progressOptions" v-model="filters.progress" />
+              <DropdownFilter :label="labels.favorite" :options="booleanOptions" v-model="filters.favorite" />
+              <DropdownFilter :label="labels.follow" :options="booleanOptions" v-model="filters.following" />
+              <button v-if="hasActiveFilters" class="clear-filters-btn" @click="clearFilters">{{ labels.clearFilters }}</button>
+            </div>
+          </template>
+        </AppToolbar>
 
-        </div>
-
-        <div class="table-container" v-if="!isLoading">
+        <AppCard v-if="!isLoading" :padding="false">
           <table class="jira-table" v-if="filteredGoals.length > 0">
             <thead>
               <tr>
@@ -69,9 +66,9 @@
                 <th class="col-status">{{ labels.status }}</th>
                 <th class="col-progress">{{ labels.progress }}</th>
                 <th class="col-created">{{ labels.createdDate }}</th>
-     <th class="col-updated">{{ labels.updatedDate }}</th>
-     <th class="col-star">{{ labels.favorite }}</th>
-     <th class="col-watch">{{ labels.follow }}</th>
+                <th class="col-updated">{{ labels.updatedDate }}</th>
+                <th class="col-star">{{ labels.favorite }}</th>
+                <th class="col-watch">{{ labels.follow }}</th>
                 <th class="col-owner">{{ labels.owner }}</th>
               </tr>
             </thead>
@@ -84,10 +81,7 @@
                   </div>
                 </td>
                 <td>
-                  <span class="status-badge" :class="getStatusClass(goal.status)">
-                    <span class="status-dot"></span>
-                    {{ translateStatus(goal.status) }}
-                  </span>
+                  <AppStatusBadge :status="translateStatus(goal.status)" :statusText="translateStatus(goal.status)" />
                 </td>
                 <td>
                   <div class="progress-cell">
@@ -107,7 +101,7 @@
                 </td>
                 <td>
                   <div class="owner-cell">
-                    <UserAvatar :user="{ id: goal.ownerId, fullName: goal.ownerName, avatarColor: goal.ownerColor, avatarUrl: goal.ownerAvatarUrl }" :size="24" :fontSize="10" />
+                    <AppAvatar :user="{ id: goal.ownerId, fullName: goal.ownerName, avatarColor: goal.ownerColor, avatarUrl: goal.ownerAvatarUrl }" :size="24" />
                     <span class="owner-name">{{ goal.owner || labels.unassigned }}</span>
                   </div>
                 </td>
@@ -115,14 +109,8 @@
             </tbody>
           </table>
           
-          <div class="empty-state" v-else>
-            <div class="empty-icon-wrapper">
-              <i class="fa-solid fa-bullseye"></i>
-            </div>
-            <h3>{{ labels.noGoals }}</h3>
-            <p>{{ labels.noGoalsDesc }}</p>
-          </div>
-        </div>
+          <AppEmptyState v-else icon="fa-solid fa-bullseye" :title="labels.noGoals" :description="labels.noGoalsDesc" />
+        </AppCard>
         
         <div class="loading-state" v-else>
           <div class="loader-spinner"></div>
@@ -131,67 +119,62 @@
     </div>
 
     <!-- Create Goal Modal -->
-    <div class="modal-overlay" v-if="isCreateModalOpen" @click.self="isCreateModalOpen = false">
-      <div class="modal-content" style="width: 500px; padding: 0;">
-        <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
-          <h2 style="display: flex; align-items: center; gap: 8px;">
-             <i class="fa-solid fa-bullseye" style="color: #6B778C;"></i> {{ labels.createGoal }}
-          </h2>
+    <AppModal
+      v-model="isCreateModalOpen"
+      :title="labels.createGoal"
+      width="500px"
+      :confirmText="labels.create"
+      :cancelText="labels.cancel"
+      @confirm="submitCreateGoal"
+      @cancel="isCreateModalOpen = false"
+    >
+      <template #header>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-bullseye" style="color: #6B778C;"></i> {{ labels.createGoal }}
         </div>
-        <div class="modal-body" style="padding-top: 12px;">
-          <p style="font-size: 11px; color: #6B778C; margin: 0 0 16px 0;">{{ labels.requiredNote }} <span class="required">*</span></p>
-          
-          <div class="form-group">
-            <label>{{ labels.name }} <span class="required">*</span></label>
-            <input type="text" v-model="newGoal.title" @blur="isTitleTouched = true" :class="{'error-input': isTitleTouched && !newGoal.title}" />
-            <div v-if="isTitleTouched && !newGoal.title" style="color: #DE350B; font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
-               <i class="fa-solid fa-circle-exclamation"></i> {{ labels.nameRequired }}
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label>{{ labels.type }} <span class="required">*</span></label>
-            <div style="position: relative; display: flex; align-items: center; gap: 8px; background: #FAFBFC; padding: 8px 12px; border: 1px solid #DFE1E6; border-radius: 3px; cursor: default;">
-               <i class="fa-solid fa-bullseye" style="color: #6B778C; font-size: 14px;"></i>
-               <span style="color: #172B4D; font-size: 14px;">Objective</span>
-            </div>
-          </div>
-          
-          <div class="form-group" style="position: relative;">
-            <label>{{ labels.targetDate }}</label>
-            <el-date-picker
-              v-model="newGoal.date"
-              type="date"
-              :placeholder="labels.chooseDate"
-              format="MMM DD, YYYY"
-              value-format="YYYY-MM-DD"
-              style="width: 100%"
-              class="jira-date-picker"
-            />
-          </div>
-          
-          <div class="form-group" style="position: relative;">
-            <label>{{ labels.owner }} <span class="required">*</span></label>
-            <div class="owner-input-wrapper" @click="isOwnerDropdownOpen = !isOwnerDropdownOpen" style="position: relative; border: 2px solid #DFE1E6; border-radius: 3px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; background: white;">
-               <UserAvatar :user="{ avatarColor: newGoal.ownerAvatarColor, initials: newGoal.ownerAvatar, fullName: newGoal.ownerName, avatarUrl: newGoal.ownerAvatarUrl }" :size="24" :fontSize="11" />
-               <span style="font-size: 14px; color: #172B4D;">{{ newGoal.ownerName }}</span>
-            </div>
-            
-            <div v-if="isOwnerDropdownOpen" class="dropdown-menu" style="position: absolute; top: 100%; left: 0; margin-top: 4px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 100%; z-index: 100; max-height: 200px; overflow-y: auto;">
-               <div v-for="user in siteUsers" :key="user.id" @click="selectOwner(user)" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; transition: background 0.1s;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
-                  <UserAvatar :user="user" :size="24" :fontSize="11" />
-                  <span style="font-size: 14px; color: #172B4D;">{{ user.name }}</span>
-               </div>
-            </div>
-          </div>
+      </template>
+
+      <p style="font-size: 11px; color: #6B778C; margin: 0 0 16px 0;">{{ labels.requiredNote }} <span class="required" style="color: #DE350B;">*</span></p>
+      
+      <AppFormField :label="labels.name" required :error="isTitleTouched && !newGoal.title ? labels.nameRequired : ''">
+        <input type="text" v-model="newGoal.title" @blur="isTitleTouched = true" style="width: 100%; padding: 8px 12px; border: 2px solid #DFE1E6; border-radius: 3px; font-size: 14px; box-sizing: border-box;" :class="{'error-input': isTitleTouched && !newGoal.title}" />
+      </AppFormField>
+      
+      <AppFormField :label="labels.type" required>
+        <div style="position: relative; display: flex; align-items: center; gap: 8px; background: #FAFBFC; padding: 8px 12px; border: 1px solid #DFE1E6; border-radius: 3px; cursor: default;">
+           <i class="fa-solid fa-bullseye" style="color: #6B778C; font-size: 14px;"></i>
+           <span style="color: #172B4D; font-size: 14px;">Objective</span>
         </div>
-        <div class="modal-footer" style="padding: 16px 24px;">
-          <button class="cancel-btn" @click="isCreateModalOpen = false">{{ labels.cancel }}</button>
-          <button class="primary-btn" @click="submitCreateGoal">{{ labels.create }}</button>
+      </AppFormField>
+      
+      <AppFormField :label="labels.targetDate">
+        <el-date-picker
+          v-model="newGoal.date"
+          type="date"
+          :placeholder="labels.chooseDate"
+          format="MMM DD, YYYY"
+          value-format="YYYY-MM-DD"
+          style="width: 100%"
+          class="jira-date-picker"
+          :teleported="true"
+        />
+      </AppFormField>
+      
+      <AppFormField :label="labels.owner" required>
+        <div class="owner-input-wrapper" @click="isOwnerDropdownOpen = !isOwnerDropdownOpen" style="position: relative; border: 2px solid #DFE1E6; border-radius: 3px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; background: white;">
+           <AppAvatar :user="{ avatarColor: newGoal.ownerAvatarColor, initials: newGoal.ownerAvatar, fullName: newGoal.ownerName, avatarUrl: newGoal.ownerAvatarUrl }" :size="24" />
+           <span style="font-size: 14px; color: #172B4D;">{{ newGoal.ownerName }}</span>
         </div>
-      </div>
-    </div>
-  </div>
+        
+        <div v-if="isOwnerDropdownOpen" class="dropdown-menu" style="position: absolute; margin-top: 4px; background: white; border: 1px solid #DFE1E6; border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 100%; z-index: var(--sp-z-dropdown, 1000); max-height: 200px; overflow-y: auto;">
+           <div v-for="user in siteUsers" :key="user.id" @click="selectOwner(user)" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; transition: background 0.1s;" onmouseover="this.style.background='#FAFBFC'" onmouseout="this.style.background='transparent'">
+              <AppAvatar :user="user" :size="24" />
+              <span style="font-size: 14px; color: #172B4D;">{{ user.name }}</span>
+           </div>
+        </div>
+      </AppFormField>
+    </AppModal>
+  </AppPageLayout>
 </template>
 
 <script setup>
@@ -203,7 +186,18 @@ import { useFollowerStore } from '@/store/useFollowerStore'
 import { usePeopleStore } from '@/store/usePeopleStore'
 import { useI18nStore } from '@/store/useI18nStore'
 import axiosClient from '@/api/axiosClient'
-import UserAvatar from '@/components/common/UserAvatar.vue'
+
+import AppPageLayout from '@/components/common/Foundation/AppPageLayout.vue'
+import AppPageHeader from '@/components/common/Foundation/AppPageHeader.vue'
+import AppToolbar from '@/components/common/Foundation/AppToolbar.vue'
+import AppSearchInput from '@/components/common/Foundation/AppSearchInput.vue'
+import AppCard from '@/components/common/Foundation/AppCard.vue'
+import AppEmptyState from '@/components/common/Foundation/AppEmptyState.vue'
+import AppStatusBadge from '@/components/common/Foundation/AppStatusBadge.vue'
+import AppAvatar from '@/components/common/Foundation/AppAvatar.vue'
+import AppModal from '@/components/common/Foundation/AppModal.vue'
+import AppFormField from '@/components/common/Foundation/AppFormField.vue'
+
 import DropdownFilter from '@/components/common/DropdownFilter.vue'
 import { getStoredUser } from '@/utils/permissions'
 import { getInitials, getAvatarColor } from '@/utils/avatarHelper'

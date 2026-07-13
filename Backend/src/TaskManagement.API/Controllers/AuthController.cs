@@ -611,5 +611,25 @@ namespace TaskManagement.API.Controllers
                 Console.WriteLine($"Failed to record login activity: {ex.Message}");
             }
         }
+        [HttpGet("me/permissions")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        public async Task<IActionResult> GetMyPermissions()
+        {
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+            {
+                return Unauthorized(new { statusCode = 401, message = "Không xác định được danh tính người dùng." });
+            }
+
+            var permissions = await _context.UserRoles
+                .AsNoTracking()
+                .Where(ur => ur.UserId == userId)
+                .SelectMany(ur => ur.Role.RolePermissions)
+                .Select(rp => rp.Permission.Code)
+                .Distinct()
+                .ToListAsync();
+
+            return Ok(new { statusCode = 200, data = permissions });
+        }
     }
 }
