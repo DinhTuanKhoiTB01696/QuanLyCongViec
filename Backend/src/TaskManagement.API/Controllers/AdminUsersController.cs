@@ -439,6 +439,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpGet("roles")]
+        [RequirePermission("admin.roles.can_view")]
         public async Task<IActionResult> GetSystemRoles([FromQuery] string? search)
         {
             var query = _context.Roles
@@ -503,6 +504,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPost("roles")]
+        [RequirePermission("admin.roles.create")]
         public async Task<IActionResult> CreateRole([FromBody] SaveRoleRequest request)
         {
             var normalizedName = request.Name?.Trim();
@@ -543,6 +545,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPut("roles/{roleId}")]
+        [RequirePermission("admin.roles.edit")]
         public async Task<IActionResult> UpdateRole(Guid roleId, [FromBody] SaveRoleRequest request)
         {
             var role = await _context.Roles
@@ -586,6 +589,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpDelete("roles/{roleId}")]
+        [RequirePermission("admin.roles.delete")]
         public async Task<IActionResult> DeleteRole(Guid roleId)
         {
             var role = await _context.Roles
@@ -619,6 +623,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPost("{userId}/roles")]
+        [RequirePermission("admin.roles.manage_permissions")]
         public async Task<IActionResult> AssignRolesToUser(Guid userId, [FromBody] AssignRolesRequest request)
         {
             var user = await _context.Users
@@ -669,6 +674,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpGet("departments")]
+        [RequirePermission("teams.dashboard.can_view")]
         public async Task<IActionResult> GetDepartments()
         {
             var departments = await _context.Departments
@@ -689,6 +695,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPost("departments")]
+        [RequirePermission("teams.dashboard.create")]
         public async Task<IActionResult> CreateDepartment([FromBody] DepartmentRequest request)
         {
             var normalizedName = request.Name?.Trim();
@@ -720,6 +727,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPut("departments/{departmentId}")]
+        [RequirePermission("teams.dashboard.edit")]
         public async Task<IActionResult> UpdateDepartment(Guid departmentId, [FromBody] DepartmentRequest request)
         {
             var department = await _context.Departments.FirstOrDefaultAsync(d => d.Id == departmentId && !d.IsDeleted);
@@ -755,6 +763,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpDelete("departments/{departmentId}")]
+        [RequirePermission("teams.dashboard.delete")]
         public async Task<IActionResult> DeleteDepartment(Guid departmentId)
         {
             var department = await _context.Departments.FirstOrDefaultAsync(d => d.Id == departmentId && !d.IsDeleted);

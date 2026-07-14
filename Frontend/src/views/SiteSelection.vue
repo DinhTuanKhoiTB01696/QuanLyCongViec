@@ -872,4 +872,71 @@ const goToSpaceProject = async (siteId) => {
   padding: 6px 16px;
   font-size: 13px;
 }
+
+/* SprintA product controls — remove the mixed Jira/orange visual language. */
+.start-content {
+  width: min(920px, calc(100% - 32px));
+  padding-top: clamp(42px, 7vh, 72px);
+}
+
+.welcome-title {
+  font-size: clamp(38px, 4vw, 58px);
+  line-height: 1.05;
+  letter-spacing: -.045em;
+}
+
+.card-section,
+.explore-section {
+  border: 1px solid color-mix(in srgb, var(--sp-sky-400) 22%, var(--color-border));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-surface) 94%, var(--sp-blue-600) 6%);
+  box-shadow: 0 14px 36px rgb(7 26 51 / .12);
+}
+
+.recent-site-card {
+  min-height: 96px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-surface) 96%, var(--sp-slate-500) 4%);
+}
+
+.pill-btn.orange,
+.pill-btn.blue {
+  min-height: 40px;
+  padding: 9px 18px;
+  border: 1px solid var(--sp-blue-700);
+  border-radius: 10px;
+  color: #fff !important;
+  text-shadow: none;
+  background: var(--sp-blue-700) !important;
+  background-image: none !important;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--sp-blue-700) 22%, transparent);
+}
+
+.pill-btn.orange:hover:not(:disabled),
+.pill-btn.blue:hover:not(:disabled) {
+  border-color: var(--sp-sky-400);
+  background: var(--sp-blue-600) !important;
+  background-image: none !important;
+  transform: translateY(-1px);
+}
+
+.explore-btn:disabled {
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  background: var(--color-surface-hover);
+  opacity: .68;
+  box-shadow: none;
+}
+
+.site-avatar-square {
+  background: linear-gradient(145deg, var(--sp-blue-600), var(--sp-sky-400)) !important;
+  box-shadow: none;
+}
+
+@media (max-height: 760px) and (min-width: 721px) {
+  .start-content { padding-top: 30px; }
+  .welcome-title { font-size: 42px; }
+  .explore-section { margin-top: 22px; padding-block: 18px; }
+}
 </style>

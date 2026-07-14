@@ -21,6 +21,14 @@ const createMode = ref(false)
 const draftTitles = ref({})
 const creatingByStatus = ref({})
 
+function handleBoardWheel(event) {
+  const board = event.currentTarget
+  if (!board || board.scrollWidth <= board.clientWidth) return
+  if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
+  event.preventDefault()
+  board.scrollLeft += event.deltaY
+}
+
 const statusColumns = computed(() => {
   let columns = []
   if (Array.isArray(props.statuses) && props.statuses.length > 0) {
@@ -207,7 +215,7 @@ function handleColumnClick(column) {
       <span class="toolbar-copy">{{ t('workItems.kanban.createModeHint', 'Click column header to quickly add work items.') }}</span>
     </div>
 
-    <div class="kanban-board">
+    <div class="kanban-board" @wheel="handleBoardWheel">
       <div v-for="column in statusColumns" :key="column.key" class="kanban-column" @click="handleColumnClick(column)">
         <div class="column-header">
           <div class="column-header-left">
@@ -350,8 +358,26 @@ function handleColumnClick(column) {
   display: flex;
   gap: 20px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
+  scroll-behavior: smooth;
   padding-bottom: 12px;
   height: calc(100vh - 200px);
+}
+
+.kanban-board::-webkit-scrollbar { height: 12px; }
+.kanban-board::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-border) 48%, transparent);
+}
+.kanban-board::-webkit-scrollbar-thumb {
+  min-width: 72px;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sp-blue-600) 66%, var(--sp-slate-500)) padding-box;
+}
+.kanban-board::-webkit-scrollbar-thumb:hover {
+  background: var(--sp-blue-600) padding-box;
 }
 
 .kanban-column {

@@ -67,6 +67,106 @@ namespace TaskManagement.API.Controllers
             return Ok(ApiResponse<AiUsageDto>.Success(usage));
         }
 
+        [HttpGet("usage-summary")]
+        public async Task<IActionResult> UsageSummary([FromQuery] DateTime? from = null, [FromQuery] DateTime? to = null)
+        {
+            var userId = GetUserId();
+            var start = from?.ToUniversalTime() ?? new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var end = to?.ToUniversalTime() ?? DateTime.UtcNow;
+            if (end < start)
+            {
+                return BadRequest(ApiResponse<object>.Error("Invalid usage date range."));
+            }
+
+            var tokenRows = await _dbContext.AITokenUsages
+                .AsNoTracking()
+                .Where(row => row.UserId == userId && row.CreatedAt >= start && row.CreatedAt <= end)
+                .GroupBy(row => row.FeatureCode)
+                .Select(group => new
+                {
+                    featureCode = group.Key,
+                    requests = group.Count(),
+                    tokensUsed = group.Sum(row => row.TokensUsed)
+                })
+                .OrderByDescending(row => row.tokensUsed)
+                .ToListAsync();
+
+            var ledgerRows = await _dbContext.AiUsageLedgerEntries
+                .AsNoTracking()
+                .Where(row => row.UserId == userId && row.OccurredAt >= start && row.OccurredAt <= end)
+                .GroupBy(row => row.ActionType)
+                .Select(group => new
+                {
+                    actionType = group.Key,
+                    requests = group.Count(),
+                    creditsConsumed = group.Sum(row => row.CreditsConsumed),
+                    providerTokens = group.Sum(row => row.ProviderTokens ?? 0)
+                })
+                .OrderByDescending(row => row.creditsConsumed)
+                .ToListAsync();
+
+            var totalTokens = tokenRows.Sum(row => row.tokensUsed);
+            var totalCredits = ledgerRows.Count > 0
+                ? ledgerRows.Sum(row => row.creditsConsumed)
+                : EstimateCredits(totalTokens);
+            return Ok(ApiResponse<object>.Success(new
+            {
+                period = new { from = start, to = end },
+                totalRequests = ledgerRows.Count > 0 ? ledgerRows.Sum(row => row.requests) : tokenRows.Sum(row => row.requests),
+                totalTokens,
+                creditsConsumed = totalCredits,
+                remainingIncludedCredits = Math.Max(0, 100 - totalCredits),
+                calculation = new
+                {
+                    tokenUnit = 1000,
+                    rounding = "ceil",
+                    note = ledgerRows.Count > 0
+                        ? "Credits are read from real AiUsageLedgerEntries rows. Provider cost is not guessed."
+                        : "No usage ledger rows found for this period; credits are estimated from real AITokenUsages rows."
+                },
+                byAction = ledgerRows,
+                byFeature = tokenRows.Select(row => new
+                {
+                    row.featureCode,
+                    row.requests,
+                    row.tokensUsed,
+                    estimatedCredits = EstimateCredits(row.tokensUsed)
+                })
+            }));
+        }
+
+        [HttpGet("usage-ledger")]
+        public async Task<IActionResult> UsageLedger([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+        {
+            var userId = GetUserId();
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            var ledgerQuery = _dbContext.AiUsageLedgerEntries
+                .AsNoTracking()
+                .Where(row => row.UserId == userId)
+                .OrderByDescending(row => row.OccurredAt);
+
+            var total = await ledgerQuery.CountAsync();
+            var items = await ledgerQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(row => new
+                {
+                    row.Id,
+                    row.WorkspaceId,
+                    row.ProjectId,
+                    row.ActionType,
+                    row.CreditsConsumed,
+                    row.ProviderTokens,
+                    row.IdempotencyKey,
+                    row.OccurredAt
+                })
+                .ToListAsync();
+
+            return Ok(ApiResponse<object>.Success(new { page, pageSize, total, items }));
+        }
+
         [HttpPost("analyze-file")]
         [RequestSizeLimit(15 * 1024 * 1024)]
         public async Task<IActionResult> AnalyzeFile(
@@ -1012,6 +1112,12 @@ namespace TaskManagement.API.Controllers
             }
 
             return userId;
+        }
+
+        private static int EstimateCredits(long tokensUsed)
+        {
+            if (tokensUsed <= 0) return 0;
+            return (int)Math.Ceiling(tokensUsed / 1000.0);
         }
 
         private async Task<bool> UserHasProjectAccessAsync(Guid userId, Guid projectId)

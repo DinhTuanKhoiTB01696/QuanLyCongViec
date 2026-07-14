@@ -1,0 +1,54 @@
+:root {
+  /* Spacing & Layout */
+  --sp-page-padding: 32px 40px;
+  --sp-page-max-width: 1200px;
+  
+  /* Radii */
+  --sp-card-radius: 8px;
+  --sp-control-radius: 4px;
+  
+  /* Sizing */
+  --sp-control-height: 36px;
+  
+  /* Colors */
+  --sp-border-color: #DFE1E6;
+  --sp-text-primary: #172B4D;
+  --sp-text-secondary: #5E6C84;
+  
+  /* Shadows */
+  --sp-shadow-card: 0 1px 2px rgba(9, 30, 66, 0.25);
+  
+  /* Z-Index */
+  --sp-z-dropdown: 1000;
+  --sp-z-popover: 1100;
+  --sp-z-modal: 1200;
+}
+
+.sprinta-layout-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #FAFBFC;
+}
+
+.sprinta-layout-fluid {
+  max-width: 100%;
+}
+
+.sprinta-layout-boxed {
+  max-width: var(--sp-page-max-width);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.sprinta-page-header {
+  padding: 32px 40px 0;
+  background-color: #FFFFFF;
+}
+
+.sprinta-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}

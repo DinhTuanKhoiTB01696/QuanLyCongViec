@@ -29,6 +29,10 @@ const readInitialLanguage = () => {
 
 export const language = ref(readInitialLanguage())
 
+const syncDocumentLanguage = (nextLanguage) => {
+  if (typeof document !== 'undefined') document.documentElement.lang = nextLanguage
+}
+
 const persistLanguage = (nextLanguage) => {
   try {
     localStorage.setItem(STORAGE_KEY, nextLanguage)
@@ -40,6 +44,7 @@ const persistLanguage = (nextLanguage) => {
 }
 
 persistLanguage(language.value)
+syncDocumentLanguage(language.value)
 
 const resolvePath = (source, key) => {
   return key.split('.').reduce((current, part) => {
@@ -63,6 +68,7 @@ export const setLanguage = (nextLanguage) => {
   const normalized = normalizeLanguage(nextLanguage)
   language.value = normalized
   persistLanguage(normalized)
+  syncDocumentLanguage(normalized)
   return normalized
 }
 

@@ -48,6 +48,8 @@ namespace TaskManagement.Domain.Entities
         public ICollection<PerformanceReview> ReviewsReceived { get; set; } = new List<PerformanceReview>();
         public UserWallet? Wallet { get; set; }
         public ICollection<AITokenUsage> AITokenUsages { get; set; } = new List<AITokenUsage>();
+        public ICollection<AiUsageLedger> AiUsageLedgerEntries { get; set; } = new List<AiUsageLedger>();
+        public ICollection<NotificationPreference> NotificationPreferences { get; set; } = new List<NotificationPreference>();
         public ICollection<AIFeedback> AIFeedbacks { get; set; } = new List<AIFeedback>();
         public ICollection<AITrainingDataset> AITrainingDatasets { get; set; } = new List<AITrainingDataset>();
         public ICollection<TimeLog> TimeLogs { get; set; } = new List<TimeLog>();

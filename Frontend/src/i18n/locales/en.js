@@ -709,6 +709,12 @@ export default {
     }
   },
   cyclesTab: {
+    cyclesDesc: 'Manage project sprints, timelines, and delivery cadence',
+    started: 'Started',
+    backlog: 'Backlog',
+    other: 'Other',
+    active: 'Active',
+    items: 'items',
     cycles: 'Cycles',
     searchCycles: 'Search cycles...',
     filters: 'Filters',

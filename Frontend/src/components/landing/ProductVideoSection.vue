@@ -1,0 +1,205 @@
+<script setup>
+import { computed, ref } from 'vue'
+import { Clapperboard, FileText, Play } from 'lucide-vue-next'
+import { language } from '@/i18n'
+
+const props = defineProps({
+  title: { type: String, required: true },
+  intro: { type: String, required: true },
+})
+
+const isLoaded = ref(false)
+const languageCode = computed(() => language.value === 'vi' ? 'vi' : 'en')
+const videoId = import.meta.env.VITE_SPRINTA_YOUTUBE_VIDEO_ID || 'axxBkMdI-0o'
+const embedUrl = computed(() => `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&playsinline=1&rel=0&hl=${languageCode.value}&cc_lang_pref=${languageCode.value}&cc_load_policy=1`)
+const youtubeUrl = computed(() => `https://youtu.be/${videoId}`)
+const copy = computed(() => languageCode.value === 'vi'
+  ? {
+      transcript: 'Transcript sẵn sàng',
+      summary: 'Công việc rải rác → workspace tập trung → AI hỗ trợ có xác nhận → báo cáo rõ ràng.',
+      play: 'Phát video',
+      fallback: 'Xem trên YouTube'
+    }
+  : {
+      transcript: 'Transcript ready',
+      summary: 'Scattered work → one workspace → confirmed AI support → clear reporting.',
+      play: 'Play video',
+      fallback: 'Watch on YouTube'
+    })
+
+const loadVideo = () => { isLoaded.value = true }
+</script>
+
+<template>
+  <section class="product-video-section" aria-labelledby="product-video-title">
+    <div class="video-copy">
+      <div class="video-eyebrow"><Clapperboard :size="15" aria-hidden="true" /> {{ languageCode === 'vi' ? 'SẢN PHẨM THỰC TẾ' : 'REAL PRODUCT' }}</div>
+      <h2 id="product-video-title"><slot name="title">{{ props.title }}</slot></h2>
+      <p>{{ props.intro }}</p>
+      <div class="transcript-card">
+        <FileText :size="17" aria-hidden="true" />
+        <div>
+          <b>{{ copy.transcript }}</b>
+          <span>{{ copy.summary }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="video-shell">
+      <div v-if="!isLoaded" class="video-poster" role="img" :aria-label="props.title">
+        <img src="/videos/sprinta-product-demo-poster.webp" :alt="props.title" />
+        <button class="video-play" type="button" @click="loadVideo" :aria-label="copy.play">
+          <Play :size="22" fill="currentColor" aria-hidden="true" />
+          <span>{{ copy.play }}</span>
+        </button>
+      </div>
+      <iframe
+        v-else
+        class="video-frame"
+        :src="embedUrl"
+        :title="props.title"
+        allow="autoplay; encrypted-media; picture-in-picture"
+        allowfullscreen
+      />
+      <a class="video-fallback" :href="youtubeUrl" target="_blank" rel="noopener noreferrer">{{ copy.fallback }} ↗</a>
+    </div>
+  </section>
+</template>
+
+<style scoped>
+.product-video-section {
+  display: block;
+  width: min(1100px, 100%);
+  margin-inline: auto;
+}
+
+.video-copy { max-width: 760px; margin: 0 auto; text-align: center; }
+.video-copy .eyebrow { justify-content: center; }
+.video-eyebrow { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px; color: var(--accent); font-size: 12px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+.video-eyebrow svg { box-sizing: content-box; padding: 5px; border: 1px solid color-mix(in srgb, currentColor 24%, transparent); border-radius: 9px; background: color-mix(in srgb, currentColor 10%, transparent); }
+
+.video-copy h2 {
+  margin: 0 0 12px;
+  font-size: clamp(36px, 4vw, 53px);
+  line-height: 1.05;
+  letter-spacing: -.045em;
+}
+
+.video-copy > p {
+  max-width: 680px;
+  margin: 0 auto;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.transcript-card {
+  max-width: 680px;
+  margin: 26px auto 0;
+  text-align: left;
+  display: flex;
+  gap: 12px;
+  margin-top: 30px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-2);
+}
+
+.transcript-card svg {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+.transcript-card div {
+  display: grid;
+  gap: 5px;
+}
+
+.transcript-card span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.video-shell {
+  position: relative;
+  width: min(1040px, 100%);
+  margin: 42px auto 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--navy);
+  box-shadow: 0 26px 70px rgba(4, 28, 46, .22);
+}
+
+.video-shell::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; border: 1px solid rgba(255,255,255,.14); border-radius: inherit; }
+.video-poster,
+.video-frame {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.video-poster {
+  position: relative;
+}
+
+.video-poster img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 15px 20px;
+  transform: translate(-50%, -50%);
+  color: white;
+  border: 1px solid #ffffff55;
+  border-radius: 999px;
+  background: #008fb8ee;
+  box-shadow: 0 16px 34px rgba(0,143,184,.34);
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.video-play:focus-visible,
+.video-fallback:focus-visible {
+  outline: 3px solid #66d9ef;
+  outline-offset: 4px;
+}
+
+.video-frame {
+  border: 0;
+}
+
+.video-fallback {
+  display: block;
+  padding: 13px 16px;
+  color: #c4dbe5;
+  background: var(--navy);
+  font-size: 12px;
+  text-decoration: underline;
+}
+
+.video-fallback:hover {
+  color: white;
+}
+
+@media (max-width: 900px) {
+  .product-video-section {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .video-copy h2 { font-size: clamp(34px, 11vw, 48px); }
+  .video-shell { margin-top: 30px; border-radius: 17px; }
+}
+</style>

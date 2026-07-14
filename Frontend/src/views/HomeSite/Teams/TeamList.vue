@@ -1,22 +1,23 @@
 <template>
-  <div class="team-list-container">
-    <div class="section-header" style="margin-bottom: 16px;">
-      <h2 style="font-size: 16px; color: #172B4D; font-weight: 500;">Tất cả các đội ngũ</h2>
-    </div>
-    <div class="list-controls">
-      <div class="search-box-wrapper">
-        <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        <input type="text" v-model="searchQuery" placeholder="Tìm kiếm các đội ngũ" class="search-input" />
-      </div>
-      <div class="view-toggle">
-        <button class="toggle-btn" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'" title="Chế độ lưới">
-          <i class="fa-solid fa-table-cells-large"></i>
-        </button>
-        <button class="toggle-btn" :class="{ active: viewMode === 'table' }" @click="viewMode = 'table'" title="Chế độ danh sách">
-          <i class="fa-solid fa-list"></i>
-        </button>
-      </div>
-    </div>
+  <AppPageLayout fluid>
+    <template #header>
+      <AppPageHeader title="Tất cả các đội ngũ" />
+    </template>
+    <AppToolbar>
+      <template #search>
+        <AppSearchInput v-model="searchQuery" placeholder="Tìm kiếm các đội ngũ" />
+      </template>
+      <template #views>
+        <div class="view-toggle">
+          <button class="toggle-btn" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'" title="Chế độ lưới">
+            <i class="fa-solid fa-table-cells-large"></i>
+          </button>
+          <button class="toggle-btn" :class="{ active: viewMode === 'table' }" @click="viewMode = 'table'" title="Chế độ danh sách">
+            <i class="fa-solid fa-list"></i>
+          </button>
+        </div>
+      </template>
+    </AppToolbar>
 
     <!-- Grid View -->
     <div v-if="viewMode === 'grid'" class="team-cards-grid">
@@ -28,9 +29,12 @@
           <p class="team-meta">{{ team.memberCount }} thành viên</p>
         </div>
       </div>
-      <div v-if="filteredTeams.length === 0" class="empty-state-grid">
-        Không tìm thấy đội ngũ nào.
-      </div>
+      <AppEmptyState 
+        v-if="filteredTeams.length === 0" 
+        icon="fa-solid fa-users"
+        title="Không tìm thấy đội ngũ nào" 
+        description="Thử tìm kiếm với tên khác."
+      />
     </div>
 
     <!-- Table View -->
@@ -56,8 +60,7 @@
                 <td style="white-space: nowrap;">{{ team.type }}</td>
                 <td>
                   <div v-if="team.managerName !== 'Chưa có'" class="manager-cell" style="display: flex; align-items: center; gap: 8px;">
-                    <UserAvatar :user="{ fullName: team.managerName, email: team.managerEmail }" :size="24" :fontSize="10" />
-                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;">{{ team.managerName }}</span>
+                    <AppUserChip :name="team.managerName" :email="team.managerEmail" compact />
                   </div>
                   <div v-else style="color: #5E6C84; display: flex; align-items: center; gap: 6px;">
                     <div style="width: 24px; height: 24px; border-radius: 50%; background: #DFE1E6; display: flex; align-items: center; justify-content: center; color: #172B4D; font-size: 10px; font-weight: bold;">?</div>
@@ -71,20 +74,24 @@
             </tbody>
       <tbody v-if="filteredTeams.length === 0">
         <tr>
-          <td colspan="3" class="empty-table-state">
-            Không tìm thấy đội ngũ nào.
+          <td colspan="6">
+            <AppEmptyState 
+              icon="fa-solid fa-users"
+              title="Không tìm thấy đội ngũ nào" 
+              description="Thử tìm kiếm với tên khác."
+            />
           </td>
         </tr>
       </tbody>
     </table>
-  </div>
+  </AppPageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTeamStore } from '@/store/useTeamStore'
-import UserAvatar from '@/components/common/UserAvatar.vue'
+import { AppPageLayout, AppPageHeader, AppToolbar, AppSearchInput, AppEmptyState, AppUserChip } from '@/components/common/Foundation'
 
 const router = useRouter()
 const teamStore = useTeamStore()

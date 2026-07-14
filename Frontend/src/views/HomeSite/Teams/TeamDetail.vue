@@ -292,7 +292,7 @@
                     <input type="text" v-model="goalSearch" placeholder="Tìm kiếm mục tiêu hoặc dán liên kết" class="search-input" style="width: 100%; margin-bottom: 12px; padding-left: 12px !important;" />
                     <h5 style="font-size: 11px; color: #6B778C; text-transform: uppercase; padding: 0 8px 8px;">Mục tiêu gần đây</h5>
                     <div class="goal-list-options" style="max-height: 200px; overflow-y: auto;">
-                      <div class="team-option" v-for="g in mockRecentGoals" :key="g.id" @click="linkGoal(g)" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 3px;">
+                      <div class="team-option" v-for="g in siteGoals" :key="g.id" @click="linkGoal(g)" style="display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 3px;">
                         <i class="fa-solid fa-bullseye" style="color: #6B778C; font-size: 14px;"></i>
                         <div style="display: flex; flex-direction: column;">
                           <span style="font-size: 13px; color: #172B4D;">{{ g.title }}</span>
@@ -626,7 +626,7 @@
     </div>
 
     <!-- Give Kudos Full Screen Overlay -->
-    <div class="give-kudos-overlay" v-if="isGiveKudosOpen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #FFF4F8; z-index: 9999; overflow-y: auto; display: flex; flex-direction: column;">
+    <div class="give-kudos-overlay" v-if="isGiveKudosOpen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #FFF4F8; z-index: var(--sp-z-modal, 1200); overflow-y: auto; display: flex; flex-direction: column;">
        
        <!-- Content -->
        <div style="flex: 1; display: flex; justify-content: center; padding-top: 40px;" @click="isKudosLinkDropdownOpen = false; isKudosTargetDropdownOpen = false; isKudosEmojiDropdownOpen = false">
@@ -843,15 +843,7 @@ const cancelBio = () => {
   isEditingBio.value = false
 }
 
-const mockTasks = ref([
-  { title: 'Dự Án Tốt Nghiệp Home', subtitle: 'Confluence Page • Dự Án Tốt Nghiệp', time: '3 days ago' },
-  { title: 'fw', subtitle: 'Jira Issue • Dự Án Tốt Nghiệp', time: '4 days ago' },
-  { title: 'qdw', subtitle: 'Jira Issue • Dự Án Tốt Nghiệp', time: '4 days ago' },
-  { title: 'Làm trang quản lý system', subtitle: 'Jira Issue • Dự Án Tốt Nghiệp', time: '6 days ago' },
-  { title: 'Đặc tả dự án', subtitle: 'Jira Issue • Dự Án Tốt Nghiệp', time: '21 days ago' },
-  { title: 'Báo cáo test case', subtitle: 'Jira Issue • Dự Án Tốt Nghiệp', time: '21 days ago' },
-  { title: 'Thiết kế đồng bộ frontend', subtitle: 'Jira Issue • Dự Án Tốt Nghiệp', time: '21 days ago' }
-])
+
 
 const isParentDropdownOpen = ref(false)
 const isChildDropdownOpen = ref(false)
@@ -1011,18 +1003,7 @@ const kudosTargetType = ref('team')
 const kudosTargetName = ref('')
 const kudosTargetAvatar = ref('')
 
-const mockPeopleList = [
-  { id: 'u1', name: 'Tuấn Khôi Đinh', initials: 'TK' },
-  { id: 'u2', name: 'ngkiet2805', initials: 'N' },
-  { id: 'u3', name: 'Thịnh Phát Bùi', initials: 'TP' },
-  { id: 'u4', name: 'Anh Quan Ng Hoang', initials: 'AQ' },
-  { id: 'u5', name: 'Quân Đạt Võ', initials: 'QĐ' }
-]
 
-const mockTeamList = [
-  { id: 't1', name: 'Nhóm phát triển', initials: 'NP', memberCount: 5 },
-  { id: 't2', name: 'Dự án tốt nghiệp', initials: 'DA', memberCount: 6 }
-]
 
 const kudosTargetData = ref(null)
 
@@ -1040,13 +1021,7 @@ const insertEmoji = (emoji) => {
   isKudosEmojiDropdownOpen.value = false
 }
 
-const mockRecentLinks = ref([
-  { id: 1, title: 'Đặc tả lại dự án', subtitle: 'Dự Án Tốt Nghiệp • Đã xem 4 ngày trước', icon: 'fa-regular fa-square-check', iconColor: '#4C9AFF' },
-  { id: 2, title: 'Làm lại tài liệu dự án', subtitle: 'Dự Án Tốt Nghiệp • Đã xem 4 ngày trước', icon: 'fa-regular fa-square-check', iconColor: '#4C9AFF' },
-  { id: 3, title: 'Làm trang quản lý riêng cho space', subtitle: 'Dự Án Tốt Nghiệp • Đã xem 6 ngày trước', icon: 'fa-solid fa-code-branch', iconColor: '#4C9AFF' },
-  { id: 4, title: 'Thiết Kế giao diện Trang Admin', subtitle: 'Dự Án Tốt Nghiệp • Đã xem 6 ngày trước', icon: 'fa-regular fa-square-check', iconColor: '#4C9AFF' },
-  { id: 5, title: 'uiq', subtitle: 'Dự Án Tốt Nghiệp • Đã xem 6 tháng 6, 2026', icon: 'fa-regular fa-square-check', iconColor: '#4C9AFF' }
-])
+
 
 const selectKudosLink = (item) => {
   kudosLinkSearch.value = item.name
@@ -1392,7 +1367,7 @@ const submitAddMember = async () => {
   border-radius: 3px;
   box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
   padding: 8px 0;
-  z-index: 10;
+  z-index: 1000;
 }
 
 .menu-item {

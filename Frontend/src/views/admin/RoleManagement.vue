@@ -1,447 +1,303 @@
 <template>
   <AdminLayout>
-    <div class="roles-page">
-      <header class="page-header">
-        <div>
-          <div class="breadcrumb">Admin / Role Management</div>
-          <h1>Role Management</h1>
-          <p>Create custom system roles, keep protected roles intact, and assign roles to users from a focused workspace.</p>
+    <el-container style="height: calc(100vh - 80px);">
+      <!-- Sidebar -->
+      <el-aside width="320px" style="border-right: 1px solid var(--el-border-color-light); background: var(--el-bg-color);">
+        <RoleSidebar 
+          :roles="roles" 
+          :selectedRoleId="selectedRoleId"
+          @select-role="selectRole" 
+          @create-role="openCreateRole"
+          @duplicate-role="duplicateRole"
+          @edit-role="editRole"
+          @delete-role="deleteRole"
+        />
+      </el-aside>
+      
+      <!-- Main Content -->
+      <el-main style="padding: 0; background: var(--el-bg-color-page); display: flex; flex-direction: column;">
+        <template v-if="selectedRole">
+          <div style="padding: 24px 32px; background: var(--el-bg-color); border-bottom: 1px solid var(--el-border-color-light);">
+            <RoleHeader 
+              :role="selectedRole" 
+              :userCount="roleUserCount"
+              @duplicate="duplicateRole(selectedRole)"
+            />
+          </div>
+          
+          <div style="flex: 1; padding: 24px 32px; overflow: hidden; display: flex; flex-direction: column;">
+            <el-card shadow="never" style="flex: 1; display: flex; flex-direction: column; border: none; border-radius: 8px;" body-style="padding: 0; display: flex; flex-direction: column; height: 100%; overflow: hidden;">
+              <el-tabs v-model="activeTab" style="height: 100%; display: flex; flex-direction: column;" class="content-tabs">
+                <el-tab-pane label="Permissions" name="permissions">
+                  <PermissionsTab 
+                    :role="selectedRole"
+                    :allPermissions="permissions"
+                    :saving="saving"
+                    @save="saveRolePermissions"
+                  />
+                </el-tab-pane>
+                <el-tab-pane :label="`Members (${roleUserCount})`" name="members">
+                  <MembersTab 
+                    :role="selectedRole"
+                    :allUsers="users"
+                    :loading="loadingUsers"
+                    @assign-members="assignMembers"
+                    @remove-member="removeMember"
+                  />
+                </el-tab-pane>
+                <el-tab-pane label="History" name="history">
+                  <div style="padding: 40px;">
+                    <el-empty description="History API is not supported yet." />
+                  </div>
+                </el-tab-pane>
+              </el-tabs>
+            </el-card>
+          </div>
+        </template>
+        
+        <div v-else style="height: 100%; display: flex; align-items: center; justify-content: center;">
+          <el-empty description="Select a role from the sidebar to view details" />
         </div>
-        <button class="primary-btn" type="button" @click="saveRoleDraft">
-          {{ editingRoleId ? 'Update role' : 'Create role' }}
-        </button>
-      </header>
+      </el-main>
+    </el-container>
 
-      <section class="roles-grid">
-        <article class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>Role builder</h2>
-              <p>Protected roles like Admin and PM can be assigned, but their structure stays locked.</p>
-            </div>
-          </div>
-
-          <div class="form-grid">
-            <label>
-              <span>Role name</span>
-              <input v-model="roleDraft.name" type="text" placeholder="Release manager" />
-            </label>
-            <label>
-              <span>Description</span>
-              <input v-model="roleDraft.description" type="text" placeholder="What this role is responsible for" />
-            </label>
-            <label class="wide">
-              <span>Permissions</span>
-              <el-select
-                v-model="roleDraft.permissionIds"
-                multiple
-                collapse-tags
-                collapse-tags-tooltip
-                placeholder="Select permissions"
-                popper-class="admin-project-dropdown"
-              >
-                <el-option
-                  v-for="permission in permissions"
-                  :key="permission.id"
-                  :label="`${permission.module} / ${permission.code}`"
-                  :value="permission.id"
-                />
-              </el-select>
-            </label>
-          </div>
-
-          <div class="action-row">
-            <button class="secondary-btn" type="button" @click="resetRoleDraft">Reset</button>
-          </div>
-        </article>
-
-        <article class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>Assign roles</h2>
-              <p>Choose a user, then replace their system roles in one save.</p>
-            </div>
-          </div>
-
-          <div class="form-grid">
-            <label>
-              <span>User</span>
-              <el-select
-                v-model="roleAssignment.userId"
-                clearable
-                filterable
-                placeholder="Select user"
-                popper-class="admin-project-dropdown"
-              >
-                <el-option
-                  v-for="user in users"
-                  :key="user.id"
-                  :label="`${displayName(user)} (${user.email})`"
-                  :value="user.id"
-                />
-              </el-select>
-            </label>
-            <label class="wide">
-              <span>Roles</span>
-              <el-select
-                v-model="roleAssignment.roleIds"
-                multiple
-                collapse-tags
-                collapse-tags-tooltip
-                placeholder="Assign roles"
-                popper-class="admin-project-dropdown"
-              >
-                <el-option v-for="role in roles" :key="role.id" :label="role.name" :value="role.id" />
-              </el-select>
-            </label>
-          </div>
-
-          <div class="action-row">
-            <button class="primary-btn" type="button" @click="assignRolesToSelectedUser">Save assignments</button>
-          </div>
-        </article>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head">
-          <div>
-            <h2>Role catalog</h2>
-            <p>Custom roles can be edited and deleted. Protected roles stay assignable but cannot be structurally changed here.</p>
-          </div>
-        </div>
-
-        <div v-if="!roles.length" class="empty-state">No system roles loaded yet.</div>
-        <div v-else class="role-list">
-          <article v-for="role in roles" :key="role.id" class="role-card">
-            <div class="role-copy">
-              <strong>{{ role.name }}</strong>
-              <p>{{ role.description || 'No description yet.' }}</p>
-              <small>{{ role.memberCount }} members · {{ (role.permissions || []).length }} permissions</small>
-            </div>
-            <div class="role-tags">
-              <span v-for="permission in role.permissions || []" :key="`${role.id}-${permission.id}`" class="permission-tag">
-                {{ permission.module }} / {{ permission.code }}
-              </span>
-            </div>
-            <div class="action-row">
-              <button class="secondary-btn" type="button" @click="editRole(role)">Edit</button>
-              <button class="danger-outline-btn" type="button" :disabled="role.isProtected" @click="removeRole(role)">
-                {{ role.isProtected ? 'Protected' : 'Delete' }}
-              </button>
-            </div>
-          </article>
-        </div>
-      </section>
-    </div>
+    <!-- Create/Edit Dialog -->
+    <el-dialog
+      v-model="roleDialogVisible"
+      :title="editingRole ? 'Edit Role' : 'Create Role'"
+      width="480px"
+      destroy-on-close
+    >
+      <el-form :model="roleForm" :rules="roleRules" ref="roleFormRef" label-position="top">
+        <el-form-item label="Role Name" prop="name">
+          <el-input v-model="roleForm.name" placeholder="Enter role name" size="large" />
+        </el-form-item>
+        <el-form-item label="Description" prop="description">
+          <el-input 
+            v-model="roleForm.description" 
+            type="textarea" 
+            :rows="3"
+            placeholder="Brief description" 
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="roleDialogVisible = false">Cancel</el-button>
+        <el-button type="primary" @click="submitRoleForm" :loading="saving">
+          {{ editingRole ? 'Save' : 'Create' }}
+        </el-button>
+      </template>
+    </el-dialog>
   </AdminLayout>
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { useAdminUserStore } from '@/store/useAdminUserStore'
+import RoleSidebar from '@/components/RoleManagement/RoleSidebar.vue'
+import RoleHeader from '@/components/RoleManagement/RoleHeader.vue'
+import PermissionsTab from '@/components/RoleManagement/PermissionsTab.vue'
+import MembersTab from '@/components/RoleManagement/MembersTab.vue'
 
 const adminUserStore = useAdminUserStore()
 const { users, roles, permissions } = storeToRefs(adminUserStore)
 
-const editingRoleId = ref('')
-const roleDraft = ref({
-  name: '',
-  description: '',
-  permissionIds: []
-})
-const roleAssignment = ref({
-  userId: '',
-  roleIds: []
-})
+const activeTab = ref('permissions')
+const selectedRoleId = ref('')
+const loadingUsers = ref(false)
+const saving = ref(false)
 
-const displayName = (user) => user?.name || user?.fullName || user?.email || 'User'
-
-const resetRoleDraft = () => {
-  editingRoleId.value = ''
-  roleDraft.value = {
-    name: '',
-    description: '',
-    permissionIds: []
-  }
+const roleDialogVisible = ref(false)
+const editingRole = ref(null)
+const roleFormRef = ref(null)
+const roleForm = ref({ name: '', description: '' })
+const roleRules = {
+  name: [
+    { required: true, message: 'Required field', trigger: 'blur' },
+    { max: 50, message: 'Max 50 characters', trigger: 'blur' }
+  ]
 }
 
-const editRole = (role) => {
-  editingRoleId.value = role.id
-  roleDraft.value = {
-    name: role.name || '',
-    description: role.description || '',
-    permissionIds: Array.isArray(role.permissionIds) ? [...role.permissionIds] : []
-  }
-}
-
-const saveRoleDraft = async () => {
-  if (!roleDraft.value.name.trim()) {
-    ElMessage.warning('Role name is required')
-    return
-  }
-
-  try {
-    const payload = {
-      name: roleDraft.value.name.trim(),
-      description: roleDraft.value.description?.trim() || null,
-      permissionIds: roleDraft.value.permissionIds
-    }
-
-    if (editingRoleId.value) {
-      await adminUserStore.updateRole(editingRoleId.value, payload)
-      ElMessage.success('Role updated')
-    } else {
-      await adminUserStore.createRole(payload)
-      ElMessage.success('Role created')
-    }
-
-    resetRoleDraft()
-  } catch (error) {
-    ElMessage.error(error.response?.data?.message || 'Could not save role')
-  }
-}
-
-const removeRole = async (role) => {
-  try {
-    await ElMessageBox.confirm(`Delete role "${role.name}"?`, 'Delete role', { type: 'warning' })
-    await adminUserStore.deleteRole(role.id)
-    if (editingRoleId.value === role.id) {
-      resetRoleDraft()
-    }
-    ElMessage.success('Role deleted')
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error(error.response?.data?.message || 'Could not delete role')
-    }
-  }
-}
-
-const assignRolesToSelectedUser = async () => {
-  if (!roleAssignment.value.userId) {
-    ElMessage.warning('Select a user first')
-    return
-  }
-
-  try {
-    await adminUserStore.assignUserRoles(roleAssignment.value.userId, roleAssignment.value.roleIds)
-    ElMessage.success('User roles updated')
-  } catch (error) {
-    ElMessage.error(error.response?.data?.message || 'Could not update user roles')
-  }
-}
-
-watch(() => roleAssignment.value.userId, (userId) => {
-  const selectedUser = users.value.find(user => user.id === userId)
-  if (!selectedUser) {
-    roleAssignment.value.roleIds = []
-    return
-  }
-
-  const normalized = (selectedUser.roles || [])
-    .map(role => String(role).trim().toLowerCase())
-
-  roleAssignment.value.roleIds = roles.value
-    .filter(role => normalized.includes(String(role.name).trim().toLowerCase()))
-    .map(role => role.id)
+const selectedRole = computed(() => roles.value.find(r => r.id === selectedRoleId.value) || null)
+const roleUserCount = computed(() => {
+  if (!selectedRole.value) return 0
+  return users.value.filter(u => (u.roles || []).includes(selectedRole.value.name)).length
 })
 
 onMounted(async () => {
-  await Promise.all([
-    adminUserStore.fetchUsers(),
-    adminUserStore.fetchRoles()
-  ])
+  await loadData()
 })
+
+async function loadData() {
+  loadingUsers.value = true
+  try {
+    await Promise.all([
+      adminUserStore.fetchRoles(),
+      adminUserStore.fetchUsers()
+    ])
+    if (roles.value.length > 0 && !selectedRoleId.value) {
+      selectedRoleId.value = roles.value[0].id
+    }
+  } catch (err) {
+    ElMessage.error('Failed to load data')
+  } finally {
+    loadingUsers.value = false
+  }
+}
+
+function selectRole(role) {
+  selectedRoleId.value = role.id
+  activeTab.value = 'permissions'
+}
+
+function openCreateRole() {
+  editingRole.value = null
+  roleForm.value = { name: '', description: '' }
+  roleDialogVisible.value = true
+}
+
+function editRole(role) {
+  editingRole.value = role
+  roleForm.value = { name: role.name, description: role.description }
+  roleDialogVisible.value = true
+}
+
+function duplicateRole(role) {
+  editingRole.value = null
+  roleForm.value = { name: role.name + ' (Copy)', description: role.description }
+  roleDialogVisible.value = true
+  roleForm.value._permissionIds = role.permissionIds || []
+}
+
+async function submitRoleForm() {
+  if (!roleFormRef.value) return
+  await roleFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    saving.value = true
+    try {
+      if (editingRole.value) {
+        await adminUserStore.updateRole(editingRole.value.id, {
+          name: roleForm.value.name,
+          description: roleForm.value.description,
+          permissionIds: editingRole.value.permissionIds
+        })
+        ElMessage.success('Role updated')
+      } else {
+        await adminUserStore.createRole({
+          name: roleForm.value.name,
+          description: roleForm.value.description,
+          permissionIds: roleForm.value._permissionIds || []
+        })
+        ElMessage.success('Role created')
+      }
+      roleDialogVisible.value = false
+    } catch (err) {
+      ElMessage.error(err.response?.data?.message || 'Error saving role')
+    } finally {
+      saving.value = false
+    }
+  })
+}
+
+async function deleteRole(role) {
+  try {
+    await ElMessageBox.confirm(`Are you sure you want to delete "${role.name}"?`, 'Confirm', {
+      type: 'warning',
+      confirmButtonText: 'Delete'
+    })
+    saving.value = true
+    await adminUserStore.deleteRole(role.id)
+    if (selectedRoleId.value === role.id) selectedRoleId.value = ''
+    ElMessage.success('Role deleted')
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error(e.response?.data?.message || 'Error deleting role')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function saveRolePermissions(newPermissionIds) {
+  if (!selectedRole.value) return
+  saving.value = true
+  try {
+    await adminUserStore.updateRole(selectedRole.value.id, {
+      name: selectedRole.value.name,
+      description: selectedRole.value.description,
+      permissionIds: newPermissionIds
+    })
+    ElMessage.success('Permissions saved')
+  } catch (err) {
+    ElMessage.error(err.response?.data?.message || 'Error saving permissions')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function assignMembers(userIds) {
+  if (!selectedRole.value) return
+  saving.value = true
+  try {
+    const roleToAdd = selectedRole.value
+    for (const uId of userIds) {
+      const user = users.value.find(u => u.id === uId)
+      if (user) {
+        const existingRoleIds = roles.value
+          .filter(r => (user.roles || []).includes(r.name))
+          .map(r => r.id)
+        
+        if (!existingRoleIds.includes(roleToAdd.id)) {
+          await adminUserStore.assignUserRoles(uId, [...existingRoleIds, roleToAdd.id])
+        }
+      }
+    }
+    ElMessage.success('Members assigned')
+    await adminUserStore.fetchUsers()
+  } catch (err) {
+    ElMessage.error('Error assigning members')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function removeMember(user) {
+  if (!selectedRole.value) return
+  try {
+    await ElMessageBox.confirm(`Remove this member from ${selectedRole.value.name}?`, 'Confirm')
+    saving.value = true
+    const existingRoleIds = roles.value
+      .filter(r => (user.roles || []).includes(r.name) && r.id !== selectedRole.value.id)
+      .map(r => r.id)
+      
+    await adminUserStore.assignUserRoles(user.id, existingRoleIds)
+    ElMessage.success('Member removed')
+    await adminUserStore.fetchUsers()
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error('Error removing member')
+  } finally {
+    saving.value = false
+  }
+}
 </script>
 
 <style scoped>
-.roles-page {
-  min-height: calc(100vh - 56px);
-  padding: 28px;
-  color: #e4e4e7;
+::v-deep(.content-tabs > .el-tabs__header) {
+  margin: 0;
+  padding: 0 24px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-light);
 }
-
-.page-header,
-.roles-grid,
-.panel-head,
-.action-row {
+::v-deep(.content-tabs > .el-tabs__content) {
+  flex: 1;
+  overflow: hidden;
   display: flex;
 }
-
-.page-header,
-.panel-head,
-.action-row {
-  align-items: center;
-  justify-content: space-between;
-}
-
-.page-header {
-  gap: 24px;
-  margin-bottom: 24px;
-}
-
-.breadcrumb {
-  color: #60a5fa;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 8px;
-}
-
-.page-header h1,
-.panel-head h2 {
-  margin: 0;
-}
-
-.page-header p,
-.panel-head p,
-.role-copy p,
-.role-copy small {
-  margin: 6px 0 0;
-  color: #a1a1aa;
-}
-
-.roles-grid {
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.panel {
+::v-deep(.content-tabs .el-tab-pane) {
   flex: 1;
-  border: 1px solid #27272a;
-  border-radius: 14px;
-  background: #16181d;
-  padding: 20px;
-}
-
-.form-grid,
-.role-list,
-.role-tags {
-  display: grid;
-  gap: 14px;
-}
-
-.form-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: 18px;
-}
-
-label {
-  display: grid;
-  gap: 8px;
-}
-
-label span {
-  color: #a1a1aa;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-label.wide {
-  grid-column: 1 / -1;
-}
-
-input {
-  width: 100%;
-  border: 1px solid #27272a;
-  background: #0f1115;
-  color: #fff;
-  border-radius: 10px;
-  padding: 10px 12px;
-  font: inherit;
-}
-
-.action-row {
-  gap: 12px;
-  margin-top: 18px;
-}
-
-.primary-btn,
-.secondary-btn,
-.danger-outline-btn {
-  min-height: 42px;
-  padding: 0 14px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 600;
-  font: inherit;
-}
-
-.primary-btn {
-  background: #0ea5e9;
-  color: #fff;
-  border: 1px solid #0284c7;
-}
-
-.secondary-btn,
-.danger-outline-btn {
-  background: transparent;
-  color: #e4e4e7;
-  border: 1px solid #27272a;
-}
-
-.danger-outline-btn {
-  color: #fca5a5;
-  border-color: rgba(239, 68, 68, 0.4);
-}
-
-.role-list {
-  margin-top: 18px;
-}
-
-.role-card {
-  border: 1px solid #1f232a;
-  border-radius: 12px;
-  padding: 16px;
-  background: #111317;
-}
-
-.role-copy strong {
-  display: block;
-}
-
-.role-tags {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  margin-top: 12px;
-}
-
-.permission-tag {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: rgba(59, 130, 246, 0.12);
-  color: #93c5fd;
-  font-size: 12px;
-}
-
-.empty-state {
-  padding: 18px;
-  border-radius: 10px;
-  border: 1px dashed #334155;
-  color: #94a3b8;
-  margin-top: 18px;
-}
-
-::v-deep(.el-select__wrapper) {
-  min-height: 44px;
-  border-radius: 10px;
-  background: #0f1115;
-  box-shadow: 0 0 0 1px #27272a inset;
-}
-
-@media (max-width: 980px) {
-  .roles-grid,
-  .page-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 </style>
