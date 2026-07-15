@@ -445,6 +445,110 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.ToTable("CommentMentions");
                 });
 
+            modelBuilder.Entity("TaskManagement.Domain.Entities.ContingencyPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("RiskDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RiskLevel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("WorkTaskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkTaskId");
+
+                    b.ToTable("ContingencyPlans");
+                });
+
+            modelBuilder.Entity("TaskManagement.Domain.Entities.ContingencyPlanTask", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ActivatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ActivatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AssigneeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ContingencyPlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActivated")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StatusName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid?>("WorkTaskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActivatedById");
+
+                    b.HasIndex("AssigneeId");
+
+                    b.HasIndex("ContingencyPlanId");
+
+                    b.HasIndex("WorkTaskId");
+
+                    b.ToTable("ContingencyPlanTasks");
+                });
+
             modelBuilder.Entity("TaskManagement.Domain.Entities.CustomFieldDefinition", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3004,6 +3108,49 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("MentionedUser");
                 });
 
+            modelBuilder.Entity("TaskManagement.Domain.Entities.ContingencyPlan", b =>
+                {
+                    b.HasOne("TaskManagement.Domain.Entities.WorkTask", "WorkTask")
+                        .WithMany("ContingencyPlans")
+                        .HasForeignKey("WorkTaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WorkTask");
+                });
+
+            modelBuilder.Entity("TaskManagement.Domain.Entities.ContingencyPlanTask", b =>
+                {
+                    b.HasOne("TaskManagement.Domain.Entities.User", "ActivatedBy")
+                        .WithMany()
+                        .HasForeignKey("ActivatedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("TaskManagement.Domain.Entities.User", "Assignee")
+                        .WithMany()
+                        .HasForeignKey("AssigneeId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("TaskManagement.Domain.Entities.ContingencyPlan", "ContingencyPlan")
+                        .WithMany("ContingencyPlanTasks")
+                        .HasForeignKey("ContingencyPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TaskManagement.Domain.Entities.WorkTask", "WorkTask")
+                        .WithMany()
+                        .HasForeignKey("WorkTaskId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ActivatedBy");
+
+                    b.Navigation("Assignee");
+
+                    b.Navigation("ContingencyPlan");
+
+                    b.Navigation("WorkTask");
+                });
+
             modelBuilder.Entity("TaskManagement.Domain.Entities.CustomFieldDefinition", b =>
                 {
                     b.HasOne("TaskManagement.Domain.Entities.Project", "Project")
@@ -4086,6 +4233,11 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("ChildComments");
 
                     b.Navigation("CommentAttachments");
+                });
+
+            modelBuilder.Entity("TaskManagement.Domain.Entities.ContingencyPlan", b =>
+                {
+                    b.Navigation("ContingencyPlanTasks");
                 });
 
             modelBuilder.Entity("TaskManagement.Domain.Entities.CustomFieldDefinition", b =>

@@ -85,10 +85,14 @@ if (!string.IsNullOrWhiteSpace(defaultConnection))
 {
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
        options.UseSqlServer(defaultConnection,
-           sqlOptions => sqlOptions.EnableRetryOnFailure(
-               maxRetryCount: 5,
-               maxRetryDelay: TimeSpan.FromSeconds(30),
-               errorNumbersToAdd: null))
+           sqlOptions => 
+           {
+               sqlOptions.EnableRetryOnFailure(
+                   maxRetryCount: 5,
+                   maxRetryDelay: TimeSpan.FromSeconds(30),
+                   errorNumbersToAdd: null);
+               sqlOptions.MigrationsAssembly("TaskManagement.Infrastructure");
+           })
            .ConfigureWarnings(warnings =>
                warnings.Ignore(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning)));
 }
@@ -168,6 +172,19 @@ using (var scope = app.Services.CreateScope())
         // await context.Database.EnsureCreatedAsync();
         if (context.Database.IsRelational())
         {
+            try {
+                var builderMaster = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(context.Database.GetConnectionString());
+                string dbName = builderMaster.InitialCatalog;
+                builderMaster.InitialCatalog = "master";
+                using var conn = new Microsoft.Data.SqlClient.SqlConnection(builderMaster.ConnectionString);
+                conn.Open();
+                using var cmd = new Microsoft.Data.SqlClient.SqlCommand($"ALTER DATABASE [{dbName}] SET MULTI_USER WITH ROLLBACK IMMEDIATE", conn);
+                cmd.ExecuteNonQuery();
+                Console.WriteLine($"Successfully unlocked database: {dbName}");
+            } catch (Exception exFix) {
+                Console.WriteLine("Could not auto-unlock database (might already be accessible): " + exFix.Message);
+            }
+
             context.Database.SetCommandTimeout(TimeSpan.FromMinutes(5));
 
             await context.Database.ExecuteSqlRawAsync(@"
