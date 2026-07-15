@@ -4,8 +4,13 @@
     <header class="project-global-header">
       <div class="pgh-content">
         <div class="pgh-left">
-          <div class="pgh-icon" :style="projectIconStyle">
-            {{ project?.icon || '📦' }}
+          <div
+            class="pgh-icon"
+            :style="projectIconStyle"
+            :role="project?.cover ? 'img' : undefined"
+            :aria-label="project?.cover ? (project.coverAltText || `${project.name || 'Project'} cover`) : undefined"
+          >
+            <span :aria-hidden="Boolean(project?.cover)">{{ project?.icon || '📦' }}</span>
           </div>
           <div class="pgh-info">
             <h1 class="pgh-title">{{ demoText(project?.name) || 'Loading Project...' }}</h1>

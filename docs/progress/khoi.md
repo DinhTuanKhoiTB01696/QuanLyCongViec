@@ -25,32 +25,32 @@
 - Branch: `integration/demo-release`
 - Commit: HEAD của `integration/demo-release`
 - Files changed:
-  - `Backend/src/TaskManagement.API/Controllers/ProjectsController.cs`
-  - `Frontend/src/components/CreateProjectModal.vue`
+  - `Frontend/src/components/CreateSpaceModal.vue`
   - `Frontend/src/components/layout/ProjectLayoutWrapper.vue`
-  - `Frontend/src/store/useProjectStore.js`
-  - `Frontend/src/views/Dashboard.vue`
-  - `Frontend/src/views/ProjectSettings.vue`
+  - `Frontend/src/views/ManageSpaces.vue`
+  - `docs/progress/khoi.md`
 - API/DB:
-  - Dùng endpoint thật `POST /api/projects/{id}/cover` và bổ sung `DELETE /api/projects/{id}/cover`.
-  - Backend validate MIME/extension và giới hạn 5MB; không đổi schema.
+  - Không đổi backend, API contract, entity hoặc migration trong lượt hoàn tất này.
+  - Luồng thật gọi `POST /api/projects`, sau đó multipart `POST /api/projects/{id}/cover` với `file`, `coverAltText`, `icon`.
 - Tests:
+  - Route thật `/spaces` -> `ManageSpaces.vue` -> `CreateSpaceModal.vue`: PASS; không đổi router và không sửa `CreateProjectModal.vue`.
   - Đăng nhập bằng tài khoản DB thật: PASS.
-  - Tạo project không cover: PASS; DB có 1 project, `CoverUrl/CoverAltText = NULL`.
-  - PNG/JPG/WEBP: PASS HTTP 200; URL, alt text, icon lưu đúng DB.
-  - File JSON và PNG 5,773,540 bytes: PASS HTTP 400; DB không đổi.
-  - Project tạo thành công rồi upload cover fail: PASS; project vẫn tồn tại, cover null.
-  - Settings, project header và sidebar sau F5: PASS; cover URL dùng đúng backend origin, alt/icon còn nguyên.
-  - Thay cover, xóa cover và F5: PASS; DB chỉ còn `NavigationConfig={"icon":"K"}`.
-  - Frontend build: PASS; backend build: PASS; backend test: PASS 42/42.
+  - Tạo không cover bằng browser: PASS; DB key `K1NC715` từ 0 thành 1.
+  - Double click nút tạo bằng browser: PASS; DB key `K1DBL15` từ 0 thành đúng 1.
+  - PNG/JPG/WEBP qua API multipart thật: PASS `201` khi tạo và `200` khi upload; DB lưu đúng URL backend, alt text và icon.
+  - File JSON và PNG 5,773,540 bytes: PASS `400`; cover hợp lệ trong DB không bị thay đổi.
+  - Project tạo thành công rồi upload lỗi, sau đó retry trên cùng ID: PASS; DB key `K1FAIL15` vẫn đúng 1 project.
+  - F5 danh sách `/spaces` và Project Dashboard: PASS; cover/alt/icon đồng bộ ở danh sách, sidebar và header.
+  - Native file chooser trong modal: mở được; browser automation không được phép gắn file nên chưa chạy được chọn file/preview/upload trực tiếp từ modal.
+  - Frontend `npm run build`: PASS; `git diff --check`: PASS.
 - Evidence:
-  - Project không cover: `CDC70589-2767-4682-ADF1-DD98FFF47AEB`.
-  - Project create-then-upload-fail: `BC525EC9-63D4-4A50-966A-71D874A13348`.
+  - Không cover: project `3ca0b525-6bb3-4c00-bab6-85e286ffa815`; response create thành công; DB ban đầu `CoverUrl/CoverAltText = NULL`.
+  - PNG: `e5242e8c-d53c-4ee6-a8b4-0061411e9f72`; JPG: `e396fb29-4f48-4bf4-9b6e-1a8c2fa06695`; WEBP: `3e279c87-3c3a-46df-b20a-83904d338d1d`.
+  - Create-then-upload-fail/retry: `37a2760e-925f-4685-9d25-596a6231f388`; create `201`, upload sai `400`, retry cover đúng `200`, project count = 1.
   - Backend reject: `Project cover must be PNG, JPG, JPEG, or WEBP.` và `Project cover must be 5MB or smaller.`
 - Blocker:
-  - Entry tạo project đang chạy dùng `CreateSpaceModal.vue`, không dùng `CreateProjectModal.vue` được giao.
-  - `Dashboard.vue` được giao hiện không có route/mount. Hoàn tất browser test chọn cover lúc tạo và Dashboard thật cần sửa file ngoài phạm vi, nên không mở rộng scope.
-- Next: Cần integration owner nối entry/route trong scope riêng rồi retest browser file picker.
+  - Bộ điều khiển browser trả `Not allowed` cho `fileChooser.setFiles`, còn browser trong ứng dụng không hỗ trợ upload file. Vì vậy chưa đủ bằng chứng browser end-to-end cho chọn file, preview, xóa file đã chọn và submit cover ngay trong modal.
+- Next: Chạy một lượt chọn PNG/JPG/WEBP và validation trực tiếp bằng file chooser thủ công hoặc browser runner có quyền upload; chỉ chuyển DONE khi lượt này PASS.
 
 ## KHOI-02
 - Status: DONE
