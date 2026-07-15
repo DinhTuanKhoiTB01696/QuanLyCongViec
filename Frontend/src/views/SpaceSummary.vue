@@ -601,6 +601,7 @@ import { ref, onMounted, computed, defineAsyncComponent, watch, nextTick, onUnmo
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import axiosClient from '@/api/axiosClient'
+import { downloadResponseFile, csvWithBom } from '@/utils/downloadFile'
 import { broadcastAdminRealtime, subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { getStoredUserSession } from '@/utils/authSession'
 import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/projectContext'
@@ -664,13 +665,7 @@ const handleKanbanWheel = (event) => {
 async function handleExportTasks() {
   try {
     const res = await axiosClient.get(`/projects/${currentProjectId.value}/WorkTasks/export`, { responseType: 'blob' })
-    const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `SprintA-Tasks-${currentProjectId.value}-${Date.now()}.csv`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    downloadResponseFile(res, `SprintA-Tasks-${currentProjectId.value}.csv`, 'text/csv;charset=utf-8')
     ElMessage.success('Xuất dữ liệu thành công.')
   } catch (e) {
     ElMessage.error('Không thể xuất dữ liệu công việc.')
@@ -2090,7 +2085,7 @@ const exportAnalyticsCsv = (mode = analyticsInsightMode.value) => {
         [analyticsTableHeading.value, 'Số lượng'],
         ...analyticsBreakdownRows.value.map(item => [item.label, item.count])
       ]
-  const csv = rows.map(row => row.join(',')).join('\n')
+  const csv = csvWithBom(rows)
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')

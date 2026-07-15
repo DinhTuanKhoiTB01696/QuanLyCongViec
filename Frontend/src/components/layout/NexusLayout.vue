@@ -324,6 +324,7 @@ import { useAiPetStore } from '@/store/useAiPetStore'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useGoalStore } from '@/store/useGoalStore'
+import { useSprintStore } from '@/store/useSprintStore'
 import { getStoredUserSession } from '@/utils/authSession'
 import { getDefaultPermissionMatrix, hasPermission } from '@/utils/permissionGuard'
 
@@ -340,6 +341,7 @@ const i18nStore = useI18nStore()
 const workTaskStore = useWorkTaskStore()
 const projectStore = useProjectStore()
 const goalStore = useGoalStore()
+const sprintStore = useSprintStore()
 const sidebarVisible = ref(window.innerWidth > 1024)
 const aiPetStore = useAiPetStore()
 const aiVisible = computed({ get: () => aiPetStore.isPanelOpen, set: value => aiPetStore.setPanelOpen(value) })
@@ -778,7 +780,11 @@ const useQuickPrompt = (prompt) => {
 
 const readOnlyActionTypes = new Set([
   'summarize_dashboard', 'summarize_project', 'list_overdue_tasks', 'get_workload',
-  'explain_report', 'summarize_page', 'summarize_intakes', 'suggest_view_filter'
+  'explain_report', 'summarize_page', 'summarize_intakes', 'suggest_view_filter',
+  'list_work_items', 'list_cycles', 'list_modules', 'list_pages', 'list_views',
+  'list_intakes', 'list_pending_intakes', 'analyze_priority_distribution',
+  'analyze_status_distribution', 'analyze_workload', 'identify_project_risks',
+  'refresh_report', 'export_report_csv', 'summarize_report'
 ])
 
 const isReadOnlyAction = (type) => readOnlyActionTypes.has(String(type || '').toLowerCase())
@@ -854,6 +860,17 @@ const payloadValue = (action, ...keys) => {
   return key ? payload[key] : ''
 }
 
+const resolveProjectLabel = (action) => {
+  const projectId = payloadValue(action, 'projectId')
+  const current = projectStore.currentProject
+  if (current && (!projectId || current.id === projectId || current.Id === projectId)) {
+    return current.name || current.Name || 'Dự án hiện tại'
+  }
+  const projects = projectStore.projects || projectStore.allProjects || []
+  const project = projects.find(item => item?.id === projectId || item?.Id === projectId)
+  return project?.name || project?.Name || 'Dự án hiện tại'
+}
+
 const actionSummary = (action) => {
   const type = String(action?.type || '').toLowerCase()
   if (type === 'create_project') return `Tạo project “${payloadValue(action, 'name', 'projectName') || 'Chưa đặt tên'}”.`
@@ -887,7 +904,7 @@ const actionDetails = (action) => {
     add('Người nhận', payloadValue(action, 'assigneeName', 'assigneeId', 'assignedUserId'))
   } else if (['create_cycle', 'create_module', 'create_page', 'create_view', 'create_intake_request'].includes(type)) {
     add('Tên', payloadValue(action, 'name', 'title'))
-    add('Dự án', payloadValue(action, 'projectName', 'projectId'))
+    add('Dự án', payloadValue(action, 'projectName') || resolveProjectLabel(action))
     add('Bắt đầu', payloadValue(action, 'startDate'))
     add('Kết thúc', payloadValue(action, 'endDate'))
   } else if (['update_task_priority', 'update_task_due_date'].includes(type)) {
@@ -913,7 +930,8 @@ const refreshAfterAiAction = async (action, result) => {
   await Promise.all([
     projectStore.fetchAllProjects(true).catch(() => []),
     projectId ? workTaskStore.fetchTasks(projectId, { reset: false }).catch(() => []) : Promise.resolve(),
-    entityType === 'goal' ? goalStore.fetchGoals().catch(() => {}) : Promise.resolve()
+    entityType === 'goal' ? goalStore.fetchGoals().catch(() => {}) : Promise.resolve(),
+    ['cycle', 'sprint'].includes(entityType) && projectId ? sprintStore.fetchSprints(projectId, { force: true }).catch(() => {}) : Promise.resolve()
   ])
   return { entityId, entityType, projectId }
 }
@@ -925,6 +943,12 @@ const navigateToAiEntity = async ({ entityId, entityType, projectId }) => {
     return router.push({ path: `/space/${projectId || currentProjectId.value}/work-items`, query: { task: entityId } })
   }
   if (entityType === 'goal') return router.push(`/home/goals/${entityId}`)
+  if (['cycle', 'sprint'].includes(entityType)) return router.push(`/space/${projectId || currentProjectId.value}/cycles`)
+  if (entityType === 'module') return router.push(`/space/${projectId || currentProjectId.value}/modules`)
+  if (entityType === 'page') return router.push(`/space/${projectId || currentProjectId.value}/pages`)
+  if (entityType === 'view') return router.push(`/space/${projectId || currentProjectId.value}/views`)
+  if (entityType === 'intake' || entityType === 'intake_request') return router.push(`/space/${projectId || currentProjectId.value}/intakes`)
+  if (entityType === 'report') return router.push(`/space/${projectId || currentProjectId.value}/reports`)
 }
 
 const executeAiAction = async (action) => {
@@ -933,14 +957,21 @@ const executeAiAction = async (action) => {
   action.uiStatus = 'loading'
   action.error = ''
   try {
+    action.idempotencyKey ||= `${action.type}-${Date.now()}-${Math.random().toString(36).slice(2)}`
     const response = await axiosClient.post('/ai/actions/execute', {
       type: action.type,
-      idempotencyKey: action.idempotencyKey || `${action.type}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      idempotencyKey: action.idempotencyKey,
       workspaceId: currentWorkspaceId.value || null,
       projectId: currentProjectId.value || actionPayload(action).projectId || null,
       payload: actionPayload(action)
     })
-    const result = response.data?.data
+    const root = response.data || {}
+    const payload = root?.data ?? root
+    const result = payload?.data ?? payload?.result ?? payload
+    const failed = root?.success === false || root?.succeeded === false || payload?.success === false || payload?.succeeded === false || Boolean(root?.error || payload?.error)
+    const hasResult = result && typeof result === 'object' && Object.keys(result).length > 0 && !result.error
+    const confirmed = root?.success === true || root?.succeeded === true || payload?.success === true || payload?.succeeded === true
+    if (failed || !hasResult || (!confirmed && !result?.entityId && !result?.id && !result?.taskId && !result?.message)) throw new Error('Backend không xác nhận action thành công.')
     action.result = result
     action.uiStatus = 'success'
     const navigation = await refreshAfterAiAction(action, result)
@@ -948,7 +979,9 @@ const executeAiAction = async (action) => {
     await navigateToAiEntity(navigation)
   } catch (error) {
     action.uiStatus = 'error'
-    action.error = error.response?.data?.message || 'Không thể thực hiện action. Vui lòng thử lại.'
+        const status = error.response?.status
+    const mapped = { 400: 'Dữ liệu action không hợp lệ.', 401: 'Phiên đăng nhập đã hết hạn.', 403: 'Bạn không có quyền thực hiện action này.', 404: 'Không tìm thấy entity cần thao tác.', 409: 'Action bị trùng hoặc xung đột dữ liệu.', 422: 'Dữ liệu không vượt qua kiểm tra nghiệp vụ.', 429: 'AI đang quá tải. Hãy thử lại sau.', 503: 'Dịch vụ AI tạm thời không khả dụng.' }
+    action.error = mapped[status] || error.response?.data?.message || error.message || 'Không thể thực hiện action.'
     ElMessage.error(action.error)
   } finally {
     action.loading = false
@@ -1724,6 +1757,10 @@ const handleProjectCreated = (newProject) => {
   border-radius: 12px;
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex: 0 0 auto;
 }
 
 .ai-action-preview-card.is-pending {
@@ -1784,7 +1821,7 @@ const handleProjectCreated = (newProject) => {
 
 .ai-action-details {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: minmax(84px, auto) minmax(0, 1fr);
   gap: 4px 8px;
   margin: 0 0 11px;
   font-size: 11px;
@@ -1814,6 +1851,15 @@ const handleProjectCreated = (newProject) => {
 .ai-input-foot {
   display: flex;
 }
+
+.message-stack,
+.message-bubble,
+.ai-action-preview-list { min-width: 0; width: 100%; }
+.message-stack { display: flex; flex-direction: column; align-items: stretch; }
+.message-bubble { flex-direction: column; align-items: stretch; }
+.ai-action-preview-list { flex: 0 0 auto; }
+.ai-action-preview-list { align-items: stretch; }
+.ai-action-description, .ai-action-result, .ai-action-error { overflow-wrap: anywhere; }
 
 .ai-hero-top {
   align-items: center;
@@ -2257,6 +2303,12 @@ const handleProjectCreated = (newProject) => {
     flex: 1 1 calc(50% - 6px);
     justify-content: center;
   }
+
+  .ai-action-preview-head { align-items: flex-start; flex-direction: column; }
+  .ai-action-controls { justify-content: stretch; flex-direction: column-reverse; }
+  .ai-action-controls button { width: 100%; min-height: 38px; }
+  .ai-action-details { grid-template-columns: 1fr; gap: 2px; }
+  .ai-action-details dd { margin-bottom: 6px; }
 }
 
 .offline-warning-banner {
