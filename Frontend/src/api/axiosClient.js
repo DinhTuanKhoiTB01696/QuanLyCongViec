@@ -44,8 +44,13 @@ axiosClient.interceptors.request.use(
 
 axiosClient.interceptors.response.use(
     (response) => {
+        const data = response.data;
+        const isBinaryPayload = (typeof Blob !== 'undefined' && data instanceof Blob)
+            || (typeof ArrayBuffer !== 'undefined' && data instanceof ArrayBuffer)
+            || (typeof ArrayBuffer !== 'undefined' && ArrayBuffer.isView(data));
+        if (isBinaryPayload) return response;
         const locale = localStorage.getItem('admin_locale') || 'vi';
-        response.data = translateDemoPayload(response.data, locale);
+        response.data = translateDemoPayload(data, locale);
         return response;
     },
     async (error) => {

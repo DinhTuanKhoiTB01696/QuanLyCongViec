@@ -3,7 +3,7 @@
     :model-value="modelValue"
     @update:model-value="$emit('update:modelValue', $event)"
     title="Nạp dữ liệu công việc"
-    width="1100px"
+    width="min(1100px, calc(100vw - 24px))"
     destroy-on-close
     append-to-body
     class="task-data-import-dialog"
@@ -94,7 +94,7 @@
                       <span v-else>{{ row.assigneeEmail || '—' }}</span>
                     </td>
                     <td>
-                      <el-date-picker v-if="!row.error" v-model="row.dueDate" type="date" size="small" format="YYYY-MM-DD" value-format="YYYY-MM-DD" placeholder="Ngày" style="width:100%" />
+                    <el-date-picker v-if="!row.error" v-model="row.dueDate" type="date" size="small" format="DD/MM/YYYY" value-format="YYYY-MM-DD" popper-class="task-data-import-popper" placeholder="Ngày" style="width:100%" />
                       <span v-else>{{ row.dueDate || '—' }}</span>
                     </td>
                     <td>
@@ -247,7 +247,7 @@
                 </el-select>
               </td>
               <td>
-                <el-date-picker v-model="task.dueDate" type="date" size="small" format="YYYY-MM-DD" value-format="YYYY-MM-DD" placeholder="Ngày" style="width:100%" />
+                <el-date-picker v-model="task.dueDate" type="date" size="small" format="DD/MM/YYYY" value-format="YYYY-MM-DD" popper-class="task-data-import-popper" placeholder="Ngày" style="width:100%" />
               </td>
             </tr>
             <tr v-if="!currentAiTasks.length">
@@ -675,6 +675,21 @@ watch(() => props.modelValue, (val) => {
 </script>
 
 <style scoped>
+:deep(.el-dialog.task-data-import-dialog) {
+  width: min(1100px, calc(100vw - 24px)) !important;
+  max-width: calc(100vw - 24px) !important;
+  max-height: calc(100dvh - 24px);
+  display: flex;
+  flex-direction: column;
+  margin: 12px auto !important;
+}
+:deep(.el-dialog.task-data-import-dialog .el-dialog__body) {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+:deep(.el-dialog.task-data-import-dialog .el-dialog__footer) { flex: 0 0 auto; }
 /* ═══════════ DIALOG ═══════════ */
 :deep(.task-data-import-dialog .el-dialog__body) {
   padding: 0 20px 8px;
@@ -695,6 +710,7 @@ watch(() => props.modelValue, (val) => {
 .import-tabs {
   border: none !important;
   box-shadow: none !important;
+  background: var(--color-surface, #ffffff);
 }
 :deep(.import-tabs .el-tabs__header) {
   background: transparent;
@@ -712,6 +728,8 @@ watch(() => props.modelValue, (val) => {
 /* ═══════════ TAB CONTENT ═══════════ */
 .tab-content {
   padding: 0;
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-primary, #334155);
 }
 .tab-toolbar {
   display: flex;
@@ -732,7 +750,7 @@ watch(() => props.modelValue, (val) => {
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
-  background: rgba(248, 250, 252, 0.5);
+  background: var(--color-surface-raised, #f8fafc);
 }
 .drop-zone:hover,
 .drop-zone.drag-active {
@@ -795,6 +813,8 @@ watch(() => props.modelValue, (val) => {
 .preview-tags { display: flex; gap: 6px; }
 .table-scroll {
   max-height: 320px;
+  max-width: 100%;
+  overflow-x: auto;
   overflow-y: auto;
   border: 1px solid var(--color-border, #e5e7eb);
   border-radius: 8px;
@@ -936,6 +956,108 @@ watch(() => props.modelValue, (val) => {
 .progress-text {
   font-size: 12px;
   color: var(--color-text-muted, #64748b);
+}
+
+/* Element Plus teleports dialog internals and poppers outside this component. */
+:deep(.task-data-import-dialog .el-dialog),
+:deep(.task-data-import-dialog .el-dialog__header),
+:deep(.task-data-import-dialog .el-dialog__body),
+:deep(.task-data-import-dialog .el-dialog__footer),
+:deep(.task-data-import-dialog .el-tabs--border-card),
+:deep(.task-data-import-dialog .el-tabs__header),
+:deep(.task-data-import-dialog .el-tabs__content),
+:deep(.task-data-import-dialog .el-input__wrapper),
+:deep(.task-data-import-dialog .el-select__wrapper),
+:deep(.task-data-import-dialog .el-alert),
+:deep(.task-data-import-dialog .el-table),
+:deep(.task-data-import-dialog .el-table th.el-table__cell),
+:deep(.task-data-import-dialog .el-table tr),
+:deep(.task-data-import-dialog .el-table td.el-table__cell) {
+  background: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border) !important;
+}
+:deep(.task-data-import-dialog .el-tabs__item.is-active) { color: var(--color-accent) !important; }
+:deep(.task-data-import-dialog .el-table__body tr:hover > td.el-table__cell) { background: var(--color-surface-hover) !important; }
+:global(.task-data-import-popper) {
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+:global(.task-data-import-popper .el-picker-panel),
+:global(.task-data-import-popper .el-date-table th),
+:global(.task-data-import-popper .el-date-table td.available:hover),
+:global(.task-data-import-popper .el-picker-panel__footer) {
+  background: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border) !important;
+}
+:global(.task-data-import-popper .el-date-table th),
+:global(.task-data-import-popper .el-date-table td) { color: var(--color-text-secondary) !important; }
+
+/* The dialog is teleported to body, so keep the dark theme scoped to its namespace. */
+:global(.dark .task-data-import-dialog .el-tabs),
+:global(.dark .task-data-import-dialog .el-tabs__header),
+:global(.dark .task-data-import-dialog .el-tabs__nav-wrap),
+:global(.dark .task-data-import-dialog .el-tabs__content),
+:global(.dark .task-data-import-dialog .el-tab-pane),
+:global(.dark .task-data-import-dialog .tab-content),
+:global(.dark .task-data-import-dialog .drop-zone),
+:global(.dark .task-data-import-dialog .table-scroll),
+:global(.dark .task-data-import-dialog .dialog-footer),
+:global([data-theme='dark'] .task-data-import-dialog .el-tabs),
+:global([data-theme='dark'] .task-data-import-dialog .el-tabs__header),
+:global([data-theme='dark'] .task-data-import-dialog .el-tabs__nav-wrap),
+:global([data-theme='dark'] .task-data-import-dialog .el-tabs__content),
+:global([data-theme='dark'] .task-data-import-dialog .el-tab-pane),
+:global([data-theme='dark'] .task-data-import-dialog .tab-content),
+:global([data-theme='dark'] .task-data-import-dialog .drop-zone),
+:global([data-theme='dark'] .task-data-import-dialog .table-scroll),
+:global([data-theme='dark'] .task-data-import-dialog .dialog-footer) {
+  background: var(--color-surface, #0b2037) !important;
+  color: var(--color-text-primary, #edf6fd) !important;
+  border-color: var(--color-border, #203b58) !important;
+}
+:global(.dark .task-data-import-dialog .drop-zone),
+:global([data-theme='dark'] .task-data-import-dialog .drop-zone) {
+  background: var(--color-surface-hover, var(--color-surface, #102a46)) !important;
+  border-color: var(--color-border, #375978) !important;
+}
+:global(.dark .task-data-import-dialog .el-tabs__item),
+:global([data-theme='dark'] .task-data-import-dialog .el-tabs__item) {
+  color: var(--color-text-secondary, #b8ccdc) !important;
+}
+:global(.dark .task-data-import-dialog .el-tabs__item.is-active),
+:global([data-theme='dark'] .task-data-import-dialog .el-tabs__item.is-active) {
+  color: var(--color-accent, #66d9ef) !important;
+}
+:global(.dark .task-data-import-dialog .el-tabs__item.is-disabled),
+:global([data-theme='dark'] .task-data-import-dialog .el-tabs__item.is-disabled) {
+  color: var(--color-text-muted, #8fa8bc) !important;
+}
+:global(.dark .task-data-import-dialog .drop-title),
+:global([data-theme='dark'] .task-data-import-dialog .drop-title) { color: var(--color-text-primary, #edf6fd) !important; }
+:global(.dark .task-data-import-dialog .drop-hint),
+:global(.dark .task-data-import-dialog .hint-text),
+:global([data-theme='dark'] .task-data-import-dialog .drop-hint),
+:global([data-theme='dark'] .task-data-import-dialog .hint-text) { color: var(--color-text-muted, #9bb0c5) !important; }
+
+@media (max-width: 600px) {
+  :deep(.el-dialog.task-data-import-dialog) {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: calc(100dvh - 24px) !important;
+  }
+  :deep(.task-data-import-dialog .el-dialog) {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    margin: 12px auto !important;
+  }
+  :deep(.task-data-import-dialog .el-dialog__body) { padding: 10px !important; overflow-x: hidden; }
+  :deep(.task-data-import-dialog .el-dialog__footer) { padding: 10px !important; }
+  .tab-toolbar, .preview-header, .dialog-footer { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .footer-left, .footer-right { width: 100%; flex-wrap: wrap; }
+  :deep(.footer-right .el-button) { flex: 1 1 140px; min-height: 38px; }
 }
 
 /* ═══════════ UTILITIES ═══════════ */
