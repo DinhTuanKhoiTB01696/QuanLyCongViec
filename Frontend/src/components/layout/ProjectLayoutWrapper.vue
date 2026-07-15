@@ -4,7 +4,7 @@
     <header class="project-global-header">
       <div class="pgh-content">
         <div class="pgh-left">
-          <div class="pgh-icon" :style="{ backgroundColor: project?.cover || '#3b82f6' }">
+          <div class="pgh-icon" :style="projectIconStyle">
             {{ project?.icon || '📦' }}
           </div>
           <div class="pgh-info">
@@ -66,6 +66,15 @@ const demoText = (value) => translateDemoText(value, language.value)
 
 const projectId = computed(() => route.params.id)
 const project = computed(() => projectStore.currentProject)
+const projectIconStyle = computed(() => {
+  if (project.value?.cover) {
+    return {
+      backgroundImage: `linear-gradient(180deg, rgba(15, 23, 42, 0.12), rgba(15, 23, 42, 0.55)), url("${project.value.cover}")`
+    }
+  }
+
+  return { backgroundColor: '#3b82f6' }
+})
 
 const showCreateTaskModal = ref(false)
 
@@ -156,6 +165,8 @@ const createTask = () => {
   justify-content: center;
   font-size: 17px;
   flex-shrink: 0;
+  background-position: center;
+  background-size: cover;
   box-shadow:
     0 12px 28px color-mix(in srgb, var(--color-accent) 18%, transparent),
     inset 0 1px 0 rgba(255,255,255,0.22);

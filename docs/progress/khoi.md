@@ -1,0 +1,75 @@
+# Progress - Khôi
+
+## KHOI-00
+- Status: DONE
+- Started: 2026-07-15
+- Target: Baseline branch, progress ownership, baseline build
+- Branch: `integration/demo-release`
+- Commit: HEAD của `integration/demo-release`
+- Files changed:
+  - `docs/progress/README.md`
+  - `docs/progress/khoi.md`
+- API/DB: Không đổi API/DB
+- Tests:
+  - Backend `dotnet build TaskManagement.slnx`: PASS
+  - Backend `dotnet test TaskManagement.slnx --no-build`: PASS 42/42
+  - Frontend `npm run build`: PASS
+- Evidence: Branch tồn tại, có commit và được push lên `origin/integration/demo-release`.
+- Blocker: Không có
+- Next: KHOI-01 Project Cover end-to-end
+
+## KHOI-01
+- Status: BLOCKED
+- Started: 2026-07-15
+- Target: Project Cover end-to-end
+- Branch: `integration/demo-release`
+- Commit: HEAD của `integration/demo-release`
+- Files changed:
+  - `Backend/src/TaskManagement.API/Controllers/ProjectsController.cs`
+  - `Frontend/src/components/CreateProjectModal.vue`
+  - `Frontend/src/components/layout/ProjectLayoutWrapper.vue`
+  - `Frontend/src/store/useProjectStore.js`
+  - `Frontend/src/views/Dashboard.vue`
+  - `Frontend/src/views/ProjectSettings.vue`
+- API/DB:
+  - Dùng endpoint thật `POST /api/projects/{id}/cover` và bổ sung `DELETE /api/projects/{id}/cover`.
+  - Backend validate MIME/extension và giới hạn 5MB; không đổi schema.
+- Tests:
+  - Đăng nhập bằng tài khoản DB thật: PASS.
+  - Tạo project không cover: PASS; DB có 1 project, `CoverUrl/CoverAltText = NULL`.
+  - PNG/JPG/WEBP: PASS HTTP 200; URL, alt text, icon lưu đúng DB.
+  - File JSON và PNG 5,773,540 bytes: PASS HTTP 400; DB không đổi.
+  - Project tạo thành công rồi upload cover fail: PASS; project vẫn tồn tại, cover null.
+  - Settings, project header và sidebar sau F5: PASS; cover URL dùng đúng backend origin, alt/icon còn nguyên.
+  - Thay cover, xóa cover và F5: PASS; DB chỉ còn `NavigationConfig={"icon":"K"}`.
+  - Frontend build: PASS; backend build: PASS; backend test: PASS 42/42.
+- Evidence:
+  - Project không cover: `CDC70589-2767-4682-ADF1-DD98FFF47AEB`.
+  - Project create-then-upload-fail: `BC525EC9-63D4-4A50-966A-71D874A13348`.
+  - Backend reject: `Project cover must be PNG, JPG, JPEG, or WEBP.` và `Project cover must be 5MB or smaller.`
+- Blocker:
+  - Entry tạo project đang chạy dùng `CreateSpaceModal.vue`, không dùng `CreateProjectModal.vue` được giao.
+  - `Dashboard.vue` được giao hiện không có route/mount. Hoàn tất browser test chọn cover lúc tạo và Dashboard thật cần sửa file ngoài phạm vi, nên không mở rộng scope.
+- Next: Cần integration owner nối entry/route trong scope riêng rồi retest browser file picker.
+
+## KHOI-02
+- Status: DONE
+- Started: 2026-07-15
+- Target: AI smoke test
+- Branch: `integration/demo-release`
+- Commit: HEAD của `integration/demo-release`
+- Files changed:
+  - `Backend/src/TaskManagement.Infrastructure/Services/GeminiAiService.cs`
+- API/DB: Không đổi contract/schema; sửa context để action trên task hiện hữu dùng đúng ID đi cùng title.
+- Tests:
+  - AI Preview create task: PASS; DB trước = 0.
+  - Cancel: PASS; DB sau = 0.
+  - Confirm: PASS; DB sau = đúng 1 task `1CF5A4F2-7743-4105-A969-874E2E960334`.
+  - Update status: PASS; đúng task chuyển `BACKLOG` sang `IN PROGRESS`, task khác giữ `DONE`.
+  - Retry cùng `idempotencyKey`: PASS; response thứ hai `Idempotent replay.`, cùng entity ID, DB đúng 1 row.
+  - Backend build: PASS; backend test: PASS 42/42; frontend build: PASS.
+- Evidence:
+  - Browser prompt create `KHOI AI Browser Task 0715`; Preview không mutate, Confirm tạo đúng một lần.
+  - Request idempotency dùng key `khoi-ai-idem-0715-v1`; hai response trả cùng entity `0ACA9B30-A15F-43DA-97F0-94720CD44399`.
+- Blocker: Không có
+- Next: Không có

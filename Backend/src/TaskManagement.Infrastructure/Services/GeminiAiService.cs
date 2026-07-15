@@ -116,6 +116,7 @@ namespace TaskManagement.Infrastructure.Services
                         .Take(100)
                         .Select(t => new
                         {
+                            t.Id,
                             t.Title,
                             Status = t.TaskStatus != null ? t.TaskStatus.Name : "N/A",
                             t.Priority,
@@ -126,8 +127,9 @@ namespace TaskManagement.Infrastructure.Services
                     prompt.AppendLine($"Task count in context: {tasks.Count}");
                     foreach (var task in tasks)
                     {
-                        prompt.AppendLine($"- {Limit(task.Title, 200)} | status={Limit(task.Status, 80)} | priority=P{task.Priority} | due={task.DueDate?.ToString("yyyy-MM-dd") ?? "none"}");
+                        prompt.AppendLine($"- id={task.Id} | title={Limit(task.Title, 200)} | status={Limit(task.Status, 80)} | priority=P{task.Priority} | due={task.DueDate?.ToString("yyyy-MM-dd") ?? "none"}");
                     }
+                    prompt.AppendLine("For actions on an existing task, use only the id paired with that task title above. Never guess or reuse an unrelated visible task id.");
                 }
             }
 

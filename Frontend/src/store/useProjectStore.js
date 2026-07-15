@@ -4,6 +4,8 @@ import { reportExpectedError } from '@/utils/errorTelemetry'
 import { clearScopedCurrentProjectId } from '@/utils/projectContext'
 
 const PROJECT_BUNDLE_CACHE_TTL_MS = 30000
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5136/api'
+const apiOrigin = new URL(apiBaseUrl, window.location.origin).origin
 const resolveProjectId = (project) => project?.id || project?.Id || project?.projectId || project?.ProjectId || null
 const projectIdentityKey = (project) => resolveProjectId(project) || `${project?.key || project?.Key || ''}:${project?.name || project?.Name || ''}`
 
@@ -15,6 +17,33 @@ const dedupeProjects = (projects = []) => {
     seen.set(key, project)
   }
   return Array.from(seen.values())
+}
+
+const readProjectUiConfig = (project) => {
+  const rawConfig = project?.navigationConfig || project?.NavigationConfig || project?.cover || project?.Cover
+  if (!rawConfig || typeof rawConfig !== 'string' || !rawConfig.trim().startsWith('{')) {
+    return {}
+  }
+
+  try {
+    return JSON.parse(rawConfig)
+  } catch {
+    return {}
+  }
+}
+
+const readProjectCover = (project, config) => {
+  const directCover = project.cover || project.Cover || null
+  let candidate
+  if (typeof directCover === 'string' && directCover.trim().startsWith('{')) {
+    candidate = config.cover || config.coverUrl || null
+  } else {
+    candidate = project.coverUrl || project.CoverUrl || directCover || config.cover || config.coverUrl || null
+  }
+
+  if (typeof candidate !== 'string') return null
+  if (candidate.startsWith('/uploads/')) return `${apiOrigin}${candidate}`
+  return /^(https?:|data:image|blob:)/i.test(candidate) ? candidate : null
 }
 
 const upsertProject = (projects = [], rawProject) => {
@@ -88,26 +117,32 @@ const defaultProjectNodes = (projectId) => ([
   }
 ])
 
-const mapProjectRow = (project) => ({
-  id: resolveProjectId(project),
-  workspaceId: project.workspaceId || project.WorkspaceId || null,
-  name: project.name || project.Name || '',
-  key: project.key || project.Key || project.identifier || project.Identifier || project.name?.substring(0, 4)?.toUpperCase() || project.Name?.substring(0, 4)?.toUpperCase() || 'PRJ',
-  description: project.description || project.Description || '',
-  icon: project.icon || project.Icon || null,
-  cover: project.cover || project.Cover || null,
-  networkType: project.networkType || project.NetworkType || 'Public',
-  leadName: project.leadName || project.LeadName || project.creatorName || project.CreatorName || 'Project',
-  isMember: typeof project.isMember === 'boolean' ? project.isMember : true,
-  isFavorite: Boolean(project.isFavorite ?? project.IsFavorite),
-  myRole: project.myRole || project.MyRole || null,
-  createdAt: project.createdAt || project.CreatedAt || null,
-  updatedAt: project.updatedAt || project.UpdatedAt || null,
-  workspaceId: project.workspaceId || project.WorkspaceId || null,
-  WorkspaceId: project.WorkspaceId || project.workspaceId || null,
-  children: defaultProjectNodes(resolveProjectId(project)),
-  originalRow: project
-})
+const mapProjectRow = (project) => {
+  const config = readProjectUiConfig(project)
+  const projectId = resolveProjectId(project)
+  const workspaceId = project.workspaceId || project.WorkspaceId || null
+
+  return {
+    id: projectId,
+    workspaceId,
+    name: project.name || project.Name || '',
+    key: project.key || project.Key || project.identifier || project.Identifier || project.name?.substring(0, 4)?.toUpperCase() || project.Name?.substring(0, 4)?.toUpperCase() || 'PRJ',
+    description: project.description || project.Description || '',
+    icon: project.icon || project.Icon || config.icon || null,
+    cover: readProjectCover(project, config),
+    coverAltText: project.coverAltText || project.CoverAltText || config.coverAltText || null,
+    networkType: project.networkType || project.NetworkType || 'Public',
+    leadName: project.leadName || project.LeadName || project.creatorName || project.CreatorName || 'Project',
+    isMember: typeof project.isMember === 'boolean' ? project.isMember : true,
+    isFavorite: Boolean(project.isFavorite ?? project.IsFavorite),
+    myRole: project.myRole || project.MyRole || null,
+    createdAt: project.createdAt || project.CreatedAt || null,
+    updatedAt: project.updatedAt || project.UpdatedAt || null,
+    WorkspaceId: workspaceId,
+    children: defaultProjectNodes(projectId),
+    originalRow: project
+  }
+}
 
 export const useProjectStore = defineStore('project', {
   state: () => ({ lessons: [], risks: [], decisions: [],
@@ -188,7 +223,7 @@ export const useProjectStore = defineStore('project', {
     },
     clearProjectContext(projectId = null) {
       this.currentProject = projectId
-        ? this.projectDetailsById[projectId] || this.allProjects.find(project => project.id === projectId)?.originalRow || null
+        ? this.projectDetailsById[projectId] || this.allProjects.find(project => project.id === projectId) || null
         : null
       this.members = projectId ? (this.membersByProjectId[projectId] || []) : []
       this.tags = projectId ? (this.labelsByProjectId[projectId] || []) : []
@@ -232,7 +267,7 @@ export const useProjectStore = defineStore('project', {
           axiosClient.get(`/projects/${projectId}/WorkTasks`).catch(() => ({ data: { data: [] } }))
         ])
 
-        const project = projRes.data?.data || null
+        const project = projRes.data?.data ? mapProjectRow(projRes.data.data) : null
         const wId = project?.workspaceId || project?.WorkspaceId
         if (wId) {
           localStorage.setItem('recent_site_id', wId)
@@ -305,7 +340,7 @@ export const useProjectStore = defineStore('project', {
           return null;
         }
 
-        this.currentProject = projRes.data?.data || null;
+        this.currentProject = projRes.data?.data ? mapProjectRow(projRes.data.data) : null;
         const wId = this.currentProject?.workspaceId || this.currentProject?.WorkspaceId
         if (wId) {
           localStorage.setItem('recent_site_id', wId)
