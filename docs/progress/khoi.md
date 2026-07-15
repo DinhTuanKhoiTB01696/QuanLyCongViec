@@ -19,7 +19,7 @@
 - Next: KHOI-01 Project Cover end-to-end
 
 ## KHOI-01
-- Status: BLOCKED
+- Status: DONE
 - Started: 2026-07-15
 - Target: Project Cover end-to-end
 - Branch: `integration/demo-release`
@@ -41,16 +41,15 @@
   - File JSON và PNG 5,773,540 bytes: PASS `400`; cover hợp lệ trong DB không bị thay đổi.
   - Project tạo thành công rồi upload lỗi, sau đó retry trên cùng ID: PASS; DB key `K1FAIL15` vẫn đúng 1 project.
   - F5 danh sách `/spaces` và Project Dashboard: PASS; cover/alt/icon đồng bộ ở danh sách, sidebar và header.
-  - Native file chooser trong modal: mở được; browser automation không được phép gắn file nên chưa chạy được chọn file/preview/upload trực tiếp từ modal.
+  - Native file chooser thủ công trong `CreateSpaceModal.vue`: PASS; chọn ảnh, preview, xóa ảnh, tạo Project, reload, validation định dạng và giới hạn 5MB đều PASS.
   - Frontend `npm run build`: PASS; `git diff --check`: PASS.
 - Evidence:
   - Không cover: project `3ca0b525-6bb3-4c00-bab6-85e286ffa815`; response create thành công; DB ban đầu `CoverUrl/CoverAltText = NULL`.
   - PNG: `e5242e8c-d53c-4ee6-a8b4-0061411e9f72`; JPG: `e396fb29-4f48-4bf4-9b6e-1a8c2fa06695`; WEBP: `3e279c87-3c3a-46df-b20a-83904d338d1d`.
   - Create-then-upload-fail/retry: `37a2760e-925f-4685-9d25-596a6231f388`; create `201`, upload sai `400`, retry cover đúng `200`, project count = 1.
   - Backend reject: `Project cover must be PNG, JPG, JPEG, or WEBP.` và `Project cover must be 5MB or smaller.`
-- Blocker:
-  - Bộ điều khiển browser trả `Not allowed` cho `fileChooser.setFiles`, còn browser trong ứng dụng không hỗ trợ upload file. Vì vậy chưa đủ bằng chứng browser end-to-end cho chọn file, preview, xóa file đã chọn và submit cover ngay trong modal.
-- Next: Chạy một lượt chọn PNG/JPG/WEBP và validation trực tiếp bằng file chooser thủ công hoặc browser runner có quyền upload; chỉ chuyển DONE khi lượt này PASS.
+- Blocker: Không có
+- Next: Không có
 
 ## KHOI-02
 - Status: DONE
