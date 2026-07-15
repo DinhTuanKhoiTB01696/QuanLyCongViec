@@ -44,6 +44,7 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<TaskType> TaskTypes { get; set; }
         public DbSet<TaskManagement.Domain.Entities.TaskStatus> TaskStatuses { get; set; }
         public DbSet<WorkTask> WorkTasks { get; set; }
+        public DbSet<TaskContingencyPlan> TaskContingencyPlans { get; set; }
         public DbSet<ContingencyPlan> ContingencyPlans { get; set; }
         public DbSet<ContingencyPlanTask> ContingencyPlanTasks { get; set; }
         public DbSet<TaskAssignment> TaskAssignments { get; set; }
@@ -57,6 +58,7 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<SiteAuditLog> SiteAuditLogs { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<NotificationPreference> NotificationPreferences { get; set; }
         public DbSet<RecentView> RecentViews { get; set; }
 
         // Group 5: Gamification & Recognition
@@ -69,6 +71,9 @@ namespace TaskManagement.Infrastructure.Data
         // Group 6: AI Integration
         public DbSet<AIPromptTemplate> AIPromptTemplates { get; set; }
         public DbSet<AITokenUsage> AITokenUsages { get; set; }
+        public DbSet<AiPricingPlan> AiPricingPlans { get; set; }
+        public DbSet<AiCreditRule> AiCreditRules { get; set; }
+        public DbSet<AiUsageLedger> AiUsageLedgerEntries { get; set; }
         public DbSet<AIFeedback> AIFeedbacks { get; set; }
         public DbSet<AITrainingDataset> AITrainingDatasets { get; set; }
         public DbSet<TaskVectorEmbedding> TaskVectorEmbeddings { get; set; }
@@ -143,6 +148,39 @@ namespace TaskManagement.Infrastructure.Data
             modelBuilder.Entity<DepartmentMember>().HasKey(x => new { x.DepartmentId, x.UserId });
             modelBuilder.Entity<ProjectMember>().HasKey(x => new { x.ProjectId, x.UserId });
             modelBuilder.Entity<TaskAssignment>().HasKey(x => new { x.WorkTaskId, x.UserId });
+
+            modelBuilder.Entity<ContingencyPlan>()
+                .HasOne(cp => cp.WorkTask)
+                .WithMany(wt => wt.ContingencyPlans)
+                .HasForeignKey(cp => cp.WorkTaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ContingencyPlanTask>()
+                .HasOne(cpt => cpt.ContingencyPlan)
+                .WithMany(cp => cp.ContingencyPlanTasks)
+                .HasForeignKey(cpt => cpt.ContingencyPlanId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ContingencyPlanTask>()
+                .HasOne(cpt => cpt.WorkTask)
+                .WithMany()
+                .HasForeignKey(cpt => cpt.WorkTaskId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ContingencyPlanTask>()
+                .HasOne(cpt => cpt.Assignee)
+                .WithMany()
+                .HasForeignKey(cpt => cpt.AssigneeId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<ContingencyPlanTask>()
+                .HasOne(cpt => cpt.ActivatedBy)
+                .WithMany()
+                .HasForeignKey(cpt => cpt.ActivatedById)
+                .OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<TaskDependency>().HasKey(x => new { x.PredecessorTaskId, x.SuccessorTaskId });
             modelBuilder.Entity<UserWallet>().HasKey(x => x.UserId);
             modelBuilder.Entity<TaskVectorEmbedding>().HasKey(x => x.WorkTaskId);
@@ -169,6 +207,8 @@ namespace TaskManagement.Infrastructure.Data
             modelBuilder.Entity<WorkTask>().HasIndex(wt => wt.AssignedUserId);
             modelBuilder.Entity<WorkTask>().HasIndex(wt => new { wt.WorkspaceId, wt.ProjectId });
             modelBuilder.Entity<WorkTask>().HasIndex(wt => wt.SortOrder);
+            modelBuilder.Entity<TaskContingencyPlan>().HasIndex(plan => new { plan.WorkTaskId, plan.Status });
+            modelBuilder.Entity<TaskContingencyPlan>().HasIndex(plan => plan.SupportPersonId);
             modelBuilder.Entity<ProjectMember>().HasIndex(pm => pm.UserId);
             modelBuilder.Entity<TaskDraft>().HasIndex(td => new { td.UserId, td.UpdatedAt });
             modelBuilder.Entity<TaskDraft>().HasIndex(td => new { td.UserId, td.ProjectId, td.UpdatedAt });
@@ -307,38 +347,6 @@ namespace TaskManagement.Infrastructure.Data
                 .WithMany(u => u.ReportedTasks)
                 .HasForeignKey(wt => wt.ReporterId)
                 .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<ContingencyPlan>()
-                .HasOne(cp => cp.WorkTask)
-                .WithMany(wt => wt.ContingencyPlans)
-                .HasForeignKey(cp => cp.WorkTaskId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<ContingencyPlanTask>()
-                .HasOne(cpt => cpt.ContingencyPlan)
-                .WithMany(cp => cp.ContingencyPlanTasks)
-                .HasForeignKey(cpt => cpt.ContingencyPlanId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<ContingencyPlanTask>()
-                .HasOne(cpt => cpt.WorkTask)
-                .WithMany()
-                .HasForeignKey(cpt => cpt.WorkTaskId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<ContingencyPlanTask>()
-                .HasOne(cpt => cpt.Assignee)
-                .WithMany()
-                .HasForeignKey(cpt => cpt.AssigneeId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.NoAction);
-
-            modelBuilder.Entity<ContingencyPlanTask>()
-                .HasOne(cpt => cpt.ActivatedBy)
-                .WithMany()
-                .HasForeignKey(cpt => cpt.ActivatedById)
-                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<TaskAssignment>()
                 .HasOne(ta => ta.WorkTask)
@@ -571,6 +579,25 @@ namespace TaskManagement.Infrastructure.Data
                 .HasForeignKey(tu => tu.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<AiPricingPlan>().HasIndex(x => x.Code).IsUnique();
+            modelBuilder.Entity<AiPricingPlan>().Property(x => x.Code).HasMaxLength(64);
+            modelBuilder.Entity<AiPricingPlan>().Property(x => x.Name).HasMaxLength(128);
+            modelBuilder.Entity<AiPricingPlan>().Property(x => x.PricingStatus).HasMaxLength(64);
+            modelBuilder.Entity<AiCreditRule>().HasIndex(x => x.ActionType).IsUnique();
+            modelBuilder.Entity<AiCreditRule>().Property(x => x.ActionType).HasMaxLength(128);
+            modelBuilder.Entity<AiUsageLedger>().HasIndex(x => new { x.WorkspaceId, x.OccurredAt });
+            modelBuilder.Entity<AiUsageLedger>().HasIndex(x => new { x.UserId, x.OccurredAt });
+            modelBuilder.Entity<AiUsageLedger>().HasIndex(x => x.IdempotencyKey).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
+            modelBuilder.Entity<AiUsageLedger>()
+                .HasOne(x => x.User).WithMany(x => x.AiUsageLedgerEntries).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<AiUsageLedger>()
+                .HasOne(x => x.Workspace).WithMany().HasForeignKey(x => x.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<AiUsageLedger>()
+                .HasOne(x => x.Project).WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<NotificationPreference>().HasIndex(x => new { x.UserId, x.Category }).IsUnique();
+            modelBuilder.Entity<NotificationPreference>()
+                .HasOne(x => x.User).WithMany(x => x.NotificationPreferences).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+
             modelBuilder.Entity<AIFeedback>()
                 .HasOne(f => f.User)
                 .WithMany(u => u.AIFeedbacks)
@@ -588,6 +615,30 @@ namespace TaskManagement.Infrastructure.Data
                 .WithOne(wt => wt.TaskVectorEmbedding)
                 .HasForeignKey<TaskVectorEmbedding>(tve => tve.WorkTaskId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TaskContingencyPlan>()
+                .HasOne(plan => plan.WorkTask)
+                .WithMany(task => task.TaskContingencyPlans)
+                .HasForeignKey(plan => plan.WorkTaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TaskContingencyPlan>()
+                .HasOne(plan => plan.SupportPerson)
+                .WithMany()
+                .HasForeignKey(plan => plan.SupportPersonId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<TaskContingencyPlan>()
+                .HasOne(plan => plan.CreatedBy)
+                .WithMany()
+                .HasForeignKey(plan => plan.CreatedById)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<TaskContingencyPlan>()
+                .HasOne(plan => plan.UpdatedBy)
+                .WithMany()
+                .HasForeignKey(plan => plan.UpdatedById)
+                .OnDelete(DeleteBehavior.NoAction);
 
             // =============================================
             // 9. Relationships - Time Tracking
