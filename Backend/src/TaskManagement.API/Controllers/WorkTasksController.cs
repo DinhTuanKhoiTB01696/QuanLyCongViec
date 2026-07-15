@@ -2470,6 +2470,178 @@ namespace TaskManagement.API.Controllers
             }
             return clean;
         }
+
+        // ==========================================
+        // Contingency Plan APIs
+        // ==========================================
+
+        [HttpGet("worktasks/{id}/contingency-plans")]
+        [Authorize]
+        public async Task<IActionResult> GetContingencyPlans(Guid id)
+        {
+            try
+            {
+                var plans = await _workTaskService.GetContingencyPlansAsync(id);
+                return Ok(new { statusCode = 200, data = plans });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpGet("worktasks/{id}/contingency-plans/{planId}")]
+        [Authorize]
+        public async Task<IActionResult> GetContingencyPlan(Guid id, Guid planId)
+        {
+            try
+            {
+                var plan = await _workTaskService.GetContingencyPlanByIdAsync(id, planId);
+                if (plan == null) return NotFound(new { statusCode = 404, message = "Plan not found" });
+                return Ok(new { statusCode = 200, data = plan });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpPost("worktasks/{id}/contingency-plans")]
+        [Authorize]
+        public async Task<IActionResult> CreateContingencyPlan(Guid id, [FromBody] TaskManagement.Application.DTOs.WorkTask.CreateContingencyPlanDto dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "User is not authenticated." });
+
+            try
+            {
+                var plan = await _workTaskService.CreateContingencyPlanAsync(id, userId, dto);
+                return Ok(new { statusCode = 201, message = "Plan created", data = plan });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpPut("worktasks/{id}/contingency-plans/{planId}")]
+        [Authorize]
+        public async Task<IActionResult> UpdateContingencyPlan(Guid id, Guid planId, [FromBody] TaskManagement.Application.DTOs.WorkTask.UpdateContingencyPlanDto dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "User is not authenticated." });
+
+            try
+            {
+                var plan = await _workTaskService.UpdateContingencyPlanAsync(id, planId, userId, dto);
+                return Ok(new { statusCode = 200, message = "Plan updated", data = plan });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpDelete("worktasks/{id}/contingency-plans/{planId}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteContingencyPlan(Guid id, Guid planId)
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "User is not authenticated." });
+
+            try
+            {
+                await _workTaskService.DeleteContingencyPlanAsync(id, planId, userId);
+                return Ok(new { statusCode = 200, message = "Plan deleted" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpPost("worktasks/{id}/contingency-plans/{planId}/tasks/create")]
+        [Authorize]
+        public async Task<IActionResult> CreateContingencyTask(Guid id, Guid planId, [FromBody] TaskManagement.Application.DTOs.WorkTask.CreateContingencyTaskDto dto)
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "User is not authenticated." });
+
+            try
+            {
+                await _workTaskService.CreateContingencyTaskToPlanAsync(id, planId, dto, userId);
+                return Ok(new { statusCode = 200, message = "Contingency task created successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpPost("worktasks/{id}/contingency-plans/{planId}/tasks")]
+        [Authorize]
+        public async Task<IActionResult> AddContingencyTask(Guid id, Guid planId, [FromBody] Guid fallbackTaskId)
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "User is not authenticated." });
+
+            try
+            {
+                await _workTaskService.AddContingencyTaskToPlanAsync(id, planId, fallbackTaskId, userId);
+                return Ok(new { statusCode = 200, message = "Task linked to plan successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpDelete("worktasks/{id}/contingency-plans/{planId}/tasks/{fallbackTaskId}")]
+        [Authorize]
+        public async Task<IActionResult> RemoveContingencyTask(Guid id, Guid planId, Guid fallbackTaskId)
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "User is not authenticated." });
+
+            try
+            {
+                await _workTaskService.RemoveContingencyTaskFromPlanAsync(id, planId, fallbackTaskId, userId);
+                return Ok(new { statusCode = 200, message = "Task removed from plan successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpPost("worktasks/{id}/contingency-plans/{planId}/tasks/{fallbackTaskId}/activate")]
+        [Authorize]
+        public async Task<IActionResult> ActivateContingencyTask(Guid id, Guid planId, Guid fallbackTaskId)
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "User is not authenticated." });
+
+            try
+            {
+                await _workTaskService.ActivateContingencyTaskAsync(id, planId, fallbackTaskId, userId);
+                return Ok(new { statusCode = 200, message = "Contingency task activated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
     }
 
     public class ImportTaskRowDto

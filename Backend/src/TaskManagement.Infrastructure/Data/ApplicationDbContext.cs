@@ -44,6 +44,8 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<TaskType> TaskTypes { get; set; }
         public DbSet<TaskManagement.Domain.Entities.TaskStatus> TaskStatuses { get; set; }
         public DbSet<WorkTask> WorkTasks { get; set; }
+        public DbSet<ContingencyPlan> ContingencyPlans { get; set; }
+        public DbSet<ContingencyPlanTask> ContingencyPlanTasks { get; set; }
         public DbSet<TaskAssignment> TaskAssignments { get; set; }
         public DbSet<TaskDependency> TaskDependencies { get; set; }
 
@@ -305,6 +307,38 @@ namespace TaskManagement.Infrastructure.Data
                 .WithMany(u => u.ReportedTasks)
                 .HasForeignKey(wt => wt.ReporterId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ContingencyPlan>()
+                .HasOne(cp => cp.WorkTask)
+                .WithMany(wt => wt.ContingencyPlans)
+                .HasForeignKey(cp => cp.WorkTaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ContingencyPlanTask>()
+                .HasOne(cpt => cpt.ContingencyPlan)
+                .WithMany(cp => cp.ContingencyPlanTasks)
+                .HasForeignKey(cpt => cpt.ContingencyPlanId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ContingencyPlanTask>()
+                .HasOne(cpt => cpt.WorkTask)
+                .WithMany()
+                .HasForeignKey(cpt => cpt.WorkTaskId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ContingencyPlanTask>()
+                .HasOne(cpt => cpt.Assignee)
+                .WithMany()
+                .HasForeignKey(cpt => cpt.AssigneeId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<ContingencyPlanTask>()
+                .HasOne(cpt => cpt.ActivatedBy)
+                .WithMany()
+                .HasForeignKey(cpt => cpt.ActivatedById)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<TaskAssignment>()
                 .HasOne(ta => ta.WorkTask)
