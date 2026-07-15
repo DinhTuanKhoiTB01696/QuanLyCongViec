@@ -45,6 +45,8 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<TaskManagement.Domain.Entities.TaskStatus> TaskStatuses { get; set; }
         public DbSet<WorkTask> WorkTasks { get; set; }
         public DbSet<TaskContingencyPlan> TaskContingencyPlans { get; set; }
+        public DbSet<ContingencyPlan> ContingencyPlans { get; set; }
+        public DbSet<ContingencyPlanTask> ContingencyPlanTasks { get; set; }
         public DbSet<TaskAssignment> TaskAssignments { get; set; }
         public DbSet<TaskDependency> TaskDependencies { get; set; }
 
@@ -146,6 +148,39 @@ namespace TaskManagement.Infrastructure.Data
             modelBuilder.Entity<DepartmentMember>().HasKey(x => new { x.DepartmentId, x.UserId });
             modelBuilder.Entity<ProjectMember>().HasKey(x => new { x.ProjectId, x.UserId });
             modelBuilder.Entity<TaskAssignment>().HasKey(x => new { x.WorkTaskId, x.UserId });
+
+            modelBuilder.Entity<ContingencyPlan>()
+                .HasOne(cp => cp.WorkTask)
+                .WithMany(wt => wt.ContingencyPlans)
+                .HasForeignKey(cp => cp.WorkTaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ContingencyPlanTask>()
+                .HasOne(cpt => cpt.ContingencyPlan)
+                .WithMany(cp => cp.ContingencyPlanTasks)
+                .HasForeignKey(cpt => cpt.ContingencyPlanId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ContingencyPlanTask>()
+                .HasOne(cpt => cpt.WorkTask)
+                .WithMany()
+                .HasForeignKey(cpt => cpt.WorkTaskId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ContingencyPlanTask>()
+                .HasOne(cpt => cpt.Assignee)
+                .WithMany()
+                .HasForeignKey(cpt => cpt.AssigneeId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<ContingencyPlanTask>()
+                .HasOne(cpt => cpt.ActivatedBy)
+                .WithMany()
+                .HasForeignKey(cpt => cpt.ActivatedById)
+                .OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<TaskDependency>().HasKey(x => new { x.PredecessorTaskId, x.SuccessorTaskId });
             modelBuilder.Entity<UserWallet>().HasKey(x => x.UserId);
             modelBuilder.Entity<TaskVectorEmbedding>().HasKey(x => x.WorkTaskId);
@@ -583,7 +618,7 @@ namespace TaskManagement.Infrastructure.Data
 
             modelBuilder.Entity<TaskContingencyPlan>()
                 .HasOne(plan => plan.WorkTask)
-                .WithMany(task => task.ContingencyPlans)
+                .WithMany(task => task.TaskContingencyPlans)
                 .HasForeignKey(plan => plan.WorkTaskId)
                 .OnDelete(DeleteBehavior.Cascade);
 

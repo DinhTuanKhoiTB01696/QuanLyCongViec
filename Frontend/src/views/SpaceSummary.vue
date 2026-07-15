@@ -141,7 +141,8 @@
                    </button>
                    <span class="task-id" style="margin-left: 8px;">{{ task.sequenceId || task.id.substring(0,8).toUpperCase() }}</span>
                    <span class="task-title" :style="group.statusName === 'DONE' ? { textDecoration: 'line-through', color: 'var(--color-text-muted)' } : {}">
-                     {{ task.title }}
+                     <span v-if="task.title && task.title.startsWith('[DỰ PHÒNG]')" class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold mr-1 border border-blue-200 uppercase tracking-wider relative top-[-1px]">Dự phòng</span>
+                     {{ task.title && task.title.startsWith('[DỰ PHÒNG]') ? task.title.substring(11).trim() : task.title }}
                    </span>
                  </div>
                  <div class="tr-right" @click.stop>
@@ -313,7 +314,10 @@
                       </button>
                     </div>
                   </div>
-                  <p class="issue-title" :style="element.statusName === 'DONE' ? { textDecoration: 'line-through', color: 'var(--color-text-muted)' } : {}">{{ element.title }}</p>
+                  <p class="issue-title" :style="element.statusName === 'DONE' ? { textDecoration: 'line-through', color: 'var(--color-text-muted)' } : {}">
+                        <span v-if="element.title && element.title.startsWith('[DỰ PHÒNG]')" class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold mr-1 border border-blue-200 uppercase tracking-wider relative top-[-1px]">Dự phòng</span>
+                        {{ element.title && element.title.startsWith('[DỰ PHÒNG]') ? element.title.substring(11).trim() : element.title }}
+                      </p>
                   <div class="issue-meta mt-2" style="display:flex; align-items:center; gap:8px;" @click.stop>
                      <el-dropdown trigger="click" @command="(val) => updateTask(element, 'statusName', val, element.statusName)">
                        <div class="badge status-badge cursor-pointer hover:bg-[var(--color-border)]" :style="{ '--badge-color': getStatusColor(element.statusName) }">
