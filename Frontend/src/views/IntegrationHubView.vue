@@ -1,5 +1,5 @@
 <template>
-  <main class="integration-page">
+    <main class="integration-page sp-page-shell">
       <section class="hero-shell">
         <div class="hero-copy">
           <p class="kicker">Khôi · Integration Hub</p>
@@ -2088,5 +2088,58 @@ button:disabled {
     width: 100%;
     min-width: 0;
   }
+}
+
+/* Desktop behaves like a workspace: the three panels scroll, not the whole page. */
+@media (min-width: 1281px) {
+  .integration-page {
+    box-sizing: border-box;
+    height: calc(100dvh - 64px);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .workspace-grid {
+    min-height: 0;
+    height: calc(100dvh - 286px);
+    max-height: calc(100dvh - 286px);
+    overflow: hidden;
+  }
+
+  .apps-panel,
+  .detail-panel,
+  .inbox-list {
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .inbox-panel {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .inbox-list {
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+  }
+}
+
+.hero-action-card,
+.stats-grid article,
+.panel {
+  box-shadow: var(--sp-shadow-xs);
+}
+
+.primary {
+  border-color: var(--sp-blue-700);
+  background: var(--sp-blue-700);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--sp-blue-700) 20%, transparent);
+}
+
+.tabs button.active,
+.status-filter-btn.active {
+  color: #fff;
+  background: var(--sp-blue-600);
 }
 </style>

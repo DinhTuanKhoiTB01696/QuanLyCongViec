@@ -709,6 +709,12 @@ export default {
     }
   },
   cyclesTab: {
+    cyclesDesc: 'Quản lý sprint, mốc thời gian và nhịp giao việc của dự án',
+    started: 'Đang thực hiện',
+    backlog: 'Chưa bắt đầu',
+    other: 'Khác',
+    active: 'Đang hoạt động',
+    items: 'công việc',
     cycles: 'Chu kỳ',
     searchCycles: 'Tìm kiếm chu kỳ...',
     filters: 'Bộ lọc',

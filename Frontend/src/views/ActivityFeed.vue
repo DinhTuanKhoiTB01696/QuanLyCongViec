@@ -1,5 +1,5 @@
 <template>
-  <div class="feed-container admin-page">
+  <div class="feed-container admin-page sp-page-shell">
     <div class="page-header flex justify-between items-center mb-6">
       <div>
         <h1 class="page-title flex items-center gap-2">

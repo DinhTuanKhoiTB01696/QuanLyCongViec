@@ -137,6 +137,139 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.ToTable("AITrainingDatasets");
                 });
 
+            modelBuilder.Entity("TaskManagement.Domain.Entities.AiCreditRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Disclaimer")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("EstimatedCredits")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionType")
+                        .IsUnique();
+
+                    b.ToTable("AiCreditRules");
+                });
+
+            modelBuilder.Entity("TaskManagement.Domain.Entities.AiPricingPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("ExtraAiCreditsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("FeaturesJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("IncludedAiCredits")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("IncludedUsers")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("MonthlyPriceVnd")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<bool>("PerUser")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PricingStatus")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("AiPricingPlans");
+                });
+
+            modelBuilder.Entity("TaskManagement.Domain.Entities.AiUsageLedger", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("CreditsConsumed")
+                        .HasColumnType("int");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long?>("ProviderTokens")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("WorkspaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("[IdempotencyKey] IS NOT NULL");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("UserId", "OccurredAt");
+
+                    b.HasIndex("WorkspaceId", "OccurredAt");
+
+                    b.ToTable("AiUsageLedgerEntries");
+                });
+
             modelBuilder.Entity("TaskManagement.Domain.Entities.Attachment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1187,6 +1320,43 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.ToTable("Notifications");
                 });
 
+            modelBuilder.Entity("TaskManagement.Domain.Entities.NotificationPreference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("EmailEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("InAppEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Category")
+                        .IsUnique();
+
+                    b.ToTable("NotificationPreferences");
+                });
+
             modelBuilder.Entity("TaskManagement.Domain.Entities.Organization", b =>
                 {
                     b.Property<string>("Id")
@@ -1386,6 +1556,12 @@ namespace TaskManagement.Infrastructure.Migrations
 
                     b.Property<DateTime?>("CloseDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CoverAltText")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CoverUrl")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -2188,6 +2364,68 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.ToTable("TaskAssignments");
                 });
 
+            modelBuilder.Entity("TaskManagement.Domain.Entities.TaskContingencyPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Cause")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CreatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ImpactLevel")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ReplacementDeadline")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ResponsePlan")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Risk")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid?>("SupportPersonId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TriggerCondition")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("WorkTaskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("SupportPersonId");
+
+                    b.HasIndex("UpdatedById");
+
+                    b.HasIndex("WorkTaskId", "Status");
+
+                    b.ToTable("TaskContingencyPlans");
+                });
+
             modelBuilder.Entity("TaskManagement.Domain.Entities.TaskDependency", b =>
                 {
                     b.Property<Guid>("PredecessorTaskId")
@@ -2750,6 +2988,32 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("Creator");
                 });
 
+            modelBuilder.Entity("TaskManagement.Domain.Entities.AiUsageLedger", b =>
+                {
+                    b.HasOne("TaskManagement.Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("TaskManagement.Domain.Entities.User", "User")
+                        .WithMany("AiUsageLedgerEntries")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TaskManagement.Domain.Entities.Workspace", "Workspace")
+                        .WithMany()
+                        .HasForeignKey("WorkspaceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+
+                    b.Navigation("User");
+
+                    b.Navigation("Workspace");
+                });
+
             modelBuilder.Entity("TaskManagement.Domain.Entities.Attachment", b =>
                 {
                     b.HasOne("TaskManagement.Domain.Entities.User", "User")
@@ -3275,6 +3539,17 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("TaskManagement.Domain.Entities.NotificationPreference", b =>
+                {
+                    b.HasOne("TaskManagement.Domain.Entities.User", "User")
+                        .WithMany("NotificationPreferences")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("TaskManagement.Domain.Entities.Page", b =>
                 {
                     b.HasOne("TaskManagement.Domain.Entities.User", "CreatedBy")
@@ -3669,6 +3944,40 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("WorkTask");
                 });
 
+            modelBuilder.Entity("TaskManagement.Domain.Entities.TaskContingencyPlan", b =>
+                {
+                    b.HasOne("TaskManagement.Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("TaskManagement.Domain.Entities.User", "SupportPerson")
+                        .WithMany()
+                        .HasForeignKey("SupportPersonId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("TaskManagement.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("TaskManagement.Domain.Entities.WorkTask", "WorkTask")
+                        .WithMany("ContingencyPlans")
+                        .HasForeignKey("WorkTaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("SupportPerson");
+
+                    b.Navigation("UpdatedBy");
+
+                    b.Navigation("WorkTask");
+                });
+
             modelBuilder.Entity("TaskManagement.Domain.Entities.TaskDependency", b =>
                 {
                     b.HasOne("TaskManagement.Domain.Entities.WorkTask", "PredecessorTask")
@@ -4054,6 +4363,8 @@ namespace TaskManagement.Infrastructure.Migrations
 
                     b.Navigation("AITrainingDatasets");
 
+                    b.Navigation("AiUsageLedgerEntries");
+
                     b.Navigation("Attachments");
 
                     b.Navigation("AuditLogs");
@@ -4065,6 +4376,8 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Navigation("DepartmentMemberships");
 
                     b.Navigation("ManagedDepartments");
+
+                    b.Navigation("NotificationPreferences");
 
                     b.Navigation("Notifications");
 

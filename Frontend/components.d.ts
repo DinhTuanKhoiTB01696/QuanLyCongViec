@@ -121,6 +121,7 @@ declare module 'vue' {
     PermissionEditorDialog: typeof import('./src/components/RoleManagement/PermissionEditorDialog.vue')['default']
     PermissionsTab: typeof import('./src/components/RoleManagement/PermissionsTab.vue')['default']
     PriorityAIPanel: typeof import('./src/components/PriorityAIPanel.vue')['default']
+    ProductVideoSection: typeof import('./src/components/landing/ProductVideoSection.vue')['default']
     ProfileCard: typeof import('./src/components/profile/ProfileCard.vue')['default']
     ProfileSidebar: typeof import('./src/components/profile/ProfileSidebar.vue')['default']
     ProjectEmptyState: typeof import('./src/components/common/ProjectEmptyState.vue')['default']

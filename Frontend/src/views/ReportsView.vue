@@ -814,9 +814,9 @@ onMounted(() => {
 /* Page Layout Wrapper */
 .space-reports-page {
   width: 100%;
-  max-width: 1440px;
+  max-width: none;
   margin: 0 auto;
-  padding: 34px clamp(20px, 4vw, 48px) 54px;
+  padding: 28px clamp(24px, 3.2vw, 56px) 48px;
   min-height: calc(100vh - 64px);
   color: var(--color-text-primary);
   display: flex;
@@ -839,14 +839,14 @@ onMounted(() => {
 .reports-content {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 28px;
+  gap: 24px;
 }
 
 .reports-content > .health-alert-card,
 .reports-content > .reports-stats-grid { grid-column: 1 / -1; }
 .reports-content > .attention-panel,
-.reports-content > .workload-panel,
-.reports-content > .report-card { grid-column: span 6; }
+.reports-content > .workload-panel { grid-column: span 7; }
+.reports-content > .report-card { grid-column: span 5; }
 
 /* Project Health Alert Card styling */
 .health-alert-card {
@@ -1044,11 +1044,12 @@ onMounted(() => {
 .report-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 16px !important;
-  padding: 24px;
+  border-radius: 14px !important;
+  padding: 24px 26px;
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .report-card:hover {
@@ -1056,13 +1057,14 @@ onMounted(() => {
 }
 
 .card-title {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 750;
   color: var(--color-text-primary);
   margin-bottom: 20px;
   display: flex;
   align-items: center;
   gap: 10px;
+  line-height: 1.3;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--color-border);
 }
@@ -1070,8 +1072,10 @@ onMounted(() => {
 /* Grid Layouts for cards */
 .distributions-grid {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
   gap: 24px;
+  align-items: start;
+  grid-column: 1 / -1;
 }
 
 .dashboard-left-panel,
@@ -1079,9 +1083,10 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-width: 0;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1180px) {
   .distributions-grid {
     grid-template-columns: 1fr;
   }
@@ -1120,12 +1125,14 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .header-text {
   font-size: 13.5px;
   font-weight: 700;
   color: var(--color-text-primary);
+  overflow-wrap: anywhere;
 }
 
 .badge {

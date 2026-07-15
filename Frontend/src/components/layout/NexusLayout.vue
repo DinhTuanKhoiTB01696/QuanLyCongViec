@@ -320,9 +320,11 @@ import CreateSpaceModal from '../CreateSpaceModal.vue'
 import AppTopBar from './AppTopBar.vue'
 import NexusSidebar from './NexusSidebar.vue'
 import { useI18nStore } from '@/store/useI18nStore'
+import { useAiPetStore } from '@/store/useAiPetStore'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useGoalStore } from '@/store/useGoalStore'
+import { useSprintStore } from '@/store/useSprintStore'
 import { getStoredUserSession } from '@/utils/authSession'
 import { getDefaultPermissionMatrix, hasPermission } from '@/utils/permissionGuard'
 
@@ -339,8 +341,10 @@ const i18nStore = useI18nStore()
 const workTaskStore = useWorkTaskStore()
 const projectStore = useProjectStore()
 const goalStore = useGoalStore()
+const sprintStore = useSprintStore()
 const sidebarVisible = ref(window.innerWidth > 1024)
-const aiVisible = ref(false)
+const aiPetStore = useAiPetStore()
+const aiVisible = computed({ get: () => aiPetStore.isPanelOpen, set: value => aiPetStore.setPanelOpen(value) })
 const createVisible = ref(false)
 const createSpaceVisible = ref(false)
 const isMobile = ref(window.innerWidth <= 1024)
@@ -349,8 +353,8 @@ const aiSending = ref(false)
 const aiContentRef = ref(null)
 const selectedText = ref('')
 const selectionPopover = ref({ visible: false, left: 0, top: 0 })
-const petPinned = ref(localStorage.getItem('sprinta-ai-pet-pinned') !== 'false')
-const petPosition = ref(loadPetPosition())
+const petPinned = computed({ get: () => aiPetStore.isPinned, set: value => aiPetStore.setPinned(value) })
+const petPosition = computed({ get: () => aiPetStore.position, set: value => aiPetStore.setPosition(value) })
 const petDragging = ref(false)
 const petMoved = ref(false)
 const petDragOffset = ref({ x: 0, y: 0 })
@@ -568,6 +572,7 @@ const updateSize = () => {
     sidebarVisible.value = true
   }
   petPosition.value = clampPetPosition()
+  nextTick(() => window.setTimeout(normalizePetPosition, 80))
   if (isMobile.value || aiVisible.value) stopPetWandering()
   else startPetWandering()
 }
@@ -593,23 +598,68 @@ const stopPetWandering = () => {
 
 const petOverlapsUnsafeZone = (position) => {
   const petRect = { left: position.x, top: position.y, right: position.x + 68, bottom: position.y + 68 }
-  const selectors = ['.app-topbar', '.plane-sidebar', '.ai-sidebar', '.el-overlay', '.el-dialog', '.modal-content', '[role="dialog"]']
-  return selectors.some(selector => [...document.querySelectorAll(selector)].some(element => {
+  const selectors = [
+    { selector: '.app-topbar', minOverlap: 1 },
+    { selector: '.plane-sidebar', minOverlap: 1 },
+    { selector: '.ai-sidebar', minOverlap: 1 },
+    { selector: '.el-overlay', minOverlap: 1 },
+    { selector: '.el-dialog', minOverlap: 1 },
+    { selector: '.modal-content', minOverlap: 1 },
+    { selector: '[role="dialog"]', minOverlap: 1 },
+    { selector: '.report-card', minOverlap: 1200 },
+    { selector: '.health-alert-card', minOverlap: 1200 },
+    { selector: '.reports-stats-grid', minOverlap: 1200 },
+    { selector: '.page-editor', minOverlap: 1200 },
+    { selector: '.editor-content', minOverlap: 1200 },
+    { selector: '.nexus-btn-primary', minOverlap: 800 },
+    { selector: '.project-tabs', minOverlap: 1 },
+    { selector: '.project-tab', minOverlap: 1 },
+    { selector: '.project-nav', minOverlap: 1 },
+    { selector: '.space-tabs', minOverlap: 1 },
+    { selector: '.workspace-nav', minOverlap: 1 },
+    { selector: '.nav-tabs', minOverlap: 1 },
+    { selector: '.project-page-header', minOverlap: 1 },
+    { selector: '.project-global-header', minOverlap: 1 },
+    { selector: '.project-horizontal-nav', minOverlap: 1 },
+    { selector: '.nav-item', minOverlap: 1 }
+  ]
+  return selectors.some(({ selector, minOverlap }) => [...document.querySelectorAll(selector)].some(element => {
     const rect = element.getBoundingClientRect()
-    return rect.width > 0 && rect.height > 0 && petRect.left < rect.right && petRect.right > rect.left && petRect.top < rect.bottom && petRect.bottom > rect.top
+    if (rect.width <= 0 || rect.height <= 0) return false
+    const overlapX = Math.max(0, Math.min(petRect.right, rect.right) - Math.max(petRect.left, rect.left))
+    const overlapY = Math.max(0, Math.min(petRect.bottom, rect.bottom) - Math.max(petRect.top, rect.top))
+    return overlapX * overlapY >= minOverlap
   }))
 }
 
+const edgePetPosition = () => clampPetPosition({
+  x: window.innerWidth - 76,
+  y: Math.max(96, Math.min(window.innerHeight - 96, Math.round(window.innerHeight * 0.82)))
+})
+
 const chooseSafePetPosition = () => {
   const current = clampPetPosition()
+  const edge = edgePetPosition()
+  if (!petOverlapsUnsafeZone(edge)) return edge
   for (let attempt = 0; attempt < 12; attempt += 1) {
     const candidate = clampPetPosition({
       x: 24 + Math.random() * Math.max(24, window.innerWidth - 116),
-      y: Math.max(70, 64 + Math.random() * Math.max(30, window.innerHeight - 150))
+      y: Math.max(220, 160 + Math.random() * Math.max(30, window.innerHeight - 246))
     })
     if (!petOverlapsUnsafeZone(candidate)) return candidate
   }
-  return current
+  return petOverlapsUnsafeZone(current) ? edge : current
+}
+
+const normalizePetPosition = () => {
+  if (petDragging.value || isMobile.value) return
+  const current = clampPetPosition()
+  if (petOverlapsUnsafeZone(current)) {
+    petPosition.value = chooseSafePetPosition()
+  } else {
+    petPosition.value = current
+  }
+  savePetPosition()
 }
 
 const startPetWandering = () => {
@@ -657,7 +707,7 @@ const openFromPet = (event) => {
 
 const handleGlobalKeydown = (event) => {
   const isEscape = event.key === 'Escape' || event.key === 'Esc' || event.code === 'Escape' || event.keyCode === 27
-  if (!isEscape || !aiVisible.value) return
+  if (!isEscape || !aiPetStore.isPanelOpen) return
   // Element Plus owns Escape while a real modal overlay is open. The AI panel
   // is not an overlay, so only close it when no modal is currently active.
   const hasActiveElementPlusOverlay = [...document.querySelectorAll('.el-overlay')].some((overlay) => {
@@ -666,8 +716,8 @@ const handleGlobalKeydown = (event) => {
   })
   if (hasActiveElementPlusOverlay) return
   event.preventDefault()
-  event.stopImmediatePropagation()
-  aiVisible.value = false
+  event.stopPropagation()
+  aiPetStore.setPanelOpen(false)
   stopPetWandering()
 }
 
@@ -677,9 +727,10 @@ onMounted(() => {
   window.addEventListener('offline', updateOnlineStatus)
   document.addEventListener('mouseup', captureSelectedText)
   document.addEventListener('keyup', captureSelectedText)
-  window.addEventListener('keydown', handleGlobalKeydown, true)
+  window.addEventListener('keydown', handleGlobalKeydown)
   window.addEventListener('pointermove', movePet)
   window.addEventListener('pointerup', endPetDrag)
+  nextTick(() => window.setTimeout(normalizePetPosition, 120))
   startPetWandering()
 })
 
@@ -689,10 +740,14 @@ onUnmounted(() => {
   window.removeEventListener('offline', updateOnlineStatus)
   document.removeEventListener('mouseup', captureSelectedText)
   document.removeEventListener('keyup', captureSelectedText)
-  window.removeEventListener('keydown', handleGlobalKeydown, true)
+  window.removeEventListener('keydown', handleGlobalKeydown)
   window.removeEventListener('pointermove', movePet)
   window.removeEventListener('pointerup', endPetDrag)
   stopPetWandering()
+})
+
+watch(() => route.fullPath, () => {
+  nextTick(() => window.setTimeout(normalizePetPosition, 160))
 })
 
 const toggleSidebar = () => {
@@ -725,7 +780,11 @@ const useQuickPrompt = (prompt) => {
 
 const readOnlyActionTypes = new Set([
   'summarize_dashboard', 'summarize_project', 'list_overdue_tasks', 'get_workload',
-  'explain_report', 'summarize_page', 'summarize_intakes', 'suggest_view_filter'
+  'explain_report', 'summarize_page', 'summarize_intakes', 'suggest_view_filter',
+  'list_work_items', 'list_cycles', 'list_modules', 'list_pages', 'list_views',
+  'list_intakes', 'list_pending_intakes', 'analyze_priority_distribution',
+  'analyze_status_distribution', 'analyze_workload', 'identify_project_risks',
+  'refresh_report', 'export_report_csv', 'summarize_report'
 ])
 
 const isReadOnlyAction = (type) => readOnlyActionTypes.has(String(type || '').toLowerCase())
@@ -801,6 +860,17 @@ const payloadValue = (action, ...keys) => {
   return key ? payload[key] : ''
 }
 
+const resolveProjectLabel = (action) => {
+  const projectId = payloadValue(action, 'projectId')
+  const current = projectStore.currentProject
+  if (current && (!projectId || current.id === projectId || current.Id === projectId)) {
+    return current.name || current.Name || 'Dự án hiện tại'
+  }
+  const projects = projectStore.projects || projectStore.allProjects || []
+  const project = projects.find(item => item?.id === projectId || item?.Id === projectId)
+  return project?.name || project?.Name || 'Dự án hiện tại'
+}
+
 const actionSummary = (action) => {
   const type = String(action?.type || '').toLowerCase()
   if (type === 'create_project') return `Tạo project “${payloadValue(action, 'name', 'projectName') || 'Chưa đặt tên'}”.`
@@ -834,7 +904,7 @@ const actionDetails = (action) => {
     add('Người nhận', payloadValue(action, 'assigneeName', 'assigneeId', 'assignedUserId'))
   } else if (['create_cycle', 'create_module', 'create_page', 'create_view', 'create_intake_request'].includes(type)) {
     add('Tên', payloadValue(action, 'name', 'title'))
-    add('Dự án', payloadValue(action, 'projectName', 'projectId'))
+    add('Dự án', payloadValue(action, 'projectName') || resolveProjectLabel(action))
     add('Bắt đầu', payloadValue(action, 'startDate'))
     add('Kết thúc', payloadValue(action, 'endDate'))
   } else if (['update_task_priority', 'update_task_due_date'].includes(type)) {
@@ -860,7 +930,8 @@ const refreshAfterAiAction = async (action, result) => {
   await Promise.all([
     projectStore.fetchAllProjects(true).catch(() => []),
     projectId ? workTaskStore.fetchTasks(projectId, { reset: false }).catch(() => []) : Promise.resolve(),
-    entityType === 'goal' ? goalStore.fetchGoals().catch(() => {}) : Promise.resolve()
+    entityType === 'goal' ? goalStore.fetchGoals().catch(() => {}) : Promise.resolve(),
+    ['cycle', 'sprint'].includes(entityType) && projectId ? sprintStore.fetchSprints(projectId, { force: true }).catch(() => {}) : Promise.resolve()
   ])
   return { entityId, entityType, projectId }
 }
@@ -872,6 +943,12 @@ const navigateToAiEntity = async ({ entityId, entityType, projectId }) => {
     return router.push({ path: `/space/${projectId || currentProjectId.value}/work-items`, query: { task: entityId } })
   }
   if (entityType === 'goal') return router.push(`/home/goals/${entityId}`)
+  if (['cycle', 'sprint'].includes(entityType)) return router.push(`/space/${projectId || currentProjectId.value}/cycles`)
+  if (entityType === 'module') return router.push(`/space/${projectId || currentProjectId.value}/modules`)
+  if (entityType === 'page') return router.push(`/space/${projectId || currentProjectId.value}/pages`)
+  if (entityType === 'view') return router.push(`/space/${projectId || currentProjectId.value}/views`)
+  if (entityType === 'intake' || entityType === 'intake_request') return router.push(`/space/${projectId || currentProjectId.value}/intakes`)
+  if (entityType === 'report') return router.push(`/space/${projectId || currentProjectId.value}/reports`)
 }
 
 const executeAiAction = async (action) => {
@@ -880,14 +957,21 @@ const executeAiAction = async (action) => {
   action.uiStatus = 'loading'
   action.error = ''
   try {
+    action.idempotencyKey ||= `${action.type}-${Date.now()}-${Math.random().toString(36).slice(2)}`
     const response = await axiosClient.post('/ai/actions/execute', {
       type: action.type,
-      idempotencyKey: action.idempotencyKey || `${action.type}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      idempotencyKey: action.idempotencyKey,
       workspaceId: currentWorkspaceId.value || null,
       projectId: currentProjectId.value || actionPayload(action).projectId || null,
       payload: actionPayload(action)
     })
-    const result = response.data?.data
+    const root = response.data || {}
+    const payload = root?.data ?? root
+    const result = payload?.data ?? payload?.result ?? payload
+    const failed = root?.success === false || root?.succeeded === false || payload?.success === false || payload?.succeeded === false || Boolean(root?.error || payload?.error)
+    const hasResult = result && typeof result === 'object' && Object.keys(result).length > 0 && !result.error
+    const confirmed = root?.success === true || root?.succeeded === true || payload?.success === true || payload?.succeeded === true
+    if (failed || !hasResult || (!confirmed && !result?.entityId && !result?.id && !result?.taskId && !result?.message)) throw new Error('Backend không xác nhận action thành công.')
     action.result = result
     action.uiStatus = 'success'
     const navigation = await refreshAfterAiAction(action, result)
@@ -895,7 +979,9 @@ const executeAiAction = async (action) => {
     await navigateToAiEntity(navigation)
   } catch (error) {
     action.uiStatus = 'error'
-    action.error = error.response?.data?.message || 'Không thể thực hiện action. Vui lòng thử lại.'
+        const status = error.response?.status
+    const mapped = { 400: 'Dữ liệu action không hợp lệ.', 401: 'Phiên đăng nhập đã hết hạn.', 403: 'Bạn không có quyền thực hiện action này.', 404: 'Không tìm thấy entity cần thao tác.', 409: 'Action bị trùng hoặc xung đột dữ liệu.', 422: 'Dữ liệu không vượt qua kiểm tra nghiệp vụ.', 429: 'AI đang quá tải. Hãy thử lại sau.', 503: 'Dịch vụ AI tạm thời không khả dụng.' }
+    action.error = mapped[status] || error.response?.data?.message || error.message || 'Không thể thực hiện action.'
     ElMessage.error(action.error)
   } finally {
     action.loading = false
@@ -1633,7 +1719,7 @@ const handleProjectCreated = (newProject) => {
   right: 16px;
   top: 68px;
   bottom: 16px;
-  width: min(448px, calc(100vw - 32px));
+  width: min(456px, calc(100vw - 32px));
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 18px;
@@ -1645,20 +1731,24 @@ const handleProjectCreated = (newProject) => {
 }
 
 .ai-hero {
-  padding: 18px 18px 15px;
+  padding: 20px 20px 17px;
   border-bottom: 1px solid var(--color-border);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 96%, var(--sa-primary) 4%), var(--color-surface));
+  background: var(--color-surface);
 }
 
-.ai-hero-top,
-.ai-brand,
 .quick-actions,
-.ai-context-card,
 .ai-action-preview-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-top: 12px;
+}
+
+.ai-hero-top,
+.ai-brand,
+.ai-context-card {
+  display: flex;
+  flex-direction: row;
 }
 
 .ai-action-preview-card {
@@ -1667,6 +1757,10 @@ const handleProjectCreated = (newProject) => {
   border-radius: 12px;
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex: 0 0 auto;
 }
 
 .ai-action-preview-card.is-pending {
@@ -1727,7 +1821,7 @@ const handleProjectCreated = (newProject) => {
 
 .ai-action-details {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: minmax(84px, auto) minmax(0, 1fr);
   gap: 4px 8px;
   margin: 0 0 11px;
   font-size: 11px;
@@ -1757,6 +1851,15 @@ const handleProjectCreated = (newProject) => {
 .ai-input-foot {
   display: flex;
 }
+
+.message-stack,
+.message-bubble,
+.ai-action-preview-list { min-width: 0; width: 100%; }
+.message-stack { display: flex; flex-direction: column; align-items: stretch; }
+.message-bubble { flex-direction: column; align-items: stretch; }
+.ai-action-preview-list { flex: 0 0 auto; }
+.ai-action-preview-list { align-items: stretch; }
+.ai-action-description, .ai-action-result, .ai-action-error { overflow-wrap: anywhere; }
 
 .ai-hero-top {
   align-items: center;
@@ -1829,7 +1932,7 @@ const handleProjectCreated = (newProject) => {
 
 .ai-content {
   flex: 1;
-  padding: 14px;
+  padding: 16px 18px 20px;
   overflow-y: auto;
   scrollbar-color: var(--color-border) transparent;
 }
@@ -1837,6 +1940,7 @@ const handleProjectCreated = (newProject) => {
 .quick-actions {
   gap: 8px;
   margin-bottom: 12px;
+  flex-direction: row;
   flex-wrap: wrap;
 }
 
@@ -2062,7 +2166,7 @@ const handleProjectCreated = (newProject) => {
 }
 
 .ai-input-area {
-  padding: 16px;
+  padding: 14px 18px 16px;
   border-top: 1px solid var(--color-border);
   background: color-mix(in srgb, var(--color-surface) 92%, var(--color-surface-hover));
 }
@@ -2071,9 +2175,9 @@ const handleProjectCreated = (newProject) => {
   align-items: flex-end;
   gap: 10px;
   border: 1px solid color-mix(in srgb, var(--color-border) 84%, var(--sa-primary));
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--color-surface);
-  padding: 10px;
+  padding: 8px 9px 8px 12px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
@@ -2113,11 +2217,11 @@ const handleProjectCreated = (newProject) => {
 }
 
 .send-btn {
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
   border: 0;
-  border-radius: 11px;
+  border-radius: 12px;
   background: var(--color-accent);
   color: #ffffff;
   cursor: pointer;
@@ -2199,6 +2303,12 @@ const handleProjectCreated = (newProject) => {
     flex: 1 1 calc(50% - 6px);
     justify-content: center;
   }
+
+  .ai-action-preview-head { align-items: flex-start; flex-direction: column; }
+  .ai-action-controls { justify-content: stretch; flex-direction: column-reverse; }
+  .ai-action-controls button { width: 100%; min-height: 38px; }
+  .ai-action-details { grid-template-columns: 1fr; gap: 2px; }
+  .ai-action-details dd { margin-bottom: 6px; }
 }
 
 .offline-warning-banner {

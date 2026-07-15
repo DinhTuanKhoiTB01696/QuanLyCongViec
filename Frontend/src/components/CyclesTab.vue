@@ -200,14 +200,15 @@ const progressSegments = (cycle) => {
   const remaining = Math.max((cycle.taskCount || 0) - completed - started - backlog, 0)
 
   return [
-    { label: 'Completed', value: completed, width: `${(completed / total) * 100}%`, className: 'bg-green' },
-    { label: 'Started', value: started, width: `${(started / total) * 100}%`, className: 'bg-orange' },
-    { label: 'Backlog', value: backlog, width: `${(backlog / total) * 100}%`, className: 'bg-lightgray' },
-    { label: 'Other', value: remaining, width: `${(remaining / total) * 100}%`, className: 'bg-darkgray' }
+    { label: t('cyclesTab.completed'), value: completed, width: `${(completed / total) * 100}%`, className: 'bg-green' },
+    { label: t('cyclesTab.started'), value: started, width: `${(started / total) * 100}%`, className: 'bg-orange' },
+    { label: t('cyclesTab.backlog'), value: backlog, width: `${(backlog / total) * 100}%`, className: 'bg-lightgray' },
+    { label: t('cyclesTab.other'), value: remaining, width: `${(remaining / total) * 100}%`, className: 'bg-darkgray' }
   ]
 }
 
 const activeItemCount = (cycle) => Math.max((cycle.taskCount || 0) - (cycle.completedTaskCount || 0), 0)
+const cycleStateLabel = (state) => state === 'Active' ? t('cyclesTab.active') : state
 
 const openCycleBoard = (cycle) => {
   router.push({
@@ -701,9 +702,9 @@ onUnmounted(() => {
                 <div class="tabs-body" v-if="getCyclePanelTab(cycle.id) === 'state'">
                   <div class="tab-row">
                     <div class="tr-user">
-                      <i class="fa-solid fa-arrows-spin avatar-icon"></i> {{ cycle.state }}
+                      <i class="fa-solid fa-arrows-spin avatar-icon"></i> {{ cycleStateLabel(cycle.state) }}
                     </div>
-                    <div class="tr-stat text-muted">{{ activeItemCount(cycle) }} items</div>
+                    <div class="tr-stat text-muted">{{ activeItemCount(cycle) }} {{ t('cyclesTab.items') }}</div>
                   </div>
                   <div class="tab-row">
                     <div class="tr-user">
@@ -948,8 +949,8 @@ onUnmounted(() => {
   color: var(--color-text-primary);
   font-family: inherit;
   background:
-    radial-gradient(circle at 16% 0%, rgba(14, 165, 233, 0.10), transparent 30%),
-    linear-gradient(180deg, #f8fbff, #eef5fb 52%, #f8fafc);
+    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--sp-sky-400) 10%, transparent), transparent 30%),
+    var(--color-bg);
   min-height: calc(100vh - 100px);
 }
 
@@ -958,14 +959,14 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  max-width: 1280px;
+  max-width: 1600px;
   width: calc(100% - 48px);
   margin: 20px auto 0;
   padding: 16px 18px;
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.065);
+  background: var(--color-surface);
+  box-shadow: var(--sp-shadow-xs);
 }
 
 .view-name {
@@ -987,23 +988,23 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 1280px;
+  max-width: 1600px;
   width: calc(100% - 48px);
   margin: 24px auto 0;
   padding: 18px 20px;
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.065);
+  background: var(--color-surface);
+  box-shadow: var(--sp-shadow-xs);
 }
 
 .vh-right { display: flex; align-items: center; gap: 12px; }
 .icon-action { background: transparent; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 14px; border-radius: 6px; padding: 6px 8px; }
 .icon-action:hover { color: var(--color-text-primary); }
 .icon-action.active { color: var(--color-text-primary); background: var(--color-border); }
-.filter-action { background: rgba(255,255,255,0.78); border: 1px solid rgba(148, 163, 184, 0.24); color: var(--color-text-primary); padding: 8px 12px; border-radius: 12px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 800; }
-.filter-action:hover { background: var(--color-border); }
-.filter-action.active { background: var(--color-border); border-color: #3F3F46; }
+.filter-action { background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 8px 12px; border-radius: 10px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 800; transition: border-color .18s ease, background .18s ease, color .18s ease, transform .18s ease; }
+.filter-action:hover { background: var(--color-surface-hover); border-color: color-mix(in srgb, var(--sp-sky-400) 55%, var(--color-border)); color: var(--color-accent); transform: translateY(-1px); }
+.filter-action.active { background: color-mix(in srgb, var(--sp-blue-700) 12%, var(--color-surface)); border-color: var(--sp-blue-700); color: var(--color-accent); }
 .cycle-search-wrapper {
   display: flex;
   align-items: center;
@@ -1035,7 +1036,7 @@ onUnmounted(() => {
   border-radius: 14px;
   padding: 12px;
   z-index: 20;
-  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.16);
+  box-shadow: var(--sp-shadow-sm);
 }
 .filter-title { color: var(--color-text-muted); font-size: 12px; font-weight: 600; margin-bottom: 8px; }
 .filter-option {
@@ -1057,11 +1058,11 @@ onUnmounted(() => {
   padding: 7px;
   cursor: pointer;
 }
-.clear-filter-btn:hover { background: var(--color-border); }
-.primary-action { background: linear-gradient(135deg, #38bdf8, #2563eb); color: white; border: none; border-radius: 12px; padding: 8px 16px; font-size: 13px; cursor: pointer; font-weight: 900; box-shadow: 0 14px 30px rgba(37, 99, 235, 0.22); }
-.primary-action:hover { background: #0284C7; }
+.clear-filter-btn:hover { background: var(--color-surface-hover); border-color: var(--sp-sky-400); color: var(--color-accent); }
+.primary-action { background: var(--sp-blue-700); color: white; border: 1px solid var(--sp-blue-700); border-radius: 10px; padding: 8px 16px; font-size: 13px; cursor: pointer; font-weight: 800; box-shadow: 0 8px 18px color-mix(in srgb, var(--sp-blue-700) 20%, transparent); }
+.primary-action:hover { background: var(--sp-blue-600); border-color: var(--sp-sky-400); }
 
-.cycles-body { width: 100%; max-width: 1280px; margin: 0 auto; padding: 22px 24px 32px; flex: 1; overflow: auto; }
+.cycles-body { width: 100%; max-width: 1600px; margin: 0 auto; padding: 16px 24px 28px; flex: 1; overflow: auto; }
 .cycle-section { margin-bottom: 24px; }
 .cs-header { display: flex; align-items: center; gap: 12px; padding: 10px 0; cursor: pointer; user-select: none; }
 .chevron { font-size: 12px; color: var(--color-text-muted); width: 16px; text-align: center; }
@@ -1070,15 +1071,15 @@ onUnmounted(() => {
 .cs-content { padding-left: 28px; margin-top: 10px; display: flex; flex-direction: column; gap: 12px; }
 
 .cycle-card {
-  background: rgba(255, 255, 255, 0.86);
+  background: var(--color-surface);
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.065);
+  box-shadow: var(--sp-shadow-xs);
   transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
 }
 
-.cycle-card.hover-card:hover { border-color: rgba(14, 165, 233, 0.34); background: rgba(255, 255, 255, 0.96); box-shadow: 0 18px 42px rgba(15, 23, 42, 0.09); }
+.cycle-card.hover-card:hover { border-color: color-mix(in srgb, var(--sp-sky-400) 44%, var(--color-border)); background: var(--color-surface-hover); box-shadow: var(--sp-shadow-sm); }
 .cycle-card.collapsed { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 16px; }
 .cc-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; border-bottom: 1px solid var(--color-border); }
 .cct-left, .cct-right { display: flex; align-items: center; gap: 12px; min-width: 0; }
@@ -1089,8 +1090,8 @@ onUnmounted(() => {
 .date-range { font-size: 12px; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px; background: var(--color-surface-hover); padding: 5px 10px; border-radius: 999px; border: 1px solid var(--color-border); font-weight: 800; white-space: nowrap; }
 .icon-btn { background: transparent; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 14px; transition: color 0.2s; }
 .icon-btn:hover { color: var(--color-text-primary); }
-.completed-badge { font-size: 12px; color: #10B981; font-weight: 500; }
-.task-count-badge { font-size: 12px; color: #A1A1AA; display: flex; align-items: center; gap: 6px; }
+.completed-badge { font-size: 12px; color: var(--color-success, #10B981); font-weight: 800; }
+.task-count-badge { font-size: 12px; color: var(--color-text-muted); display: flex; align-items: center; gap: 6px; }
 .carry-over-panel {
   margin-top: 12px;
   border: 1px solid var(--border-color);
@@ -1187,7 +1188,7 @@ onUnmounted(() => {
 
 .tabs-header { display: flex; border-bottom: 1px solid var(--color-border); margin-bottom: 14px; gap: 8px; overflow-x: auto; }
 .tab-h { padding: 0 8px 8px; font-size: 12px; color: var(--color-text-muted); border: none; border-bottom: 2px solid transparent; background: transparent; cursor: pointer; font-weight: 800; white-space: nowrap; }
-.tab-h.active { color: var(--color-text-primary); border-bottom-color: #38BDF8; font-weight: 900; }
+.tab-h.active { color: var(--color-accent); border-bottom-color: var(--sp-sky-400); font-weight: 900; }
 .tab-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; padding: 9px 10px; border-radius: 10px; background: color-mix(in srgb, var(--color-surface-hover) 62%, transparent); }
 .tr-user { display: flex; align-items: center; gap: 8px; color: var(--color-text-primary); }
 .avatar-icon { background: color-mix(in srgb, var(--color-accent) 12%, var(--color-border)); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: var(--color-accent); }

@@ -3,13 +3,13 @@
     <header class="auth-navbar">
       <div class="container nav-content">
         <router-link to="/" class="logo">
-          <img :src="logoImg" alt="SprintA Logo" class="custom-logo" />
+          <span role="img" aria-label="SprintA logo" class="custom-logo"></span>
           <span>SprintA</span>
         </router-link>
         <div class="nav-actions">
           <button class="theme-toggle" type="button" aria-label="Toggle theme" @click="toggleTheme()">
-            <Sun v-if="currentTheme === 'dark'" :size="18" />
-            <Moon v-else :size="18" />
+            <Moon v-if="currentTheme === 'dark'" :size="18" />
+            <Sun v-else :size="18" />
           </button>
           <router-link class="nav-link" to="/login">{{ t('auth.nav.login') }}</router-link>
           <router-link class="nav-primary" to="/register">{{ t('auth.nav.register') }}</router-link>
@@ -93,12 +93,14 @@
 
         <el-form v-else class="auth-form" @submit.prevent="handleLogin" label-position="top">
           <el-form-item :label="t('auth.login.emailLabel')">
-            <el-input v-model="form.email" :placeholder="t('auth.login.emailPlaceholder')" size="large" />
+            <el-input v-model="form.email" name="email" autocomplete="email" :placeholder="t('auth.login.emailPlaceholder')" size="large" />
           </el-form-item>
 
           <el-form-item :label="t('auth.login.passwordLabel')">
             <el-input
               v-model="form.password"
+              name="password"
+              autocomplete="current-password"
               type="password"
               :placeholder="t('auth.login.passwordPlaceholder')"
               size="large"
@@ -165,7 +167,6 @@ import axiosClient from '../api/axiosClient'
 import { saveAuthSession } from '@/utils/authSession'
 import { useI18n } from '@/composables/useI18n'
 import { currentTheme, toggleTheme } from '@/utils/theme'
-import logoImg from '../assets/logo_QLCV.png'
 import googleIcon from '../assets/Icongoogle.png'
 import githubIcon from '../assets/Icongithub.png'
 
@@ -350,10 +351,14 @@ const handleGitHubLogin = () => {
 }
 
 .custom-logo {
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
+  display: block;
+  width: 12px;
+  height: 11px;
+  flex: 0 0 12px;
+  background: center / contain no-repeat url('/sprinta-mark-light.png');
 }
+
+:global([data-theme='dark'] .custom-logo) { background-image: url('/sprinta-mark-dark.png'); filter: none; }
 
 .nav-actions {
   gap: 10px;
@@ -720,6 +725,64 @@ const handleGitHubLogin = () => {
   text-align: center;
   color: var(--auth-muted);
   font-size: 14px;
+}
+
+/* Keep saved credentials visually inside the product theme. */
+.auth-card :deep(.el-form-item__label) {
+  margin-bottom: 7px;
+  color: var(--auth-muted);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: .025em;
+}
+
+.auth-card :deep(.el-input__wrapper) {
+  min-height: 46px;
+  padding-inline: 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--auth-card) 92%, var(--sp-blue-600) 8%) !important;
+  box-shadow: 0 0 0 1px var(--auth-border) inset !important;
+}
+
+.auth-card :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sp-sky-400) 65%, var(--auth-border)) inset !important;
+}
+
+.auth-card :deep(.el-input__inner) {
+  color: var(--auth-text) !important;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.auth-card :deep(input:-webkit-autofill),
+.auth-card :deep(input:-webkit-autofill:hover),
+.auth-card :deep(input:-webkit-autofill:focus) {
+  -webkit-text-fill-color: var(--auth-text) !important;
+  caret-color: var(--auth-text);
+  transition: background-color 9999s ease-out 0s;
+  box-shadow: 0 0 0 1000px color-mix(in srgb, var(--auth-card) 92%, var(--sp-blue-600) 8%) inset !important;
+}
+
+.auth-btn {
+  min-height: 44px;
+  border-radius: 10px !important;
+  background: var(--sp-blue-700) !important;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--sp-blue-700) 24%, transparent) !important;
+}
+
+.social-btn {
+  min-height: 42px;
+  border: 1px solid var(--auth-border) !important;
+  border-radius: 10px !important;
+  color: var(--auth-text) !important;
+  background: color-mix(in srgb, var(--auth-card) 96%, var(--sp-slate-500) 4%) !important;
+  box-shadow: none !important;
+}
+
+.social-btn:hover {
+  border-color: color-mix(in srgb, var(--sp-sky-400) 58%, var(--auth-border)) !important;
+  background: color-mix(in srgb, var(--auth-card) 90%, var(--sp-blue-600) 10%) !important;
+  transform: translateY(-1px);
 }
 
 @media (max-width: 960px) {

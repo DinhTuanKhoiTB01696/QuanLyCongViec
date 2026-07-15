@@ -1,4 +1,10 @@
 :root {
+  --sp-navy-900: #071a33;
+  --sp-navy-800: #08428c;
+  --sp-blue-700: #0b4fd9;
+  --sp-blue-600: #0d519c;
+  --sp-sky-400: #41c0f2;
+  --sp-slate-500: #5c6795;
   --sp-bg: var(--sa-bg, #f4f7fb);
   --sp-surface: var(--sa-surface, #ffffff);
   --sp-surface-raised: var(--sa-surface-soft, #eef4fb);
@@ -37,6 +43,11 @@
   --sp-z-overlay: 3900;
   --sp-z-modal: 4000;
   --sp-z-toast: 5000;
+  --sp-content-max: 1600px;
+  --sp-page-gutter: clamp(16px, 2.5vw, 40px);
+  --sp-control-height: 40px;
+  --sp-font-display: 'Be Vietnam Pro', system-ui, sans-serif;
+  --sp-font-ui: 'Be Vietnam Pro', Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 [data-theme='dark'] {
@@ -50,6 +61,155 @@
   --sp-shadow-xs: 0 1px 2px rgb(0 0 0 / 0.24);
   --sp-shadow-sm: 0 10px 30px rgb(0 0 0 / 0.26);
   --sp-shadow-md: 0 20px 48px rgb(0 0 0 / 0.34);
+}
+
+html,
+body,
+#app {
+  font-family: var(--sp-font-ui);
+}
+
+body {
+  font-size: 14px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+:where(button, input, select, textarea, .el-button, .el-input, .el-select, .el-table) {
+  font-family: inherit;
+}
+
+/* Shared controls: one quiet, product-like language across authenticated screens. */
+:where(.nexus-btn-primary, .primary-action, .plane-primary-btn, .primary, .auth-btn, .pill-btn.blue) {
+  min-height: 38px;
+  border: 1px solid color-mix(in srgb, var(--sp-blue-700) 72%, var(--sp-sky-400));
+  border-radius: 10px;
+  color: #fff;
+  background: var(--sp-blue-700);
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--sp-blue-700) 20%, transparent);
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+:where(.nexus-btn-primary, .primary-action, .plane-primary-btn, .primary, .auth-btn, .pill-btn.blue):hover:not(:disabled) {
+  border-color: var(--sp-sky-400);
+  background: var(--sp-blue-600);
+  box-shadow: 0 9px 22px color-mix(in srgb, var(--sp-blue-700) 26%, transparent);
+  transform: translateY(-1px);
+}
+
+:where(.nexus-btn-primary, .primary-action, .plane-primary-btn, .primary, .auth-btn, .pill-btn.blue):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--sp-sky-400) 42%, transparent);
+  outline-offset: 2px;
+}
+
+:where(.ghost, .filter-action, .toolbar-btn, .social-btn, .explore-btn, .pill-btn:not(.blue)) {
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+:where(.el-input__wrapper, .el-select__wrapper, .el-textarea__inner) {
+  border-radius: 10px !important;
+}
+
+:where(.el-input__wrapper, .el-select__wrapper):focus-within {
+  box-shadow: 0 0 0 1px var(--sp-sky-400) inset, 0 0 0 3px color-mix(in srgb, var(--sp-sky-400) 16%, transparent) !important;
+}
+
+.sp-page-shell {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  padding: var(--sp-page-gutter);
+  color: var(--sp-text);
+  background: var(--sp-bg);
+}
+
+.sp-page-shell > * {
+  min-width: 0;
+}
+
+.sp-page-shell .page-header,
+.sp-page-shell .df-header,
+.sp-page-shell .hero-shell,
+.sp-page-shell .stats-grid,
+.sp-page-shell .reports-content,
+.sp-page-shell .team-checkins-grid,
+.sp-page-shell .rewards-page > * {
+  width: 100%;
+  max-width: var(--sp-content-max);
+  margin-inline: auto;
+}
+
+.sp-page-shell .page-header,
+.sp-page-shell .df-header {
+  gap: var(--sp-space-5);
+}
+
+.sp-page-shell input,
+.sp-page-shell select,
+.sp-page-shell textarea,
+.sp-page-shell .el-input__wrapper,
+.sp-page-shell .el-select__wrapper,
+.sp-page-shell button {
+  border-radius: var(--sp-radius-sm);
+}
+
+.sp-page-shell .card,
+.sp-page-shell .panel,
+.sp-page-shell .report-card,
+.sp-page-shell .report-stat-card,
+.sp-page-shell .checkin-card {
+  border-color: var(--sp-border);
+  background: var(--sp-surface);
+  box-shadow: var(--sp-shadow-xs);
+}
+
+@media (max-width: 900px) {
+  .sp-page-shell .page-header,
+  .sp-page-shell .df-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.sp-page-shell h1,
+.sp-page-shell h2,
+.sp-page-shell h3 {
+  font-family: var(--sp-font-display);
+  color: var(--sp-text);
+}
+
+.sp-page-shell .spaces-header,
+.sp-page-shell .page-header,
+.sp-page-shell .sp-toolbar {
+  width: 100%;
+  max-width: var(--sp-content-max);
+  margin-inline: auto;
+}
+
+.sp-page-shell .spaces-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-space-5);
+  padding: var(--sp-space-5);
+  border: 1px solid var(--sp-border);
+  border-radius: var(--sp-radius-lg);
+  background: var(--sp-surface);
+  box-shadow: var(--sp-shadow-xs);
+}
+
+.sp-page-shell .projects-scroll-panel {
+  width: 100%;
+  max-width: var(--sp-content-max);
+  margin: var(--sp-space-5) auto 0;
+}
+
+@media (max-width: 760px) {
+  .sp-page-shell { padding: 12px; }
+  .sp-page-shell .spaces-header { align-items: stretch; flex-direction: column; }
+  .sp-page-shell .sh-right { flex-wrap: wrap; }
 }
 
 button,

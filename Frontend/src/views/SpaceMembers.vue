@@ -76,6 +76,7 @@
               <el-select
                 v-model="row.projectRole"
                 size="small"
+                popper-class="members-role-popper"
                 @change="(newRole) => updateMemberRole(row.userId, newRole)"
                 :disabled="isCurrentUser(row.userId)"
               >
@@ -215,7 +216,7 @@
               :loading="isSearchingUsers"
               class="w-full"
             >
-              <el-option
+                <el-option
                 v-for="user in systemUsers"
                 :key="user.id"
                 :label="user.fullName || user.email"
@@ -244,7 +245,7 @@
       <div class="mb-4">
         <label class="block text-sm font-medium mb-1">Vai trò</label>
         <el-select v-model="inviteForm.role" class="w-full">
-          <el-option
+                <el-option
             v-for="role in roleOptions"
             :key="role.value"
             :label="role.label"
@@ -310,10 +311,12 @@ import { getStoredUser } from '@/utils/permissions'
 import ProjectPageContainer from '@/components/common/ProjectPageContainer.vue'
 import ProjectPageHeader from '@/components/common/ProjectPageHeader.vue'
 import ProjectPageToolbar from '@/components/common/ProjectPageToolbar.vue'
+import { useI18n } from '@/composables/useI18n'
 
 const route = useRoute()
 const projectId = computed(() => route.params.id)
 const currentUser = getStoredUser()
+const { isVietnamese } = useI18n()
 
 const activeTab = ref('members')
 const members = ref([])
@@ -412,7 +415,14 @@ watch(showAddMemberModal, (val) => {
   }
 })
 
-const roleOptions = ref([
+const roleOptions = computed(() => isVietnamese.value ? [
+  { label: 'Quản lý dự án (PM)', value: 'PM' },
+  { label: 'Chủ sản phẩm (PO)', value: 'PO' },
+  { label: 'Trưởng dự án', value: 'Project Lead' },
+  { label: 'Lập trình viên', value: 'Developer' },
+  { label: 'Kiểm thử (QA)', value: 'QA' },
+  { label: 'Thành viên', value: 'Member' }
+] : [
   { label: 'Project Manager (PM)', value: 'PM' },
   { label: 'Product Owner (PO)', value: 'PO' },
   { label: 'Project Lead', value: 'Project Lead' },
@@ -421,11 +431,24 @@ const roleOptions = ref([
   { label: 'Member', value: 'Member' }
 ])
 
+const normalizeMemberRole = (value) => {
+  const role = String(value || '').toUpperCase().replace(/[-\s]+/g, '_')
+  if (role === 'PROJECT_MANAGER' || role === 'PM') return 'PM'
+  if (role === 'PRODUCT_OWNER' || role === 'PO') return 'PO'
+  if (role === 'PROJECT_LEAD') return 'Project Lead'
+  if (role === 'DEVELOPER' || role === 'DEV') return 'Developer'
+  if (role === 'QA') return 'QA'
+  return 'Member'
+}
+
 const fetchMembers = async () => {
   loadingMembers.value = true
   try {
     const res = await axiosClient.get(`/projects/${projectId.value}/members`)
-    members.value = res.data?.data || []
+    members.value = (res.data?.data || []).map(member => ({
+      ...member,
+      projectRole: normalizeMemberRole(member.projectRole || member.ProjectRole || member.role)
+    }))
   } catch (error) {
     ElMessage.error('Không thể tải danh sách thành viên.')
   } finally {
@@ -623,10 +646,13 @@ onMounted(() => {
 <style scoped>
 .space-members-view {
   width: 100%;
+  min-width: 0;
+  color: var(--color-text-primary);
+  font-family: var(--sp-font-ui);
 }
 
 .filter-select {
-  width: 180px;
+  width: 168px;
 }
 
 .member-info {
@@ -641,13 +667,15 @@ onMounted(() => {
 }
 
 .member-name {
-  font-weight: 500;
+  font-weight: 750;
   color: var(--color-text-primary, #172b4d);
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .member-email {
-  font-size: 12px;
+  font-size: 11.5px;
+  line-height: 1.4;
   color: var(--color-text-muted, #6b778c);
 }
 
@@ -698,8 +726,8 @@ onMounted(() => {
 }
 
 .team-option.is-selected {
-  background-color: #e9f2ff;
-  border-color: #0c66e4;
+  background-color: color-mix(in srgb, var(--sp-blue-700) 10%, var(--color-surface));
+  border-color: var(--sp-blue-700);
 }
 
 /* Tweak Element Plus tabs to match SprintA design */
@@ -708,8 +736,8 @@ onMounted(() => {
   background-color: var(--color-border, #dfe1e6);
 }
 :deep(.el-tabs__item) {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 750;
   color: var(--color-text-secondary, #42526e);
 }
 :deep(.el-tabs__item.is-active) {
@@ -729,7 +757,16 @@ onMounted(() => {
 }
 :deep(.nexus-table th.el-table__cell) { background: var(--color-table-header) !important; }
 :deep(.nexus-table .el-table__body tr:hover > td.el-table__cell) { background: var(--color-table-row-hover) !important; }
-:deep(.nexus-table .el-select__wrapper) { background: var(--color-input-bg) !important; box-shadow: 0 0 0 1px var(--color-input-border) inset !important; }
+:deep(.nexus-table .el-table__cell) { padding: 9px 0 !important; font-size: 13px; }
+:deep(.nexus-table th.el-table__cell) { padding: 10px 0 !important; font-weight: 800; }
+:deep(.nexus-table .el-select__wrapper) { min-height: 34px; border-radius: 9px; background: var(--color-input-bg) !important; box-shadow: 0 0 0 1px var(--color-input-border) inset !important; }
+:deep(.nexus-table .el-select__wrapper:hover) { box-shadow: 0 0 0 1px var(--sp-sky-400) inset !important; }
+:deep(.el-avatar) { font-family: var(--sp-font-ui); font-weight: 800; }
+:deep(.el-tag) { border-radius: 999px; font-family: var(--sp-font-ui); }
 .member-email { color: var(--color-text-muted) !important; }
 .team-option.is-selected { background: var(--sa-primary-soft); border-color: var(--color-accent); }
+:global(.members-role-popper) { background: var(--color-surface) !important; border: 1px solid var(--color-border) !important; box-shadow: var(--sp-shadow-sm) !important; }
+:global(.members-role-popper .el-select-dropdown__item) { color: var(--color-text-primary) !important; }
+:global(.members-role-popper .el-select-dropdown__item.is-hovering),
+:global(.members-role-popper .el-select-dropdown__item:hover) { background: var(--color-surface-hover) !important; color: var(--color-text-primary) !important; }
 </style>

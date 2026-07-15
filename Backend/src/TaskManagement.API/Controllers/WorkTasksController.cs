@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Globalization;
+using System.IO;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Text;
@@ -2275,6 +2276,9 @@ namespace TaskManagement.API.Controllers
             if (!Guid.TryParse(userIdStr, out Guid userId))
                 return Unauthorized();
 
+            if (rows == null || rows.Count == 0)
+                return BadRequest(new { statusCode = 400, message = "Không có dữ liệu để nhập.", errors = new[] { "Danh sách công việc trống." } });
+
             var project = await context.Projects.FirstOrDefaultAsync(p => p.Id == projectId && !p.IsDeleted);
             if (project == null)
                 return NotFound(new { statusCode = 404, message = "Không tìm thấy dự án." });
@@ -2289,13 +2293,16 @@ namespace TaskManagement.API.Controllers
             var statuses = await context.TaskStatuses
                 .Where(ts => ts.ProjectId == projectId)
                 .ToListAsync();
-            var statusMap = statuses.ToDictionary(s => s.Name.ToUpperInvariant(), s => s.Id);
+            var statusMap = statuses.ToDictionary(s => NormalizeImportToken(s.Name), s => s.Id);
 
-            var todoStatus = statuses.FirstOrDefault(s => s.Name == "TO DO") ?? statuses.FirstOrDefault();
+            var todoStatus = statuses.FirstOrDefault(s => NormalizeImportToken(s.Name) == "TO DO") ?? statuses.FirstOrDefault();
             var defaultStatusId = todoStatus?.Id ?? Guid.Empty;
 
             var defaultType = await context.TaskTypes.FirstOrDefaultAsync(tt => tt.ProjectId == projectId);
             var defaultTypeId = defaultType?.Id ?? Guid.Empty;
+
+            if (defaultStatusId == Guid.Empty || defaultTypeId == Guid.Empty)
+                return BadRequest(new { statusCode = 400, message = "Dự án chưa có trạng thái hoặc loại công việc mặc định." });
 
             double maxSort = await context.WorkTasks
                 .Where(wt => wt.ProjectId == projectId && !wt.IsDeleted)
@@ -2303,20 +2310,14 @@ namespace TaskManagement.API.Controllers
 
             int importedCount = 0;
             var newTasks = new List<WorkTask>();
+            var errors = new List<string>();
 
-            foreach (var row in rows)
+            for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
             {
+                var row = rows[rowIndex];
+                var rowNumber = rowIndex + 1;
                 if (string.IsNullOrWhiteSpace(row.Title))
                     continue;
-
-                int priorityVal = 3;
-                if (!string.IsNullOrWhiteSpace(row.Priority))
-                {
-                    var pUpper = row.Priority.ToUpperInvariant();
-                    if (pUpper.Contains("KHẨN") || pUpper.Contains("URGENT") || pUpper.Contains("1")) priorityVal = 1;
-                    else if (pUpper.Contains("CAO") || pUpper.Contains("HIGH") || pUpper.Contains("2")) priorityVal = 2;
-                    else if (pUpper.Contains("THẤP") || pUpper.Contains("LOW") || pUpper.Contains("4")) priorityVal = 4;
-                }
 
                 Guid? assignedUserId = null;
                 if (!string.IsNullOrWhiteSpace(row.AssigneeEmail))
@@ -2331,21 +2332,40 @@ namespace TaskManagement.API.Controllers
                 Guid statusId = defaultStatusId;
                 if (!string.IsNullOrWhiteSpace(row.Status))
                 {
-                    var sUpper = row.Status.Trim().ToUpperInvariant();
-                    if (statusMap.TryGetValue(sUpper, out var sid))
+                    var statusKey = NormalizeImportToken(row.Status);
+                    if (statusMap.TryGetValue(statusKey, out var sid))
                     {
                         statusId = sid;
                     }
+                    else
+                    {
+                        errors.Add($"Dòng {rowNumber}: trạng thái '{row.Status}' không tồn tại trong dự án.");
+                        continue;
+                    }
+                }
+
+                DateTime? startDate = null;
+                if (!TryParseImportDate(row.StartDate, out startDate))
+                {
+                    errors.Add($"Dòng {rowNumber}: ngày bắt đầu '{row.StartDate}' không hợp lệ. Dùng yyyy-MM-dd, dd/MM/yyyy hoặc serial date của Excel.");
+                    continue;
                 }
 
                 DateTime? dueDate = null;
-                if (!string.IsNullOrWhiteSpace(row.DueDate) && DateTime.TryParse(row.DueDate, out var parsedDate))
+                if (!TryParseImportDate(row.DueDate, out dueDate))
                 {
-                    dueDate = DateTime.SpecifyKind(parsedDate.Date, DateTimeKind.Utc);
+                    errors.Add($"Dòng {rowNumber}: hạn hoàn thành '{row.DueDate}' không hợp lệ. Dùng yyyy-MM-dd, dd/MM/yyyy hoặc serial date của Excel.");
+                    continue;
+                }
+
+                if (startDate.HasValue && dueDate.HasValue && dueDate.Value.Date < startDate.Value.Date)
+                {
+                    errors.Add($"Dòng {rowNumber}: hạn hoàn thành không được trước ngày bắt đầu.");
+                    continue;
                 }
 
                 double storyPoints = 0;
-                if (!string.IsNullOrWhiteSpace(row.StoryPoints) && double.TryParse(row.StoryPoints, out var sp))
+                if (!string.IsNullOrWhiteSpace(row.StoryPoints) && double.TryParse(row.StoryPoints, NumberStyles.Float, CultureInfo.InvariantCulture, out var sp))
                 {
                     storyPoints = sp;
                 }
@@ -2359,13 +2379,14 @@ namespace TaskManagement.API.Controllers
                     Id = Guid.NewGuid(),
                     ProjectId = projectId,
                     WorkspaceId = project.WorkspaceId,
-                    Title = row.Title,
+                    Title = row.Title.Trim(),
                     Description = row.Description,
                     TaskStatusId = statusId,
                     TaskTypeId = defaultTypeId,
                     ReporterId = userId,
                     AssignedUserId = assignedUserId,
-                    Priority = priorityVal,
+                    Priority = ParsePriority(row.Priority),
+                    PlannedStartDate = startDate,
                     DueDate = dueDate,
                     StoryPoints = storyPoints,
                     SortOrder = maxSort,
@@ -2377,6 +2398,9 @@ namespace TaskManagement.API.Controllers
                 newTasks.Add(newTask);
                 importedCount++;
             }
+
+            if (errors.Count > 0)
+                return BadRequest(new { statusCode = 400, message = "Dữ liệu import chưa hợp lệ.", errors });
 
             if (newTasks.Any())
             {
@@ -2394,7 +2418,6 @@ namespace TaskManagement.API.Controllers
 
             return Ok(new { statusCode = 200, message = $"Đã nhập thành công {importedCount} công việc.", count = importedCount });
         }
-
         [HttpGet("projects/{projectId}/WorkTasks/export")]
         public async Task<IActionResult> ExportWorkTasks(Guid projectId, [FromServices] ApplicationDbContext context)
         {
@@ -2405,6 +2428,9 @@ namespace TaskManagement.API.Controllers
             var tasks = await context.WorkTasks
                 .Include(t => t.TaskStatus)
                 .Include(t => t.AssignedUser)
+                .Include(t => t.Reporter)
+                .Include(t => t.Sprint)
+                .Include(t => t.IssueModules).ThenInclude(issueModule => issueModule.Module)
                 .Include(t => t.IssueLabels).ThenInclude(issueLabel => issueLabel.Label)
                 .Include(t => t.CustomFieldValues).ThenInclude(value => value.FieldDefinition)
                 .Where(t => t.ProjectId == projectId && !t.IsDeleted)
@@ -2412,15 +2438,10 @@ namespace TaskManagement.API.Controllers
                 .ToListAsync();
 
             var csv = new StringBuilder();
-            csv.AppendLine("Mã công việc,Tiêu đề,Mô tả,Trạng thái,Ưu tiên,Người phụ trách,Ngày bắt đầu,Hạn hoàn thành,Tiến độ,Nhãn,Custom Fields");
+            csv.AppendLine("Mã công việc,Tiêu đề,Mô tả,Dự án,Trạng thái,Ưu tiên,Người phụ trách,Người tạo,Ngày bắt đầu,Hạn hoàn thành,Tiến độ,Chu kỳ,Mô-đun,Nhãn,Ngày tạo,Ngày cập nhật,Custom Fields");
 
             foreach (var task in tasks)
             {
-                var seqId = task.SequenceId ?? "";
-                var title = EscapeCsv(task.Title);
-                var status = EscapeCsv(task.TaskStatus?.Name ?? "Backlog");
-                var assignee = EscapeCsv(task.AssignedUser?.FullName ?? task.AssignedUser?.Email ?? "");
-
                 var priorityStr = task.Priority switch
                 {
                     1 => "Khẩn cấp",
@@ -2430,36 +2451,54 @@ namespace TaskManagement.API.Controllers
                     _ => "Trung bình"
                 };
 
-                var startDate = task.PlannedStartDate?.ToString("yyyy-MM-dd") ?? "";
-                var dueDate = task.DueDate?.ToString("yyyy-MM-dd") ?? "";
-                var description = EscapeCsv(task.Description);
                 var progress = task.TotalEstimatedHours > 0
                     ? Math.Clamp(task.TotalActualHours / task.TotalEstimatedHours * 100, 0, 100).ToString("0.##", CultureInfo.InvariantCulture) + "%"
                     : "";
-                var labels = EscapeCsv(string.Join(", ", task.IssueLabels
+                var modules = string.Join("; ", task.IssueModules
+                    .Select(issueModule => issueModule.Module?.Name)
+                    .Where(name => !string.IsNullOrWhiteSpace(name)));
+                var labels = string.Join("; ", task.IssueLabels
                     .Select(issueLabel => issueLabel.Label?.Name)
-                    .Where(name => !string.IsNullOrWhiteSpace(name))));
-                var customFields = task.CustomFieldValues
+                    .Where(name => !string.IsNullOrWhiteSpace(name)));
+                var customFields = string.Join("; ", task.CustomFieldValues
                     .Where(value => value.FieldDefinition != null && !string.IsNullOrWhiteSpace(value.FieldDefinition.Name))
-                    .OrderBy(value => value.FieldDefinition.SortOrder)
-                    .GroupBy(value => value.FieldDefinition.Name)
-                    .ToDictionary(group => group.Key, group => group.Last().Value ?? "");
-                var customFieldsJson = customFields.Count == 0
-                    ? ""
-                    : EscapeCsv(JsonSerializer.Serialize(customFields));
+                    .OrderBy(value => value.FieldDefinition!.SortOrder)
+                    .Select(value => $"{value.FieldDefinition!.Name}: {NormalizeExportValue(value.Value)}")
+                    .Where(value => !string.IsNullOrWhiteSpace(value)));
 
-                csv.AppendLine($"{EscapeCsv(seqId)},{title},{description},{status},{EscapeCsv(priorityStr)},{assignee},{startDate},{dueDate},{EscapeCsv(progress)},{labels},{customFieldsJson}");
+                var values = new[]
+                {
+                    task.SequenceId ?? string.Empty,
+                    task.Title,
+                    task.Description ?? string.Empty,
+                    project.Name,
+                    task.TaskStatus?.Name ?? "Backlog",
+                    priorityStr,
+                    task.AssignedUser?.FullName ?? task.AssignedUser?.Email ?? string.Empty,
+                    task.Reporter?.FullName ?? task.Reporter?.Email ?? string.Empty,
+                    task.PlannedStartDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
+                    task.DueDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
+                    progress,
+                    task.Sprint?.Name ?? string.Empty,
+                    modules,
+                    labels,
+                    task.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+                    task.UpdatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+                    customFields
+                };
+
+                csv.AppendLine(string.Join(",", values.Select(EscapeCsv)));
             }
 
             var bytes = Encoding.UTF8.GetBytes(csv.ToString());
-            var bomBytes = new byte[] { 0xEF, 0xBB, 0xBF };
+            var bomBytes = Encoding.UTF8.GetPreamble();
             var fileBytes = new byte[bomBytes.Length + bytes.Length];
             Buffer.BlockCopy(bomBytes, 0, fileBytes, 0, bomBytes.Length);
             Buffer.BlockCopy(bytes, 0, fileBytes, bomBytes.Length, bytes.Length);
 
-            return File(fileBytes, "text/csv", $"SprintA-Tasks-{project.Name}-{DateTime.Now:yyyyMMddHHmmss}.csv");
+            var safeProjectName = SanitizeFileName(project.Identifier ?? project.Name);
+            return File(fileBytes, "text/csv; charset=utf-8", $"SprintA-WorkItems-{safeProjectName}-{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
         }
-
         private static string EscapeCsv(string? value)
         {
             if (string.IsNullOrEmpty(value)) return "";
@@ -2471,10 +2510,8 @@ namespace TaskManagement.API.Controllers
             return clean;
         }
 
-        // ==========================================
-        // Contingency Plan APIs
-        // ==========================================
-
+        // ===================================        // Contingency Plan APIs
+        // ===================================
         [HttpGet("worktasks/{id}/contingency-plans")]
         [Authorize]
         public async Task<IActionResult> GetContingencyPlans(Guid id)
@@ -2641,6 +2678,107 @@ namespace TaskManagement.API.Controllers
             {
                 return BadRequest(new { statusCode = 400, message = ex.Message });
             }
+        private static bool TryParseImportDate(string? value, out DateTime? date)
+        {
+            date = null;
+            if (string.IsNullOrWhiteSpace(value))
+                return true;
+
+            var raw = value.Trim();
+            if (DateTime.TryParseExact(raw,
+                    new[] { "yyyy-MM-dd", "yyyy/MM/dd", "dd/MM/yyyy", "d/M/yyyy", "dd-MM-yyyy", "d-M-yyyy", "MM/dd/yyyy", "M/d/yyyy" },
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeLocal,
+                    out var exact))
+            {
+                date = DateTime.SpecifyKind(exact.Date, DateTimeKind.Utc);
+                return true;
+            }
+
+            if (double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var serial) && serial > 0 && serial < 60000)
+            {
+                date = DateTime.SpecifyKind(DateTime.FromOADate(serial).Date, DateTimeKind.Utc);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static int ParsePriority(string? priority)
+        {
+            if (string.IsNullOrWhiteSpace(priority)) return 3;
+
+            var token = NormalizeImportToken(priority);
+            if (token.Contains("URGENT") || token.Contains("KHAN") || token.Contains("1")) return 1;
+            if (token.Contains("HIGH") || token.Contains("CAO") || token.Contains("2")) return 2;
+            if (token.Contains("LOW") || token.Contains("THAP") || token.Contains("4")) return 4;
+            return 3;
+        }
+
+        private static string NormalizeImportToken(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+
+            var normalized = value.Trim().Normalize(NormalizationForm.FormD);
+            var builder = new StringBuilder(normalized.Length);
+            foreach (var ch in normalized)
+            {
+                var category = CharUnicodeInfo.GetUnicodeCategory(ch);
+                if (category != UnicodeCategory.NonSpacingMark)
+                {
+                    builder.Append(char.ToUpperInvariant(ch));
+                }
+            }
+
+            return builder.ToString().Normalize(NormalizationForm.FormC);
+        }
+
+        private static string NormalizeExportValue(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value) || value.Trim().Equals("[object Object]", StringComparison.OrdinalIgnoreCase))
+                return string.Empty;
+
+            var trimmed = value.Trim();
+            if ((trimmed.StartsWith("{", StringComparison.Ordinal) && trimmed.EndsWith("}", StringComparison.Ordinal)) ||
+                (trimmed.StartsWith("[", StringComparison.Ordinal) && trimmed.EndsWith("]", StringComparison.Ordinal)))
+            {
+                try
+                {
+                    using var document = JsonDocument.Parse(trimmed);
+                    return JsonElementToDisplayText(document.RootElement);
+                }
+                catch (JsonException)
+                {
+                    return trimmed;
+                }
+            }
+
+            return trimmed;
+        }
+
+        private static string JsonElementToDisplayText(JsonElement element)
+        {
+            return element.ValueKind switch
+            {
+                JsonValueKind.Object => string.Join(", ", element.EnumerateObject()
+                    .Select(property => $"{property.Name}: {JsonElementToDisplayText(property.Value)}")
+                    .Where(value => !string.IsNullOrWhiteSpace(value))),
+                JsonValueKind.Array => string.Join(", ", element.EnumerateArray()
+                    .Select(JsonElementToDisplayText)
+                    .Where(value => !string.IsNullOrWhiteSpace(value))),
+                JsonValueKind.String => element.GetString() ?? string.Empty,
+                JsonValueKind.Number => element.ToString(),
+                JsonValueKind.True => "true",
+                JsonValueKind.False => "false",
+                _ => string.Empty
+            };
+        }
+
+        private static string SanitizeFileName(string value)
+        {
+            var invalidChars = Path.GetInvalidFileNameChars();
+            var safe = new string(value.Select(ch => invalidChars.Contains(ch) ? '-' : ch).ToArray()).Trim();
+            return string.IsNullOrWhiteSpace(safe) ? "Project" : safe;
         }
     }
 
@@ -2651,6 +2789,7 @@ namespace TaskManagement.API.Controllers
         public string? AssigneeEmail { get; set; }
         public string? Status { get; set; }
         public string? Priority { get; set; }
+        public string? StartDate { get; set; }
         public string? DueDate { get; set; }
         public string? StoryPoints { get; set; }
     }

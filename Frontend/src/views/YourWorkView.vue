@@ -5,9 +5,13 @@ import axiosClient from '@/api/axiosClient'
 import { useActivityStore } from '@/store/useActivityStore'
 import apexchart from 'vue3-apexcharts'
 import { ElNotification } from 'element-plus'
+import { useI18nStore } from '@/store/useI18nStore'
 
+const i18nStore = useI18nStore()
+const t = (key) => i18nStore.t(key)
 const activeTab = ref('Summary')
 const tabs = ['Summary', 'Assigned', 'Created', 'Subscribed', 'Activity']
+const tabLabel = (tab) => t(`yourWork.tabs.${tab.toLowerCase()}`)
 
 const myTasks = ref([])
 const loading = ref(false)
@@ -323,66 +327,66 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
             :class="{ active: activeTab === tab }"
             @click="activeTab = tab"
           >
-            {{ tab }}
+            {{ tabLabel(tab) }}
           </button>
         </div>
 
         <div class="yw-scrollable" v-if="activeTab === 'Summary'">
-          <h3 class="section-title mt-4">Overview</h3>
+          <h3 class="section-title mt-4">{{ t('yourWork.overview') }}</h3>
           <div class="yw-cards-row">
             <div class="yw-card">
               <div class="card-icon"><i class="fa-solid fa-plus"></i></div>
               <div class="card-info">
-                <div class="card-lbl">Work items created</div>
+                <div class="card-lbl">{{ t('yourWork.created') }}</div>
                 <div class="card-val">{{ overview.created }}</div>
               </div>
             </div>
             <div class="yw-card">
               <div class="card-icon"><i class="fa-regular fa-circle-user"></i></div>
               <div class="card-info">
-                <div class="card-lbl">Work items assigned</div>
+                <div class="card-lbl">{{ t('yourWork.assigned') }}</div>
                 <div class="card-val">{{ overview.assigned }}</div>
               </div>
             </div>
             <div class="yw-card">
               <div class="card-icon"><i class="fa-solid fa-inbox"></i></div>
               <div class="card-info">
-                <div class="card-lbl">Work items subscribed</div>
+                <div class="card-lbl">{{ t('yourWork.subscribed') }}</div>
                 <div class="card-val">{{ overview.subscribed }}</div>
               </div>
             </div>
           </div>
 
-          <h3 class="section-title mt-4">Workload</h3>
+          <h3 class="section-title mt-4">{{ t('yourWork.workload') }}</h3>
           <div class="yw-workload-row">
             <div class="wl-card">
-              <div class="wl-lbl"><span class="dbox bg-gray"></span> Backlog</div>
+              <div class="wl-lbl"><span class="dbox bg-gray"></span> {{ t('yourWork.backlog') }}</div>
               <div class="wl-val">{{ workload.backlog }}</div>
             </div>
             <div class="wl-card">
-              <div class="wl-lbl"><span class="dbox bg-blue"></span> Not started</div>
+              <div class="wl-lbl"><span class="dbox bg-blue"></span> {{ t('yourWork.notStarted') }}</div>
               <div class="wl-val">{{ workload.notStarted }}</div>
             </div>
             <div class="wl-card">
-              <div class="wl-lbl"><span class="dbox bg-orange"></span> Working on</div>
+              <div class="wl-lbl"><span class="dbox bg-orange"></span> {{ t('yourWork.inProgress') }}</div>
               <div class="wl-val">{{ workload.workingOn }}</div>
             </div>
             <div class="wl-card">
-              <div class="wl-lbl"><span class="dbox bg-green"></span> Completed</div>
+              <div class="wl-lbl"><span class="dbox bg-green"></span> {{ t('yourWork.completed') }}</div>
               <div class="wl-val">{{ workload.completed }}</div>
             </div>
             <div class="wl-card">
-              <div class="wl-lbl"><span class="dbox bg-red"></span> Canceled</div>
+              <div class="wl-lbl"><span class="dbox bg-red"></span> {{ t('yourWork.canceled') }}</div>
               <div class="wl-val">{{ workload.canceled }}</div>
             </div>
           </div>
 
           <div class="yw-two-cols mt-4">
             <div class="chart-col">
-              <h3 class="section-title">Work items by Priority</h3>
+              <h3 class="section-title">{{ t('yourWork.byPriority') }}</h3>
               <div class="empty-chart" v-if="myTasks.length === 0">
                 <i class="fa-solid fa-chart-simple chart-icon"></i>
-                <span>No work item assigned yet</span>
+                <span>{{ t('yourWork.empty') }}</span>
               </div>
               <apexchart
                 v-else
@@ -393,10 +397,10 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
               />
             </div>
             <div class="chart-col">
-              <h3 class="section-title">Work items by state</h3>
+              <h3 class="section-title">{{ t('yourWork.byState') }}</h3>
               <div class="empty-chart" v-if="myTasks.length === 0">
                 <i class="fa-solid fa-chart-column chart-icon"></i>
-                <span>No work item assigned yet</span>
+                <span>{{ t('yourWork.empty') }}</span>
               </div>
               <apexchart
                 v-else
@@ -408,7 +412,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
             </div>
           </div>
 
-          <h3 class="section-title mt-4">Recent activity</h3>
+          <h3 class="section-title mt-4">{{ t('yourWork.recentActivity') }}</h3>
           <div class="list-body">
             <div class="list-row" style="cursor: default;" v-for="activity in recentActivity" :key="activity.id">
               <div class="lr-left">
@@ -427,7 +431,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
         <div class="yw-scrollable" v-else-if="['Assigned', 'Created', 'Subscribed'].includes(activeTab)">
           <div class="list-header mt-4">
             <i class="fa-solid fa-circle-dashed f-icon"></i>
-            <span class="lh-title">All work items</span>
+            <span class="lh-title">{{ t('yourWork.allWorkItems') }}</span>
             <span class="lh-count">{{ listData.length }}</span>
           </div>
 
@@ -487,8 +491,8 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 
         <div class="yw-scrollable" v-else-if="activeTab === 'Activity'">
           <div class="activity-page-header mt-4 flex-between">
-            <h3 class="section-title" style="margin: 0;">Recent activity</h3>
-            <button class="plane-primary-btn" @click="downloadWordActivity">Download today's activity</button>
+            <h3 class="section-title" style="margin: 0;">{{ t('yourWork.recentActivity') }}</h3>
+            <button class="plane-primary-btn" @click="downloadWordActivity">{{ t('yourWork.downloadActivity') }}</button>
           </div>
 
           <div class="list-body mt-4">

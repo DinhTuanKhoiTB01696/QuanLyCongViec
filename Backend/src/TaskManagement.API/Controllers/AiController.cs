@@ -1,4 +1,5 @@
 using System.IO;
+using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -65,6 +66,106 @@ namespace TaskManagement.API.Controllers
             var userId = GetUserId();
             var usage = await _aiService.GetUsageAsync(userId);
             return Ok(ApiResponse<AiUsageDto>.Success(usage));
+        }
+
+        [HttpGet("usage-summary")]
+        public async Task<IActionResult> UsageSummary([FromQuery] DateTime? from = null, [FromQuery] DateTime? to = null)
+        {
+            var userId = GetUserId();
+            var start = from?.ToUniversalTime() ?? new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var end = to?.ToUniversalTime() ?? DateTime.UtcNow;
+            if (end < start)
+            {
+                return BadRequest(ApiResponse<object>.Error("Invalid usage date range."));
+            }
+
+            var tokenRows = await _dbContext.AITokenUsages
+                .AsNoTracking()
+                .Where(row => row.UserId == userId && row.CreatedAt >= start && row.CreatedAt <= end)
+                .GroupBy(row => row.FeatureCode)
+                .Select(group => new
+                {
+                    featureCode = group.Key,
+                    requests = group.Count(),
+                    tokensUsed = group.Sum(row => row.TokensUsed)
+                })
+                .OrderByDescending(row => row.tokensUsed)
+                .ToListAsync();
+
+            var ledgerRows = await _dbContext.AiUsageLedgerEntries
+                .AsNoTracking()
+                .Where(row => row.UserId == userId && row.OccurredAt >= start && row.OccurredAt <= end)
+                .GroupBy(row => row.ActionType)
+                .Select(group => new
+                {
+                    actionType = group.Key,
+                    requests = group.Count(),
+                    creditsConsumed = group.Sum(row => row.CreditsConsumed),
+                    providerTokens = group.Sum(row => row.ProviderTokens ?? 0)
+                })
+                .OrderByDescending(row => row.creditsConsumed)
+                .ToListAsync();
+
+            var totalTokens = tokenRows.Sum(row => row.tokensUsed);
+            var totalCredits = ledgerRows.Count > 0
+                ? ledgerRows.Sum(row => row.creditsConsumed)
+                : EstimateCredits(totalTokens);
+            return Ok(ApiResponse<object>.Success(new
+            {
+                period = new { from = start, to = end },
+                totalRequests = ledgerRows.Count > 0 ? ledgerRows.Sum(row => row.requests) : tokenRows.Sum(row => row.requests),
+                totalTokens,
+                creditsConsumed = totalCredits,
+                remainingIncludedCredits = Math.Max(0, 100 - totalCredits),
+                calculation = new
+                {
+                    tokenUnit = 1000,
+                    rounding = "ceil",
+                    note = ledgerRows.Count > 0
+                        ? "Credits are read from real AiUsageLedgerEntries rows. Provider cost is not guessed."
+                        : "No usage ledger rows found for this period; credits are estimated from real AITokenUsages rows."
+                },
+                byAction = ledgerRows,
+                byFeature = tokenRows.Select(row => new
+                {
+                    row.featureCode,
+                    row.requests,
+                    row.tokensUsed,
+                    estimatedCredits = EstimateCredits(row.tokensUsed)
+                })
+            }));
+        }
+
+        [HttpGet("usage-ledger")]
+        public async Task<IActionResult> UsageLedger([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+        {
+            var userId = GetUserId();
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            var ledgerQuery = _dbContext.AiUsageLedgerEntries
+                .AsNoTracking()
+                .Where(row => row.UserId == userId)
+                .OrderByDescending(row => row.OccurredAt);
+
+            var total = await ledgerQuery.CountAsync();
+            var items = await ledgerQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(row => new
+                {
+                    row.Id,
+                    row.WorkspaceId,
+                    row.ProjectId,
+                    row.ActionType,
+                    row.CreditsConsumed,
+                    row.ProviderTokens,
+                    row.IdempotencyKey,
+                    row.OccurredAt
+                })
+                .ToListAsync();
+
+            return Ok(ApiResponse<object>.Success(new { page, pageSize, total, items }));
         }
 
         [HttpPost("analyze-file")]
@@ -266,13 +367,29 @@ namespace TaskManagement.API.Controllers
                 var response = await _aiService.ContextChatAsync(userId, request);
                 return Ok(ApiResponse<AiContextChatResponseDto>.Success(response));
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException ex) when (IsGeminiQuotaFailure(ex))
             {
-                return StatusCode(StatusCodes.Status503ServiceUnavailable, ApiResponse<object>.Error(ex.Message));
+                return StatusCode(StatusCodes.Status429TooManyRequests,
+                    ApiResponse<object>.Error(BuildAiDiagnosticMessage(ex, "quota")));
             }
-            catch (HttpRequestException ex)
+            catch (HttpRequestException ex) when (IsGeminiQuotaFailure(ex))
             {
-                return StatusCode(StatusCodes.Status503ServiceUnavailable, ApiResponse<object>.Error(ex.Message));
+                return StatusCode(StatusCodes.Status429TooManyRequests,
+                    ApiResponse<object>.Error(BuildAiDiagnosticMessage(ex, "quota")));
+            }
+            catch (InvalidOperationException ex) when (IsAiContextFailure(ex))
+            {
+                return BadRequest(ApiResponse<object>.Error(BuildAiDiagnosticMessage(ex, "context")));
+            }
+            catch (InvalidOperationException ex) when (IsTransientAiFailure(ex))
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    ApiResponse<object>.Error(BuildAiDiagnosticMessage(ex, "transient")));
+            }
+            catch (HttpRequestException ex) when (IsTransientAiFailure(ex))
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    ApiResponse<object>.Error(BuildAiDiagnosticMessage(ex, "transient")));
             }
         }
 
@@ -325,6 +442,12 @@ namespace TaskManagement.API.Controllers
                     "create_goal" => await ExecuteCreateGoalAsync(userId, request),
                     "summarize_dashboard" => await ExecuteSummarizeDashboardAsync(userId, request),
                     "summarize_project" => await ExecuteSummarizeProjectAsync(userId, request),
+                    "list_work_items" => await ExecuteListWorkItemsAsync(userId, request),
+                    "list_cycles" => await ExecuteListCyclesAsync(userId, request),
+                    "list_modules" => await ExecuteListModulesAsync(userId, request),
+                    "list_pages" => await ExecuteListPagesAsync(userId, request),
+                    "list_views" => await ExecuteListViewsAsync(userId, request),
+                    "list_intakes" => await ExecuteListIntakesAsync(userId, request),
                     "list_overdue_tasks" => await ExecuteListOverdueTasksAsync(userId, request),
                     "get_workload" => await ExecuteGetWorkloadAsync(userId, request),
                     "explain_report" => await ExecuteExplainReportAsync(userId, request),
@@ -742,11 +865,35 @@ namespace TaskManagement.API.Controllers
             var message = ex.Message ?? string.Empty;
 
             return message.Contains("Gemini API loi 429", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("429", StringComparison.OrdinalIgnoreCase)
                 || message.Contains("Gemini Multimodal API loi 429", StringComparison.OrdinalIgnoreCase)
                 || message.Contains("RESOURCE_EXHAUSTED", StringComparison.OrdinalIgnoreCase)
                 || message.Contains("GenerateRequestsPerDayPerProjectPerModel-FreeTier", StringComparison.OrdinalIgnoreCase)
                 || message.Contains("rate-limits", StringComparison.OrdinalIgnoreCase)
                 || message.Contains("quota exceeded", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsAiContextFailure(Exception ex)
+        {
+            var message = ex.ToString();
+            return message.Contains("context", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("input too long", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("token", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("payload too large", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("permission", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("forbidden", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string BuildAiDiagnosticMessage(Exception ex, string category)
+        {
+            var raw = ex.Message ?? string.Empty;
+            var detail = raw.Length > 320 ? raw[..320] + "..." : raw;
+            return category switch
+            {
+                "quota" => $"Gemini đang bị giới hạn quota/rate limit (429). Không thực thi action tự động. Chi tiết: {detail}",
+                "context" => $"Không thể gửi đủ ngữ cảnh cho Gemini hoặc quyền/ngữ cảnh không hợp lệ. Không thực thi action tự động. Chi tiết: {detail}",
+                _ => $"Gemini tạm thời không sẵn sàng (503). Không thực thi action tự động. Chi tiết: {detail}"
+            };
         }
 
         private static string BuildGeminiFallbackMessage(string? title)
@@ -1014,6 +1161,12 @@ namespace TaskManagement.API.Controllers
             return userId;
         }
 
+        private static int EstimateCredits(long tokensUsed)
+        {
+            if (tokensUsed <= 0) return 0;
+            return (int)Math.Ceiling(tokensUsed / 1000.0);
+        }
+
         private async Task<bool> UserHasProjectAccessAsync(Guid userId, Guid projectId)
         {
             var workspaceMember = await _dbContext.WorkspaceMembers
@@ -1078,6 +1231,12 @@ namespace TaskManagement.API.Controllers
                 ["create_goal"] = new("Goal", true),
                 ["summarize_dashboard"] = new("Summary", false),
                 ["summarize_project"] = new("Summary", false),
+                ["list_work_items"] = new("WorkTaskList", false),
+                ["list_cycles"] = new("SprintList", false),
+                ["list_modules"] = new("ModuleList", false),
+                ["list_pages"] = new("PageList", false),
+                ["list_views"] = new("ProjectViewList", false),
+                ["list_intakes"] = new("IntakeList", false),
                 ["list_overdue_tasks"] = new("WorkTaskList", false),
                 ["get_workload"] = new("Workload", false),
                 ["explain_report"] = new("ReportExplanation", false),
@@ -1663,6 +1822,127 @@ namespace TaskManagement.API.Controllers
             return ReadOnlyAction("summarize_project", "Summary", data, $"Project {project.Name}: {taskStats.Total} tasks, {taskStats.Done} done.");
         }
 
+        private async Task<AiExecuteActionResponseDto> ExecuteListWorkItemsAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectActionAccessAsync(userId, projectId);
+            var tasks = await _dbContext.WorkTasks
+                .AsNoTracking()
+                .Include(task => task.TaskStatus)
+                .Include(task => task.AssignedUser)
+                .Where(task => task.ProjectId == projectId && !task.IsDeleted)
+                .OrderByDescending(task => task.UpdatedAt)
+                .Take(50)
+                .Select(task => new
+                {
+                    task.Id,
+                    task.SequenceId,
+                    task.Title,
+                    task.Priority,
+                    task.DueDate,
+                    StatusName = task.TaskStatus.Name,
+                    AssigneeName = task.AssignedUser != null ? task.AssignedUser.FullName ?? task.AssignedUser.Email : null
+                })
+                .ToListAsync();
+
+            return ReadOnlyAction("list_work_items", "WorkTaskList", tasks, $"Loaded {tasks.Count} work items.");
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteListCyclesAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectActionAccessAsync(userId, projectId);
+            var cycles = await _dbContext.Sprints
+                .AsNoTracking()
+                .Where(cycle => cycle.ProjectId == projectId)
+                .OrderByDescending(cycle => cycle.StartDate)
+                .Take(30)
+                .Select(cycle => new { cycle.Id, cycle.Name, cycle.StartDate, cycle.EndDate, IsActive = cycle.Status, TaskCount = cycle.WorkTasks.Count })
+                .ToListAsync();
+
+            return ReadOnlyAction("list_cycles", "SprintList", cycles, $"Loaded {cycles.Count} cycles.");
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteListModulesAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectActionAccessAsync(userId, projectId);
+            var modules = await _dbContext.Modules
+                .AsNoTracking()
+                .Where(module => module.ProjectId == projectId)
+                .OrderBy(module => module.Name)
+                .Take(50)
+                .Select(module => new
+                {
+                    module.Id,
+                    module.Name,
+                    module.Description,
+                    module.Status,
+                    module.StartDate,
+                    module.TargetDate,
+                    WorkItemCount = module.IssueModules.Count
+                })
+                .ToListAsync();
+
+            return ReadOnlyAction("list_modules", "ModuleList", modules, $"Loaded {modules.Count} modules.");
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteListPagesAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectActionAccessAsync(userId, projectId);
+            var pages = await _dbContext.Pages
+                .AsNoTracking()
+                .Where(page => page.ProjectId == projectId && !page.IsArchived)
+                .OrderBy(page => page.SortOrder)
+                .ThenBy(page => page.Title)
+                .Take(50)
+                .Select(page => new { page.Id, page.Title, page.IsLocked, page.IsPrivate, page.IsStarred, page.UpdatedAt })
+                .ToListAsync();
+
+            return ReadOnlyAction("list_pages", "PageList", pages, $"Loaded {pages.Count} pages.");
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteListViewsAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectActionAccessAsync(userId, projectId);
+            var views = await _dbContext.ProjectViews
+                .AsNoTracking()
+                .Where(view => view.ProjectId == projectId)
+                .OrderBy(view => view.Name)
+                .Take(50)
+                .Select(view => new { view.Id, view.Name, view.Description, view.IsFavorite, view.QueryMetadata, view.UpdatedAt })
+                .ToListAsync();
+
+            return ReadOnlyAction("list_views", "ProjectViewList", views, $"Loaded {views.Count} views.");
+        }
+
+        private async Task<AiExecuteActionResponseDto> ExecuteListIntakesAsync(Guid userId, AiExecuteActionRequestDto request)
+        {
+            var projectId = ResolveProjectId(request);
+            await EnsureProjectActionAccessAsync(userId, projectId);
+            var intakes = await _dbContext.Intakes
+                .AsNoTracking()
+                .Where(intake => intake.ProjectId == projectId)
+                .OrderByDescending(intake => intake.CreatedAt)
+                .Take(50)
+                .Select(intake => new
+                {
+                    intake.Id,
+                    intake.Title,
+                    intake.Source,
+                    intake.Status,
+                    intake.Priority,
+                    intake.DesiredDueDate,
+                    intake.CreatedAt,
+                    intake.CreatedIssueId
+                })
+                .ToListAsync();
+
+            return ReadOnlyAction("list_intakes", "IntakeList", intakes, $"Loaded {intakes.Count} intake requests.");
+        }
+
         private async Task<AiExecuteActionResponseDto> ExecuteListOverdueTasksAsync(Guid userId, AiExecuteActionRequestDto request)
         {
             var projectId = ResolveProjectId(request);
@@ -2131,7 +2411,25 @@ namespace TaskManagement.API.Controllers
 
         private static string NormalizeActionType(string actionType)
         {
-            return actionType.Trim().Replace("-", "_").ToLowerInvariant();
+            var normalized = actionType.Trim().Replace("-", "_").ToLowerInvariant();
+            return normalized switch
+            {
+                "create_work_item" or "create_issue" => "create_task",
+                "update_work_item_status" or "move_work_item" or "move_task" => "update_task_status",
+                "assign_work_item" => "assign_task",
+                "create_sprint" => "create_cycle",
+                "list_sprints" or "summarize_cycles" => "list_cycles",
+                "summarize_modules" => "list_modules",
+                "create_intake" => "create_intake_request",
+                "list_intake_requests" or "summarize_intake_requests" => "list_intakes",
+                "create_saved_view" => "create_view",
+                "list_saved_views" or "summarize_views" => "list_views",
+                "create_document_page" => "create_page",
+                "summarize_pages" => "list_pages",
+                "list_tasks" or "summarize_work_items" => "list_work_items",
+                "summarize_report" or "generate_report" or "report_summary" => "explain_report",
+                _ => normalized
+            };
         }
 
         private static string BuildIdempotencyKey(Guid userId, string actionType, string? clientKey, Dictionary<string, object?> payload)
@@ -2209,15 +2507,37 @@ namespace TaskManagement.API.Controllers
 
         private static DateTime? GetPayloadDate(Dictionary<string, object?> payload, params string[] keys)
         {
-            var value = GetPayloadString(payload, keys);
-            if (!DateTime.TryParse(value, out var parsed))
+            string? value = null;
+            foreach (var key in keys)
+            {
+                if (payload.TryGetValue(key, out var raw) && raw != null)
+                {
+                    value = raw is JsonElement element ? element.ToString() : raw.ToString();
+                    break;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(value))
             {
                 return null;
             }
 
-            return parsed.Kind == DateTimeKind.Unspecified
-                ? DateTime.SpecifyKind(parsed.Date, DateTimeKind.Utc)
-                : parsed.ToUniversalTime();
+            var trimmed = value.Trim();
+            if (DateTime.TryParseExact(trimmed,
+                    new[] { "yyyy-MM-dd", "yyyy/MM/dd", "dd/MM/yyyy", "d/M/yyyy", "dd-MM-yyyy", "d-M-yyyy", "MM/dd/yyyy", "M/d/yyyy" },
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeLocal,
+                    out var exact))
+            {
+                return DateTime.SpecifyKind(exact.Date, DateTimeKind.Utc);
+            }
+
+            if (double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out var serial) && serial > 0 && serial < 60000)
+            {
+                return DateTime.SpecifyKind(DateTime.FromOADate(serial).Date, DateTimeKind.Utc);
+            }
+
+            throw new ArgumentException($"{keys[0]} must be yyyy-MM-dd, dd/MM/yyyy or Excel serial date.");
         }
 
         private static string? LimitActionText(string? value, int maxLength)
