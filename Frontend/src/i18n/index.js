@@ -74,9 +74,11 @@ export const setLanguage = (nextLanguage) => {
 
 export const t = (key, params = {}) => {
   const currentValue = resolvePath(dictionaries[language.value] || dictionaries.vi, key)
-  const fallbackValue = resolvePath(dictionaries.vi, key) ?? resolvePath(dictionaries.en, key)
-  const value = currentValue ?? fallbackValue
-  return interpolate(value ?? key, params)
+  if (currentValue !== undefined) return interpolate(currentValue, params)
+  // Fallback: thử ngôn ngữ còn lại (en → vi nếu chưa có trong en; vi → en nếu chưa có trong vi)
+  const otherLang = language.value === 'vi' ? 'en' : 'vi'
+  const fallbackValue = resolvePath(dictionaries[otherLang], key)
+  return interpolate(fallbackValue ?? key, params)
 }
 
 export const isSupportedLanguage = (nextLanguage) => SUPPORTED_LANGUAGES.includes(nextLanguage)

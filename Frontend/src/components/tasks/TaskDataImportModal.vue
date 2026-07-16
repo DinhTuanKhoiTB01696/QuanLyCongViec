@@ -798,7 +798,6 @@ watch(() => props.modelValue, (val) => {
 .file-chip-remove:hover { color: #ef4444; background: rgba(239, 68, 68, 0.08); }
 
 /* ═══════════ PREVIEW ═══════════ */
-.preview-section { }
 .preview-header {
   display: flex;
   justify-content: space-between;
@@ -872,7 +871,6 @@ watch(() => props.modelValue, (val) => {
 }
 
 /* ═══════════ AI ═══════════ */
-.prompt-group { }
 .form-label {
   font-size: 12px;
   font-weight: 600;
@@ -894,7 +892,6 @@ watch(() => props.modelValue, (val) => {
 .ai-warning i { color: #f59e0b; }
 .analyze-btn { width: 100%; }
 
-.ai-results { }
 .ai-summary-card {
   padding: 14px 16px;
   background: var(--el-fill-color-light, #f8fafc);
@@ -923,12 +920,10 @@ watch(() => props.modelValue, (val) => {
 .text-success { color: #10b981; }
 .text-danger { color: #ef4444; }
 
-.refine-group { }
 .refine-row { display: flex; gap: 8px; align-items: flex-start; }
 .refine-btn { height: auto; min-height: 52px; }
 
 /* ═══════════ SHARED TASKS ═══════════ */
-.shared-tasks-section { }
 .selected-count {
   font-size: 12px;
   color: var(--color-text-muted, #94a3b8);

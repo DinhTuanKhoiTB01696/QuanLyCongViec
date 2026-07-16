@@ -1834,6 +1834,7 @@ const handleProjectCreated = (newProject) => {
 
 .ai-action-controls { justify-content: flex-end; }
 .ai-action-controls button {
+  min-width: 72px;
   min-height: 30px;
   padding: 6px 11px;
   border-radius: 8px;
