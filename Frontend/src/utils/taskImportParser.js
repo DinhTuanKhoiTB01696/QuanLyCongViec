@@ -70,7 +70,7 @@ export function parseCSVText(text = '') {
 }
 
 export function parseXLSXBuffer(arrayBuffer) {
-  const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: false })
+  const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array', cellDates: false })
   const sheet = workbook.Sheets[workbook.SheetNames[0]]
   return sheet ? XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) : []
 }

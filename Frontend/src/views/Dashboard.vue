@@ -30,6 +30,10 @@
         </div>
       </section>
 
+      <section class="dashboard-focus-widget">
+        <DailyFocusWidget />
+      </section>
+
       <section class="search-panel">
         <div class="search-shell">
           <i class="fa-solid fa-magnifying-glass"></i>
@@ -171,6 +175,7 @@ import axiosClient from '@/api/axiosClient'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useI18n } from '@/composables/useI18n'
 import { translateDemoText } from '@/utils/demoContentLocale'
+import DailyFocusWidget from '@/components/DailyFocusWidget.vue'
 
 const router = useRouter()
 const projectStore = useProjectStore()
@@ -312,6 +317,7 @@ watch(language, updateTime)
 
 .dashboard-header,
 .hero-panel,
+.dashboard-focus-widget,
 .search-panel,
 .projects-panel {
   max-width: 1180px;
@@ -600,6 +606,7 @@ watch(language, updateTime)
 
 .nexus-feature-header,
 .hero-panel,
+.dashboard-focus-widget,
 .search-panel,
 .projects-panel {
   animation: dashboard-rise-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;

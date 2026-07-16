@@ -8,9 +8,9 @@
   >
     <template #header="{ close }">
       <div class="dialog-header-standard">
-        <h2 class="dialog-title">Tạo dự án</h2>
+        <h2 class="dialog-title">{{ t('createProject.title') }}</h2>
         <div class="header-actions">
-          <button class="icon-btn-ghost" @click="close" title="Đóng"><i class="fa-solid fa-xmark"></i></button>
+          <button class="icon-btn-ghost" @click="close" :title="t('createProject.close')"><i class="fa-solid fa-xmark"></i></button>
         </div>
       </div>
     </template>
@@ -18,37 +18,37 @@
     <div class="modal-layout">
       <div class="form-column">
         <div class="form-group">
-          <label class="field-label">Tên dự án</label>
-          <input v-model="form.name" type="text" placeholder="Kế hoạch Sprint A" class="compact-input-field" />
+          <label class="field-label">{{ t('createProject.nameLabel') }}</label>
+          <input v-model="form.name" type="text" :placeholder="t('createProject.namePlaceholder')" class="compact-input-field" />
         </div>
 
         <div class="form-group">
-          <label class="field-label">Mã dự án</label>
-          <input v-model="form.key" type="text" maxlength="8" placeholder="SPR" class="compact-input-field" />
+          <label class="field-label">{{ t('createProject.keyLabel') }}</label>
+          <input v-model="form.key" type="text" maxlength="8" :placeholder="t('createProject.keyPlaceholder')" class="compact-input-field" />
         </div>
 
         <div class="form-group">
-          <label class="field-label">Mô tả</label>
-          <textarea v-model="form.description" rows="3" placeholder="Dự án này dùng để quản lý việc gì?" class="compact-textarea-field"></textarea>
+          <label class="field-label">{{ t('createProject.descriptionLabel') }}</label>
+          <textarea v-model="form.description" rows="3" :placeholder="t('createProject.descriptionPlaceholder')" class="compact-textarea-field"></textarea>
         </div>
 
         <div class="split-grid">
           <div class="form-group">
-            <label class="field-label">Ngày bắt đầu</label>
+            <label class="field-label">{{ t('createProject.startDateLabel') }}</label>
             <input v-model="form.startDate" type="date" class="compact-input-field" />
           </div>
 
           <div class="form-group">
-            <label class="field-label">Quyền xem</label>
+            <label class="field-label">{{ t('createProject.networkTypeLabel') }}</label>
             <el-select v-model="form.networkType" class="full-width-select">
-              <el-option label="Công khai" value="Public" />
-              <el-option label="Riêng tư" value="Private" />
+              <el-option :label="t('createProject.networkPublic')" value="Public" />
+              <el-option :label="t('createProject.networkPrivate')" value="Private" />
             </el-select>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="field-label">Biểu tượng</label>
+          <label class="field-label">{{ t('createProject.iconLabel') }}</label>
           <input v-model="form.icon" type="text" maxlength="2" placeholder="🚀" class="compact-input-field" style="width: 60px; text-align: center;" />
         </div>
       </div>
@@ -57,13 +57,13 @@
         <div class="cover-preview" :class="{ 'has-cover': Boolean(coverPreviewUrl) }" :style="coverPreviewStyle">
           <div class="cover-overlay">
             <span class="preview-badge">{{ form.icon || 'P' }}</span>
-            <strong class="preview-name">{{ form.name || 'Xem trước dự án' }}</strong>
+            <strong class="preview-name">{{ form.name || t('createProject.previewFallback') }}</strong>
           </div>
         </div>
 
         <div class="gallery-header">
-          <h4 class="section-title">Ảnh bìa dự án</h4>
-          <p class="helper-text-muted">Chọn ảnh PNG, JPG, JPEG hoặc WEBP, tối đa 5MB. Ảnh sẽ được upload sau khi tạo dự án.</p>
+          <h4 class="section-title">{{ t('createProject.coverTitle') }}</h4>
+          <p class="helper-text-muted">{{ t('createProject.coverHelper') }}</p>
         </div>
 
         <div class="cover-actions">
@@ -97,10 +97,10 @@
       <div class="dialog-footer-standard">
         <div class="footer-spacer"></div>
         <div class="footer-actions">
-          <button class="btn-secondary-sm" @click="handleClose">Hủy</button>
+          <button class="btn-secondary-sm" @click="handleClose">{{ t('createProject.cancel') }}</button>
           <button class="btn-primary-sm" :disabled="submitting" @click="handleSubmit">
             <i v-if="submitting" class="fa-solid fa-spinner fa-spin"></i>
-            {{ submitting ? 'Đang tạo...' : 'Tạo dự án' }}
+            {{ submitting ? t('createProject.submitting') : t('createProject.submit') }}
           </button>
         </div>
       </div>
@@ -113,6 +113,10 @@ import { computed, onUnmounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import axiosClient from '@/api/axiosClient'
 import { useProjectStore } from '@/store/useProjectStore'
+import { useI18n } from '@/composables/useI18n'
+
+const { t } = useI18n()
+
 
 const props = defineProps({
   visible: Boolean
@@ -220,7 +224,7 @@ const handleClose = () => {
 
 const handleSubmit = async () => {
   if (!form.value.name.trim()) {
-    ElMessage.warning('Vui lòng nhập tên dự án')
+    ElMessage.warning(t('createProject.nameRequired'))
     return
   }
 
@@ -265,10 +269,10 @@ const handleSubmit = async () => {
 
     await projectStore.fetchAllProjects(true)
     emit('created', emittedProject)
-    ElMessage.success('Đã tạo dự án')
+    ElMessage.success(t('createProject.createSuccess'))
     handleClose()
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || 'Không thể tạo dự án')
+    ElMessage.error(error.response?.data?.message || t('createProject.createFailed'))
   } finally {
     submitting.value = false
   }

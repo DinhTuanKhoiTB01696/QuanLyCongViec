@@ -35,6 +35,7 @@ declare module 'vue' {
     CreateSpaceModal: typeof import('./src/components/CreateSpaceModal.vue')['default']
     CustomizeSidebarModal: typeof import('./src/components/CustomizeSidebarModal.vue')['default']
     CyclesTab: typeof import('./src/components/CyclesTab.vue')['default']
+    DailyFocusWidget: typeof import('./src/components/DailyFocusWidget.vue')['default']
     DevelopmentTab: typeof import('./src/components/DevelopmentTab.vue')['default']
     DocsTab: typeof import('./src/components/DocsTab.vue')['default']
     DropdownFilter: typeof import('./src/components/common/DropdownFilter.vue')['default']

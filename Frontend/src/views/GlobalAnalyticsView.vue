@@ -33,6 +33,9 @@ ChartJS.register(
   ArcElement
 )
 
+import { useI18n } from '@/composables/useI18n'
+
+const { t } = useI18n()
 const activeTab = ref('Overview')
 const analyticsScope = ref('Current project')
 const insightDimension = ref('Accuracy')
@@ -206,7 +209,7 @@ const getPriorityColor = (val) => {
 const radarChartData = computed(() => ({
   labels: ['Committed SP', 'Completed SP', 'Carry-over', 'Accuracy', 'Estimated h', 'Logged h'],
   datasets: [{
-    label: 'Planning health',
+    label: t('Planning health'),
     data: [
       Number(velocitySummary.value.committedStoryPoints || 0),
       Number(velocitySummary.value.completedStoryPoints || 0),
@@ -363,17 +366,17 @@ const chartConfig = {
     <div class="analytics-wrapper">
       <header class="an-header">
         <div class="an-top-row">
-          <span class="breadcrumb"><i class="fa-solid fa-chart-simple"></i> Analytics</span>
+          <span class="breadcrumb"><i class="fa-solid fa-chart-simple"></i>{{ t('Analytics') }}</span>
           <div class="ml-auto"></div>
         </div>
         <div class="an-bottom-row">
           <div class="an-tabs">
-            <button class="tab-btn" :class="{ active: activeTab === 'Overview' }" @click="activeTab = 'Overview'">Overview</button>
-            <button class="tab-btn" :class="{ active: activeTab === 'Work items' }" @click="activeTab = 'Work items'">Work items</button>
+            <button class="tab-btn" :class="{ active: activeTab === 'Overview' }" @click="activeTab = 'Overview'">{{ t('Overview') }}</button>
+            <button class="tab-btn" :class="{ active: activeTab === 'Work items' }" @click="activeTab = 'Work items'">{{ t('Work items') }}</button>
           </div>
           <div class="toolbar-stack ms-auto">
             <select class="project-select" :value="selectedProjectId" @change="handleProjectChange">
-              <option value="">Current project</option>
+              <option value="">{{ t('Current project') }}</option>
               <option v-for="project in projectOptions" :key="project.id" :value="project.id">
                 {{ project.name }}
               </option>
@@ -382,7 +385,7 @@ const chartConfig = {
               <button class="plane-toolbar-btn" type="button"><i class="fa-solid fa-briefcase"></i> {{ analyticsScope }} <i class="fa-solid fa-chevron-down ms-2"></i></button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item command="Current project">Current project</el-dropdown-item>
+                  <el-dropdown-item command="Current project">{{ t('Current project') }}</el-dropdown-item>
                   <el-dropdown-item command="All my projects">All my projects</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -392,52 +395,52 @@ const chartConfig = {
       </header>
 
       <div class="an-scrollable" v-if="activeTab === 'Overview'">
-        <h2 class="page-title">Overview</h2>
+        <h2 class="page-title">{{ t('Overview') }}</h2>
 
         <div class="stats-grid">
           <div class="stat-box">
-            <div class="stat-lbl">Total work items</div>
+            <div class="stat-lbl">{{ t('Total work items') }}</div>
             <div class="stat-val">{{ totalTasks }}</div>
           </div>
           <div class="stat-box">
-            <div class="stat-lbl">My tasks</div>
+            <div class="stat-lbl">{{ t('My tasks') }}</div>
             <div class="stat-val">{{ myTasks }}</div>
           </div>
           <div class="stat-box">
-            <div class="stat-lbl">Overdue tasks</div>
+            <div class="stat-lbl">{{ t('Overdue tasks') }}</div>
             <div class="stat-val danger">{{ overdueTasks }}</div>
           </div>
           <div class="stat-box">
-            <div class="stat-lbl">Committed story points</div>
+            <div class="stat-lbl">{{ t('Committed story points') }}</div>
             <div class="stat-val">{{ planningOverview.totalCommittedStoryPoints }}</div>
           </div>
           <div class="stat-box">
-            <div class="stat-lbl">Completion rate</div>
+            <div class="stat-lbl">{{ t('Completion rate') }}</div>
             <div class="stat-val">{{ velocitySummary.completionRate }}%</div>
           </div>
         </div>
 
         <div class="insights-grid">
           <div class="insight-box">
-            <div class="insight-title">Planning health</div>
+            <div class="insight-title">{{ t('Planning health') }}</div>
             <div class="radar-container mt-4">
               <Radar :data="radarChartData" :options="radarChartOptions" />
             </div>
           </div>
 
           <div class="insight-box">
-            <div class="insight-title">Velocity summary</div>
+            <div class="insight-title">{{ t('Velocity summary') }}</div>
             <div class="summary-list mt-4">
-              <div class="sum-row"><span class="sum-lbl">Completed story points</span><span class="sum-val">{{ velocitySummary.completedStoryPoints }}</span></div>
-              <div class="sum-row"><span class="sum-lbl">Carry-over story points</span><span class="sum-val">{{ velocitySummary.carryOverStoryPoints }}</span></div>
-              <div class="sum-row"><span class="sum-lbl">Estimated hours</span><span class="sum-val">{{ planningOverview.totalEstimatedHours }}h</span></div>
-              <div class="sum-row"><span class="sum-lbl">Actual hours</span><span class="sum-val">{{ planningOverview.totalActualHours }}h</span></div>
-              <div class="sum-row"><span class="sum-lbl">Logged hours</span><span class="sum-val">{{ planningOverview.totalLoggedHours }}h</span></div>
+              <div class="sum-row"><span class="sum-lbl">{{ t('Completed story points') }}</span><span class="sum-val">{{ velocitySummary.completedStoryPoints }}</span></div>
+              <div class="sum-row"><span class="sum-lbl">{{ t('Carry-over story points') }}</span><span class="sum-val">{{ velocitySummary.carryOverStoryPoints }}</span></div>
+              <div class="sum-row"><span class="sum-lbl">{{ t('Estimated hours') }}</span><span class="sum-val">{{ planningOverview.totalEstimatedHours }}h</span></div>
+              <div class="sum-row"><span class="sum-lbl">{{ t('Actual hours') }}</span><span class="sum-val">{{ planningOverview.totalActualHours }}h</span></div>
+              <div class="sum-row"><span class="sum-lbl">{{ t('Logged hours') }}</span><span class="sum-val">{{ planningOverview.totalLoggedHours }}h</span></div>
             </div>
           </div>
 
           <div class="insight-box">
-            <div class="insight-title">Manager review</div>
+            <div class="insight-title">{{ t('Manager review') }}</div>
             <div class="manager-panel mt-4">
               <div class="pill-row">
                 <span class="pill" :class="{ positive: managerReview.canConfirmBaseline }">
@@ -446,9 +449,9 @@ const chartConfig = {
                 <span class="pill warning">Over capacity: {{ workloadSummary.overCapacityCount }}</span>
               </div>
               <div class="summary-list">
-                <div class="sum-row"><span class="sum-lbl">Near-limit members</span><span class="sum-val">{{ managerReview.riskSummary?.nearLimitMembers || 0 }}</span></div>
-                <div class="sum-row"><span class="sum-lbl">Carry-over projects</span><span class="sum-val">{{ managerReview.riskSummary?.carryOverProjects || 0 }}</span></div>
-                <div class="sum-row"><span class="sum-lbl">Unplanned tasks</span><span class="sum-val">{{ managerReview.riskSummary?.unplannedTasks || 0 }}</span></div>
+                <div class="sum-row"><span class="sum-lbl">{{ t('Near-limit members') }}</span><span class="sum-val">{{ managerReview.riskSummary?.nearLimitMembers || 0 }}</span></div>
+                <div class="sum-row"><span class="sum-lbl">{{ t('Carry-over projects') }}</span><span class="sum-val">{{ managerReview.riskSummary?.carryOverProjects || 0 }}</span></div>
+                <div class="sum-row"><span class="sum-lbl">{{ t('Unplanned tasks') }}</span><span class="sum-val">{{ managerReview.riskSummary?.unplannedTasks || 0 }}</span></div>
               </div>
               <button
                 v-if="managerReview.canConfirmBaseline"
@@ -526,7 +529,7 @@ const chartConfig = {
                   <button class="filter-btn" type="button"><i class="fa-solid fa-list"></i> {{ insightDimension }} <i class="fa-solid fa-chevron-down"></i></button>
                   <template #dropdown>
                     <el-dropdown-menu>
-                      <el-dropdown-item command="Accuracy">Accuracy</el-dropdown-item>
+                      <el-dropdown-item command="Accuracy">{{ t('Accuracy') }}</el-dropdown-item>
                       <el-dropdown-item command="Workload">Workload</el-dropdown-item>
                       <el-dropdown-item command="Status">Status</el-dropdown-item>
                       <el-dropdown-item command="Priority">Priority</el-dropdown-item>
@@ -553,7 +556,7 @@ const chartConfig = {
                     <th>Estimated</th>
                     <th>Actual</th>
                     <th>Logged</th>
-                    <th>Accuracy</th>
+                    <th>{{ t('Accuracy') }}</th>
                     <th>Bucket</th>
                   </tr>
                 </thead>
@@ -585,7 +588,7 @@ const chartConfig = {
                     <th>Estimated</th>
                     <th>Actual</th>
                     <th>Logged</th>
-                    <th>Accuracy</th>
+                    <th>{{ t('Accuracy') }}</th>
                     <th>Progress</th>
                   </tr>
                 </thead>
