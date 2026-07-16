@@ -5,14 +5,14 @@
         <div class="st-left">
           <i class="fa-solid fa-note-sticky text-muted"></i>
           <span class="st-title flex items-center gap-2">
-            Stickies 
+            {{ t('Stickies') }} 
             <span class="bg-[var(--color-surface)] text-[var(--color-text-muted)] text-[10px] px-1.5 py-0.5 rounded" v-if="stickies.length > 0">{{ stickies.length }}</span>
             <span class="text-[11px] text-[var(--color-text-muted)] ml-2 font-normal">{{ lastSavedLabel }}</span>
           </span>
         </div>
         <div class="nexus-controls-row">
-          <input type="text" class="nexus-search-input" placeholder="Search stickies..." v-model="searchQuery" />
-          <button class="nexus-btn nexus-btn-primary" @click="addSticky"><i class="fa-solid fa-plus mr-1.5"></i> Add sticky</button>
+          <input type="text" class="nexus-search-input" :placeholder="t('Search stickies...')" v-model="searchQuery" />
+          <button class="nexus-btn nexus-btn-primary" @click="addSticky"><i class="fa-solid fa-plus mr-1.5"></i> {{ t('Add sticky') }}</button>
         </div>
       </header>
 
@@ -20,8 +20,8 @@
         <!-- Empty State -->
         <div v-if="stickies.length === 0" class="empty-state flex flex-col items-center justify-center pt-24 h-full">
            <div class="empty-text-container text-left w-full max-w-3xl">
-             <h2 class="text-[18px] font-medium text-[var(--color-text-primary)] mb-2">Stickies are quick notes and to-dos you take down on the fly.</h2>
-             <p class="text-[13px] text-[var(--color-text-muted)] mb-10">Capture your thoughts and ideas effortlessly by creating stickies that you can access anytime and from anywhere.</p>
+             <h2 class="text-[18px] font-medium text-[var(--color-text-primary)] mb-2">{{ t('Stickies are quick notes and to-dos you take down on the fly.') }}</h2>
+             <p class="text-[13px] text-[var(--color-text-muted)] mb-10">{{ t('Capture your thoughts and ideas effortlessly by creating stickies that you can access anytime and from anywhere.') }}</p>
              
              <!-- Mocked background area mirroring Plane design -->
              <div class="empty-bg relative w-full h-[400px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl flex flex-col items-center justify-end overflow-hidden">
@@ -30,7 +30,7 @@
                   <i class="fa-solid fa-note-sticky text-[120px] text-[var(--color-border)] -ml-20 -mt-20 -rotate-12"></i>
                 </div>
                 <button class="plane-primary-btn flex items-center gap-1.5 relative z-10 mb-8" @click="addSticky">
-                  <i class="fa-solid fa-plus text-xs"></i> Add sticky
+                  <i class="fa-solid fa-plus text-xs"></i> {{ t('Add sticky') }}
                 </button>
              </div>
            </div>
@@ -50,7 +50,7 @@
                 class="sticky-input" 
                 @input="e => updateStickyContent(sticky, e)"
                 @blur="commitStickyContent(sticky)"
-                placeholder="Click to type here..."
+                :placeholder="t('Click to type here...')"
                 :ref="el => setStickyRef(sticky, el)"
                 :style="{ 
                   textAlign: sticky.align
@@ -102,7 +102,10 @@ import { ref, onMounted, nextTick, computed } from 'vue'
 
 import { ElNotification } from 'element-plus'
 
+import { useI18n } from '@/composables/useI18n'
 import { COLOR_PALETTE, getContrastTextColor, getRandomPaletteColor, getDynamicColorStyle } from '@/utils/colors'
+
+const { t } = useI18n()
 const stickies = ref([])
 const searchQuery = ref('')
 const lastSavedAt = ref(null)

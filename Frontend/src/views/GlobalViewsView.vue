@@ -4,6 +4,9 @@ import axiosClient from '@/api/axiosClient'
 
 import FilterBar from '@/components/FilterBar.vue'
 
+import { useI18n } from '@/composables/useI18n'
+
+const { t } = useI18n()
 const rawTasks = ref([])
 const loading = ref(false)
 const showFilters = ref(false)
@@ -190,7 +193,7 @@ const getPrioIcon = (pr) => {
       <!-- Header -->
       <header class="vh-header">
         <div class="vh-left">
-           <span class="breadcrumb"><i class="fa-solid fa-layer-group"></i> Views <i class="fa-solid fa-chevron-right separator"></i> All work items <i class="fa-solid fa-chevron-down ms-2 text-[10px]"></i></span>
+           <span class="breadcrumb"><i class="fa-solid fa-layer-group"></i> Views <i class="fa-solid fa-chevron-right separator"></i>{{ t('All work items') }}<i class="fa-solid fa-chevron-down ms-2 text-[10px]"></i></span>
         </div>
         
         <!-- Filter Controls -->
@@ -199,15 +202,15 @@ const getPrioIcon = (pr) => {
                 <button 
                     @click="analyticsScope = 'all'; selectedProjectId = null"
                     :class="['scope-btn', { active: analyticsScope === 'all' }]"
-                >All projects</button>
+                >{{ t('All projects') }}</button>
                 <button 
                     @click="analyticsScope = 'my'; selectedProjectId = null"
                     :class="['scope-btn', { active: analyticsScope === 'my' }]"
-                >My projects</button>
+                >{{ t('My projects') }}</button>
                 <button 
                     @click="analyticsScope = 'archived'; selectedProjectId = null"
                     :class="['scope-btn', { active: analyticsScope === 'archived' }]"
-                >Archived projects</button>
+                >{{ t('Archived projects') }}</button>
             </div>
 
             <div class="project-selector-wrap">
@@ -216,7 +219,7 @@ const getPrioIcon = (pr) => {
                     class="vh-select"
                     :disabled="analyticsScope === 'all'"
                 >
-                    <option :value="null">Filter by project</option>
+                    <option :value="null">{{ t('Filter by project') }}</option>
                     <option v-for="p in filteredProjects" :key="p.id" :value="p.id">
                         {{ p.name }}
                     </option>
@@ -225,9 +228,9 @@ const getPrioIcon = (pr) => {
         </div>
 
         <div class="vh-right">
-           <input type="text" v-model="filters.search" placeholder="Search tasks..." class="vh-input" />
+           <input type="text" v-model="filters.search" placeholder="{{ t('Search tasks...') }}" class="vh-input" />
            <select v-model="filters.status" class="vh-select">
-              <option value="">All Status</option>
+              <option value="">{{ t('All Status') }}</option>
               <option value="BACKLOG">Backlog</option>
               <option value="TO DO">To Do</option>
               <option value="IN PROGRESS">In Progress</option>
