@@ -1159,6 +1159,7 @@
                <div class="activity-tabs-wrapper">
                  <button class="activity-tab-btn" :class="{ active: activityTab === 'comments' }" @click="activityTab = 'comments'">Bình luận</button>
                  <button class="activity-tab-btn" :class="{ active: activityTab === 'history' }" @click="activityTab = 'history'">Nhật ký hoạt động</button>
+                 <button class="activity-tab-btn" :class="{ active: activityTab === 'contingency' }" @click="activityTab = 'contingency'">Kế hoạch dự phòng</button>
                </div>
                <div class="flex-center gap-2" v-if="activityTab === 'history'">
                   <button class="icon-filter-btn" @click="toggleActivitySort" :title="activitySortNewestFirst ? 'Mới nhất trước' : 'Cũ nhất trước'"><i class="fa-solid fa-arrow-down-short-wide"></i></button>
@@ -1166,6 +1167,123 @@
                </div>
             </div>
 
+            <!-- CONTINGENCY PLAN UI -->
+            <div class="mb-6 contingency-plans-container" v-if="activityTab === 'contingency'">
+              <div v-if="isLoadingContingency" class="text-center py-6 text-muted">
+                 <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
+                 <div class="mt-2 text-sm font-medium">Đang tải kế hoạch...</div>
+              </div>
+              <div v-else>
+                  <div class="flex justify-between items-center mb-6">
+                     <h3 class="cm-title" style="margin-bottom: 0;">Danh sách Kế hoạch Dự phòng</h3>
+                     <button class="s-btn s-btn-primary px-4 py-2 text-[13px] font-bold rounded-lg shadow-sm flex items-center hover:-translate-y-0.5 transition-transform" @click="openCreateContingencyForm" v-if="contingencyPlans.length > 0">
+                        <i class="fa-solid fa-plus mr-2"></i> Thêm Kế hoạch
+                     </button>
+                  </div>
+                  
+                  <div v-if="contingencyPlans.length > 0" class="flex flex-col gap-5">
+                     <div class="bg-[var(--bg-primary)] rounded-xl border border-[var(--color-border)] shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden" v-for="plan in contingencyPlans" :key="plan.id">
+                        
+                        <!-- Header Section -->
+                        <div class="p-5 pb-4 border-b border-[var(--color-border)] bg-[var(--color-surface-hover)]/30">
+                           <div class="flex justify-between items-start">
+                              <div class="flex flex-col gap-2">
+                                 <div class="flex items-center gap-3">
+                                    <h4 class="text-base font-bold text-[var(--color-text-primary)] cursor-pointer hover:text-[var(--color-accent)] transition-colors" @click="openContingencyDetail(plan)">
+                                       <i class="fa-solid fa-shield-halved text-[var(--color-text-muted)] mr-2"></i> 
+                                       {{ plan.name }}
+                                    </h4>
+                                    <!-- Risk Badge -->
+                                    <div class="cm-badge" style="cursor: default; padding: 2px 8px; font-size: 11px; text-transform: uppercase;" :style="{
+                                           color: plan.riskLevel === 'Critical' ? '#ef4444' : plan.riskLevel === 'High' ? '#f97316' : plan.riskLevel === 'Medium' ? '#eab308' : '#3b82f6',
+                                           backgroundColor: `color-mix(in srgb, ${plan.riskLevel === 'Critical' ? '#ef4444' : plan.riskLevel === 'High' ? '#f97316' : plan.riskLevel === 'Medium' ? '#eab308' : '#3b82f6'} 15%, transparent)`
+                                        }">
+                                       <i :class="plan.riskLevel === 'Critical' ? 'fa-solid fa-circle-exclamation' : plan.riskLevel === 'High' ? 'fa-solid fa-chevron-up' : plan.riskLevel === 'Medium' ? 'fa-solid fa-minus' : 'fa-solid fa-arrow-down'"></i>
+                                       {{ plan.riskLevel || 'LOW' }}
+                                    </div>
+                                 </div>
+                              </div>
+                              <div class="flex gap-1" v-if="!plan.isActivated">
+                                 <el-dropdown trigger="click" @command="(cmd) => handleContingencyAction(cmd, plan)">
+                                    <button class="nav-icon-btn bg-transparent border-0 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]" type="button">
+                                       <i class="fa-solid fa-ellipsis-vertical text-lg"></i>
+                                    </button>
+                                    <template #dropdown>
+                                       <el-dropdown-menu class="theme-dropdown">
+                                          <el-dropdown-item command="edit"><i class="fa-solid fa-pen mr-2 text-[var(--color-text-muted)]"></i> Chỉnh sửa</el-dropdown-item>
+                                          <el-dropdown-item command="delete" class="text-red-500"><i class="fa-solid fa-trash mr-2"></i> Xóa kế hoạch</el-dropdown-item>
+                                       </el-dropdown-menu>
+                                    </template>
+                                 </el-dropdown>
+                              </div>
+                           </div>
+                           
+                           <!-- Risk Description -->
+                           <div class="mt-3 text-[13px] text-[var(--color-text-secondary)] leading-relaxed flex gap-2" v-if="plan.riskDescription">
+                              <i class="fa-solid fa-triangle-exclamation mt-1" style="color: #ef4444;"></i>
+                              <div class="whitespace-pre-wrap">{{ plan.riskDescription }}</div>
+                           </div>
+                        </div>
+
+                        <!-- Task List Section -->
+                        <div class="p-5 pt-4 bg-[var(--bg-primary)]">
+                           <div class="flex justify-between items-center mb-4">
+                              <div class="text-[12px] font-bold text-[var(--color-text-primary)] uppercase tracking-wider flex items-center">
+                                 Task Dự Phòng <span class="ml-2 bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] px-2 py-0.5 rounded-full text-[10px]">{{ plan.contingencyTasks?.length || 0 }}</span>
+                              </div>
+                              <button class="s-btn s-btn-secondary text-[12px] py-1.5 px-3 rounded-md flex items-center gap-1.5 font-semibold hover:bg-[var(--color-surface-hover)] transition-colors" @click="openCreateTaskForm(plan.id)" v-if="!plan.isActivated">
+                                 <i class="fa-solid fa-plus"></i> Thêm Task
+                              </button>
+                           </div>
+
+                           <div v-if="plan.contingencyTasks && plan.contingencyTasks.length > 0" class="grid grid-cols-1 gap-3">
+                              <!-- Task Mini-Card -->
+                              <div v-for="task in plan.contingencyTasks" :key="task.id" class="group flex flex-col md:flex-row md:items-center justify-between p-3.5 bg-[var(--bg-secondary)] border border-[var(--color-border)] rounded-lg hover:border-[var(--color-accent)] hover:shadow-sm transition-all duration-200">
+                                 <div class="flex items-center gap-3 mb-3 md:mb-0">
+                                    <div class="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] transition-colors">
+                                       <i class="fa-solid fa-list-check"></i>
+                                    </div>
+                                    <div class="flex flex-col">
+                                       <span class="text-[14px] font-bold text-[var(--color-text-primary)] cursor-pointer hover:text-[var(--color-accent)] transition-colors" @click="openTaskDetail(task)">{{ task.title }}</span>
+                                       <div class="flex items-center mt-1.5 gap-2">
+                                          <div class="cm-badge" style="cursor: default; padding: 2px 6px; font-size: 10px; font-weight: 600;" :style="{ color: getStatusColor(task.statusName), backgroundColor: `color-mix(in srgb, ${getStatusColor(task.statusName)} 15%, transparent)` }">
+                                             <i :class="getStatusIcon(task.statusName)"></i>
+                                             {{ getStatusLabel(task.statusName) }}
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                                 <div class="flex items-center">
+                                    <button v-if="!task.isActivated && !plan.isActivated" class="s-btn s-btn-primary py-1.5 px-4 text-[12px] font-bold rounded-md shadow-sm w-full md:w-auto hover:-translate-y-0.5 transition-transform" @click.stop="confirmActivateTask(plan, task)">
+                                       Kích hoạt
+                                    </button>
+                                    <div v-else-if="task.isActivated" class="cm-badge bg-green-50 text-green-600 border border-green-200 px-3 py-1.5 text-[11px] font-bold rounded-md flex items-center justify-center w-full md:w-auto">
+                                       <i class="fa-solid fa-check mr-1.5"></i> Đã kích hoạt
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div v-else class="text-center py-6 border-2 border-dashed border-[var(--color-border)] rounded-lg bg-[var(--bg-secondary)]/50">
+                              <p class="text-[13px] text-[var(--color-text-muted)] italic">Chưa có task dự phòng nào.</p>
+                           </div>
+                        </div>
+
+                     </div>
+                  </div>
+                  
+                  <div v-else class="text-center py-16 px-4 text-[var(--color-text-muted)] border-2 border-dashed border-[var(--color-border)] hover:border-[var(--color-accent)]/50 transition-colors rounded-2xl bg-[var(--bg-secondary)] flex flex-col items-center justify-center group cursor-pointer" @click="openCreateContingencyForm">
+                     <div class="w-16 h-16 rounded-full bg-[var(--bg-primary)] shadow-sm flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fa-solid fa-shield-halved text-3xl text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] transition-colors"></i>
+                     </div>
+                     <h4 class="text-[var(--color-text-primary)] text-lg font-bold mb-2">Chưa có kế hoạch dự phòng</h4>
+                     <p class="text-[13px] opacity-80 mb-6 max-w-[320px] leading-relaxed">Một kế hoạch dự phòng giúp nhóm chuẩn bị sẵn các phương án fallback tự động khi công việc gặp rủi ro.</p>
+                     <button class="s-btn s-btn-primary px-6 py-2.5 text-[13px] font-bold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center hover:-translate-y-0.5">
+                        <i class="fa-solid fa-plus mr-2"></i> Tạo kế hoạch đầu tiên
+                     </button>
+                  </div>
+               </div>
+            </div>
+            
             <div class="comment-box mb-6" v-if="activityTab === 'comments'">
               <p class="text-[13px] font-semibold mb-2 text-[var(--color-text-muted)]">Thêm bình luận</p>
                <div class="editor-wrap !pt-2">
@@ -1219,7 +1337,7 @@
                </div>
             </div>
 
-            <div v-if="activityEntries.length" class="activity-feed">
+            <div v-if="activityEntries.length && activityTab !== 'contingency'" class="activity-feed">
                <div v-for="entry in activityEntries" :key="entry.id" class="feed-item group">
                  <template v-if="entry.type === 'created'">
                    <div class="feed-icon"><i class="fa-solid fa-clone"></i></div>
@@ -1315,7 +1433,7 @@
                  </template>
                </div>
             </div>
-            <div v-else class="activity-empty-state">Chưa có {{ activityTab === 'comments' ? 'bình luận' : 'hoạt động' }} nào.</div>
+            <div v-else-if="activityTab !== 'contingency'" class="activity-empty-state">Chưa có {{ activityTab === 'comments' ? 'bình luận' : 'hoạt động' }} nào.</div>
          </div>
       </div>
 
@@ -1341,12 +1459,186 @@
       </div>
     </div>
   </div>
+    <!-- CONTINGENCY DIALOGS -->
+<transition name="fade">
+  <div class="task-modal-overlay" v-if="showContingencyForm" @mousedown.self="showContingencyForm = false" style="z-index: 999999;">
+    <div class="create-centered-modal transform transition-all scale-100 opacity-100" style="max-width: 550px; padding: 24px;">
+      <div class="flex items-center justify-between mb-5">
+         <h3 class="cm-title" style="margin-bottom: 0;">{{ editingContingencyPlanId ? 'Cập nhật Kế hoạch' : 'Kế hoạch dự phòng mới' }}</h3>
+         <div class="cm-badge">
+           <i class="fa-solid fa-shield-halved" style="color: #3b82f6"></i> DỰ PHÒNG
+         </div>
+      </div>
+
+      <div class="cm-form-group flex flex-col gap-4 mb-4">
+        <div>
+           <label class="block text-[12px] font-bold text-[var(--color-text-secondary)] mb-1.5 ml-1 uppercase tracking-wide">Tên Kế hoạch</label>
+           <input type="text" class="cm-inputbox transition-colors focus:border-[var(--color-accent)]" style="font-size: 14px; padding: 10px 14px;" placeholder="Nhập tên kế hoạch dự phòng..." v-model="contingencyPlanForm.name" />
+        </div>
+        
+        <div>
+           <label class="block text-[12px] font-bold text-[var(--color-text-secondary)] mb-1.5 ml-1 uppercase tracking-wide">Mô tả rủi ro</label>
+           <textarea class="cm-textareabox !min-h-[80px] transition-colors focus:border-[var(--color-accent)]" style="font-size: 14px; padding: 10px 14px;" placeholder="Mô tả cụ thể rủi ro (VD: Khi server gặp sự cố...)" v-model="contingencyPlanForm.riskDescription"></textarea>
+        </div>
+      </div>
+
+      <div class="cm-toolbar-row mb-5">
+         <div class="w-full">
+            <label class="block text-[12px] font-bold text-[var(--color-text-secondary)] mb-1.5 ml-1 uppercase tracking-wide">Mức độ nguy hiểm</label>
+            <el-dropdown trigger="click" @command="(cmd) => contingencyPlanForm.riskLevel = cmd" class="w-full">
+               <div class="t-btn w-full justify-between hover:bg-[var(--bg-secondary)] transition-colors" style="border: 1px solid var(--color-border); padding: 8px 14px; height: 42px; background: var(--bg-primary);">
+                  <div class="flex items-center">
+                     <i class="fa-solid fa-triangle-exclamation mr-2" :style="{color: contingencyPlanForm.riskLevel === 'Critical' ? '#ef4444' : contingencyPlanForm.riskLevel === 'High' ? '#f97316' : contingencyPlanForm.riskLevel === 'Medium' ? '#eab308' : '#3b82f6'}"></i> 
+                     <span class="font-semibold">{{ contingencyPlanForm.riskLevel || 'Chọn mức độ' }}</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-down text-[10px] text-gray-400"></i>
+               </div>
+               <template #dropdown>
+                  <el-dropdown-menu class="theme-dropdown w-full" style="min-width: 200px;">
+                     <el-dropdown-item command="Critical"><i class="fa-solid fa-circle-exclamation mr-2 text-red-500"></i> Critical (Nghiêm trọng)</el-dropdown-item>
+                     <el-dropdown-item command="High"><i class="fa-solid fa-chevron-up mr-2 text-orange-500"></i> High (Cao)</el-dropdown-item>
+                     <el-dropdown-item command="Medium"><i class="fa-solid fa-minus mr-2 text-yellow-500"></i> Medium (Trung bình)</el-dropdown-item>
+                     <el-dropdown-item command="Low"><i class="fa-solid fa-arrow-down mr-2 text-blue-500"></i> Low (Thấp)</el-dropdown-item>
+                  </el-dropdown-menu>
+               </template>
+            </el-dropdown>
+         </div>
+      </div>
+
+      <div class="cm-form-group mb-6">
+         <label class="block text-[12px] font-bold text-[var(--color-text-secondary)] mb-1.5 ml-1 uppercase tracking-wide">Ghi chú chi tiết</label>
+         <div class="cm-editor-wrapper bg-[var(--bg-primary)] min-h-[120px] max-h-[250px] overflow-y-auto p-2 border border-[var(--color-border)] rounded-lg transition-colors focus-within:border-[var(--color-accent)] focus-within:ring-1 focus-within:ring-[var(--color-accent)]">
+            <editor-content :editor="recoveryPlanEditor" />
+         </div>
+      </div>
+
+      <div class="flex justify-end items-center gap-3 pt-2">
+         <button class="px-5 py-2.5 rounded-lg text-[13px] font-bold text-[var(--color-text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors" @click="showContingencyForm = false">Hủy bỏ</button>
+         <button class="s-btn s-btn-primary px-6 py-2.5 text-[13px] font-bold rounded-lg shadow-md hover:shadow-lg transition-all" @click="saveContingencyPlan" :disabled="isSavingContingency">
+            <i class="fa-solid fa-spinner fa-spin mr-2" v-if="isSavingContingency"></i>
+            {{ editingContingencyPlanId ? 'Cập nhật' : 'Tạo kế hoạch' }}
+         </button>
+      </div>
+    </div>
+  </div>
+</transition>
+
+<!-- Thêm Task Dự Phòng Dialog (Style giống Tạo Công Việc Mới) -->
+<transition name="fade">
+  <div class="task-modal-overlay" v-if="showTaskForm" @mousedown.self="showTaskForm = false" style="z-index: 999999;">
+    <div class="create-centered-modal">
+      <h3 class="cm-title">Thêm Task Dự Phòng</h3>
+      
+      <div class="cm-badge-row">
+         <div class="cm-badge">
+           <i class="fa-solid fa-shield-halved" style="color: #3b82f6"></i> TASK DỰ PHÒNG
+         </div>
+      </div>
+
+      <div class="cm-form-group">
+        <input type="text" class="cm-inputbox" placeholder="Tiêu đề" v-model="taskForm.title" />
+        <textarea class="cm-textareabox" placeholder="Thêm mô tả..." v-model="taskForm.description"></textarea>
+      </div>
+
+      <div class="cm-toolbar-row">
+         <!-- STATUS -->
+         <div class="t-btn disabled"><i class="fa-regular fa-circle-dot" style="color: #F59E0B"></i> <span>Trạng thái</span> Cần làm</div>
+
+         <!-- PRIORITY -->
+         <el-dropdown trigger="click" @command="(cmd) => taskForm.priority = cmd">
+           <div class="t-btn">
+               <i class="fa-solid fa-angles-up text-red-500" v-if="taskForm.priority === 1"></i>
+               <i class="fa-solid fa-chevron-up text-yellow-500" v-else-if="taskForm.priority === 2"></i>
+               <i class="fa-solid fa-minus text-blue-500" v-else-if="taskForm.priority === 3"></i>
+               <i class="fa-solid fa-arrow-down text-gray-500" v-else></i>
+               <span>Độ ưu tiên</span> 
+               {{ taskForm.priority === 1 ? 'Khẩn cấp' : (taskForm.priority === 2 ? 'Cao' : (taskForm.priority === 3 ? 'Trung bình' : 'Thấp')) }}
+           </div>
+           <template #dropdown>
+             <el-dropdown-menu class="theme-dropdown">
+               <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: #ef4444"></i> Khẩn cấp</el-dropdown-item>
+               <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: #f59e0b"></i> Cao</el-dropdown-item>
+               <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: #3b82f6"></i> Trung bình</el-dropdown-item>
+               <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: var(--color-text-muted)"></i> Thấp</el-dropdown-item>
+             </el-dropdown-menu>
+           </template>
+         </el-dropdown>
+
+         <!-- ASSIGNEE -->
+         <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="220" @show="assigneeSearch = ''">
+           <template #reference>
+             <div class="t-btn"><i class="fa-regular fa-user"></i> <span>Người thực hiện</span> {{ projectMembers.find(m => m.userId === taskForm.assigneeId)?.fullName || 'Người thực hiện' }}</div>
+           </template>
+           <div class="popover-content">
+             <input type="text" v-model="assigneeSearch" class="popover-search" placeholder="Tìm người thực hiện..." />
+             <div class="popover-list">
+               <div class="popover-item flex items-center justify-between transition-colors cursor-pointer" v-for="user in projectMembers" :key="user.id" @click="taskForm.assigneeId = user.userId">
+                   <div class="flex items-center gap-2">
+                       <span class="user-name">{{ user.fullName || user.email }}</span>
+                   </div>
+                   <i class="fa-solid fa-check text-blue-500" v-if="taskForm.assigneeId === user.userId"></i>
+               </div>
+             </div>
+           </div>
+         </el-popover>
+      </div>
+
+      <div class="mt-4 flex justify-between items-center pt-4 border-t border-[var(--border-color)]">
+         <div class="flex items-center gap-2">
+            <el-switch v-model="createContingencyContinuously" />
+            <span class="text-sm font-medium text-[var(--color-text-muted)]">Tạo liên tục</span>
+         </div>
+         <div class="flex gap-3">
+             <button class="s-btn hover:bg-[var(--bg-tertiary)] rounded-full px-6 py-2 transition-all font-bold text-[var(--color-text-primary)]" @click="showTaskForm = false">Hủy</button>
+             <button class="s-btn s-btn-primary rounded-full px-6 py-2 shadow-sm hover:shadow-md transition-all font-bold text-white flex items-center" @click="saveContingencyTask" :disabled="isSavingTask" style="background-color: #0ea5e9;">
+                <i class="fa-solid fa-spinner fa-spin mr-2" v-if="isSavingTask"></i> Lưu
+             </button>
+         </div>
+      </div>
+    </div>
+  </div>
+</transition>
+
+<el-drawer v-model="showContingencyDetail" size="500px" title="Chi tiết Kế hoạch dự phòng" class="theme-drawer" :teleported="false">
+   <div v-if="viewingContingencyPlan" class="p-5 flex flex-col gap-6">
+      <div>
+         <h2 class="text-xl font-bold text-[var(--color-text-primary)] mb-2">{{ viewingContingencyPlan.name }}</h2>
+         <div class="flex flex-wrap gap-2">
+            <span class="text-[11px] px-3 py-1 rounded-full font-bold uppercase tracking-wider border shadow-sm" :class="getRiskLevelClass(viewingContingencyPlan.riskLevel)">Risk: {{ viewingContingencyPlan.riskLevel }}</span>
+         </div>
+      </div>
+      
+      <div class="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-color)]">
+         <div class="text-[12px] font-bold text-[var(--color-danger)] uppercase tracking-wider mb-2 flex items-center"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Rủi ro (Cho rủi ro gì)</div>
+         <p class="text-[14px] text-[var(--color-text-primary)] leading-relaxed">{{ viewingContingencyPlan.riskDescription }}</p>
+      </div>
+
+      <div v-if="viewingContingencyPlan.notes">
+         <div class="text-[13px] font-bold text-[var(--color-text-primary)] uppercase tracking-wider mb-3">Ghi chú</div>
+         <div class="prose prose-sm dark:prose-invert max-w-none text-[14px] leading-relaxed p-4 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)]" v-html="viewingContingencyPlan.notes"></div>
+      </div>
+      
+      <div class="bg-[var(--color-accent)]/5 rounded-xl p-4 border border-[var(--color-accent)]/20">
+         <div class="text-[12px] font-bold text-[var(--color-accent)] uppercase tracking-wider mb-2 flex items-center"><i class="fa-solid fa-list-check mr-2"></i> Danh sách Task dự phòng</div>
+         <div v-if="viewingContingencyPlan.contingencyTasks && viewingContingencyPlan.contingencyTasks.length > 0" class="flex flex-col gap-2">
+            <div v-for="task in viewingContingencyPlan.contingencyTasks" :key="task.id" class="bg-[var(--bg-primary)] p-3 rounded-lg border border-[var(--border-color)]">
+               <div class="font-semibold text-[13px] text-[var(--color-text-primary)]">{{ task.title }}</div>
+               <div class="text-[11px] text-[var(--color-text-muted)] mt-1">Trạng thái: <span class="font-bold uppercase tracking-wider">{{ task.statusName }}</span></div>
+            </div>
+         </div>
+         <div v-else class="text-sm italic text-[var(--color-text-muted)]">Chưa liên kết Task.</div>
+      </div>
+   </div>
+</el-drawer>
+
 </template>
 
 
 <script setup>
 import { ref, watch, computed, nextTick, onMounted, onUnmounted } from 'vue';
-import { ElMessage, ElNotification } from 'element-plus';
+import { ElMessage, ElNotification, ElMessageBox } from 'element-plus';
+import { Editor, EditorContent } from '@tiptap/vue-3';
+import StarterKit from '@tiptap/starter-kit';
 import axiosClient from '@/api/axiosClient';
 import DOMPurify from 'dompurify';
 import { subscribeAdminRealtime } from '@/utils/adminRealtime';
@@ -3968,7 +4260,203 @@ const applyAiEstimateSuggestion = async () => {
     }
 };
 
+
+// Contingency Plan logic
+const contingencyPlans = ref([]);
+const showContingencyForm = ref(false);
+const editingContingencyPlanId = ref(null);
+const contingencyPlanForm = ref({ name: '', riskLevel: 'Low', riskDescription: '', notes: '' });
+const recoveryPlanEditor = ref(null);
+const isLoadingContingency = ref(false);
+const isSavingContingency = ref(false);
+
+const showContingencyDetail = ref(false);
+const viewingContingencyPlan = ref(null);
+
+// Task logic
+const createContingencyContinuously = ref(false);
+const showTaskForm = ref(false);
+const isSavingTask = ref(false);
+const activePlanIdForTask = ref(null);
+const taskForm = ref({ title: '', description: '', priority: 3, assigneeId: null });
+
+
+
+function getRiskLevelClass(level) {
+  switch (level) {
+    case 'Critical': return 'border-red-300 bg-red-100 text-red-800';
+    case 'High': return 'border-orange-300 bg-orange-100 text-orange-800';
+    case 'Medium': return 'border-yellow-300 bg-yellow-100 text-yellow-800';
+    default: return 'border-blue-300 bg-blue-100 text-blue-800';
+  }
+}
+
+async function fetchContingencyPlans() {
+  if (!props.selectedTask || !props.selectedTask.id) return;
+  isLoadingContingency.value = true;
+  try {
+    const res = await axiosClient.get(`/worktasks/${props.selectedTask.id}/contingency-plans`);
+    contingencyPlans.value = res.data?.data || [];
+  } catch (err) {
+    console.error('Lỗi load contingency plans:', err);
+    contingencyPlans.value = [];
+  } finally {
+    isLoadingContingency.value = false;
+  }
+}
+
+function openCreateContingencyForm() {
+  editingContingencyPlanId.value = null;
+  contingencyPlanForm.value = { name: '', riskLevel: 'Low', riskDescription: '', notes: '' };
+  if (!recoveryPlanEditor.value) {
+    recoveryPlanEditor.value = new Editor({
+      extensions: [StarterKit],
+      content: '',
+      onUpdate: () => {
+         contingencyPlanForm.value.notes = recoveryPlanEditor.value.getHTML();
+      }
+    });
+  } else {
+    recoveryPlanEditor.value.commands.setContent('');
+  }
+  showContingencyForm.value = true;
+}
+
+async function saveContingencyPlan() {
+  if (!contingencyPlanForm.value.name || !contingencyPlanForm.value.riskDescription) {
+     ElMessage.warning('Vui lòng điền Tên kế hoạch và Rủi ro.');
+     return;
+  }
+  isSavingContingency.value = true;
+  try {
+    const payload = {
+       name: contingencyPlanForm.value.name,
+       riskLevel: contingencyPlanForm.value.riskLevel,
+       riskDescription: contingencyPlanForm.value.riskDescription,
+       notes: contingencyPlanForm.value.notes
+    };
+    if (editingContingencyPlanId.value) {
+       await axiosClient.put(`/worktasks/${props.selectedTask.id}/contingency-plans/${editingContingencyPlanId.value}`, payload);
+       ElMessage.success('Đã cập nhật kế hoạch dự phòng');
+    } else {
+       await axiosClient.post(`/worktasks/${props.selectedTask.id}/contingency-plans`, payload);
+       ElMessage.success('Đã tạo kế hoạch dự phòng mới');
+    }
+    showContingencyForm.value = false;
+    await fetchContingencyPlans();
+    fetchAuditTimeline();
+  } catch (err) {
+    ElMessage.error(err.response?.data?.message || 'Lỗi khi lưu kế hoạch dự phòng');
+  } finally {
+    isSavingContingency.value = false;
+  }
+}
+
+function openContingencyDetail(plan) {
+   viewingContingencyPlan.value = plan;
+   showContingencyDetail.value = true;
+}
+
+function handleContingencyAction(cmd, plan) {
+   if (cmd === 'edit') {
+      editingContingencyPlanId.value = plan.id;
+      contingencyPlanForm.value = { 
+         name: plan.name, 
+         riskLevel: plan.riskLevel, 
+         riskDescription: plan.riskDescription || '',
+         notes: plan.notes
+      };
+      if (!recoveryPlanEditor.value) {
+         recoveryPlanEditor.value = new Editor({
+            extensions: [StarterKit],
+            content: plan.notes || '',
+            onUpdate: () => {
+               contingencyPlanForm.value.notes = recoveryPlanEditor.value.getHTML();
+            }
+         });
+      } else {
+         recoveryPlanEditor.value.commands.setContent(plan.notes || '');
+      }
+      showContingencyForm.value = true;
+   } else if (cmd === 'delete') {
+      ElMessageBox.confirm('Bạn có chắc chắn muốn xóa kế hoạch dự phòng này?', 'Xác nhận xóa', {
+         confirmButtonText: 'Xóa',
+         cancelButtonText: 'Hủy',
+         type: 'warning'
+      }).then(async () => {
+         try {
+            await axiosClient.delete(`/worktasks/${props.selectedTask.id}/contingency-plans/${plan.id}`);
+            ElMessage.success('Đã xóa kế hoạch dự phòng');
+            await fetchContingencyPlans();
+         } catch (err) {
+            ElMessage.error('Xóa thất bại');
+         }
+      }).catch(() => {});
+   }
+}
+
+function openCreateTaskForm(planId) {
+   activePlanIdForTask.value = planId;
+   taskForm.value = { title: '', description: '', priority: 3, assigneeId: null };
+   showTaskForm.value = true;
+}
+
+async function saveContingencyTask() {
+   if (!taskForm.value.title) {
+      ElMessage.warning('Vui lòng điền tiêu đề');
+      return;
+   }
+   isSavingTask.value = true;
+   try {
+      await axiosClient.post(`/worktasks/${props.selectedTask.id}/contingency-plans/${activePlanIdForTask.value}/tasks/create`, taskForm.value);
+      ElMessage.success('Đã tạo Task dự phòng thành công');
+      
+      await fetchContingencyPlans();
+      
+      if (createContingencyContinuously.value) {
+          taskForm.value = { title: '', description: '', priority: taskForm.value.priority, assigneeId: taskForm.value.assigneeId };
+      } else {
+          showTaskForm.value = false;
+      }
+   } catch (err) {
+      ElMessage.error(err.response?.data?.message || 'Tạo task thất bại');
+   } finally {
+      isSavingTask.value = false;
+   }
+}
+
+function confirmActivateTask(plan, task) {
+   ElMessageBox.confirm(
+      `<div class="mb-2">Bạn muốn kích hoạt Task dự phòng này?</div><div class="p-2 bg-gray-100 rounded text-sm mb-2"><b>Task:</b> ${task.title}</div><div class="text-xs text-gray-500">Sau khi kích hoạt, Task dự phòng sẽ chuyển sang trạng thái hoạt động (In Progress) và được giao cho người phụ trách.</div>`,
+      'Xác nhận kích hoạt Task',
+      {
+         confirmButtonText: 'Kích hoạt',
+         cancelButtonText: 'Hủy',
+         dangerouslyUseHTMLString: true,
+         type: 'warning'
+      }
+   ).then(async () => {
+      try {
+         await axiosClient.post(`/worktasks/${props.selectedTask.id}/contingency-plans/${plan.id}/tasks/${task.id}/activate`);
+         ElMessage.success('Task dự phòng đã được kích hoạt thành công');
+         await fetchContingencyPlans();
+         fetchAuditTimeline();
+         emit('refresh-tasks');
+      } catch (err) {
+         ElMessage.error(err.response?.data?.message || 'Kích hoạt thất bại');
+      }
+   }).catch(() => {});
+}
+
+watch(activityTab, (newTab) => {
+   if (newTab === 'contingency') {
+      fetchContingencyPlans();
+   }
+});
+
+
 // Comments logic
+
 const comments = ref([]);
 const replyingToCommentId = ref(null);
 const newComment = ref('');
@@ -4233,6 +4721,9 @@ watch(() => props.selectedTask, (newTask) => {
       comments.value = [];
       auditEntries.value = [];
       taskDependencies.value = [];
+      contingencyPlans.value = [];
+      showContingencyForm.value = false;
+      contingencyPlanForm.value = { name: '', riskLevel: 'Low', riskStatus: 'Safe', activationCondition: '', riskDescription: '', notes: '', contingencyTaskId: null };
       assignedLabels.value = [];
       subtasksList.value = [];
     }
@@ -5897,5 +6388,65 @@ const parseOptions = (json) => {
 .property-date-picker:deep(.el-input__wrapper:hover) {
   border-color: var(--color-border-hover);
   background: var(--bg-tertiary) !important;
+}
+</style>
+
+<style>
+/* FORCE EL-DIALOG & EL-DRAWER Z-INDEX TO BE ON TOP OF TASK MODAL */
+body .el-overlay {
+    z-index: 99999 !important;
+}
+body .el-message-box__wrapper {
+    z-index: 999999 !important;
+}
+body .el-popper {
+    z-index: 999999 !important;
+}
+body .el-select-dropdown {
+    z-index: 999999 !important;
+}
+.contingency-plans-container .contingency-card {
+    padding: 20px !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--border-color);
+    margin-bottom: 16px;
+    background: var(--bg-primary);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+.contingency-plans-container .contingency-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+.contingency-plans-container .contingency-trigger-box {
+    background: var(--bg-secondary);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border-color);
+}
+.contingency-plans-container .contingency-task-box {
+    background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    border: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+.contingency-plans-container .contingency-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+.c-badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 </style>

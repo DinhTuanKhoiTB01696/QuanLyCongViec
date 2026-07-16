@@ -1317,6 +1317,263 @@ namespace TaskManagement.Infrastructure.Services
 
             return taskType.Id;
         }
+
+        public async Task<IEnumerable<TaskManagement.Application.DTOs.WorkTask.ContingencyPlanDto>> GetContingencyPlansAsync(Guid taskId)
+        {
+            var plans = await _context.ContingencyPlans
+                .Include(p => p.ContingencyPlanTasks)
+                    .ThenInclude(t => t.Assignee)
+                .Where(p => p.WorkTaskId == taskId && !p.IsDeleted)
+                .OrderBy(p => p.CreatedAt)
+                .ToListAsync();
+
+            return plans.Select(p => new TaskManagement.Application.DTOs.WorkTask.ContingencyPlanDto
+            {
+                Id = p.Id,
+                WorkTaskId = p.WorkTaskId,
+                Name = p.Name,
+                RiskLevel = p.RiskLevel,
+                RiskDescription = p.RiskDescription,
+                Notes = p.Notes,
+                ContingencyTasks = p.ContingencyPlanTasks.Select(cpt => new TaskManagement.Application.DTOs.WorkTask.ContingencyTaskDto
+                {
+                    Id = cpt.Id,
+                    Title = cpt.Title,
+                    Description = cpt.Description,
+                    StatusName = cpt.StatusName,
+                    Priority = cpt.Priority,
+                    AssigneeId = cpt.AssigneeId,
+                    AssigneeName = cpt.Assignee?.FullName,
+                    IsActivated = cpt.IsActivated
+                }).ToList(),
+                CreatedAt = p.CreatedAt,
+                UpdatedAt = p.UpdatedAt
+            });
+        }
+
+        public async Task<TaskManagement.Application.DTOs.WorkTask.ContingencyPlanDto?> GetContingencyPlanByIdAsync(Guid taskId, Guid planId)
+        {
+            var plans = await GetContingencyPlansAsync(taskId);
+            return plans.FirstOrDefault(p => p.Id == planId);
+        }
+
+        public async Task<TaskManagement.Application.DTOs.WorkTask.ContingencyPlanDto> CreateContingencyPlanAsync(Guid taskId, Guid userId, TaskManagement.Application.DTOs.WorkTask.CreateContingencyPlanDto dto)
+        {
+            var taskExists = await _context.WorkTasks.AnyAsync(t => t.Id == taskId && !t.IsDeleted);
+            if (!taskExists) throw new Exception("Task not found");
+
+            var plan = new TaskManagement.Domain.Entities.ContingencyPlan
+            {
+                Id = Guid.NewGuid(),
+                WorkTaskId = taskId,
+                Name = dto.Name,
+                RiskLevel = dto.RiskLevel,
+                RiskDescription = dto.RiskDescription,
+                Notes = dto.Notes,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                CreatedBy = userId,
+                UpdatedBy = userId
+            };
+            
+            _context.ContingencyPlans.Add(plan);
+            
+            var auditLog = new TaskManagement.Domain.Entities.AuditLog
+            {
+                Id = Guid.NewGuid(),
+                WorkTaskId = taskId,
+                UserId = userId,
+                FieldChanged = "ContingencyPlan_Created",
+                NewValue = plan.Name,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.AuditLogs.Add(auditLog);
+
+            await _context.SaveChangesAsync();
+            var result = await GetContingencyPlanByIdAsync(taskId, plan.Id);
+            if (result == null) throw new Exception("Failed to retrieve created contingency plan");
+            return result;
+        }
+
+        public async Task<TaskManagement.Application.DTOs.WorkTask.ContingencyPlanDto> UpdateContingencyPlanAsync(Guid taskId, Guid planId, Guid userId, TaskManagement.Application.DTOs.WorkTask.UpdateContingencyPlanDto dto)
+        {
+            var plan = await _context.ContingencyPlans.FirstOrDefaultAsync(p => p.Id == planId && p.WorkTaskId == taskId && !p.IsDeleted);
+            if (plan == null) throw new Exception("Contingency plan not found");
+            
+            plan.Name = dto.Name;
+            plan.RiskLevel = dto.RiskLevel;
+            plan.RiskDescription = dto.RiskDescription;
+            plan.Notes = dto.Notes;
+            plan.UpdatedAt = DateTime.UtcNow;
+            plan.UpdatedBy = userId;
+            
+            var auditLog = new TaskManagement.Domain.Entities.AuditLog
+            {
+                Id = Guid.NewGuid(),
+                WorkTaskId = taskId,
+                UserId = userId,
+                FieldChanged = "ContingencyPlan_Updated",
+                NewValue = plan.Name,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.AuditLogs.Add(auditLog);
+
+            await _context.SaveChangesAsync();
+            var result = await GetContingencyPlanByIdAsync(taskId, plan.Id);
+            if (result == null) throw new Exception("Failed to retrieve updated contingency plan");
+            return result;
+        }
+
+        public async Task DeleteContingencyPlanAsync(Guid taskId, Guid planId, Guid userId)
+        {
+            var plan = await _context.ContingencyPlans.FirstOrDefaultAsync(p => p.Id == planId && p.WorkTaskId == taskId && !p.IsDeleted);
+            if (plan == null) throw new Exception("Contingency plan not found");
+
+            plan.IsDeleted = true;
+            plan.UpdatedAt = DateTime.UtcNow;
+            plan.UpdatedBy = userId;
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task CreateContingencyTaskToPlanAsync(Guid taskId, Guid planId, TaskManagement.Application.DTOs.WorkTask.CreateContingencyTaskDto dto, Guid userId)
+        {
+            var planExists = await _context.ContingencyPlans.AnyAsync(p => p.Id == planId && p.WorkTaskId == taskId && !p.IsDeleted);
+            if (!planExists) throw new Exception("Contingency plan not found");
+            
+            _context.ContingencyPlanTasks.Add(new TaskManagement.Domain.Entities.ContingencyPlanTask
+            {
+                Id = Guid.NewGuid(),
+                ContingencyPlanId = planId,
+                Title = dto.Title,
+                Description = dto.Description,
+                Priority = dto.Priority,
+                AssigneeId = dto.AssigneeId,
+                StatusName = "Đang chờ xử lý",
+                CreatedAt = DateTime.UtcNow
+            });
+            
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task AddContingencyTaskToPlanAsync(Guid taskId, Guid planId, Guid fallbackTaskId, Guid userId)
+        {
+            var planExists = await _context.ContingencyPlans.AnyAsync(p => p.Id == planId && p.WorkTaskId == taskId && !p.IsDeleted);
+            if (!planExists) throw new Exception("Contingency plan not found");
+            
+            var taskExists = await _context.WorkTasks.AnyAsync(t => t.Id == fallbackTaskId && !t.IsDeleted);
+            if (!taskExists) throw new Exception("Fallback task not found");
+            
+            var linkExists = await _context.ContingencyPlanTasks.AnyAsync(l => l.ContingencyPlanId == planId && l.WorkTaskId == fallbackTaskId);
+            if (linkExists) throw new Exception("Task is already linked to this plan");
+            
+            _context.ContingencyPlanTasks.Add(new TaskManagement.Domain.Entities.ContingencyPlanTask
+            {
+                Id = Guid.NewGuid(),
+                ContingencyPlanId = planId,
+                WorkTaskId = fallbackTaskId,
+                CreatedAt = DateTime.UtcNow
+            });
+            
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task RemoveContingencyTaskFromPlanAsync(Guid taskId, Guid planId, Guid contingencyTaskId, Guid userId)
+        {
+            var planExists = await _context.ContingencyPlans.AnyAsync(p => p.Id == planId && p.WorkTaskId == taskId && !p.IsDeleted);
+            if (!planExists) throw new Exception("Contingency plan not found");
+            
+            var link = await _context.ContingencyPlanTasks.FirstOrDefaultAsync(l => l.Id == contingencyTaskId && l.ContingencyPlanId == planId);
+            if (link == null) throw new Exception("Contingency task not found");
+            
+            _context.ContingencyPlanTasks.Remove(link);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task ActivateContingencyTaskAsync(Guid taskId, Guid planId, Guid contingencyTaskId, Guid userId)
+        {
+            var plan = await _context.ContingencyPlans.FirstOrDefaultAsync(p => p.Id == planId && p.WorkTaskId == taskId && !p.IsDeleted);
+            if (plan == null) throw new Exception("Contingency plan not found");
+            
+            var link = await _context.ContingencyPlanTasks.FirstOrDefaultAsync(l => l.Id == contingencyTaskId && l.ContingencyPlanId == planId);
+            if (link == null) throw new Exception("Contingency task not found");
+            
+            if (link.IsActivated) throw new Exception("Contingency task is already activated");
+
+            link.IsActivated = true;
+            link.StatusName = "IN PROGRESS";
+            link.ActivatedById = userId;
+            link.ActivatedAt = DateTime.UtcNow;
+
+            var auditLog = new TaskManagement.Domain.Entities.AuditLog
+            {
+                Id = Guid.NewGuid(),
+                WorkTaskId = taskId,
+                UserId = userId,
+                FieldChanged = "ContingencyTask_Activated",
+                NewValue = contingencyTaskId.ToString(),
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.AuditLogs.Add(auditLog);
+
+            // Add issue/blocked logic to main task
+            var mainTask = await _context.WorkTasks.FirstOrDefaultAsync(t => t.Id == taskId && !t.IsDeleted);
+            if (mainTask != null)
+            {
+                _context.AuditLogs.Add(new TaskManagement.Domain.Entities.AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    WorkTaskId = mainTask.Id,
+                    UserId = userId,
+                    FieldChanged = "System_Issue_Reported",
+                    NewValue = "Contingency Triggered",
+                    CreatedAt = DateTime.UtcNow
+                });
+                
+                // Create a real WorkTask for this contingency task
+                var taskStatus = await _context.TaskStatuses.FirstOrDefaultAsync(ts => ts.Name == "IN PROGRESS" && ts.ProjectId == mainTask.ProjectId);
+                if (taskStatus == null) taskStatus = await _context.TaskStatuses.FirstOrDefaultAsync(ts => ts.ProjectId == mainTask.ProjectId);
+                
+                var taskType = await _context.TaskTypes.FirstOrDefaultAsync(tt => tt.ProjectId == mainTask.ProjectId);
+                
+                double maxSort = 0;
+                var existingMax = await _context.WorkTasks
+                    .Where(wt => wt.ProjectId == mainTask.ProjectId && !wt.IsDeleted)
+                    .MaxAsync(wt => (double?)wt.SortOrder);
+                if (existingMax.HasValue) maxSort = existingMax.Value + 65536;
+                else maxSort = 65536;
+
+                var newWorkTask = new TaskManagement.Domain.Entities.WorkTask
+                {
+                    Id = Guid.NewGuid(),
+                    ProjectId = mainTask.ProjectId,
+                    Title = "[DỰ PHÒNG] " + link.Title,
+                    Description = link.Description,
+                    TaskStatusId = taskStatus?.Id ?? Guid.Empty,
+                    TaskTypeId = taskType?.Id ?? Guid.Empty,
+                    Priority = link.Priority,
+                    ReporterId = userId,
+                    ParentTaskId = null,
+                    SortOrder = maxSort,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                
+                if (link.AssigneeId.HasValue)
+                {
+                    var assignment = new TaskManagement.Domain.Entities.TaskAssignment
+                    {
+                        WorkTaskId = newWorkTask.Id,
+                        UserId = link.AssigneeId.Value,
+                        Status = true
+                    };
+                    _context.TaskAssignments.Add(assignment);
+                }
+
+                _context.WorkTasks.Add(newWorkTask);
+            }
+
+            await _context.SaveChangesAsync();
+        }
     }
 }
-
