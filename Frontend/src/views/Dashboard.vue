@@ -63,7 +63,7 @@
               <i :class="project.isFavorite ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i>
             </button>
 
-            <div class="project-cover" :style="{ background: project.cover || fallbackCover(project) }">
+            <div class="project-cover" :style="projectCoverStyle(project)" :aria-label="project.coverAltText || project.name">
               <span class="project-icon">{{ project.icon || project.name?.charAt(0)?.toUpperCase() || 'P' }}</span>
             </div>
 
@@ -99,7 +99,7 @@
               <i :class="project.isFavorite ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i>
             </button>
 
-            <div class="project-cover" :style="{ background: project.cover || fallbackCover(project) }">
+            <div class="project-cover" :style="projectCoverStyle(project)" :aria-label="project.coverAltText || project.name">
               <span class="project-icon">{{ project.icon || project.name?.charAt(0)?.toUpperCase() || 'P' }}</span>
             </div>
 
@@ -225,6 +225,16 @@ const fallbackCover = (project) => {
   const name = project?.name || ''
   const index = name.length % gradients.length
   return gradients[index]
+}
+
+const projectCoverStyle = (project) => {
+  if (project?.cover) {
+    return {
+      backgroundImage: `linear-gradient(180deg, rgba(15, 23, 42, 0.05), rgba(15, 23, 42, 0.45)), url("${project.cover}")`
+    }
+  }
+
+  return { background: fallbackCover(project) }
 }
 
 const openProject = (projectId) => {
@@ -468,6 +478,8 @@ watch(language, updateTime)
   display: flex;
   align-items: flex-end;
   padding: 16px;
+  background-position: center;
+  background-size: cover;
 }
 
 .project-icon {

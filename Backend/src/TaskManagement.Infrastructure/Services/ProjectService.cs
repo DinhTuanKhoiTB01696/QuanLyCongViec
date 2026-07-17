@@ -592,6 +592,17 @@ namespace TaskManagement.Infrastructure.Services
             }
 
             project.Name = dto.Name;
+            var normalizedIdentifier = dto.Identifier.Trim().ToUpperInvariant();
+            var identifierExists = await _context.Projects.AnyAsync(item =>
+                item.Id != project.Id &&
+                item.WorkspaceId == project.WorkspaceId &&
+                !item.IsDeleted &&
+                item.Identifier.ToUpper() == normalizedIdentifier);
+            if (identifierExists)
+            {
+                throw new ArgumentException("Mã dự án đã tồn tại trong workspace.");
+            }
+            project.Identifier = normalizedIdentifier;
             project.Description = dto.Description;
             project.Why = dto.Why;
             project.SuccessCriteria = dto.SuccessCriteria;

@@ -47,7 +47,7 @@
 
               <label>
                 <span>Mã</span>
-                <input :value="project.key || ''" type="text" disabled />
+                <input v-model="generalForm.key" type="text" maxlength="24" placeholder="Mã dự án" />
               </label>
 
               <label class="wide">
@@ -64,6 +64,38 @@
                 <span>Ngày kết thúc</span>
                 <input v-model="generalForm.endDate" type="date" />
               </label>
+            </div>
+
+            <div class="cover-settings">
+              <div class="cover-settings-preview" :style="coverPreviewStyle" role="img" :aria-label="project.coverAltText || generatedCoverAltText">
+                <span v-if="!displayCoverUrl">{{ project.icon || 'P' }}</span>
+              </div>
+              <div class="cover-settings-controls">
+                <div>
+                  <h3>Project cover</h3>
+                  <p>PNG, JPG, JPEG, or WEBP. Maximum 5MB.</p>
+                </div>
+                <input
+                  ref="coverInputRef"
+                  class="sr-only"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  @change="handleCoverSelected"
+                />
+                <div class="cover-settings-actions">
+                  <button class="secondary-btn" type="button" :disabled="savingCover" @click="coverInputRef?.click()">
+                    {{ coverFile ? 'Choose another image' : 'Choose image' }}
+                  </button>
+                  <button class="primary-btn" type="button" :disabled="savingCover || !coverFile" @click="saveProjectCover">
+                    {{ savingCover ? 'Saving...' : 'Save cover' }}
+                  </button>
+                  <button v-if="displayCoverUrl" class="danger-outline-btn" type="button" :disabled="savingCover" @click="removeProjectCover">
+                    Remove cover
+                  </button>
+                </div>
+                <small v-if="coverFile" class="cover-file-name">{{ coverFile.name }}</small>
+                <small v-if="coverError" class="cover-error">{{ coverError }}</small>
+              </div>
             </div>
 
             <div class="meta-strip">
@@ -1358,6 +1390,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import axiosClient from '@/api/axiosClient'
+import { useProjectStore } from '@/store/useProjectStore'
 import { broadcastAdminRealtime, subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { signalRService } from '@/api/signalrService'
 
@@ -1366,6 +1399,7 @@ import { getDefaultPermissionMatrix, normalizeRole } from '@/utils/permissionGua
 
 const route = useRoute()
 const router = useRouter()
+const projectStore = useProjectStore()
 const projectId = route.params.id
 
 const tabs = [
@@ -1391,6 +1425,7 @@ const projectRoleOptions = ref([])
 const activeTab = ref('general')
 const loading = ref(false)
 const savingGeneral = ref(false)
+const savingCover = ref(false)
 const savingExecutionRules = ref(false)
 const savingRewardRules = ref(false)
 const savingCapacityRules = ref(false)
@@ -1406,6 +1441,10 @@ const savingIntegrations = ref(false)
 const analyzingIntegration = ref('')
 
 const project = ref({})
+const coverInputRef = ref(null)
+const coverFile = ref(null)
+const coverPreviewUrl = ref('')
+const coverError = ref('')
 const members = ref([])
 const taskStatuses = ref([])
 const labels = ref([])
@@ -1446,10 +1485,67 @@ const disabledModules = computed(() => modules.value.filter(module => module.sta
 
 const generalForm = ref({
   name: '',
+  key: '',
   description: '',
   startDate: '',
   endDate: ''
 })
+
+const allowedCoverTypes = new Set(['image/png', 'image/jpeg', 'image/webp'])
+const maxCoverSize = 5 * 1024 * 1024
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5136/api'
+const apiOrigin = new URL(apiBaseUrl, window.location.origin).origin
+const rawProjectCover = computed(() => {
+  const value = project.value.cover || project.value.coverUrl || project.value.CoverUrl || ''
+  return typeof value === 'string' && (/^(https?:|data:image|blob:)/i.test(value) || value.startsWith('/'))
+    ? value
+    : ''
+})
+const displayCoverUrl = computed(() => {
+  if (coverPreviewUrl.value) return coverPreviewUrl.value
+  if (rawProjectCover.value.startsWith('/uploads/')) return `${apiOrigin}${rawProjectCover.value}`
+  return rawProjectCover.value
+})
+const generatedCoverAltText = computed(() => `Ảnh đại diện dự án ${generalForm.value.name.trim() || project.value.name || 'SprintA'}`)
+const coverPreviewStyle = computed(() => displayCoverUrl.value
+  ? {
+      backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.38)), url("${displayCoverUrl.value}")`
+    }
+  : { background: 'linear-gradient(135deg, #0f766e 0%, #2563eb 100%)' })
+
+const revokeCoverPreview = () => {
+  if (coverPreviewUrl.value) {
+    URL.revokeObjectURL(coverPreviewUrl.value)
+    coverPreviewUrl.value = ''
+  }
+}
+
+const clearSelectedCover = () => {
+  revokeCoverPreview()
+  coverFile.value = null
+  coverError.value = ''
+  if (coverInputRef.value) coverInputRef.value.value = ''
+}
+
+const handleCoverSelected = (event) => {
+  const [file] = event.target.files || []
+  coverError.value = ''
+  if (!file) return
+  if (!allowedCoverTypes.has(file.type)) {
+    coverError.value = 'Project cover must be PNG, JPG, JPEG, or WEBP.'
+    event.target.value = ''
+    return
+  }
+  if (file.size > maxCoverSize) {
+    coverError.value = 'Project cover must be 5MB or smaller.'
+    event.target.value = ''
+    return
+  }
+
+  revokeCoverPreview()
+  coverFile.value = file
+  coverPreviewUrl.value = URL.createObjectURL(file)
+}
 
 // ────────────────────────────────────────────
 // SME Permission Matrix State Variables
@@ -1795,6 +1891,7 @@ const loadProjectSettings = async () => {
 
     generalForm.value = {
       name: project.value.name || '',
+      key: project.value.key || project.value.identifier || '',
       description: project.value.description || '',
       startDate: normalizeDateInput(project.value.startDate),
       endDate: normalizeDateInput(project.value.endDate)
@@ -1959,9 +2056,66 @@ const loadIntegrations = async () => {
   }
 }
 
+const saveProjectCover = async () => {
+  if (!coverFile.value) {
+    ElMessage.warning('Hãy chọn ảnh mới trước khi lưu cover')
+    return
+  }
+
+  savingCover.value = true
+  try {
+    const payload = new FormData()
+    payload.append('file', coverFile.value)
+    payload.append('coverAltText', generatedCoverAltText.value)
+    if (project.value.icon) payload.append('icon', project.value.icon)
+    const response = await axiosClient.post(`/projects/${projectId}/cover`, payload)
+
+    const updated = response.data?.data || {}
+    project.value = {
+      ...project.value,
+      cover: updated.coverUrl || rawProjectCover.value,
+      coverAltText: updated.coverAltText || generatedCoverAltText.value
+    }
+    projectStore.applyProjectUpdate(project.value)
+    clearSelectedCover()
+    ElMessage.success('Project cover updated')
+    notifyProjectSettingsRealtime()
+    await loadProjectSettings()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || 'Could not update project cover')
+  } finally {
+    savingCover.value = false
+  }
+}
+
+const removeProjectCover = async () => {
+  try {
+    await ElMessageBox.confirm(
+      'Remove the current project cover?',
+      'Remove cover',
+      { type: 'warning', confirmButtonText: 'Remove' }
+    )
+
+    savingCover.value = true
+    await axiosClient.delete(`/projects/${projectId}/cover`)
+    clearSelectedCover()
+    project.value = { ...project.value, cover: null, coverAltText: null }
+    projectStore.applyProjectUpdate(project.value)
+    ElMessage.success('Project cover removed')
+    notifyProjectSettingsRealtime()
+    await loadProjectSettings()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.response?.data?.message || 'Could not remove project cover')
+    }
+  } finally {
+    savingCover.value = false
+  }
+}
+
 const saveGeneral = async () => {
-  if (!generalForm.value.name.trim() || !generalForm.value.startDate) {
-    ElMessage.warning('Project name and start date are required')
+  if (!generalForm.value.name.trim() || !generalForm.value.key.trim() || !generalForm.value.startDate) {
+    ElMessage.warning('Project name, key, and start date are required')
     return
   }
 
@@ -1969,6 +2123,7 @@ const saveGeneral = async () => {
   try {
     const response = await axiosClient.put(`/projects/${projectId}`, {
       name: generalForm.value.name.trim(),
+      identifier: generalForm.value.key.trim(),
       description: generalForm.value.description?.trim() || '',
       startDate: generalForm.value.startDate || null,
       endDate: generalForm.value.endDate || null,
@@ -1979,10 +2134,12 @@ const saveGeneral = async () => {
       ...project.value,
       ...updatedProject,
       name: updatedProject.name || generalForm.value.name.trim(),
+      key: updatedProject.key || generalForm.value.key.trim(),
       description: updatedProject.description ?? generalForm.value.description?.trim() ?? '',
       startDate: updatedProject.startDate || generalForm.value.startDate || null,
       endDate: updatedProject.endDate || generalForm.value.endDate || null
     }
+    projectStore.applyProjectUpdate(project.value)
     ElMessage.success('Project general settings updated')
     notifyProjectSettingsRealtime()
     await loadProjectSettings()
@@ -2846,6 +3003,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  clearSelectedCover()
   unsubscribeAdminRealtime?.()
   if (projectRealtimeHandler) {
     signalRService.off('ProjectRealtimeEvent', projectRealtimeHandler)
@@ -3009,6 +3167,55 @@ onUnmounted(() => {
 .form-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 20px;
+}
+
+.cover-settings {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #27272a;
+}
+
+.cover-settings-preview {
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  background-position: center;
+  background-size: cover;
+  color: #fff;
+  font-size: 36px;
+  font-weight: 700;
+}
+
+.cover-settings-controls {
+  display: grid;
+  gap: 14px;
+}
+
+.cover-settings-controls h3,
+.cover-settings-controls p {
+  margin: 0;
+}
+
+.cover-settings-controls p,
+.cover-file-name {
+  color: #94a3b8;
+}
+
+.cover-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cover-error {
+  color: #fca5a5;
 }
 
 .invite-grid,
@@ -3277,6 +3484,10 @@ input:disabled {
   .form-grid,
   .metric-grid,
   .two-column-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cover-settings {
     grid-template-columns: 1fr;
   }
 }

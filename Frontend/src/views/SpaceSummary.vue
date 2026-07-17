@@ -1706,6 +1706,7 @@ const loadInitialData = async (options = {}) => {
     }
 
     await fetchTasks({ reset: false })
+    openTaskFromRouteQuery()
     await loadProjectPermissionMatrix()
   } catch (error) {
     if (isForbiddenError(error)) {
@@ -1757,6 +1758,13 @@ const openTaskDetail = (task) => {
   logViewedTask(task)
   taskDetailHistory.value = []
   selectedTask.value = task;
+}
+
+const openTaskFromRouteQuery = () => {
+  const taskId = route.query.task
+  if (!taskId) return
+  const task = allTasks.value.find(item => `${item.id}` === `${taskId}`)
+  if (task) openTaskDetail(task)
 }
 const openTaskDetailFromModal = (task, options = {}) => {
   logViewedTask(task)

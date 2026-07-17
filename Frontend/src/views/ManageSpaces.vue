@@ -57,8 +57,12 @@
       <div v-else>
         <div v-if="viewMode === 'grid'" class="spaces-grid">
           <div class="project-card" v-for="(space, index) in filteredSpaces" :key="space.id" @click="goToSpace(space.id)">
-            <!-- Cover Image Mock -->
-            <div class="card-cover" :style="{ background: space.cover || coverGradients[index % coverGradients.length] }">
+            <div
+              class="card-cover"
+              :style="projectCoverStyle(space, index)"
+              :role="space.cover ? 'img' : undefined"
+              :aria-label="space.cover ? (space.coverAltText || `${space.name} cover`) : undefined"
+            >
                <div class="card-actions-top" @click.stop>
                  <button class="card-icon-btn" type="button" @click="copySpaceLink(space)"><i class="fa-solid fa-link"></i></button>
                  <button class="card-icon-btn" type="button" :class="{ 'starred': space.starred }" @click="toggleStar(space)"><i :class="space.starred ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i></button>
@@ -124,7 +128,12 @@
                 </td>
                 <td style="padding: 12px 16px;">
                   <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px;" :style="{ background: space.cover || coverGradients[index % coverGradients.length] }">
+                    <div
+                      style="width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px; background-position: center; background-size: cover;"
+                      :style="projectCoverStyle(space, index)"
+                      :role="space.cover ? 'img' : undefined"
+                      :aria-label="space.cover ? (space.coverAltText || `${space.name} cover`) : undefined"
+                    >
                       {{ space.icon || emojiList[index % emojiList.length] || '📦' }}
                     </div>
                     <span style="font-weight: 500; color: #3b82f6;">{{ demoText(space.name) }}</span>
@@ -261,25 +270,32 @@ const coverGradients = [
 
 const emojiList = ['👇', '🚀', '⚡', '💡', '🔥', '🎯']
 
+const projectCoverStyle = (space, index) => space.cover
+  ? {
+      backgroundImage: `url("${space.cover}")`,
+      backgroundPosition: 'center',
+      backgroundSize: 'cover'
+    }
+  : { background: coverGradients[index % coverGradients.length] }
+
 const fetchSpaces = async () => {
   loading.value = true
   try {
-    const response = await axiosClient.get('/projects/discovery')
-    const data = response.data.data || response.data || []
+    const data = await projectStore.fetchAllProjects(true)
 
-    // Transform data
     spaces.value = data.map(p => ({
       id: p.id,
       starred: Boolean(p.isFavorite),
       name: p.name,
-      key: p.key || p.identifier || p.name.substring(0, 4).toUpperCase(),
-      myRole: p.myRole || p.MyRole || null,
-      projectRole: p.projectRole || p.ProjectRole || null,
-      leadName: p.leadName || p.reporterName || 'Admin',
+      key: p.key || p.name.substring(0, 4).toUpperCase(),
+      myRole: p.myRole || null,
+      projectRole: p.originalRow?.projectRole || p.originalRow?.ProjectRole || null,
+      leadName: p.leadName || 'Admin',
       cover: p.cover,
+      coverAltText: p.coverAltText,
       icon: p.icon,
       networkType: p.networkType || 'Public',
-      originalRow: p
+      originalRow: p.originalRow || p
     }))
   } catch (error) {
     console.error('Fetch spaces error:', error)

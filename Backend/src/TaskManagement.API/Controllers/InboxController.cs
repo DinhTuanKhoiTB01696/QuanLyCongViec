@@ -61,6 +61,16 @@ namespace TaskManagement.API.Controllers
                     item.EndsAt,
                     item.IsRead,
                     item.CreatedTaskId,
+                    CreatedTask = item.CreatedTask == null ? null : new
+                    {
+                        item.CreatedTask.Id,
+                        item.CreatedTask.SequenceId,
+                        item.CreatedTask.Title,
+                        ProjectId = item.CreatedTask.ProjectId,
+                        ProjectName = item.CreatedTask.Project.Name,
+                        StatusName = item.CreatedTask.TaskStatus.Name,
+                        AssigneeName = item.CreatedTask.AssignedUser != null ? item.CreatedTask.AssignedUser.FullName : null
+                    },
                     item.CreatedAt,
                     item.UpdatedAt
                 })
@@ -92,6 +102,16 @@ namespace TaskManagement.API.Controllers
                     inboxItem.EndsAt,
                     inboxItem.IsRead,
                     inboxItem.CreatedTaskId,
+                    CreatedTask = inboxItem.CreatedTask == null ? null : new
+                    {
+                        inboxItem.CreatedTask.Id,
+                        inboxItem.CreatedTask.SequenceId,
+                        inboxItem.CreatedTask.Title,
+                        ProjectId = inboxItem.CreatedTask.ProjectId,
+                        ProjectName = inboxItem.CreatedTask.Project.Name,
+                        StatusName = inboxItem.CreatedTask.TaskStatus.Name,
+                        AssigneeName = inboxItem.CreatedTask.AssignedUser != null ? inboxItem.CreatedTask.AssignedUser.FullName : null
+                    },
                     inboxItem.CreatedAt,
                     inboxItem.UpdatedAt
                 })

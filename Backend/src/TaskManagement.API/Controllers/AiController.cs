@@ -28,12 +28,14 @@ namespace TaskManagement.API.Controllers
     public class AiController : ControllerBase
     {
         private readonly IAiService _aiService;
+        private readonly IAiAttachmentService _aiAttachmentService;
         private readonly IWorkTaskService _workTaskService;
         private readonly IProjectService _projectService;
         private readonly IGoalService _goalService;
         private readonly ApplicationDbContext _dbContext;
         private const int GeminiRetryAttempts = 3;
         private const long AiDocumentMaxBytes = 10 * 1024 * 1024;
+        private const long VoiceAudioMaxBytes = 3 * 1024 * 1024;
         private static readonly IReadOnlyDictionary<string, string[]> AiDocumentMimeTypes =
             new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
             {
@@ -48,12 +50,14 @@ namespace TaskManagement.API.Controllers
 
         public AiController(
             IAiService aiService,
+            IAiAttachmentService aiAttachmentService,
             IWorkTaskService workTaskService,
             IProjectService projectService,
             IGoalService goalService,
             ApplicationDbContext dbContext)
         {
             _aiService = aiService;
+            _aiAttachmentService = aiAttachmentService;
             _workTaskService = workTaskService;
             _projectService = projectService;
             _goalService = goalService;
@@ -166,6 +170,297 @@ namespace TaskManagement.API.Controllers
                 .ToListAsync();
 
             return Ok(ApiResponse<object>.Success(new { page, pageSize, total, items }));
+        }
+
+        [HttpGet("conversations")]
+        public async Task<IActionResult> GetConversations(
+            [FromQuery] Guid? workspaceId,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            var userId = GetUserId();
+            var resolvedWorkspaceId = await ResolveActionWorkspaceAsync(userId, workspaceId);
+            await EnsureWorkspaceWriteAccessAsync(userId, resolvedWorkspaceId);
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, 50);
+
+            var query = _dbContext.AiConversations
+                .AsNoTracking()
+                .Where(item => item.UserId == userId && item.WorkspaceId == resolvedWorkspaceId)
+                .OrderByDescending(item => item.UpdatedAt);
+            var total = await query.CountAsync();
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(item => new { item.Id, item.Title, item.WorkspaceId, item.CreatedAt, item.UpdatedAt })
+                .ToListAsync();
+
+            return Ok(ApiResponse<object>.Success(new { page, pageSize, total, items }));
+        }
+
+        [HttpPost("conversations")]
+        public async Task<IActionResult> CreateConversation([FromBody] AiConversationCreateRequest request)
+        {
+            var userId = GetUserId();
+            var workspaceId = await ResolveActionWorkspaceAsync(userId, request.WorkspaceId);
+            await EnsureWorkspaceWriteAccessAsync(userId, workspaceId);
+            var now = DateTime.UtcNow;
+            var conversation = new AiConversation
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                WorkspaceId = workspaceId,
+                Title = NormalizeConversationTitle(request.Title),
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+            _dbContext.AiConversations.Add(conversation);
+            await _dbContext.SaveChangesAsync();
+            return Ok(ApiResponse<object>.Success(new { conversation.Id, conversation.Title, conversation.WorkspaceId, conversation.CreatedAt, conversation.UpdatedAt }));
+        }
+
+        [HttpGet("conversations/{id:guid}")]
+        public async Task<IActionResult> GetConversation(Guid id)
+        {
+            var userId = GetUserId();
+            var conversation = await _dbContext.AiConversations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Id == id && item.UserId == userId);
+            if (conversation == null) return NotFound(ApiResponse<object>.Error("Conversation does not exist."));
+            await EnsureWorkspaceWriteAccessAsync(userId, conversation.WorkspaceId);
+            return Ok(ApiResponse<object>.Success(new
+            {
+                conversation.Id,
+                conversation.Title,
+                conversation.WorkspaceId,
+                conversation.CreatedAt,
+                conversation.UpdatedAt,
+                messages = ReadConversationMessages(conversation.MessagesJson)
+            }));
+        }
+
+        [HttpPut("conversations/{id:guid}")]
+        public async Task<IActionResult> SaveConversation(Guid id, [FromBody] AiConversationSaveRequest request)
+        {
+            var userId = GetUserId();
+            var conversation = await _dbContext.AiConversations
+                .FirstOrDefaultAsync(item => item.Id == id && item.UserId == userId);
+            if (conversation == null) return NotFound(ApiResponse<object>.Error("Conversation does not exist."));
+            await EnsureWorkspaceWriteAccessAsync(userId, conversation.WorkspaceId);
+            if (request.Messages.ValueKind != JsonValueKind.Array)
+            {
+                return BadRequest(ApiResponse<object>.Error("Messages must be a JSON array."));
+            }
+
+            var messagesJson = request.Messages.GetRawText();
+            if (Encoding.UTF8.GetByteCount(messagesJson) > 1024 * 1024)
+            {
+                return BadRequest(ApiResponse<object>.Error("Conversation content exceeds 1 MB."));
+            }
+
+            conversation.MessagesJson = messagesJson;
+            if (!string.IsNullOrWhiteSpace(request.Title)) conversation.Title = NormalizeConversationTitle(request.Title);
+            conversation.UpdatedAt = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync();
+            return Ok(ApiResponse<object>.Success(new { conversation.Id, conversation.Title, conversation.UpdatedAt }));
+        }
+
+        [HttpPatch("conversations/{id:guid}/title")]
+        public async Task<IActionResult> RenameConversation(Guid id, [FromBody] AiConversationRenameRequest request)
+        {
+            var userId = GetUserId();
+            var conversation = await _dbContext.AiConversations
+                .FirstOrDefaultAsync(item => item.Id == id && item.UserId == userId);
+            if (conversation == null) return NotFound(ApiResponse<object>.Error("Conversation does not exist."));
+            await EnsureWorkspaceWriteAccessAsync(userId, conversation.WorkspaceId);
+            conversation.Title = NormalizeConversationTitle(request.Title);
+            conversation.UpdatedAt = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync();
+            return Ok(ApiResponse<object>.Success(new { conversation.Id, conversation.Title, conversation.UpdatedAt }));
+        }
+
+        [HttpDelete("conversations/{id:guid}")]
+        public async Task<IActionResult> DeleteConversation(Guid id)
+        {
+            var userId = GetUserId();
+            var conversation = await _dbContext.AiConversations
+                .FirstOrDefaultAsync(item => item.Id == id && item.UserId == userId);
+            if (conversation == null) return NotFound(ApiResponse<object>.Error("Conversation does not exist."));
+            await EnsureWorkspaceWriteAccessAsync(userId, conversation.WorkspaceId);
+            var attachmentIds = await _dbContext.AiAttachments
+                .Where(item => item.ConversationId == id && item.UserId == userId)
+                .Select(item => item.Id)
+                .ToListAsync();
+            foreach (var attachmentId in attachmentIds)
+            {
+                await _aiAttachmentService.DeleteAsync(userId, attachmentId);
+            }
+            _dbContext.AiConversations.Remove(conversation);
+            await _dbContext.SaveChangesAsync();
+            return Ok(ApiResponse<object>.Success(new { id }));
+        }
+
+        [HttpPost("attachments")]
+        [RequestSizeLimit(12 * 1024 * 1024)]
+        public async Task<IActionResult> UploadAttachment(
+            [FromForm] IFormFile file,
+            [FromForm] Guid conversationId,
+            [FromForm] Guid? workspaceId,
+            CancellationToken cancellationToken)
+        {
+            if (file == null || file.Length == 0 || conversationId == Guid.Empty)
+            {
+                return BadRequest(ApiResponse<object>.Error("File và conversationId là bắt buộc."));
+            }
+
+            try
+            {
+                var userId = GetUserId();
+                var resolvedWorkspaceId = await ResolveActionWorkspaceAsync(userId, workspaceId);
+                await using var stream = file.OpenReadStream();
+                var attachment = await _aiAttachmentService.UploadAsync(
+                    userId,
+                    resolvedWorkspaceId,
+                    conversationId,
+                    file.FileName,
+                    file.ContentType,
+                    stream,
+                    file.Length,
+                    cancellationToken);
+                return Ok(ApiResponse<AiAttachmentDto>.Success(attachment, "Attachment đã được xử lý."));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Error(ex.Message));
+            }
+            catch (InvalidDataException ex)
+            {
+                return BadRequest(ApiResponse<object>.Error(ex.Message));
+            }
+        }
+
+        [HttpGet("attachments/{id:guid}")]
+        public async Task<IActionResult> GetAttachment(Guid id, CancellationToken cancellationToken)
+        {
+            var attachment = await _aiAttachmentService.GetAsync(GetUserId(), id, cancellationToken);
+            return attachment == null
+                ? NotFound(ApiResponse<object>.Error("Attachment không tồn tại."))
+                : Ok(ApiResponse<AiAttachmentDto>.Success(attachment));
+        }
+
+        [HttpGet("attachments/{id:guid}/content")]
+        public async Task<IActionResult> GetAttachmentContent(Guid id, CancellationToken cancellationToken)
+        {
+            var attachment = await _aiAttachmentService.GetContentAsync(GetUserId(), id, cancellationToken);
+            if (attachment == null) return NotFound(ApiResponse<object>.Error("Attachment không tồn tại."));
+            Response.Headers.CacheControl = "private, no-store";
+            return File(attachment.Bytes, attachment.MimeType, attachment.FileName, enableRangeProcessing: true);
+        }
+
+        [HttpDelete("attachments/{id:guid}")]
+        public async Task<IActionResult> DeleteAttachment(Guid id, CancellationToken cancellationToken)
+        {
+            await _aiAttachmentService.DeleteAsync(GetUserId(), id, cancellationToken);
+            return Ok(ApiResponse<object>.Success(new { id }));
+        }
+
+        [HttpPost("attachment-chat")]
+        public async Task<IActionResult> ChatWithAttachments(
+            [FromBody] AiAttachmentChatRequest request,
+            CancellationToken cancellationToken)
+        {
+            if (request.ConversationId == Guid.Empty || request.AttachmentIds.Count == 0)
+            {
+                return BadRequest(ApiResponse<object>.Error("Conversation và attachment là bắt buộc."));
+            }
+
+            try
+            {
+                var userId = GetUserId();
+                var workspaceId = await ResolveActionWorkspaceAsync(userId, request.WorkspaceId);
+                var response = await _aiAttachmentService.ChatAsync(
+                    userId,
+                    workspaceId,
+                    request.ConversationId,
+                    request.AttachmentIds,
+                    request.Message ?? string.Empty,
+                    cancellationToken);
+                return Ok(ApiResponse<AiAttachmentChatResponseDto>.Success(response));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Error(ex.Message));
+            }
+            catch (InvalidDataException ex)
+            {
+                return BadRequest(ApiResponse<object>.Error(ex.Message));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Error(ex.Message));
+            }
+        }
+
+        [HttpPost("transcribe-audio")]
+        [RequestSizeLimit(VoiceAudioMaxBytes + 128 * 1024)]
+        public async Task<IActionResult> TranscribeAudio(
+            [FromForm] IFormFile audio,
+            [FromForm] string languageMode,
+            CancellationToken cancellationToken)
+        {
+            if (audio == null || audio.Length == 0)
+            {
+                return BadRequest(ApiResponse<object>.Error("Bản ghi âm là bắt buộc."));
+            }
+
+            var normalizedLanguage = (languageMode ?? string.Empty).Trim().ToLowerInvariant();
+            if (normalizedLanguage is not ("auto" or "vi" or "en"))
+            {
+                return BadRequest(ApiResponse<object>.Error("Ngôn ngữ giọng nói chỉ hỗ trợ Tự động (VI/EN), Tiếng Việt hoặc English."));
+            }
+
+            if (audio.Length > VoiceAudioMaxBytes)
+            {
+                return StatusCode(StatusCodes.Status413PayloadTooLarge,
+                    ApiResponse<object>.Error("Bản ghi âm vượt quá giới hạn 60 giây.", StatusCodes.Status413PayloadTooLarge));
+            }
+
+            var mimeType = (audio.ContentType ?? string.Empty).Split(';', 2)[0].Trim().ToLowerInvariant();
+            if (mimeType is not ("audio/wav" or "audio/x-wav" or "audio/wave"))
+            {
+                return BadRequest(ApiResponse<object>.Error("Định dạng bản ghi âm không hợp lệ. Chỉ chấp nhận WAV."));
+            }
+
+            await using var stream = audio.OpenReadStream();
+            using var buffer = new MemoryStream((int)audio.Length);
+            await stream.CopyToAsync(buffer, cancellationToken);
+            var bytes = buffer.ToArray();
+            if (!IsWaveAudio(bytes))
+            {
+                return BadRequest(ApiResponse<object>.Error("Nội dung bản ghi âm WAV không hợp lệ."));
+            }
+
+            try
+            {
+                var transcript = await _aiService.TranscribeAudioAsync(
+                    GetUserId(), normalizedLanguage, "audio/wav", bytes, cancellationToken);
+                if (string.IsNullOrWhiteSpace(transcript))
+                {
+                    return BadRequest(ApiResponse<object>.Error("Không nhận diện được giọng nói Việt hoặc Anh. Hãy thu lại ở nơi yên tĩnh hơn."));
+                }
+
+                Response.Headers.CacheControl = "no-store";
+                return Ok(ApiResponse<object>.Success(new
+                {
+                    transcript,
+                    languageMode = normalizedLanguage
+                }));
+            }
+            catch (InvalidOperationException)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    ApiResponse<object>.Error("Dịch vụ nhận dạng giọng nói tạm thời chưa sẵn sàng. Hãy thử lại.", StatusCodes.Status503ServiceUnavailable));
+            }
         }
 
         [HttpPost("analyze-file")]
@@ -409,6 +704,7 @@ namespace TaskManagement.API.Controllers
 
             var userId = GetUserId();
             var idempotencyKey = BuildIdempotencyKey(userId, actionType, request.IdempotencyKey, request.Payload);
+            using var executionLock = await AcquireAiActionLockAsync(idempotencyKey);
             var existingLog = await _dbContext.SystemAuditLogs
                 .AsNoTracking()
                 .Where(log => log.Action == "AI_ACTION_EXECUTE" &&
@@ -464,6 +760,21 @@ namespace TaskManagement.API.Controllers
             {
                 await WriteAiActionAuditAsync(userId, idempotencyKey, actionType, "Denied", null, ex.Message);
                 return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Error(ex.Message));
+            }
+            catch (DuplicateTaskException ex)
+            {
+                await WriteAiActionAuditAsync(userId, idempotencyKey, actionType, "DuplicateDetected", null, ex.Message);
+                return Conflict(new
+                {
+                    statusCode = StatusCodes.Status409Conflict,
+                    success = false,
+                    message = ex.Message,
+                    data = new
+                    {
+                        code = "AI_TASK_DUPLICATE",
+                        existingTask = ex.Candidate
+                    }
+                });
             }
             catch (ArgumentException ex)
             {
@@ -1246,8 +1557,83 @@ namespace TaskManagement.API.Controllers
             };
 
         private static readonly JsonSerializerOptions AiActionJsonOptions = new(JsonSerializerDefaults.Web);
+        private static readonly object AiActionLocksSync = new();
+        private static readonly Dictionary<string, AiActionLockEntry> AiActionLocks = new(StringComparer.Ordinal);
+
+        public sealed class AiConversationCreateRequest
+        {
+            public Guid? WorkspaceId { get; set; }
+            public string? Title { get; set; }
+        }
+
+        public sealed class AiConversationSaveRequest
+        {
+            public string? Title { get; set; }
+            public JsonElement Messages { get; set; }
+        }
+
+        public sealed class AiConversationRenameRequest
+        {
+            public string? Title { get; set; }
+        }
+
+        public sealed class AiAttachmentChatRequest
+        {
+            public Guid? WorkspaceId { get; set; }
+            public Guid ConversationId { get; set; }
+            public List<Guid> AttachmentIds { get; set; } = new();
+            public string? Message { get; set; }
+        }
 
         private sealed record AiActionDefinition(string EntityType, bool RequiresConfirmation);
+
+        private sealed class AiActionLockEntry
+        {
+            public SemaphoreSlim Gate { get; } = new(1, 1);
+            public int ReferenceCount { get; set; }
+        }
+
+        private sealed class AiActionLockLease(string key, AiActionLockEntry entry) : IDisposable
+        {
+            private bool _disposed;
+
+            public void Dispose()
+            {
+                if (_disposed) return;
+                _disposed = true;
+                entry.Gate.Release();
+                lock (AiActionLocksSync)
+                {
+                    entry.ReferenceCount--;
+                    if (entry.ReferenceCount == 0) AiActionLocks.Remove(key);
+                }
+            }
+        }
+
+        private sealed record DuplicateTaskCandidate(Guid Id, string? SequenceId, string Title, string StatusName);
+
+        private sealed class DuplicateTaskException(DuplicateTaskCandidate candidate)
+            : InvalidOperationException("A task with the same or a very similar title already exists in this project.")
+        {
+            public DuplicateTaskCandidate Candidate { get; } = candidate;
+        }
+
+        private static async Task<IDisposable> AcquireAiActionLockAsync(string key)
+        {
+            AiActionLockEntry entry;
+            lock (AiActionLocksSync)
+            {
+                if (!AiActionLocks.TryGetValue(key, out entry!))
+                {
+                    entry = new AiActionLockEntry();
+                    AiActionLocks.Add(key, entry);
+                }
+                entry.ReferenceCount++;
+            }
+
+            await entry.Gate.WaitAsync();
+            return new AiActionLockLease(key, entry);
+        }
 
         private async Task<AiExecuteActionResponseDto> ExecuteCreateProjectAsync(Guid userId, AiExecuteActionRequestDto request)
         {
@@ -1301,6 +1687,25 @@ namespace TaskManagement.API.Controllers
             if (string.IsNullOrWhiteSpace(title))
             {
                 throw new ArgumentException("Task title is required.");
+            }
+
+            var allowDuplicate = GetPayloadBool(request.Payload, "allowDuplicate") ?? false;
+            if (!allowDuplicate)
+            {
+                var existingTasks = await _dbContext.WorkTasks
+                    .AsNoTracking()
+                    .Where(task => task.ProjectId == projectId && !task.IsDeleted)
+                    .Select(task => new DuplicateTaskCandidate(
+                        task.Id,
+                        task.SequenceId,
+                        task.Title,
+                        task.TaskStatus.Name))
+                    .ToListAsync();
+                var duplicate = existingTasks.FirstOrDefault(task => TaskTitlesAreSimilar(task.Title, title));
+                if (duplicate != null)
+                {
+                    throw new DuplicateTaskException(duplicate);
+                }
             }
 
             var assigneeId = GetPayloadGuid(request.Payload, "assigneeId", "assignedUserId");
@@ -2430,6 +2835,54 @@ namespace TaskManagement.API.Controllers
                 "summarize_report" or "generate_report" or "report_summary" => "explain_report",
                 _ => normalized
             };
+        }
+
+        private static bool IsWaveAudio(byte[] bytes) =>
+            bytes.Length >= 44 &&
+            bytes.AsSpan(0, 4).SequenceEqual("RIFF"u8) &&
+            bytes.AsSpan(8, 4).SequenceEqual("WAVE"u8);
+
+        private static bool TaskTitlesAreSimilar(string existingTitle, string requestedTitle)
+        {
+            var existingTokens = NormalizeTaskTitle(existingTitle).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var requestedTokens = NormalizeTaskTitle(requestedTitle).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (existingTokens.SequenceEqual(requestedTokens))
+            {
+                return true;
+            }
+
+            if (existingTokens.Length < 3 || requestedTokens.Length < 3)
+            {
+                return false;
+            }
+
+            var existingSet = existingTokens.ToHashSet(StringComparer.Ordinal);
+            var requestedSet = requestedTokens.ToHashSet(StringComparer.Ordinal);
+            var intersection = existingSet.Intersect(requestedSet).Count();
+            var union = existingSet.Union(requestedSet).Count();
+            return union > 0 && (double)intersection / union >= 0.8;
+        }
+
+        private static string NormalizeTaskTitle(string title) =>
+            string.Join(' ', title.Trim().ToUpperInvariant().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        private static string NormalizeConversationTitle(string? title)
+        {
+            var normalized = string.Join(' ', (title ?? string.Empty).Trim().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+            if (string.IsNullOrWhiteSpace(normalized)) return "Cuộc trò chuyện mới";
+            return normalized.Length <= 180 ? normalized : normalized[..180];
+        }
+
+        private static object ReadConversationMessages(string messagesJson)
+        {
+            try
+            {
+                return JsonSerializer.Deserialize<JsonElement>(messagesJson, AiActionJsonOptions);
+            }
+            catch (JsonException)
+            {
+                return Array.Empty<object>();
+            }
         }
 
         private static string BuildIdempotencyKey(Guid userId, string actionType, string? clientKey, Dictionary<string, object?> payload)

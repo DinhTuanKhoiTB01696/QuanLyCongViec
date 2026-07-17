@@ -152,12 +152,24 @@ namespace TaskManagement.API.Controllers
             return JsonSerializer.Serialize(config);
         }
 
-        private static string MergeProjectVisualsIntoNavigationConfig(string? raw, string? coverUrl, string? icon)
+        private static string MergeProjectVisualsIntoNavigationConfig(
+            string? raw,
+            string? coverUrl,
+            string? coverAltText,
+            string? icon,
+            bool removeCover = false)
         {
             var config = ParseNavigationConfig(raw);
-            if (!string.IsNullOrWhiteSpace(coverUrl))
+            if (removeCover)
+            {
+                config.Remove("cover");
+                config.Remove("coverUrl");
+                config.Remove("coverAltText");
+            }
+            else if (!string.IsNullOrWhiteSpace(coverUrl))
             {
                 config["cover"] = coverUrl;
+                config["coverAltText"] = coverAltText;
             }
 
             if (!string.IsNullOrWhiteSpace(icon))
@@ -215,6 +227,10 @@ namespace TaskManagement.API.Controllers
                 .AsNoTracking()
                 .Where(project => projects.Select(p => p.Id).Contains(project.Id))
                 .ToDictionaryAsync(project => project.Id, project => ReadFavoriteFlag(project.NavigationConfig));
+            var coverAltTextMap = await _context.Projects
+                .AsNoTracking()
+                .Where(project => projects.Select(p => p.Id).Contains(project.Id))
+                .ToDictionaryAsync(project => project.Id, project => project.CoverAltText);
 
             return Ok(ApiResponse<object>.Success(projects.Select(project => new
             {
@@ -232,6 +248,7 @@ namespace TaskManagement.API.Controllers
                 project.ActiveMemberCount,
                 project.NetworkType,
                 project.Cover,
+                CoverAltText = coverAltTextMap.GetValueOrDefault(project.Id),
                 project.Icon,
                 project.LeadUserId,
                 project.LeadName,
@@ -253,6 +270,10 @@ namespace TaskManagement.API.Controllers
                 .AsNoTracking()
                 .Where(project => projects.Select(p => p.Id).Contains(project.Id))
                 .ToDictionaryAsync(project => project.Id, project => ReadFavoriteFlag(project.NavigationConfig));
+            var coverAltTextMap = await _context.Projects
+                .AsNoTracking()
+                .Where(project => projects.Select(p => p.Id).Contains(project.Id))
+                .ToDictionaryAsync(project => project.Id, project => project.CoverAltText);
 
             return Ok(ApiResponse<object>.Success(projects.Select(project => new
             {
@@ -270,6 +291,7 @@ namespace TaskManagement.API.Controllers
                 project.ActiveMemberCount,
                 project.NetworkType,
                 project.Cover,
+                CoverAltText = coverAltTextMap.GetValueOrDefault(project.Id),
                 project.Icon,
                 project.LeadUserId,
                 project.LeadName,
@@ -291,6 +313,10 @@ namespace TaskManagement.API.Controllers
                     .AsNoTracking()
                     .Where(project => projects.Select(p => p.Id).Contains(project.Id))
                     .ToDictionaryAsync(project => project.Id, project => ReadFavoriteFlag(project.NavigationConfig));
+                var coverAltTextMap = await _context.Projects
+                    .AsNoTracking()
+                    .Where(project => projects.Select(p => p.Id).Contains(project.Id))
+                    .ToDictionaryAsync(project => project.Id, project => project.CoverAltText);
 
                 return Ok(ApiResponse<object>.Success(projects.Select(project => new
                 {
@@ -308,6 +334,7 @@ namespace TaskManagement.API.Controllers
                     project.ActiveMemberCount,
                     project.NetworkType,
                     project.Cover,
+                    CoverAltText = coverAltTextMap.GetValueOrDefault(project.Id),
                     project.Icon,
                     project.LeadUserId,
                     project.LeadName,
@@ -352,6 +379,7 @@ namespace TaskManagement.API.Controllers
                 project.ActiveMemberCount,
                 project.NetworkType,
                 project.Cover,
+                CoverAltText = rawProject?.CoverAltText,
                 project.Icon,
                 project.LeadUserId,
                 project.LeadName,
@@ -393,6 +421,7 @@ namespace TaskManagement.API.Controllers
                     project.ActiveMemberCount,
                     project.NetworkType,
                     project.Cover,
+                    CoverAltText = rawProject?.CoverAltText,
                     project.Icon,
                     project.LeadUserId,
                     project.LeadName,
@@ -701,7 +730,11 @@ namespace TaskManagement.API.Controllers
                 project.CoverAltText = TrimOrNull(coverAltText) ?? $"Cover for {project.Name}";
             }
 
-            project.NavigationConfig = MergeProjectVisualsIntoNavigationConfig(project.NavigationConfig, nextCoverUrl, TrimOrNull(icon));
+            project.NavigationConfig = MergeProjectVisualsIntoNavigationConfig(
+                project.NavigationConfig,
+                nextCoverUrl,
+                project.CoverAltText,
+                TrimOrNull(icon));
             project.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
@@ -711,6 +744,43 @@ namespace TaskManagement.API.Controllers
                 project.CoverUrl,
                 project.CoverAltText,
                 icon = TrimOrNull(icon),
+                project.NavigationConfig
+            }));
+        }
+
+        [HttpDelete("{id:guid}/cover")]
+        public async Task<IActionResult> DeleteCover(Guid id)
+        {
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdString, out var userId))
+                return Unauthorized(ApiResponse<object>.Error("Unauthorized.", 401));
+
+            var project = await _context.Projects
+                .Include(item => item.ProjectMembers)
+                .FirstOrDefaultAsync(item => item.Id == id && !item.IsDeleted);
+
+            if (project == null)
+                return NotFound(ApiResponse<object>.Error("Project not found.", 404));
+
+            if (!await CanUpdateProjectVisuals(project, userId))
+                return StatusCode(403, ApiResponse<object>.Error("Forbidden.", 403));
+
+            project.CoverUrl = null;
+            project.CoverAltText = null;
+            project.NavigationConfig = MergeProjectVisualsIntoNavigationConfig(
+                project.NavigationConfig,
+                null,
+                null,
+                null,
+                removeCover: true);
+            project.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(ApiResponse<object>.Success(new
+            {
+                project.Id,
+                project.CoverUrl,
+                project.CoverAltText,
                 project.NavigationConfig
             }));
         }

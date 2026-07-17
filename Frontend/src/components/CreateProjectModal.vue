@@ -54,7 +54,7 @@
       </div>
 
       <div class="cover-column">
-        <div class="cover-preview" :style="{ backgroundImage: form.cover ? `url(${form.cover})` : 'none' }">
+        <div class="cover-preview" :class="{ 'has-cover': Boolean(coverPreviewUrl) }" :style="coverPreviewStyle">
           <div class="cover-overlay">
             <span class="preview-badge">{{ form.icon || 'P' }}</span>
             <strong class="preview-name">{{ form.name || t('createProject.previewFallback') }}</strong>
@@ -65,6 +65,31 @@
           <h4 class="section-title">{{ t('createProject.coverTitle') }}</h4>
           <p class="helper-text-muted">{{ t('createProject.coverHelper') }}</p>
         </div>
+
+        <div class="cover-actions">
+          <input
+            ref="coverInputRef"
+            type="file"
+            class="sr-only"
+            accept="image/png,image/jpeg,image/webp"
+            @change="handleCoverSelected"
+          />
+          <button type="button" class="btn-secondary-sm" @click="openCoverPicker">
+            <i class="fa-regular fa-image"></i>
+            Chọn ảnh
+          </button>
+          <button v-if="coverFile" type="button" class="btn-ghost-sm" @click="clearCover">
+            Xóa ảnh
+          </button>
+        </div>
+
+        <div class="form-group">
+          <label class="field-label">Mô tả ảnh bìa</label>
+          <input v-model="form.coverAltText" type="text" maxlength="180" placeholder="Ảnh bìa cho dự án" class="compact-input-field" />
+        </div>
+
+        <p v-if="coverFile" class="selected-file">{{ coverFile.name }}</p>
+        <p v-if="coverError" class="field-error">{{ coverError }}</p>
       </div>
     </div>
 
@@ -84,12 +109,14 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import axiosClient from '@/api/axiosClient'
+import { useProjectStore } from '@/store/useProjectStore'
 import { useI18n } from '@/composables/useI18n'
 
 const { t } = useI18n()
+
 
 const props = defineProps({
   visible: Boolean
@@ -103,6 +130,14 @@ const visibleComp = computed({
 })
 
 const submitting = ref(false)
+const coverInputRef = ref(null)
+const coverFile = ref(null)
+const coverPreviewUrl = ref('')
+const coverError = ref('')
+const projectStore = useProjectStore()
+
+const allowedCoverTypes = new Set(['image/png', 'image/jpeg', 'image/webp'])
+const maxCoverSize = 5 * 1024 * 1024
 
 const formatDateOnly = (value) => {
   const date = value instanceof Date ? value : new Date(value)
@@ -119,14 +154,67 @@ const createInitialForm = () => ({
   description: '',
   startDate: formatDateOnly(new Date()),
   networkType: 'Public',
-  cover: null,
+  coverAltText: '',
   icon: '🚀'
 })
 
 const form = ref(createInitialForm())
 
 const resetForm = () => {
+  revokeCoverPreview()
+  coverFile.value = null
+  coverError.value = ''
+  if (coverInputRef.value) coverInputRef.value.value = ''
   form.value = createInitialForm()
+}
+
+const revokeCoverPreview = () => {
+  if (coverPreviewUrl.value) {
+    URL.revokeObjectURL(coverPreviewUrl.value)
+    coverPreviewUrl.value = ''
+  }
+}
+
+const coverPreviewStyle = computed(() => {
+  if (!coverPreviewUrl.value) return {}
+  return { backgroundImage: `url("${coverPreviewUrl.value}")` }
+})
+
+const openCoverPicker = () => {
+  coverInputRef.value?.click()
+}
+
+const clearCover = () => {
+  revokeCoverPreview()
+  coverFile.value = null
+  coverError.value = ''
+  if (coverInputRef.value) coverInputRef.value.value = ''
+}
+
+const handleCoverSelected = (event) => {
+  const [file] = event.target.files || []
+  coverError.value = ''
+
+  if (!file) return
+  if (!allowedCoverTypes.has(file.type)) {
+    coverError.value = 'Ảnh bìa chỉ hỗ trợ PNG, JPG, JPEG hoặc WEBP.'
+    event.target.value = ''
+    return
+  }
+  if (file.size > maxCoverSize) {
+    coverError.value = 'Ảnh bìa phải nhỏ hơn hoặc bằng 5MB.'
+    event.target.value = ''
+    return
+  }
+
+  revokeCoverPreview()
+  coverFile.value = file
+  coverPreviewUrl.value = URL.createObjectURL(file)
+  if (!form.value.coverAltText.trim()) {
+    form.value.coverAltText = form.value.name.trim()
+      ? `Ảnh bìa dự án ${form.value.name.trim()}`
+      : 'Ảnh bìa dự án'
+  }
 }
 
 const handleClose = () => {
@@ -148,11 +236,39 @@ const handleSubmit = async () => {
       description: form.value.description.trim() || null,
       startDate: form.value.startDate,
       networkType: form.value.networkType,
-      cover: form.value.cover || null,
       icon: form.value.icon || null
     })
 
-    emit('created', response.data?.data || response.data)
+    const createdProject = response.data?.data || response.data
+    let emittedProject = createdProject
+    const projectId = createdProject?.id || createdProject?.Id
+
+    if (coverFile.value && projectId) {
+      try {
+        const payload = new FormData()
+        payload.append('file', coverFile.value)
+        payload.append('coverAltText', form.value.coverAltText.trim() || `Ảnh bìa dự án ${form.value.name.trim()}`)
+        if (form.value.icon?.trim()) payload.append('icon', form.value.icon.trim())
+
+        const coverResponse = await axiosClient.post(`/projects/${projectId}/cover`, payload)
+        const coverData = coverResponse.data?.data || coverResponse.data
+        emittedProject = {
+          ...createdProject,
+          cover: coverData?.coverUrl || coverData?.CoverUrl || createdProject?.cover,
+          coverAltText: coverData?.coverAltText || coverData?.CoverAltText || form.value.coverAltText,
+          icon: coverData?.icon || form.value.icon || createdProject?.icon
+        }
+      } catch (coverErrorResponse) {
+        await projectStore.fetchAllProjects(true)
+        emit('created', createdProject)
+        ElMessage.error(coverErrorResponse.response?.data?.message || 'Dự án đã tạo nhưng chưa upload được ảnh bìa')
+        handleClose()
+        return
+      }
+    }
+
+    await projectStore.fetchAllProjects(true)
+    emit('created', emittedProject)
     ElMessage.success(t('createProject.createSuccess'))
     handleClose()
   } catch (error) {
@@ -161,6 +277,8 @@ const handleSubmit = async () => {
     submitting.value = false
   }
 }
+
+onUnmounted(revokeCoverPreview)
 </script>
 
 <style scoped>
@@ -221,6 +339,50 @@ const handleSubmit = async () => {
 .gallery-header { margin-top: 4px; }
 .section-title { font-size: 14px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 4px; }
 .helper-text-muted { font-size: 12px; color: var(--color-text-muted); }
+
+.cover-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-ghost-sm {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-ghost-sm:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.selected-file,
+.field-error {
+  margin: -6px 0 0;
+  font-size: 12px;
+}
+
+.selected-file { color: var(--color-text-muted); }
+.field-error { color: var(--color-danger); }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 .cover-grid {
   display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;

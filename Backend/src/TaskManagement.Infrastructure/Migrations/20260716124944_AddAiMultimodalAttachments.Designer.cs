@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TaskManagement.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using TaskManagement.Infrastructure.Data;
 namespace TaskManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260716124944_AddAiMultimodalAttachments")]
+    partial class AddAiMultimodalAttachments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2345,17 +2348,8 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsFloating")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("IsPinned")
                         .HasColumnType("bit");
-
-                    b.Property<int?>("PositionX")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("PositionY")
-                        .HasColumnType("int");
 
                     b.Property<Guid?>("ProjectId")
                         .HasColumnType("uniqueidentifier");
@@ -2390,8 +2384,6 @@ namespace TaskManagement.Infrastructure.Migrations
                     b.HasIndex("WorkTaskId");
 
                     b.HasIndex("WorkspaceId");
-
-                    b.HasIndex("UserId", "IsFloating");
 
                     b.HasIndex("UserId", "IsDeleted", "IsPinned", "UpdatedAt");
 

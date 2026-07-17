@@ -19,6 +19,17 @@ namespace TaskManagement.Application.Interfaces
         Task<List<WorkTaskResponseDto>> CreateBacklogItemsFromAnalysisAsync(Guid userId, AiCreateBacklogFromAnalysisRequestDto request);
         Task<AiUsageDto> GetUsageAsync(Guid userId);
         Task<AiFileAnalysisResultDto> AnalyzeFileAsync(Guid userId, string fileName, string mimeType, byte[] fileBytes, string? userPrompt, Guid? projectId, string? previousAnalysisJson);
+        Task<string> ChatWithAttachmentsAsync(
+            Guid userId,
+            string message,
+            IReadOnlyList<AiAttachmentRagSourceDto> sources,
+            IReadOnlyList<AiAttachmentImageInputDto> images);
+        Task<string> TranscribeAudioAsync(
+            Guid userId,
+            string languageMode,
+            string mimeType,
+            byte[] audioBytes,
+            CancellationToken cancellationToken = default);
         Task<AiProjectAssistantResponseDto> ProjectAssistantAsync(Guid userId, AiProjectAssistantRequestDto request);
         Task<AiContextChatResponseDto> ContextChatAsync(Guid userId, AiContextChatRequestDto request);
     }
