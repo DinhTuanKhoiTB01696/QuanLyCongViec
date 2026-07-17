@@ -77,6 +77,9 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<AIFeedback> AIFeedbacks { get; set; }
         public DbSet<AITrainingDataset> AITrainingDatasets { get; set; }
         public DbSet<TaskVectorEmbedding> TaskVectorEmbeddings { get; set; }
+        public DbSet<AiConversation> AiConversations { get; set; }
+        public DbSet<AiAttachment> AiAttachments { get; set; }
+        public DbSet<AiAttachmentChunk> AiAttachmentChunks { get; set; }
         public DbSet<IntegrationAccount> IntegrationAccounts { get; set; }
         public DbSet<InboxItem> InboxItems { get; set; }
         public DbSet<SyncHistory> SyncHistories { get; set; }
@@ -130,6 +133,7 @@ namespace TaskManagement.Infrastructure.Data
             modelBuilder.Entity<WorkTask>().HasQueryFilter(wt => !wt.IsDeleted);
             modelBuilder.Entity<Workspace>().HasQueryFilter(w => !w.IsDeleted);
             modelBuilder.Entity<CustomFieldDefinition>().HasQueryFilter(cfd => !cfd.IsDeleted);
+            modelBuilder.Entity<StickyNote>().HasQueryFilter(note => !note.IsDeleted);
 
             // =============================================
             // 0.5 Department - Project Relationship
@@ -212,6 +216,36 @@ namespace TaskManagement.Infrastructure.Data
             modelBuilder.Entity<ProjectMember>().HasIndex(pm => pm.UserId);
             modelBuilder.Entity<TaskDraft>().HasIndex(td => new { td.UserId, td.UpdatedAt });
             modelBuilder.Entity<TaskDraft>().HasIndex(td => new { td.UserId, td.ProjectId, td.UpdatedAt });
+            modelBuilder.Entity<AiConversation>().HasIndex(conversation => new { conversation.UserId, conversation.WorkspaceId, conversation.UpdatedAt });
+            modelBuilder.Entity<AiConversation>().Property(conversation => conversation.Title).HasMaxLength(180);
+            modelBuilder.Entity<AiConversation>().Property(conversation => conversation.MessagesJson).HasColumnType("nvarchar(max)");
+            modelBuilder.Entity<AiAttachment>(entity =>
+            {
+                entity.Property(item => item.FileName).HasMaxLength(255).IsRequired();
+                entity.Property(item => item.StoredFileName).HasMaxLength(100).IsRequired();
+                entity.Property(item => item.MimeType).HasMaxLength(150).IsRequired();
+                entity.Property(item => item.Extension).HasMaxLength(20).IsRequired();
+                entity.Property(item => item.Kind).HasMaxLength(20).IsRequired();
+                entity.Property(item => item.Sha256).HasMaxLength(64).IsRequired();
+                entity.Property(item => item.Status).HasMaxLength(30).IsRequired();
+                entity.Property(item => item.ErrorMessage).HasMaxLength(500);
+                entity.HasIndex(item => new { item.UserId, item.WorkspaceId, item.ConversationId, item.Sha256 });
+                entity.HasIndex(item => new { item.ConversationId, item.CreatedAt });
+                entity.HasOne<AiConversation>()
+                    .WithMany()
+                    .HasForeignKey(item => item.ConversationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<AiAttachmentChunk>(entity =>
+            {
+                entity.Property(item => item.Locator).HasMaxLength(180).IsRequired();
+                entity.Property(item => item.Content).HasMaxLength(2000).IsRequired();
+                entity.HasIndex(item => new { item.AttachmentId, item.ChunkIndex }).IsUnique();
+                entity.HasOne(item => item.Attachment)
+                    .WithMany(item => item.Chunks)
+                    .HasForeignKey(item => item.AttachmentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
             modelBuilder.Entity<IntegrationAccount>().HasIndex(ia => new { ia.UserId, ia.Provider }).IsUnique();
             modelBuilder.Entity<InboxItem>().HasIndex(ii => new { ii.UserId, ii.Provider, ii.ExternalId }).IsUnique();
             modelBuilder.Entity<InboxItem>().HasIndex(ii => new { ii.UserId, ii.Source, ii.CreatedAt });
@@ -917,6 +951,20 @@ namespace TaskManagement.Infrastructure.Data
                 .WithMany()
                 .HasForeignKey(pl => pl.CreatorId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StickyNote>(entity =>
+            {
+                entity.Property(note => note.Title).HasMaxLength(180).IsRequired();
+                entity.Property(note => note.Content).HasMaxLength(10000).IsRequired();
+                entity.Property(note => note.Color).HasMaxLength(20).IsRequired();
+                entity.Property(note => note.SourceRoute).HasMaxLength(500);
+                entity.HasIndex(note => new { note.UserId, note.IsDeleted, note.IsPinned, note.UpdatedAt });
+                entity.HasIndex(note => new { note.UserId, note.IsFloating });
+                entity.HasIndex(note => note.WorkspaceId);
+                entity.HasIndex(note => note.ProjectId);
+                entity.HasIndex(note => note.WorkTaskId);
+                entity.HasIndex(note => note.GoalId);
+            });
 
             // =============================================
             // 11. Applying custom configurations

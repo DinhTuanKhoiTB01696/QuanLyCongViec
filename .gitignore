@@ -35,6 +35,8 @@ ScaffoldingReadMe.txt
 backend-run.out
 backend-run.err
 Backend/src/TaskManagement.API/uploads/
+Backend/src/TaskManagement.API/private-uploads/
+.codex-test/
 
 # NuGet Packages
 *.nupkg

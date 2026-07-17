@@ -354,117 +354,164 @@
           </div>
         </section>
 
-        <aside class="panel detail-panel">
-          <template v-if="selectedItem">
-            <div class="detail-head">
-              <span class="source-icon large" :class="selectedItem.source"><i :class="sourceIcon(selectedItem.source)"></i></span>
-              <div>
-                <p>{{ sourceLabel(selectedItem.source) }}</p>
-                <h2>{{ selectedItem.title }}</h2>
-              </div>
-            </div>
-
-            <dl class="detail-list">
-              <div>
-                <dt>{{ t('Provider', 'Provider') }}</dt>
-                <dd>{{ selectedItem.provider }}</dd>
-              </div>
-              <div v-if="selectedItem.startsAt">
-                <dt>{{ t('Bắt đầu', 'Starts') }}</dt>
-                <dd>{{ formatFullDate(selectedItem.startsAt) }}</dd>
-              </div>
-              <div v-if="selectedItem.endsAt">
-                <dt>{{ t('Kết thúc', 'Ends') }}</dt>
-                <dd>{{ formatFullDate(selectedItem.endsAt) }}</dd>
-              </div>
-              <div v-if="selectedItem.location">
-                <dt>{{ t('Địa điểm', 'Location') }}</dt>
-                <dd>{{ selectedItem.location }}</dd>
-              </div>
-            </dl>
-
-            <section class="content-box">
-              <h3>{{ t('Nội dung gốc', 'Original content') }}</h3>
-              <p>{{ selectedItem.content || t('Provider không trả mô tả cho mục này.', 'The provider did not return a description for this item.') }}</p>
-            </section>
-
-            <section class="task-target-box">
-              <div class="section-title compact">
-                <h3>{{ t('Project nhận task', 'Task target project') }}</h3>
-                <button class="text-action" type="button" :disabled="loadingProjectOptions" @click="loadCreateTaskOptions">
-                  <i class="fa-solid fa-arrows-rotate" :class="{ 'fa-spin': loadingProjectOptions }"></i>
-                  {{ t('Tải lại', 'Reload') }}
-                </button>
-              </div>
-
-              <label class="project-select-label" for="integration-project-select">
-                {{ t('Chọn project thật trước khi tạo task', 'Choose a real project before creating tasks') }}
-              </label>
-              <select
-                id="integration-project-select"
-                v-model="selectedProjectId"
-                class="project-select"
-                :disabled="loadingProjectOptions || projectOptions.length === 0"
-              >
-                <option value="">{{ loadingProjectOptions ? t('Đang tải project...', 'Loading projects...') : t('Chọn project...', 'Choose project...') }}</option>
-                <option v-for="project in projectOptions" :key="project.id" :value="project.id">
-                  {{ project.name }}{{ project.key ? ` (${project.key})` : '' }}
-                </option>
-              </select>
-
-              <p v-if="projectOptionsError" class="mini-state error">{{ projectOptionsError }}</p>
-              <p v-else-if="!loadingProjectOptions && projectOptions.length === 0" class="mini-state">
-                {{ t('Bạn chưa có project khả dụng. Hãy tạo hoặc tham gia project trước khi tạo task từ inbox.', 'No available project yet. Create or join a project before creating tasks from inbox.') }}
-              </p>
-            </section>
-
-            <button
-              class="primary full"
-              type="button"
-              :disabled="creatingTask || !!selectedItem.createdTaskId || !selectedProjectId"
-              @click="createTask(selectedItem)"
-            >
-              <i :class="creatingTask ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-square-plus'"></i>
-              {{ selectedItem.createdTaskId ? t('Đã tạo task', 'Task created') : creatingTask ? t('Đang tạo task', 'Creating task') : t('Tạo task từ mục này', 'Create task from this item') }}
-            </button>
-
-            <section class="ai-box">
-              <div class="section-title compact">
-                <h3>{{ t('AI hỗ trợ xử lý', 'AI assistance') }}</h3>
-                <span>{{ t('Không tạo dữ liệu giả', 'No fake data') }}</span>
-              </div>
-              <div class="ai-actions">
-                <button
-                  v-for="action in aiActions"
-                  :key="action.key"
-                  class="ghost small"
-                  type="button"
-                  :disabled="aiLoadingAction === action.key || !selectedItem?.id"
-                  @click="runAiAction(action.key)"
-                >
-                  <i :class="aiLoadingAction === action.key ? 'fa-solid fa-circle-notch fa-spin' : action.icon"></i>
-                  {{ action.label }}
-                </button>
-              </div>
-              <p v-if="aiMessage" class="ai-result" :class="aiMessageType">
-                <i :class="aiMessageType === 'error' ? 'fa-solid fa-triangle-exclamation' : 'fa-regular fa-lightbulb'"></i>
-                <span>{{ aiMessage }}</span>
-              </p>
-            </section>
-          </template>
-
-          <div v-else class="empty-state detail-empty">
-            <i class="fa-regular fa-hand-pointer"></i>
-            <strong>{{ t('Chọn một mục inbox', 'Select an inbox item') }}</strong>
-            <p>{{ t('Chi tiết nguồn, thời gian và hành động tạo task sẽ hiện ở đây.', 'Source details, time, and task action will appear here.') }}</p>
-          </div>
-        </aside>
       </section>
+
+      <Teleport to="body">
+        <Transition name="integration-drawer">
+          <div v-if="selectedItemId" class="integration-detail-layer">
+            <button
+              class="integration-detail-backdrop"
+              type="button"
+              :aria-label="t('Đóng chi tiết inbox', 'Close inbox detail')"
+              @click="closeDetail"
+            ></button>
+
+            <aside
+              class="integration-detail-drawer"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="integration-detail-title"
+            >
+              <header class="integration-detail-header">
+                <button class="detail-back-action" type="button" @click="closeDetail">
+                  <i class="fa-solid fa-arrow-left"></i>
+                  {{ t('Quay lại', 'Back') }}
+                </button>
+                <strong>{{ t('Chi tiết thông báo', 'Inbox detail') }}</strong>
+                <button
+                  class="detail-close-action"
+                  type="button"
+                  :title="t('Đóng', 'Close')"
+                  :aria-label="t('Đóng chi tiết inbox', 'Close inbox detail')"
+                  @click="closeDetail"
+                >
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </header>
+
+              <div v-if="loadingInbox && !selectedItem" class="integration-detail-state" aria-live="polite">
+                <i class="fa-solid fa-circle-notch fa-spin"></i>
+                <strong>{{ t('Đang tải chi tiết...', 'Loading detail...') }}</strong>
+              </div>
+
+              <div v-else-if="inboxError && !selectedItem" class="integration-detail-state error" role="alert">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <strong>{{ inboxError }}</strong>
+                <button class="primary small" type="button" @click="loadInbox">{{ t('Thử lại', 'Try again') }}</button>
+              </div>
+
+              <div v-else-if="selectedItem" class="integration-detail-body">
+                <div class="detail-head">
+                  <span class="source-icon large" :class="selectedItem.source"><i :class="sourceIcon(selectedItem.source)"></i></span>
+                  <div>
+                    <p>{{ sourceLabel(selectedItem.source) }}</p>
+                    <h2 id="integration-detail-title">{{ selectedItem.title }}</h2>
+                  </div>
+                </div>
+
+                <dl class="detail-list">
+                  <div>
+                    <dt>{{ t('Provider', 'Provider') }}</dt>
+                    <dd>{{ selectedItem.provider }}</dd>
+                  </div>
+                  <div v-if="selectedItem.startsAt">
+                    <dt>{{ t('Bắt đầu', 'Starts') }}</dt>
+                    <dd>{{ formatFullDate(selectedItem.startsAt) }}</dd>
+                  </div>
+                  <div v-if="selectedItem.endsAt">
+                    <dt>{{ t('Kết thúc', 'Ends') }}</dt>
+                    <dd>{{ formatFullDate(selectedItem.endsAt) }}</dd>
+                  </div>
+                  <div v-if="selectedItem.location">
+                    <dt>{{ t('Địa điểm', 'Location') }}</dt>
+                    <dd>{{ selectedItem.location }}</dd>
+                  </div>
+                </dl>
+
+                <section class="content-box">
+                  <h3>{{ t('Nội dung gốc', 'Original content') }}</h3>
+                  <p>{{ selectedItem.content || t('Provider không trả mô tả cho mục này.', 'The provider did not return a description for this item.') }}</p>
+                </section>
+
+                <section class="task-target-box">
+                  <div class="section-title compact">
+                    <h3>{{ t('Project nhận task', 'Task target project') }}</h3>
+                    <button class="text-action" type="button" :disabled="loadingProjectOptions" @click="loadCreateTaskOptions">
+                      <i class="fa-solid fa-arrows-rotate" :class="{ 'fa-spin': loadingProjectOptions }"></i>
+                      {{ t('Tải lại', 'Reload') }}
+                    </button>
+                  </div>
+
+                  <label class="project-select-label" for="integration-project-select">
+                    {{ t('Chọn project thật trước khi tạo task', 'Choose a real project before creating tasks') }}
+                  </label>
+                  <select
+                    id="integration-project-select"
+                    v-model="selectedProjectId"
+                    class="project-select"
+                    :disabled="loadingProjectOptions || projectOptions.length === 0"
+                  >
+                    <option value="">{{ loadingProjectOptions ? t('Đang tải project...', 'Loading projects...') : t('Chọn project...', 'Choose project...') }}</option>
+                    <option v-for="project in projectOptions" :key="project.id" :value="project.id">
+                      {{ project.name }}{{ project.key ? ` (${project.key})` : '' }}
+                    </option>
+                  </select>
+
+                  <p v-if="projectOptionsError" class="mini-state error">{{ projectOptionsError }}</p>
+                  <p v-else-if="!loadingProjectOptions && projectOptions.length === 0" class="mini-state">
+                    {{ t('Bạn chưa có project khả dụng. Hãy tạo hoặc tham gia project trước khi tạo task từ inbox.', 'No available project yet. Create or join a project before creating tasks from inbox.') }}
+                  </p>
+                </section>
+
+                <button
+                  class="primary full"
+                  type="button"
+                  :disabled="creatingTask || !!selectedItem.createdTaskId || !selectedProjectId"
+                  @click="createTask(selectedItem)"
+                >
+                  <i :class="creatingTask ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-square-plus'"></i>
+                  {{ selectedItem.createdTaskId ? t('Đã tạo task', 'Task created') : creatingTask ? t('Đang tạo task', 'Creating task') : t('Tạo task từ mục này', 'Create task from this item') }}
+                </button>
+
+                <section class="ai-box">
+                  <div class="section-title compact">
+                    <h3>{{ t('AI hỗ trợ xử lý', 'AI assistance') }}</h3>
+                    <span>{{ t('Không tạo dữ liệu giả', 'No fake data') }}</span>
+                  </div>
+                  <div class="ai-actions">
+                    <button
+                      v-for="action in aiActions"
+                      :key="action.key"
+                      class="ghost small"
+                      type="button"
+                      :disabled="aiLoadingAction === action.key || !selectedItem?.id"
+                      @click="runAiAction(action.key)"
+                    >
+                      <i :class="aiLoadingAction === action.key ? 'fa-solid fa-circle-notch fa-spin' : action.icon"></i>
+                      {{ action.label }}
+                    </button>
+                  </div>
+                  <p v-if="aiMessage" class="ai-result" :class="aiMessageType">
+                    <i :class="aiMessageType === 'error' ? 'fa-solid fa-triangle-exclamation' : 'fa-regular fa-lightbulb'"></i>
+                    <span>{{ aiMessage }}</span>
+                  </p>
+                </section>
+              </div>
+
+              <div v-else class="integration-detail-state">
+                <i class="fa-regular fa-file-circle-question"></i>
+                <strong>{{ t('Không còn tìm thấy mục inbox này.', 'This inbox item is no longer available.') }}</strong>
+                <button class="ghost small" type="button" @click="closeDetail">{{ t('Quay lại inbox', 'Back to inbox') }}</button>
+              </div>
+            </aside>
+          </div>
+        </Transition>
+      </Teleport>
   </main>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import axiosClient from '@/api/axiosClient'
@@ -581,7 +628,7 @@ const filteredInbox = computed(() => {
   return list
 })
 
-const selectedItem = computed(() => inboxItems.value.find(item => item.id === selectedItemId.value) || filteredInbox.value[0] || null)
+const selectedItem = computed(() => inboxItems.value.find(item => item.id === selectedItemId.value) || null)
 const visibleCreatableItems = computed(() => filteredInbox.value.filter(item => !item.createdTaskId))
 const selectedBulkItems = computed(() => inboxItems.value.filter(item => selectedBulkIds.value.includes(item.id) && !item.createdTaskId))
 const allVisibleCreatableSelected = computed(() => visibleCreatableItems.value.length > 0 && visibleCreatableItems.value.every(item => selectedBulkIds.value.includes(item.id)))
@@ -671,7 +718,9 @@ const loadInbox = async () => {
   try {
     const response = await axiosClient.get('/inbox')
     inboxItems.value = asArray(getPayload(response))
-    selectedItemId.value = selectedItemId.value || inboxItems.value[0]?.id || ''
+    if (selectedItemId.value && !inboxItems.value.some(item => item.id === selectedItemId.value)) {
+      selectedItemId.value = ''
+    }
   } catch (error) {
     inboxError.value = error.response?.data?.message || t('Không tải được Unified Inbox.', 'Could not load Unified Inbox.')
   } finally {
@@ -859,6 +908,7 @@ const selectItem = async (item) => {
   selectedItemId.value = item.id
   aiMessage.value = ''
   aiMessageType.value = 'info'
+  window.dispatchEvent(new CustomEvent('integration-detail-opened'))
   if (!item.isRead) {
     item.isRead = true
     try {
@@ -867,6 +917,20 @@ const selectItem = async (item) => {
       item.isRead = false
     }
   }
+}
+
+const closeDetail = () => {
+  selectedItemId.value = ''
+  aiMessage.value = ''
+  aiMessageType.value = 'info'
+}
+
+const handleDetailKeydown = (event) => {
+  if (event.key === 'Escape' && selectedItemId.value) closeDetail()
+}
+
+const closeDetailForOtherUtility = () => {
+  if (selectedItemId.value) closeDetail()
 }
 
 const isBulkSelected = (item) => selectedBulkIds.value.includes(item.id)
@@ -1073,8 +1137,15 @@ const formatFullDate = (value) => {
 }
 
 onMounted(async () => {
+  window.addEventListener('keydown', handleDetailKeydown)
+  window.addEventListener('global-utility-drawer-opened', closeDetailForOtherUtility)
   await Promise.all([loadIntegrations(), loadInbox(), loadCreateTaskOptions()])
   await completeGoogleOAuth()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleDetailKeydown)
+  window.removeEventListener('global-utility-drawer-opened', closeDetailForOtherUtility)
 })
 </script>
 
@@ -1112,8 +1183,9 @@ onMounted(async () => {
 }
 
 .integration-page {
-  min-height: calc(100vh - 64px);
-  padding: 18px 22px 20px;
+  width: 100%;
+  min-height: 100%;
+  padding: 16px 22px 28px;
   background:
     radial-gradient(circle at 8% -8%, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 36rem),
     radial-gradient(circle at 92% 2%, color-mix(in srgb, #22d3ee 16%, transparent), transparent 32rem),
@@ -1147,9 +1219,9 @@ onMounted(async () => {
 .hero-shell {
   align-items: stretch;
   justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
   max-width: 1420px;
-  margin: 0 auto 12px;
+  margin: 0 auto 10px;
 }
 
 .hero-copy {
@@ -1175,7 +1247,7 @@ p {
 
 .hero-copy h1 {
   margin-bottom: 6px;
-  font-size: clamp(26px, 2.5vw, 38px);
+  font-size: clamp(26px, 2.25vw, 36px);
   line-height: 1.06;
   text-wrap: balance;
 }
@@ -1189,7 +1261,7 @@ p {
 }
 
 .hero-action-card {
-  width: min(340px, 100%);
+  width: min(330px, 100%);
   flex-direction: column;
   justify-content: space-between;
   gap: 10px;
@@ -1337,14 +1409,20 @@ button:disabled {
 }
 
 .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
   max-width: 1420px;
-  margin: 0 auto 12px;
+  margin: 0 auto 10px;
   gap: 10px;
 }
 
 .stats-grid article {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   min-width: 0;
+  min-height: 78px;
   padding: 11px 13px;
   border: 1px solid var(--color-border);
   border-radius: 12px;
@@ -1370,13 +1448,11 @@ button:disabled {
 
 .workspace-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 320px) minmax(560px, 1fr) minmax(300px, 340px);
+  grid-template-columns: minmax(280px, .32fr) minmax(0, .68fr);
   max-width: 1420px;
   margin: 0 auto;
-  align-items: stretch;
+  align-items: start;
   gap: 10px;
-  height: calc(100vh - 222px);
-  min-height: 520px;
 }
 
 .panel {
@@ -1399,12 +1475,6 @@ button:disabled {
 
 .inbox-panel {
   flex: 1;
-}
-
-.detail-panel {
-  width: auto;
-  padding: 12px;
-  overflow-y: auto;
 }
 
 .panel-head {
@@ -1712,9 +1782,10 @@ button:disabled {
 }
 
 .inbox-list {
-  height: calc(100vh - 364px);
-  min-height: 370px;
+  max-height: 680px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .inbox-item {
@@ -1969,9 +2040,133 @@ button:disabled {
   white-space: pre-line;
 }
 
-.detail-empty {
-  min-height: 460px;
-  margin: 0;
+.integration-detail-layer {
+  position: fixed;
+  z-index: 1550;
+  inset: var(--sa-topbar-height, 52px) 0 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.integration-detail-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: color-mix(in srgb, #020617 48%, transparent);
+  cursor: default;
+}
+
+.integration-detail-drawer {
+  position: relative;
+  width: min(560px, calc(100vw - 24px));
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  box-shadow: -18px 0 52px color-mix(in srgb, #020617 24%, transparent);
+}
+
+.integration-detail-header {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.integration-detail-header > strong {
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-back-action,
+.detail-close-action {
+  min-height: 38px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.detail-back-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  font-weight: 800;
+}
+
+.detail-close-action {
+  width: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.detail-back-action:hover,
+.detail-close-action:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.integration-detail-body {
+  min-height: 0;
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.integration-detail-state {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  flex: 1;
+  padding: 28px;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.integration-detail-state > i {
+  color: var(--color-accent);
+  font-size: 24px;
+}
+
+.integration-detail-state.error > i {
+  color: var(--color-danger);
+}
+
+.integration-drawer-enter-active,
+.integration-drawer-leave-active {
+  transition: opacity 180ms ease;
+}
+
+.integration-drawer-enter-active .integration-detail-drawer,
+.integration-drawer-leave-active .integration-detail-drawer {
+  transition: transform 220ms ease;
+}
+
+.integration-drawer-enter-from,
+.integration-drawer-leave-to {
+  opacity: 0;
+}
+
+.integration-drawer-enter-from .integration-detail-drawer,
+.integration-drawer-leave-to .integration-detail-drawer {
+  transform: translateX(100%);
 }
 
 .skeleton-card,
@@ -2039,19 +2234,16 @@ button:disabled {
   }
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 1024px) {
   .workspace-grid {
     grid-template-columns: 1fr;
-    flex-direction: column;
   }
 
-  .apps-panel,
-  .detail-panel {
+  .apps-panel {
     width: 100%;
   }
 
   .inbox-list {
-    height: auto;
     max-height: 620px;
   }
 }
@@ -2077,6 +2269,10 @@ button:disabled {
     width: 100%;
   }
 
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .provider-actions,
   .hero-actions {
     justify-content: flex-start;
@@ -2088,40 +2284,50 @@ button:disabled {
     width: 100%;
     min-width: 0;
   }
+
+  .integration-detail-layer {
+    inset: 0;
+  }
+
+  .integration-detail-drawer {
+    width: 100%;
+  }
+
+  .integration-detail-header {
+    padding-top: max(10px, env(safe-area-inset-top));
+  }
+
+  .integration-detail-body {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
 }
 
-/* Desktop behaves like a workspace: the three panels scroll, not the whole page. */
-@media (min-width: 1281px) {
+@media (max-width: 520px) {
   .integration-page {
-    box-sizing: border-box;
-    height: calc(100dvh - 64px);
-    min-height: 0;
-    overflow: hidden;
+    padding-inline: 12px;
   }
 
-  .workspace-grid {
-    min-height: 0;
-    height: calc(100dvh - 286px);
-    max-height: calc(100dvh - 286px);
-    overflow: hidden;
-  }
-
-  .apps-panel,
-  .detail-panel,
-  .inbox-list {
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
-  }
-
-  .inbox-panel {
-    min-height: 0;
-    overflow: hidden;
+  .stats-grid {
+    grid-template-columns: 1fr;
   }
 
   .inbox-list {
-    min-height: 0;
     max-height: none;
-    overflow-y: auto;
+  }
+
+  .integration-detail-header {
+    grid-template-columns: auto minmax(0, 1fr) 38px;
+  }
+
+  .detail-back-action {
+    width: 38px;
+    justify-content: center;
+    padding: 0;
+    font-size: 0;
+  }
+
+  .detail-back-action i {
+    font-size: 14px;
   }
 }
 

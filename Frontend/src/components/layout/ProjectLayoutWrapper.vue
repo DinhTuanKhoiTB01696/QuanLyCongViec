@@ -128,6 +128,8 @@ const createTask = () => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
   background:
     radial-gradient(circle at 18% -10%, color-mix(in srgb, var(--color-accent) 20%, transparent), transparent 32rem),
     radial-gradient(circle at 88% 6%, color-mix(in srgb, #22d3ee 14%, transparent), transparent 28rem),
@@ -142,8 +144,7 @@ const createTask = () => {
   box-shadow: 0 10px 28px color-mix(in srgb, #020617 9%, transparent);
   backdrop-filter: blur(18px);
   flex-shrink: 0;
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 10;
 }
 
@@ -297,7 +298,8 @@ const createTask = () => {
 .project-main-content {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: transparent;
 }
 

@@ -171,6 +171,18 @@ export const useProjectStore = defineStore('project', {
     }))
   },
   actions: {
+    applyProjectUpdate(rawProject) {
+      const mappedProject = mapProjectRow(rawProject)
+      if (!mappedProject?.id) return null
+
+      this.allProjects = upsertProject(this.allProjects, mappedProject)
+      this.projectDetailsById = { ...this.projectDetailsById, [mappedProject.id]: mappedProject }
+      this.bundleFetchedAtByProject = { ...this.bundleFetchedAtByProject, [mappedProject.id]: Date.now() }
+      if (this.currentProject?.id === mappedProject.id || this.currentProject?.Id === mappedProject.id) {
+        this.currentProject = { ...this.currentProject, ...mappedProject }
+      }
+      return mappedProject
+    },
     
     
     

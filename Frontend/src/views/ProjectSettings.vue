@@ -47,7 +47,7 @@
 
               <label>
                 <span>Mã</span>
-                <input :value="project.key || ''" type="text" disabled />
+                <input v-model="generalForm.key" type="text" maxlength="24" placeholder="Mã dự án" />
               </label>
 
               <label class="wide">
@@ -67,7 +67,7 @@
             </div>
 
             <div class="cover-settings">
-              <div class="cover-settings-preview" :style="coverPreviewStyle" role="img" :aria-label="coverAltText || project.name || 'Project cover'">
+              <div class="cover-settings-preview" :style="coverPreviewStyle" role="img" :aria-label="project.coverAltText || generatedCoverAltText">
                 <span v-if="!displayCoverUrl">{{ project.icon || 'P' }}</span>
               </div>
               <div class="cover-settings-controls">
@@ -75,10 +75,6 @@
                   <h3>Project cover</h3>
                   <p>PNG, JPG, JPEG, or WEBP. Maximum 5MB.</p>
                 </div>
-                <label>
-                  <span>Cover description</span>
-                  <input v-model="coverAltText" type="text" maxlength="180" placeholder="Describe the project cover" />
-                </label>
                 <input
                   ref="coverInputRef"
                   class="sr-only"
@@ -90,7 +86,7 @@
                   <button class="secondary-btn" type="button" :disabled="savingCover" @click="coverInputRef?.click()">
                     {{ coverFile ? 'Choose another image' : 'Choose image' }}
                   </button>
-                  <button class="primary-btn" type="button" :disabled="savingCover || (!coverFile && !displayCoverUrl)" @click="saveProjectCover">
+                  <button class="primary-btn" type="button" :disabled="savingCover || !coverFile" @click="saveProjectCover">
                     {{ savingCover ? 'Saving...' : 'Save cover' }}
                   </button>
                   <button v-if="displayCoverUrl" class="danger-outline-btn" type="button" :disabled="savingCover" @click="removeProjectCover">
@@ -1394,6 +1390,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import axiosClient from '@/api/axiosClient'
+import { useProjectStore } from '@/store/useProjectStore'
 import { broadcastAdminRealtime, subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { signalRService } from '@/api/signalrService'
 
@@ -1402,6 +1399,7 @@ import { getDefaultPermissionMatrix, normalizeRole } from '@/utils/permissionGua
 
 const route = useRoute()
 const router = useRouter()
+const projectStore = useProjectStore()
 const projectId = route.params.id
 
 const tabs = [
@@ -1446,7 +1444,6 @@ const project = ref({})
 const coverInputRef = ref(null)
 const coverFile = ref(null)
 const coverPreviewUrl = ref('')
-const coverAltText = ref('')
 const coverError = ref('')
 const members = ref([])
 const taskStatuses = ref([])
@@ -1488,6 +1485,7 @@ const disabledModules = computed(() => modules.value.filter(module => module.sta
 
 const generalForm = ref({
   name: '',
+  key: '',
   description: '',
   startDate: '',
   endDate: ''
@@ -1508,6 +1506,7 @@ const displayCoverUrl = computed(() => {
   if (rawProjectCover.value.startsWith('/uploads/')) return `${apiOrigin}${rawProjectCover.value}`
   return rawProjectCover.value
 })
+const generatedCoverAltText = computed(() => `Ảnh đại diện dự án ${generalForm.value.name.trim() || project.value.name || 'SprintA'}`)
 const coverPreviewStyle = computed(() => displayCoverUrl.value
   ? {
       backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.38)), url("${displayCoverUrl.value}")`
@@ -1546,7 +1545,6 @@ const handleCoverSelected = (event) => {
   revokeCoverPreview()
   coverFile.value = file
   coverPreviewUrl.value = URL.createObjectURL(file)
-  if (!coverAltText.value.trim()) coverAltText.value = `Cover for ${project.value.name || 'project'}`
 }
 
 // ────────────────────────────────────────────
@@ -1858,7 +1856,6 @@ const loadProjectSettings = async () => {
 
     const settings = settingsRes.data?.data || {}
     project.value = settings.project || {}
-    coverAltText.value = project.value.coverAltText || project.value.CoverAltText || ''
     members.value = settings.members || []
     assignProjectRoleOptions(settings.roleOptions || [])
     labels.value = (labelsRes.data?.data || []).map(label => ({
@@ -1894,6 +1891,7 @@ const loadProjectSettings = async () => {
 
     generalForm.value = {
       name: project.value.name || '',
+      key: project.value.key || project.value.identifier || '',
       description: project.value.description || '',
       startDate: normalizeDateInput(project.value.startDate),
       endDate: normalizeDateInput(project.value.endDate)
@@ -2059,34 +2057,26 @@ const loadIntegrations = async () => {
 }
 
 const saveProjectCover = async () => {
-  if (!coverFile.value && !rawProjectCover.value) {
-    ElMessage.warning('Choose a project cover first')
+  if (!coverFile.value) {
+    ElMessage.warning('Hãy chọn ảnh mới trước khi lưu cover')
     return
   }
 
   savingCover.value = true
   try {
-    let response
-    if (coverFile.value) {
-      const payload = new FormData()
-      payload.append('file', coverFile.value)
-      payload.append('coverAltText', coverAltText.value.trim() || `Cover for ${project.value.name || 'project'}`)
-      if (project.value.icon) payload.append('icon', project.value.icon)
-      response = await axiosClient.post(`/projects/${projectId}/cover`, payload)
-    } else {
-      response = await axiosClient.put(`/projects/${projectId}/cover`, {
-        coverUrl: rawProjectCover.value,
-        coverAltText: coverAltText.value.trim() || `Cover for ${project.value.name || 'project'}`,
-        icon: project.value.icon || null
-      })
-    }
+    const payload = new FormData()
+    payload.append('file', coverFile.value)
+    payload.append('coverAltText', generatedCoverAltText.value)
+    if (project.value.icon) payload.append('icon', project.value.icon)
+    const response = await axiosClient.post(`/projects/${projectId}/cover`, payload)
 
     const updated = response.data?.data || {}
     project.value = {
       ...project.value,
       cover: updated.coverUrl || rawProjectCover.value,
-      coverAltText: updated.coverAltText || coverAltText.value
+      coverAltText: updated.coverAltText || generatedCoverAltText.value
     }
+    projectStore.applyProjectUpdate(project.value)
     clearSelectedCover()
     ElMessage.success('Project cover updated')
     notifyProjectSettingsRealtime()
@@ -2109,8 +2099,8 @@ const removeProjectCover = async () => {
     savingCover.value = true
     await axiosClient.delete(`/projects/${projectId}/cover`)
     clearSelectedCover()
-    coverAltText.value = ''
     project.value = { ...project.value, cover: null, coverAltText: null }
+    projectStore.applyProjectUpdate(project.value)
     ElMessage.success('Project cover removed')
     notifyProjectSettingsRealtime()
     await loadProjectSettings()
@@ -2124,8 +2114,8 @@ const removeProjectCover = async () => {
 }
 
 const saveGeneral = async () => {
-  if (!generalForm.value.name.trim() || !generalForm.value.startDate) {
-    ElMessage.warning('Project name and start date are required')
+  if (!generalForm.value.name.trim() || !generalForm.value.key.trim() || !generalForm.value.startDate) {
+    ElMessage.warning('Project name, key, and start date are required')
     return
   }
 
@@ -2133,6 +2123,7 @@ const saveGeneral = async () => {
   try {
     const response = await axiosClient.put(`/projects/${projectId}`, {
       name: generalForm.value.name.trim(),
+      identifier: generalForm.value.key.trim(),
       description: generalForm.value.description?.trim() || '',
       startDate: generalForm.value.startDate || null,
       endDate: generalForm.value.endDate || null,
@@ -2143,10 +2134,12 @@ const saveGeneral = async () => {
       ...project.value,
       ...updatedProject,
       name: updatedProject.name || generalForm.value.name.trim(),
+      key: updatedProject.key || generalForm.value.key.trim(),
       description: updatedProject.description ?? generalForm.value.description?.trim() ?? '',
       startDate: updatedProject.startDate || generalForm.value.startDate || null,
       endDate: updatedProject.endDate || generalForm.value.endDate || null
     }
+    projectStore.applyProjectUpdate(project.value)
     ElMessage.success('Project general settings updated')
     notifyProjectSettingsRealtime()
     await loadProjectSettings()
