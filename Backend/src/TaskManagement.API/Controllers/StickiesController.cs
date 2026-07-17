@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Text.Json;
-using TaskManagement.API.Filters;
 using TaskManagement.Application.DTOs.Common;
 using TaskManagement.Domain.Entities;
 using TaskManagement.Infrastructure.Data;
@@ -25,7 +24,6 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpGet("floating")]
-        [RequirePermission("stickies.view")]
         public async Task<IActionResult> GetFloatingStickies()
         {
             if (!TryGetUserId(out var userId)) return Unauthorized();
@@ -41,7 +39,6 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpGet]
-        [RequirePermission("stickies.view")]
         public async Task<IActionResult> GetStickies(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 30,
@@ -85,7 +82,6 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpGet("{id:guid}")]
-        [RequirePermission("stickies.view")]
         public async Task<IActionResult> GetSticky(Guid id)
         {
             if (!TryGetUserId(out var userId)) return Unauthorized();
@@ -100,7 +96,6 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPost]
-        [RequirePermission("stickies.create")]
         public async Task<IActionResult> CreateSticky([FromBody] StickyNoteDto dto)
         {
             if (!TryGetUserId(out var userId)) return Unauthorized();
@@ -137,7 +132,6 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        [RequirePermission("stickies.edit")]
         public async Task<IActionResult> UpdateSticky(Guid id, [FromBody] StickyNoteDto dto)
         {
             if (!TryGetUserId(out var userId)) return Unauthorized();
@@ -168,7 +162,6 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPatch("{id:guid}/pin")]
-        [RequirePermission("stickies.edit")]
         public async Task<IActionResult> SetPinned(Guid id, [FromBody] StickyPinDto dto)
         {
             if (!TryGetUserId(out var userId)) return Unauthorized();
@@ -185,7 +178,6 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPatch("{id:guid}/floating-state")]
-        [RequirePermission("stickies.edit")]
         public async Task<IActionResult> SetFloatingState(Guid id, [FromBody] StickyFloatingStateDto dto)
         {
             if (!TryGetUserId(out var userId)) return Unauthorized();
@@ -220,7 +212,6 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpDelete("{id:guid}")]
-        [RequirePermission("stickies.delete")]
         public async Task<IActionResult> DeleteSticky(Guid id)
         {
             if (!TryGetUserId(out var userId)) return Unauthorized();

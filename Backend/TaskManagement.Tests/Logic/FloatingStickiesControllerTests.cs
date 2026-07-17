@@ -1,10 +1,12 @@
 using System.Security.Claims;
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskManagement.API.Controllers;
+using TaskManagement.API.Filters;
 using TaskManagement.Domain.Entities;
 using TaskManagement.Infrastructure.Data;
 
@@ -22,6 +24,22 @@ namespace TaskManagement.Tests.Logic
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .Options;
             _context = new ApplicationDbContext(options);
+        }
+
+        [Fact]
+        public void StickiesController_UsesAuthenticationAndUserOwnershipWithoutRolePermissionGate()
+        {
+            typeof(StickiesController).GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+                .Should().ContainSingle();
+
+            var permissionGatedActions = typeof(StickiesController)
+                .GetMethods()
+                .Where(method => method.DeclaringType == typeof(StickiesController))
+                .Where(method => method.GetCustomAttributes(typeof(RequirePermissionAttribute), inherit: true).Any())
+                .Select(method => method.Name)
+                .ToList();
+
+            permissionGatedActions.Should().BeEmpty();
         }
 
         [Fact]
