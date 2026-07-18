@@ -1396,6 +1396,7 @@ import { signalRService } from '@/api/signalrService'
 
 import { getStoredUserSession } from '@/utils/authSession'
 import { getDefaultPermissionMatrix, normalizeRole } from '@/utils/permissionGuard'
+import { clearLegacyGitHubCredentialStorage, runWithEphemeralGitHubToken } from '@/utils/githubCredentials'
 
 const route = useRoute()
 const router = useRouter()
@@ -2051,6 +2052,7 @@ const loadIntegrations = async () => {
     integrations.value = (response.data?.data || [])
       .map(normalizeIntegration)
       .filter(integration => integration.provider === 'github')
+      .map(integration => ({ ...integration, secret: '' }))
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not load project integrations')
   }
@@ -2747,6 +2749,10 @@ const saveIntegrations = async () => {
   } catch (error) {
     ElMessage.error(error.response?.data?.message || 'Could not update project integrations')
   } finally {
+    integrations.value.forEach(integration => {
+      integration.secret = ''
+    })
+    clearLegacyGitHubCredentialStorage()
     savingIntegrations.value = false
   }
 }
@@ -2760,11 +2766,12 @@ const analyzeIntegration = async (integration) => {
 
   analyzingIntegration.value = integration.provider
   try {
-    const response = await axiosClient.post('/ai/repo-analysis', {
-      repoUrl,
-      gitHubToken: integration.secret?.trim() || null,
-      focus: `Project ${project.value.name || projectId} planning, backlog, risks, and task breakdown`
-    })
+    const response = await runWithEphemeralGitHubToken(integration, gitHubToken =>
+      axiosClient.post('/ai/repo-analysis', {
+        repoUrl,
+        gitHubToken,
+        focus: `Project ${project.value.name || projectId} planning, backlog, risks, and task breakdown`
+      }))
 
     integrationAnalysis.value = response.data?.data || null
     stashAiPlannerPayload({
@@ -2777,6 +2784,8 @@ const analyzeIntegration = async (integration) => {
     ElMessage.error(error.response?.data?.message || 'Could not analyze the connected repository')
   } finally {
     analyzingIntegration.value = ''
+    integration.secret = ''
+    clearLegacyGitHubCredentialStorage()
   }
 }
 
@@ -2969,6 +2978,7 @@ let projectRealtimeHandler = null
 onMounted(async () => {
   await loadProjectSettings()
   await loadPermissionMatrix()
+  clearLegacyGitHubCredentialStorage()
   await signalRService.startConnection(`${projectId}`)
   if (projectRealtimeHandler) {
     signalRService.off('ProjectRealtimeEvent', projectRealtimeHandler)

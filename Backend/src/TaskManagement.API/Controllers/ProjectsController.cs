@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
@@ -20,15 +21,20 @@ namespace TaskManagement.API.Controllers
     {
         private readonly IProjectService _projectService;
         private readonly ApplicationDbContext _context;
+        private readonly IDataProtector _integrationSecretProtector;
         private static readonly string[] SystemOverrideRoles =
         {
             "SuperAdmin", "Admin", "System Admin", "Organization Admin", "AccessAdmin", "Access Admin"
         };
 
-        public ProjectsController(IProjectService projectService, ApplicationDbContext context)
+        public ProjectsController(
+            IProjectService projectService,
+            ApplicationDbContext context,
+            IDataProtectionProvider dataProtectionProvider)
         {
             _projectService = projectService;
             _context = context;
+            _integrationSecretProtector = dataProtectionProvider.CreateProtector("SprintA.ProjectIntegrationSecrets.v1");
         }
 
         public sealed class ProjectIntegrationSetting
@@ -531,7 +537,7 @@ namespace TaskManagement.API.Controllers
                         Enabled = existing.Enabled,
                         Endpoint = existing.Endpoint,
                         ProjectKey = existing.ProjectKey,
-                        Secret = existing.Secret,
+                        Secret = null,
                         Notes = existing.Notes,
                         UpdatedAt = existing.UpdatedAt
                     };
@@ -582,6 +588,7 @@ namespace TaskManagement.API.Controllers
             foreach (var item in requestedItems)
             {
                 var existing = existingSettings.FirstOrDefault(setting => setting.Key == item.Provider);
+                var existingItem = existing == null ? null : DeserializeProjectIntegration(existing.Value);
                 if (existing == null)
                 {
                     existing = new TaskManagement.Domain.Entities.SystemSetting
@@ -594,7 +601,18 @@ namespace TaskManagement.API.Controllers
                     _context.SystemSettings.Add(existing);
                 }
 
-                existing.Value = JsonSerializer.Serialize(item);
+                var storedItem = new ProjectIntegrationSetting
+                {
+                    Provider = item.Provider,
+                    DisplayName = item.DisplayName,
+                    Enabled = item.Enabled,
+                    Endpoint = item.Endpoint,
+                    ProjectKey = item.ProjectKey,
+                    Secret = ResolveStoredIntegrationSecret(item, existingItem),
+                    Notes = item.Notes,
+                    UpdatedAt = item.UpdatedAt
+                };
+                existing.Value = JsonSerializer.Serialize(storedItem);
                 existing.Description = $"Project integration settings for {item.DisplayName}";
                 existing.LastModifiedAt = DateTime.UtcNow;
             }
@@ -614,7 +632,8 @@ namespace TaskManagement.API.Controllers
 
             await _context.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Success(requestedItems, "Project integrations updated successfully."));
+            var responseItems = requestedItems.Select(SanitizeProjectIntegration).ToList();
+            return Ok(ApiResponse<object>.Success(responseItems, "Project integrations updated successfully."));
         }
 
         [HttpPut("{id:guid}/favorite")]
@@ -1324,5 +1343,46 @@ namespace TaskManagement.API.Controllers
                 UpdatedAt = item?.UpdatedAt == default ? DateTime.UtcNow : item?.UpdatedAt ?? DateTime.UtcNow
             };
         }
+        private string? ResolveStoredIntegrationSecret(
+            ProjectIntegrationSetting requested,
+            ProjectIntegrationSetting? existing)
+        {
+            if (!requested.Enabled)
+            {
+                return null;
+            }
+
+            if (!string.IsNullOrWhiteSpace(requested.Secret))
+            {
+                return _integrationSecretProtector.Protect(requested.Secret);
+            }
+
+            if (string.IsNullOrWhiteSpace(existing?.Secret))
+            {
+                return null;
+            }
+
+            try
+            {
+                _integrationSecretProtector.Unprotect(existing.Secret);
+                return existing.Secret;
+            }
+            catch
+            {
+                return _integrationSecretProtector.Protect(existing.Secret);
+            }
+        }
+
+        private static ProjectIntegrationSetting SanitizeProjectIntegration(ProjectIntegrationSetting item) => new()
+        {
+            Provider = item.Provider,
+            DisplayName = item.DisplayName,
+            Enabled = item.Enabled,
+            Endpoint = item.Endpoint,
+            ProjectKey = item.ProjectKey,
+            Secret = null,
+            Notes = item.Notes,
+            UpdatedAt = item.UpdatedAt
+        };
     }
 }

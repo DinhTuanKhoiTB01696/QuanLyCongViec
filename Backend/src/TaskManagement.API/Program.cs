@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Data.SqlClient;
@@ -13,6 +14,7 @@ using TaskManagement.API.Extensions;
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+HostingConfigurationExtensions.ValidateEnvironmentConfiguration(builder.Configuration, builder.Environment);
 
 // 1. Mở tính năng Controllers (Chuẩn bị cho các API Login, Task...)
 builder.Services.AddControllers();
@@ -21,6 +23,12 @@ builder.Services.AddHttpClient();
 
 builder.Services.AddOpenApi();
 builder.Services.AddMemoryCache();
+var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"] ?? "data-protection-keys";
+if (!Path.IsPathRooted(dataProtectionKeysPath))
+    dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, dataProtectionKeysPath);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
+    .SetApplicationName("SprintA");
 
 builder.Services.AddRateLimiter(options =>
 {
