@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import axiosClient from '@/api/axiosClient'
+import { isValidEntityId } from '@/utils/contextIds'
 
 export const useSiteStore = defineStore('site', {
   state: () => ({
@@ -8,18 +9,27 @@ export const useSiteStore = defineStore('site', {
     loading: false,
     error: null
   }),
+  getters: {
+    activeSite: (state) => state.recentSite
+  },
   actions: {
     async fetchSites() {
       this.loading = true
       this.error = null
       try {
         const response = await axiosClient.get('/workspaces')
-        this.sites = response.data?.data || []
+        this.sites = (response.data?.data || []).map(site => ({
+          ...site,
+          id: site.id || site.Id,
+          name: site.name || site.Name
+        }))
         
         // Find recent site based on most recently created or some local storage logic
         if (this.sites.length > 0) {
           const recentId = localStorage.getItem('recent_site_id')
-          this.recentSite = this.sites.find(s => s.id === recentId) || this.sites[0]
+          this.recentSite = isValidEntityId(recentId)
+            ? (this.sites.find(s => s.id === recentId || s.Id === recentId) || this.sites[0])
+            : this.sites[0]
         }
       } catch (err) {
         this.error = err.message || 'Failed to fetch sites'
@@ -49,9 +59,10 @@ export const useSiteStore = defineStore('site', {
       }
     },
     setRecentSite(site) {
-      if (!site) return
+      const siteId = site?.id || site?.Id
+      if (!site || !isValidEntityId(siteId)) return
       this.recentSite = site
-      localStorage.setItem('recent_site_id', site.id)
+      localStorage.setItem('recent_site_id', siteId)
     }
   }
 })

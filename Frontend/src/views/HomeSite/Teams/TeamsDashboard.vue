@@ -111,69 +111,67 @@
       </div>
     </div>
 
-    <div class="modal-overlay invisible-backdrop" v-if="isCreateModalOpen" @click.self="isCreateModalOpen = false; isMemberDropdownOpen = false">
-      <div class="modal-content side-popover">
-        <div class="popover-header">
-          <button class="icon-btn-small" @click="isCreateModalOpen = false"><i class="fa-solid fa-arrow-left"></i></button>
-          <span class="popover-title"><i class="fa-solid fa-user-group"></i> {{ t('homeSite.teams.title') }}</span>
+    <AppModal
+      v-model="isCreateModalOpen"
+      :title="t('homeSite.teams.title')"
+      width="400px"
+      :confirmText="isCreating ? t('common.creating') : t('common.create')"
+      :cancelText="t('common.cancel')"
+      :loading="isCreating"
+      @confirm="submitCreateTeam"
+      @cancel="isCreateModalOpen = false; isMemberDropdownOpen = false"
+    >
+      <template #header>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-user-group" style="color: #6B778C;"></i> {{ t('homeSite.teams.title') }}
         </div>
-        <div class="popover-body">
-          <p class="required-subtitle">
-            {{ t('homeSite.teams.requiredFields') }} <span class="required">*</span>
-          </p>
+      </template>
 
-          <div class="form-group">
-            <label>{{ t('homeSite.teams.name') }} <span class="required">*</span></label>
-            <input type="text" v-model="newTeamData.name" />
+      <p class="required-subtitle" style="font-size: 11px; color: #6B778C; margin: 0 0 16px 0;">
+        {{ t('homeSite.teams.requiredFields') }} <span class="required" style="color: #DE350B;">*</span>
+      </p>
+
+      <AppFormField :label="t('homeSite.teams.name')" required>
+        <input type="text" v-model="newTeamData.name" style="width: 100%; padding: 8px 12px; border: 2px solid #DFE1E6; border-radius: 3px; font-size: 14px; box-sizing: border-box;" />
+      </AppFormField>
+
+      <AppFormField :label="t('homeSite.teams.addTeamMembers')" required>
+        <div class="tags-input-container" @click="focusMemberInput" style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 4px; border: 2px solid #DFE1E6; border-radius: 3px; min-height: 40px; box-sizing: border-box; cursor: text; position: relative;">
+          <div class="tag-chip" v-for="member in newTeamData.members" :key="member.id" style="display: flex; align-items: center; gap: 6px; background-color: #FFFFFF; border: 1px solid #DFE1E6; border-radius: 24px; padding: 2px 8px 2px 2px; font-size: 12px; color: #172B4D; font-weight: 500;">
+            <UserAvatar :user="{ ...member, fullName: member.name, avatarColor: member.color }" :size="20" :fontSize="10" />
+            {{ member.name }}
+            <i class="fa-solid fa-xmark remove-tag" @click.stop="removeMember(member.id)" style="color: #5E6C84; cursor: pointer; font-size: 10px; margin-left: 4px;"></i>
           </div>
-
-          <div class="form-group" style="position: relative;">
-            <label>{{ t('homeSite.teams.addTeamMembers') }} <span class="required">*</span></label>
-            <div class="tags-input-container" @click="focusMemberInput">
-              <div class="tag-chip" v-for="member in newTeamData.members" :key="member.id">
-                <UserAvatar :user="{ ...member, fullName: member.name, avatarColor: member.color }" :size="20" :fontSize="10" />
-                {{ member.name }}
-                <i class="fa-solid fa-xmark remove-tag" @click.stop="removeMember(member.id)"></i>
-              </div>
-              <input type="text" ref="memberInputRef" :placeholder="t('homeSite.teams.enterName')" v-model="memberSearchQuery" @focus="isMemberDropdownOpen = true" />
-            </div>
-            <div class="member-dropdown" v-if="isMemberDropdownOpen">
-              <div class="member-dropdown-item" v-for="user in filteredUsers" :key="user.id" @click="addMember(user)">
-                <UserAvatar :user="{ ...user, fullName: user.name, avatarColor: user.color }" :size="20" :fontSize="10" />
-                <span>{{ user.name }}</span>
-              </div>
-              <div class="member-dropdown-empty" v-if="filteredUsers.length === 0">
-                {{ t('homeSite.teams.noMembersFound') }}
-              </div>
-            </div>
+          <input type="text" ref="memberInputRef" :placeholder="t('homeSite.teams.enterName')" v-model="memberSearchQuery" @focus="isMemberDropdownOpen = true" style="border: none; outline: none; flex: 1; min-width: 80px; padding: 4px 8px; font-size: 14px;" />
+        </div>
+        <div class="member-dropdown" v-if="isMemberDropdownOpen" style="position: absolute; background: #FFFFFF; border-radius: 3px; box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31); margin-top: 4px; z-index: var(--sp-z-dropdown, 1000); max-height: 200px; overflow-y: auto; width: 100%;">
+          <div class="member-dropdown-item" v-for="user in filteredUsers" :key="user.id" @click="addMember(user)" style="display: flex; align-items: center; gap: 12px; padding: 8px 12px; cursor: pointer;">
+            <UserAvatar :user="{ ...user, fullName: user.name, avatarColor: user.color }" :size="20" :fontSize="10" />
+            <span style="font-size: 14px; color: #172B4D;">{{ user.name }}</span>
           </div>
-
-          <div class="form-group">
-            <label>{{ t('homeSite.teams.type') }} <span class="required">*</span></label>
-            <div class="select-wrapper">
-              <select v-model="newTeamData.type" class="jira-select">
-                <option :value="TEAM_TYPE_OFFICIAL">{{ t('homeSite.teams.officialTeam') }}</option>
-                <option :value="TEAM_TYPE_GROUP">{{ t('homeSite.teams.group') }}</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="recaptcha-text">
-            {{ t('homeSite.teams.recaptchaPrefix') }}
-            <a href="#">{{ t('homeSite.teams.privacyPolicy') }} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px;"></i></a>
-            {{ t('homeSite.teams.and') }}
-            <a href="#">{{ t('homeSite.teams.termsOfService') }} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px;"></i></a>
-            {{ t('homeSite.teams.googleSuffix') }}
+          <div class="member-dropdown-empty" v-if="filteredUsers.length === 0" style="padding: 12px; text-align: center; font-size: 13px; color: #5E6C84;">
+            {{ t('homeSite.teams.noMembersFound') }}
           </div>
         </div>
-        <div class="popover-footer">
-          <button class="cancel-btn" @click="isCreateModalOpen = false">{{ t('common.cancel') }}</button>
-          <button class="primary-btn" :disabled="!newTeamData.name || newTeamData.members.length === 0 || isCreating" @click="submitCreateTeam">
-            {{ isCreating ? t('common.creating') : t('common.create') }}
-          </button>
+      </AppFormField>
+
+      <AppFormField :label="t('homeSite.teams.type')" required>
+        <div class="select-wrapper" style="position: relative;">
+          <select v-model="newTeamData.type" class="jira-select" style="width: 100%; padding: 8px 12px; border: 2px solid #DFE1E6; border-radius: 3px; font-size: 14px; color: #172B4D; appearance: none; outline: none; cursor: pointer; box-sizing: border-box;">
+            <option :value="TEAM_TYPE_OFFICIAL">{{ t('homeSite.teams.officialTeam') }}</option>
+            <option :value="TEAM_TYPE_GROUP">{{ t('homeSite.teams.group') }}</option>
+          </select>
         </div>
+      </AppFormField>
+
+      <div class="recaptcha-text" style="font-size: 11px; color: #5E6C84; line-height: 1.5; margin-top: 8px;">
+        {{ t('homeSite.teams.recaptchaPrefix') }}
+        <a href="#" style="color: #0052CC; text-decoration: none;">{{ t('homeSite.teams.privacyPolicy') }} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px;"></i></a>
+        {{ t('homeSite.teams.and') }}
+        <a href="#" style="color: #0052CC; text-decoration: none;">{{ t('homeSite.teams.termsOfService') }} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px;"></i></a>
+        {{ t('homeSite.teams.googleSuffix') }}
       </div>
-    </div>
+    </AppModal>
   </div>
 </template>
 
@@ -186,6 +184,7 @@ import { getStoredUser } from '@/utils/permissions'
 import { getAvatarColor, getInitials } from '@/utils/avatarHelper'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import { useI18nStore } from '@/store/useI18nStore'
+import { AppModal, AppFormField } from '@/components/common/Foundation'
 
 const TEAM_TYPE_OFFICIAL = 'Đội ngũ chính thức'
 const TEAM_TYPE_GROUP = 'Nhóm'

@@ -5,11 +5,11 @@
     </div>
 
     <div class="jd-body">
-      <!-- Empty state: kh\u00f4ng c\u00f3 c\u1ea3 project l\u1eabn task -->
+      <!-- Empty state: không có cả project lẫn task -->
       <div v-if="starredProjects.length === 0 && starredTasks.length === 0" class="jd-empty-starred">
-        <img src="https://jira-frontend-bifrost.prod-east.frontend.public.atl-paas.net/assets/starred-empty.svg" alt="Empty Starred" onerror="this.style.display='none'" />
+        <i class="fa-regular fa-star" style="font-size: 48px; color: var(--color-text-muted); margin-bottom: 16px;"></i>
         <h4>You haven't starred anything yet</h4>
-        <p>Mark items that are important to you with a star to quickly access them here.</p>
+        <p>Đánh dấu sao các mục quan trọng để truy cập nhanh tại đây.</p>
       </div>
 
       <div v-else class="jd-list">

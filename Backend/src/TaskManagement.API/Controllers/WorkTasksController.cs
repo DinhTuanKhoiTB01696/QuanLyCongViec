@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
+using System.IO;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Text;
@@ -16,6 +18,7 @@ using TaskManagement.API.Hubs;
 using TaskManagement.Application.DTOs.WorkTask;
 using TaskManagement.Application.Interfaces;
 using TaskManagement.Infrastructure.Data;
+using TaskManagement.Domain.Entities;
 
 namespace TaskManagement.API.Controllers
 {
@@ -2265,6 +2268,532 @@ namespace TaskManagement.API.Controllers
                 data = payload
             });
         }
+
+        [HttpPost("projects/{projectId}/WorkTasks/import")]
+        public async Task<IActionResult> ImportWorkTasks(Guid projectId, [FromBody] List<ImportTaskRowDto> rows, [FromServices] ApplicationDbContext context)
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out Guid userId))
+                return Unauthorized();
+
+            if (rows == null || rows.Count == 0)
+                return BadRequest(new { statusCode = 400, message = "Không có dữ liệu để nhập.", errors = new[] { "Danh sách công việc trống." } });
+
+            var project = await context.Projects.FirstOrDefaultAsync(p => p.Id == projectId && !p.IsDeleted);
+            if (project == null)
+                return NotFound(new { statusCode = 404, message = "Không tìm thấy dự án." });
+
+            var members = await context.ProjectMembers
+                .Where(pm => pm.ProjectId == projectId)
+                .Select(pm => pm.User)
+                .Where(u => u != null)
+                .ToListAsync();
+            var memberEmails = members.ToDictionary(m => m.Email.ToLowerInvariant(), m => m.Id);
+
+            var statuses = await context.TaskStatuses
+                .Where(ts => ts.ProjectId == projectId)
+                .ToListAsync();
+            var statusMap = statuses.ToDictionary(s => NormalizeImportToken(s.Name), s => s.Id);
+
+            var todoStatus = statuses.FirstOrDefault(s => NormalizeImportToken(s.Name) == "TO DO") ?? statuses.FirstOrDefault();
+            var defaultStatusId = todoStatus?.Id ?? Guid.Empty;
+
+            var defaultType = await context.TaskTypes.FirstOrDefaultAsync(tt => tt.ProjectId == projectId);
+            var defaultTypeId = defaultType?.Id ?? Guid.Empty;
+
+            if (defaultStatusId == Guid.Empty || defaultTypeId == Guid.Empty)
+                return BadRequest(new { statusCode = 400, message = "Dự án chưa có trạng thái hoặc loại công việc mặc định." });
+
+            double maxSort = await context.WorkTasks
+                .Where(wt => wt.ProjectId == projectId && !wt.IsDeleted)
+                .MaxAsync(wt => (double?)wt.SortOrder) ?? 0;
+
+            int importedCount = 0;
+            var newTasks = new List<WorkTask>();
+            var errors = new List<string>();
+
+            for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+            {
+                var row = rows[rowIndex];
+                var rowNumber = rowIndex + 1;
+                if (string.IsNullOrWhiteSpace(row.Title))
+                    continue;
+
+                Guid? assignedUserId = null;
+                if (!string.IsNullOrWhiteSpace(row.AssigneeEmail))
+                {
+                    var emailLower = row.AssigneeEmail.Trim().ToLowerInvariant();
+                    if (memberEmails.TryGetValue(emailLower, out var uid))
+                    {
+                        assignedUserId = uid;
+                    }
+                }
+
+                Guid statusId = defaultStatusId;
+                if (!string.IsNullOrWhiteSpace(row.Status))
+                {
+                    var statusKey = NormalizeImportToken(row.Status);
+                    if (statusMap.TryGetValue(statusKey, out var sid))
+                    {
+                        statusId = sid;
+                    }
+                    else
+                    {
+                        errors.Add($"Dòng {rowNumber}: trạng thái '{row.Status}' không tồn tại trong dự án.");
+                        continue;
+                    }
+                }
+
+                DateTime? startDate = null;
+                if (!TryParseImportDate(row.StartDate, out startDate))
+                {
+                    errors.Add($"Dòng {rowNumber}: ngày bắt đầu '{row.StartDate}' không hợp lệ. Dùng yyyy-MM-dd, dd/MM/yyyy hoặc serial date của Excel.");
+                    continue;
+                }
+
+                DateTime? dueDate = null;
+                if (!TryParseImportDate(row.DueDate, out dueDate))
+                {
+                    errors.Add($"Dòng {rowNumber}: hạn hoàn thành '{row.DueDate}' không hợp lệ. Dùng yyyy-MM-dd, dd/MM/yyyy hoặc serial date của Excel.");
+                    continue;
+                }
+
+                if (startDate.HasValue && dueDate.HasValue && dueDate.Value.Date < startDate.Value.Date)
+                {
+                    errors.Add($"Dòng {rowNumber}: hạn hoàn thành không được trước ngày bắt đầu.");
+                    continue;
+                }
+
+                double storyPoints = 0;
+                if (!string.IsNullOrWhiteSpace(row.StoryPoints) && double.TryParse(row.StoryPoints, NumberStyles.Float, CultureInfo.InvariantCulture, out var sp))
+                {
+                    storyPoints = sp;
+                }
+
+                maxSort += 65536;
+                project.IssueSequence += 1;
+                string sequenceId = $"{project.Identifier}-{project.IssueSequence}";
+
+                var newTask = new WorkTask
+                {
+                    Id = Guid.NewGuid(),
+                    ProjectId = projectId,
+                    WorkspaceId = project.WorkspaceId,
+                    Title = row.Title.Trim(),
+                    Description = row.Description,
+                    TaskStatusId = statusId,
+                    TaskTypeId = defaultTypeId,
+                    ReporterId = userId,
+                    AssignedUserId = assignedUserId,
+                    Priority = ParsePriority(row.Priority),
+                    PlannedStartDate = startDate,
+                    DueDate = dueDate,
+                    StoryPoints = storyPoints,
+                    SortOrder = maxSort,
+                    SequenceId = sequenceId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                newTasks.Add(newTask);
+                importedCount++;
+            }
+
+            if (errors.Count > 0)
+                return BadRequest(new { statusCode = 400, message = "Dữ liệu import chưa hợp lệ.", errors });
+
+            if (newTasks.Any())
+            {
+                context.WorkTasks.AddRange(newTasks);
+                await context.SaveChangesAsync();
+
+                try
+                {
+                    await _kanbanHub.Clients.Group(projectId.ToString()).SendAsync("TasksUpdated");
+                }
+                catch
+                {
+                }
+            }
+
+            return Ok(new { statusCode = 200, message = $"Đã nhập thành công {importedCount} công việc.", count = importedCount });
+        }
+        [HttpGet("projects/{projectId}/WorkTasks/export")]
+        public async Task<IActionResult> ExportWorkTasks(Guid projectId, [FromServices] ApplicationDbContext context)
+        {
+            var project = await context.Projects.FirstOrDefaultAsync(p => p.Id == projectId && !p.IsDeleted);
+            if (project == null)
+                return NotFound(new { statusCode = 404, message = "Không tìm thấy dự án." });
+
+            var tasks = await context.WorkTasks
+                .Include(t => t.TaskStatus)
+                .Include(t => t.AssignedUser)
+                .Include(t => t.Reporter)
+                .Include(t => t.Sprint)
+                .Include(t => t.IssueModules).ThenInclude(issueModule => issueModule.Module)
+                .Include(t => t.IssueLabels).ThenInclude(issueLabel => issueLabel.Label)
+                .Include(t => t.CustomFieldValues).ThenInclude(value => value.FieldDefinition)
+                .Where(t => t.ProjectId == projectId && !t.IsDeleted)
+                .OrderBy(t => t.SequenceId)
+                .ToListAsync();
+
+            var csv = new StringBuilder();
+            csv.AppendLine("Mã công việc,Tiêu đề,Mô tả,Dự án,Trạng thái,Ưu tiên,Người phụ trách,Người tạo,Ngày bắt đầu,Hạn hoàn thành,Tiến độ,Chu kỳ,Mô-đun,Nhãn,Ngày tạo,Ngày cập nhật,Custom Fields");
+
+            foreach (var task in tasks)
+            {
+                var priorityStr = task.Priority switch
+                {
+                    1 => "Khẩn cấp",
+                    2 => "Cao",
+                    3 => "Trung bình",
+                    4 => "Thấp",
+                    _ => "Trung bình"
+                };
+
+                var progress = task.TotalEstimatedHours > 0
+                    ? Math.Clamp(task.TotalActualHours / task.TotalEstimatedHours * 100, 0, 100).ToString("0.##", CultureInfo.InvariantCulture) + "%"
+                    : "";
+                var modules = string.Join("; ", task.IssueModules
+                    .Select(issueModule => issueModule.Module?.Name)
+                    .Where(name => !string.IsNullOrWhiteSpace(name)));
+                var labels = string.Join("; ", task.IssueLabels
+                    .Select(issueLabel => issueLabel.Label?.Name)
+                    .Where(name => !string.IsNullOrWhiteSpace(name)));
+                var customFields = string.Join("; ", task.CustomFieldValues
+                    .Where(value => value.FieldDefinition != null && !string.IsNullOrWhiteSpace(value.FieldDefinition.Name))
+                    .OrderBy(value => value.FieldDefinition!.SortOrder)
+                    .Select(value => $"{value.FieldDefinition!.Name}: {NormalizeExportValue(value.Value)}")
+                    .Where(value => !string.IsNullOrWhiteSpace(value)));
+
+                var values = new[]
+                {
+                    task.SequenceId ?? string.Empty,
+                    task.Title,
+                    task.Description ?? string.Empty,
+                    project.Name,
+                    task.TaskStatus?.Name ?? "Backlog",
+                    priorityStr,
+                    task.AssignedUser?.FullName ?? task.AssignedUser?.Email ?? string.Empty,
+                    task.Reporter?.FullName ?? task.Reporter?.Email ?? string.Empty,
+                    task.PlannedStartDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
+                    task.DueDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
+                    progress,
+                    task.Sprint?.Name ?? string.Empty,
+                    modules,
+                    labels,
+                    task.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+                    task.UpdatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+                    customFields
+                };
+
+                csv.AppendLine(string.Join(",", values.Select(EscapeCsv)));
+            }
+
+            var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+            var bomBytes = Encoding.UTF8.GetPreamble();
+            var fileBytes = new byte[bomBytes.Length + bytes.Length];
+            Buffer.BlockCopy(bomBytes, 0, fileBytes, 0, bomBytes.Length);
+            Buffer.BlockCopy(bytes, 0, fileBytes, bomBytes.Length, bytes.Length);
+
+            var safeProjectName = SanitizeFileName(project.Identifier ?? project.Name);
+            return File(fileBytes, "text/csv; charset=utf-8", $"SprintA-WorkItems-{safeProjectName}-{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
+        }
+        private static string EscapeCsv(string? value)
+        {
+            if (string.IsNullOrEmpty(value)) return "";
+            var clean = value;
+            if (clean.Contains(",") || clean.Contains("\"") || clean.Contains("\r") || clean.Contains("\n"))
+            {
+                clean = "\"" + clean.Replace("\"", "\"\"") + "\"";
+            }
+            return clean;
+        }
+
+        // ===================================        // Contingency Plan APIs
+        // ===================================
+        [HttpGet("worktasks/{id}/contingency-plans")]
+        [Authorize]
+        public async Task<IActionResult> GetContingencyPlans(Guid id)
+        {
+            try
+            {
+                var plans = await _workTaskService.GetContingencyPlansAsync(id);
+                return Ok(new { statusCode = 200, data = plans });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpGet("worktasks/{id}/contingency-plans/{planId}")]
+        [Authorize]
+        public async Task<IActionResult> GetContingencyPlan(Guid id, Guid planId)
+        {
+            try
+            {
+                var plan = await _workTaskService.GetContingencyPlanByIdAsync(id, planId);
+                if (plan == null) return NotFound(new { statusCode = 404, message = "Plan not found" });
+                return Ok(new { statusCode = 200, data = plan });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpPost("worktasks/{id}/contingency-plans")]
+        [Authorize]
+        public async Task<IActionResult> CreateContingencyPlan(Guid id, [FromBody] TaskManagement.Application.DTOs.WorkTask.CreateContingencyPlanDto dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "User is not authenticated." });
+
+            try
+            {
+                var plan = await _workTaskService.CreateContingencyPlanAsync(id, userId, dto);
+                return Ok(new { statusCode = 201, message = "Plan created", data = plan });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpPut("worktasks/{id}/contingency-plans/{planId}")]
+        [Authorize]
+        public async Task<IActionResult> UpdateContingencyPlan(Guid id, Guid planId, [FromBody] TaskManagement.Application.DTOs.WorkTask.UpdateContingencyPlanDto dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "User is not authenticated." });
+
+            try
+            {
+                var plan = await _workTaskService.UpdateContingencyPlanAsync(id, planId, userId, dto);
+                return Ok(new { statusCode = 200, message = "Plan updated", data = plan });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpDelete("worktasks/{id}/contingency-plans/{planId}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteContingencyPlan(Guid id, Guid planId)
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "User is not authenticated." });
+
+            try
+            {
+                await _workTaskService.DeleteContingencyPlanAsync(id, planId, userId);
+                return Ok(new { statusCode = 200, message = "Plan deleted" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpPost("worktasks/{id}/contingency-plans/{planId}/tasks/create")]
+        [Authorize]
+        public async Task<IActionResult> CreateContingencyTask(Guid id, Guid planId, [FromBody] TaskManagement.Application.DTOs.WorkTask.CreateContingencyTaskDto dto)
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "User is not authenticated." });
+
+            try
+            {
+                await _workTaskService.CreateContingencyTaskToPlanAsync(id, planId, dto, userId);
+                return Ok(new { statusCode = 200, message = "Contingency task created successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpPost("worktasks/{id}/contingency-plans/{planId}/tasks")]
+        [Authorize]
+        public async Task<IActionResult> AddContingencyTask(Guid id, Guid planId, [FromBody] Guid fallbackTaskId)
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "User is not authenticated." });
+
+            try
+            {
+                await _workTaskService.AddContingencyTaskToPlanAsync(id, planId, fallbackTaskId, userId);
+                return Ok(new { statusCode = 200, message = "Task linked to plan successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpDelete("worktasks/{id}/contingency-plans/{planId}/tasks/{fallbackTaskId}")]
+        [Authorize]
+        public async Task<IActionResult> RemoveContingencyTask(Guid id, Guid planId, Guid fallbackTaskId)
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "User is not authenticated." });
+
+            try
+            {
+                await _workTaskService.RemoveContingencyTaskFromPlanAsync(id, planId, fallbackTaskId, userId);
+                return Ok(new { statusCode = 200, message = "Task removed from plan successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpPost("worktasks/{id}/contingency-plans/{planId}/tasks/{fallbackTaskId}/activate")]
+        [Authorize]
+        public async Task<IActionResult> ActivateContingencyTask(Guid id, Guid planId, Guid fallbackTaskId)
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized(new { statusCode = 401, message = "User is not authenticated." });
+
+            try
+            {
+                await _workTaskService.ActivateContingencyTaskAsync(id, planId, fallbackTaskId, userId);
+                return Ok(new { statusCode = 200, message = "Contingency task activated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        private static bool TryParseImportDate(string? value, out DateTime? date)
+        {
+            date = null;
+            if (string.IsNullOrWhiteSpace(value))
+                return true;
+
+            var raw = value.Trim();
+            if (DateTime.TryParseExact(raw,
+                    new[] { "yyyy-MM-dd", "yyyy/MM/dd", "dd/MM/yyyy", "d/M/yyyy", "dd-MM-yyyy", "d-M-yyyy", "MM/dd/yyyy", "M/d/yyyy" },
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeLocal,
+                    out var exact))
+            {
+                date = DateTime.SpecifyKind(exact.Date, DateTimeKind.Utc);
+                return true;
+            }
+
+            if (double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var serial) && serial > 0 && serial < 60000)
+            {
+                date = DateTime.SpecifyKind(DateTime.FromOADate(serial).Date, DateTimeKind.Utc);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static int ParsePriority(string? priority)
+        {
+            if (string.IsNullOrWhiteSpace(priority)) return 3;
+
+            var token = NormalizeImportToken(priority);
+            if (token.Contains("URGENT") || token.Contains("KHAN") || token.Contains("1")) return 1;
+            if (token.Contains("HIGH") || token.Contains("CAO") || token.Contains("2")) return 2;
+            if (token.Contains("LOW") || token.Contains("THAP") || token.Contains("4")) return 4;
+            return 3;
+        }
+
+        private static string NormalizeImportToken(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+
+            var normalized = value.Trim().Normalize(NormalizationForm.FormD);
+            var builder = new StringBuilder(normalized.Length);
+            foreach (var ch in normalized)
+            {
+                var category = CharUnicodeInfo.GetUnicodeCategory(ch);
+                if (category != UnicodeCategory.NonSpacingMark)
+                {
+                    builder.Append(char.ToUpperInvariant(ch));
+                }
+            }
+
+            return builder.ToString().Normalize(NormalizationForm.FormC);
+        }
+
+        private static string NormalizeExportValue(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value) || value.Trim().Equals("[object Object]", StringComparison.OrdinalIgnoreCase))
+                return string.Empty;
+
+            var trimmed = value.Trim();
+            if ((trimmed.StartsWith("{", StringComparison.Ordinal) && trimmed.EndsWith("}", StringComparison.Ordinal)) ||
+                (trimmed.StartsWith("[", StringComparison.Ordinal) && trimmed.EndsWith("]", StringComparison.Ordinal)))
+            {
+                try
+                {
+                    using var document = JsonDocument.Parse(trimmed);
+                    return JsonElementToDisplayText(document.RootElement);
+                }
+                catch (JsonException)
+                {
+                    return trimmed;
+                }
+            }
+
+            return trimmed;
+        }
+
+        private static string JsonElementToDisplayText(JsonElement element)
+        {
+            return element.ValueKind switch
+            {
+                JsonValueKind.Object => string.Join(", ", element.EnumerateObject()
+                    .Select(property => $"{property.Name}: {JsonElementToDisplayText(property.Value)}")
+                    .Where(value => !string.IsNullOrWhiteSpace(value))),
+                JsonValueKind.Array => string.Join(", ", element.EnumerateArray()
+                    .Select(JsonElementToDisplayText)
+                    .Where(value => !string.IsNullOrWhiteSpace(value))),
+                JsonValueKind.String => element.GetString() ?? string.Empty,
+                JsonValueKind.Number => element.ToString(),
+                JsonValueKind.True => "true",
+                JsonValueKind.False => "false",
+                _ => string.Empty
+            };
+        }
+
+        private static string SanitizeFileName(string value)
+        {
+            var invalidChars = Path.GetInvalidFileNameChars();
+            var safe = new string(value.Select(ch => invalidChars.Contains(ch) ? '-' : ch).ToArray()).Trim();
+            return string.IsNullOrWhiteSpace(safe) ? "Project" : safe;
+        }
+    }
+
+    public class ImportTaskRowDto
+    {
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? AssigneeEmail { get; set; }
+        public string? Status { get; set; }
+        public string? Priority { get; set; }
+        public string? StartDate { get; set; }
+        public string? DueDate { get; set; }
+        public string? StoryPoints { get; set; }
     }
 
     public class ReorderTaskDto

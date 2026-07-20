@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskManagement.API.Infrastructure;
@@ -23,15 +24,18 @@ namespace TaskManagement.API.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IDataProtector _protector;
 
         public IntegrationsController(
             ApplicationDbContext context,
             IConfiguration configuration,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            IDataProtectionProvider dataProtectionProvider)
         {
             _context = context;
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
+            _protector = dataProtectionProvider.CreateProtector("SprintA.IntegrationTokens");
         }
 
         [HttpGet]
@@ -290,10 +294,10 @@ namespace TaskManagement.API.Controllers
 
             account.AccountEmail = userInfo?.Email ?? account.AccountEmail;
             account.ExternalAccountId = userInfo?.Sub ?? account.ExternalAccountId;
-            account.AccessToken = token.AccessToken;
+            account.AccessToken = ProtectToken(token.AccessToken);
             if (!string.IsNullOrWhiteSpace(token.RefreshToken))
             {
-                account.RefreshToken = token.RefreshToken;
+                account.RefreshToken = ProtectToken(token.RefreshToken);
             }
             account.AccessTokenExpiresAt = token.ExpiresIn > 0 ? DateTime.UtcNow.AddSeconds(token.ExpiresIn - 60) : null;
             account.Scopes = token.Scope ?? string.Empty;
@@ -408,7 +412,7 @@ namespace TaskManagement.API.Controllers
                 await EnsureGoogleAccessTokenAsync(account);
 
                 var client = _httpClientFactory.CreateClient();
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", account.AccessToken);
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", DecryptToken(account.AccessToken));
                 var timeMin = Uri.EscapeDataString(DateTime.UtcNow.AddDays(-7).ToString("O"));
                 var timeMax = Uri.EscapeDataString(DateTime.UtcNow.AddDays(30).ToString("O"));
                 var eventsResponse = await client.GetAsync(
@@ -503,7 +507,7 @@ namespace TaskManagement.API.Controllers
                 await EnsureGoogleAccessTokenAsync(account, GmailProvider, "Gmail");
 
                 var client = _httpClientFactory.CreateClient();
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", account.AccessToken);
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", DecryptToken(account.AccessToken));
                 var listResponse = await client.GetAsync("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=25&q=newer_than:30d");
                 var listJson = await listResponse.Content.ReadAsStringAsync();
                 if (!listResponse.IsSuccessStatusCode)
@@ -588,7 +592,7 @@ namespace TaskManagement.API.Controllers
             try
             {
                 var client = _httpClientFactory.CreateClient();
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", account.AccessToken);
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", DecryptToken(account.AccessToken));
                 var channelsResponse = await client.GetAsync("https://slack.com/api/conversations.list?types=public_channel,private_channel,im,mpim&limit=20");
                 var channelsJson = await channelsResponse.Content.ReadAsStringAsync();
                 var channels = JsonSerializer.Deserialize<SlackConversationsResponse>(channelsJson);
@@ -821,10 +825,10 @@ namespace TaskManagement.API.Controllers
 
             account.AccountEmail = accountEmail;
             account.ExternalAccountId = externalAccountId ?? account.ExternalAccountId;
-            account.AccessToken = accessToken;
+            account.AccessToken = ProtectToken(accessToken);
             if (!string.IsNullOrWhiteSpace(refreshToken))
             {
-                account.RefreshToken = refreshToken;
+                account.RefreshToken = ProtectToken(refreshToken);
             }
             account.AccessTokenExpiresAt = accessTokenExpiresAt;
             account.Scopes = scopes ?? string.Empty;
@@ -863,13 +867,14 @@ namespace TaskManagement.API.Controllers
 
         private async Task EnsureGoogleAccessTokenAsync(IntegrationAccount account, string provider = GoogleCalendarProvider, string displayName = "Google Calendar")
         {
-            if (!string.IsNullOrWhiteSpace(account.AccessToken)
+            if (!string.IsNullOrWhiteSpace(DecryptToken(account.AccessToken))
                 && (!account.AccessTokenExpiresAt.HasValue || account.AccessTokenExpiresAt.Value > DateTime.UtcNow))
             {
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(account.RefreshToken))
+            var decRefreshToken = DecryptToken(account.RefreshToken);
+            if (string.IsNullOrWhiteSpace(decRefreshToken))
             {
                 throw new InvalidOperationException("Google token đã hết hạn, vui lòng kết nối lại");
             }
@@ -886,7 +891,7 @@ namespace TaskManagement.API.Controllers
             {
                 ["client_id"] = clientId,
                 ["client_secret"] = clientSecret,
-                ["refresh_token"] = account.RefreshToken,
+                ["refresh_token"] = decRefreshToken,
                 ["grant_type"] = "refresh_token"
             }));
 
@@ -902,7 +907,7 @@ namespace TaskManagement.API.Controllers
                 throw new InvalidOperationException("Google không trả access token hợp lệ");
             }
 
-            account.AccessToken = token.AccessToken;
+            account.AccessToken = ProtectToken(token.AccessToken);
             account.AccessTokenExpiresAt = token.ExpiresIn > 0 ? DateTime.UtcNow.AddSeconds(token.ExpiresIn - 60) : null;
             account.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
@@ -956,6 +961,26 @@ namespace TaskManagement.API.Controllers
             }
 
             return $"{frontendBaseUrl}/integrations";
+        }
+
+        private string ProtectToken(string? token)
+        {
+            if (string.IsNullOrEmpty(token)) return string.Empty;
+            return _protector.Protect(token);
+        }
+
+        private string DecryptToken(string? protectedToken)
+        {
+            if (string.IsNullOrEmpty(protectedToken)) return string.Empty;
+            try
+            {
+                return _protector.Unprotect(protectedToken);
+            }
+            catch
+            {
+                // Fallback cho token cũ dạng plaintext
+                return protectedToken;
+            }
         }
 
         private static string BuildFrontendRedirect(string frontendUrl, string status, string? message)

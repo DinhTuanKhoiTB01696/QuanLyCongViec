@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import axiosClient from '@/api/axiosClient'
 import { useSiteStore } from '@/store/useSiteStore'
 import { ElMessage } from 'element-plus'
+import { ensureWorkspaceIdFromState, resolveWorkspaceIdFromState } from '@/utils/contextIds'
 
 export const useHomeProjectStore = defineStore('homeProject', {
   state: () => ({
@@ -23,11 +24,11 @@ export const useHomeProjectStore = defineStore('homeProject', {
   actions: {
     getWorkspaceId() {
       const siteStore = useSiteStore()
-      let id = siteStore.recentSite?.id || localStorage.getItem('recent_site_id')
-      if (!id || id === '1' || id.length < 36) {
-        id = this.currentProject?.workspaceId || '00000000-0000-0000-0000-000000000000'
-      }
-      return id
+      return resolveWorkspaceIdFromState({ siteStore, project: this.currentProject })
+    },
+    async ensureWorkspaceId() {
+      const siteStore = useSiteStore()
+      return ensureWorkspaceIdFromState({ siteStore, project: this.currentProject })
     },
     async fetchProjectTabs(projectId) {
       try {
@@ -191,7 +192,8 @@ export const useHomeProjectStore = defineStore('homeProject', {
     async toggleStar() {
       if (!this.currentProject) return
       try {
-        const workspaceId = this.getWorkspaceId()
+        const workspaceId = await this.ensureWorkspaceId()
+        if (!workspaceId) throw new Error('No workspace selected')
         const res = await axiosClient.post(`/workspaces/${workspaceId}/starreditems/toggle`, null, {
           params: { itemType: 'Project', itemId: this.currentProject.id }
         })
@@ -204,17 +206,32 @@ export const useHomeProjectStore = defineStore('homeProject', {
       }
     },
     async toggleFollow(projectId) {
+      const current = this.currentProject?.id === projectId
+        ? this.currentProject
+        : this.projects.find(project => project.id === projectId)
+      const previousValue = Boolean(current?.isFollowing)
+      const nextValue = !previousValue
+      if (this.currentProject?.id === projectId) this.currentProject.isFollowing = nextValue
+      if (this.project?.id === projectId) this.project.isFollowing = nextValue
+      const optimisticTarget = this.projects.find(p => p.id === projectId)
+      if (optimisticTarget) optimisticTarget.isFollowing = nextValue
       try {
-        const workspaceId = this.getWorkspaceId()
+        const workspaceId = await this.ensureWorkspaceId()
+        if (!workspaceId) throw new Error('No workspace selected')
         const res = await axiosClient.post(`/workspaces/${workspaceId}/followers/toggle`, null, {
           params: { entityType: 'Project', entityId: projectId }
         })
-        const isFollowing = res.data?.data?.isFollowing ?? res.data?.isFollowing
+        const responseData = res.data?.data ?? res.data ?? {}
+        const isFollowing = responseData.isFollowing ?? responseData.IsFollowing ?? nextValue
         if (this.currentProject?.id === projectId) this.currentProject.isFollowing = isFollowing
         if (this.project?.id === projectId) this.project.isFollowing = isFollowing
         const target = this.projects.find(p => p.id === projectId)
         if (target) target.isFollowing = isFollowing
       } catch (error) {
+        if (this.currentProject?.id === projectId) this.currentProject.isFollowing = previousValue
+        if (this.project?.id === projectId) this.project.isFollowing = previousValue
+        const target = this.projects.find(p => p.id === projectId)
+        if (target) target.isFollowing = previousValue
         console.error('Lỗi khi toggle follow:', error)
       }
     },

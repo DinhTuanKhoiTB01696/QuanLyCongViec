@@ -21,20 +21,64 @@ const createMode = ref(false)
 const draftTitles = ref({})
 const creatingByStatus = ref({})
 
-const statusColumns = computed(() => {
-  const defaultColumns = [
-    { key: 'TO DO', label: t('workItems.statusLabels.toDo'), color: 'var(--color-text-muted)', icon: 'O' },
-    { key: 'IN PROGRESS', label: t('workItems.statusLabels.inProgress'), color: 'var(--color-accent)', icon: '~' },
-    { key: 'IN REVIEW', label: t('workItems.statusLabels.inReview'), color: 'var(--color-warning)', icon: '*' },
-    { key: 'DONE', label: t('workItems.statusLabels.done'), color: 'var(--color-success)', icon: '+' }
-  ]
+function handleBoardWheel(event) {
+  const board = event.currentTarget
+  if (!board || board.scrollWidth <= board.clientWidth) return
+  if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
+  event.preventDefault()
+  board.scrollLeft += event.deltaY
+}
 
-  return defaultColumns.map(column => ({
+const statusColumns = computed(() => {
+  let columns = []
+  if (Array.isArray(props.statuses) && props.statuses.length > 0) {
+    columns = props.statuses.map(s => ({
+      key: s.name.toUpperCase().trim(),
+      label: s.label || s.name,
+      color: s.color || 'var(--color-text-muted)',
+      icon: s.icon || 'fa-regular fa-circle'
+    }))
+  } else {
+    columns = [
+      { key: 'BACKLOG', label: t('workItems.statusLabels.backlog', 'Backlog'), color: '#94A3B8', icon: 'fa-regular fa-circle-dashed' },
+      { key: 'TO DO', label: t('workItems.statusLabels.toDo', 'To Do'), color: 'var(--color-text-muted)', icon: 'fa-regular fa-circle' },
+      { key: 'IN PROGRESS', label: t('workItems.statusLabels.inProgress', 'In Progress'), color: 'var(--color-accent)', icon: 'fa-solid fa-circle-half-stroke' },
+      { key: 'IN REVIEW', label: t('workItems.statusLabels.inReview', 'In Review'), color: 'var(--color-warning)', icon: 'fa-solid fa-eye' },
+      { key: 'DONE', label: t('workItems.statusLabels.done', 'Done'), color: 'var(--color-success)', icon: 'fa-solid fa-circle-check' },
+      { key: 'CANCELLED', label: t('workItems.statusLabels.cancelled', 'Cancelled'), color: '#F43F5E', icon: 'fa-regular fa-circle-xmark' }
+    ]
+  }
+
+  const mapped = columns.map(column => ({
     ...column,
     tasks: props.tasks
-      .filter(task => (task.statusName || 'TO DO').toUpperCase() === column.key)
+      .filter(task => {
+        const taskStatus = (task.statusName || 'BACKLOG').toUpperCase().trim()
+        return taskStatus === column.key
+      })
       .sort((left, right) => (left.sortOrder || 0) - (right.sortOrder || 0))
   }))
+
+  const definedKeys = columns.map(c => c.key)
+  const fallbackTasks = props.tasks
+    .filter(task => {
+      const taskStatus = (task.statusName || 'BACKLOG').toUpperCase().trim()
+      return !definedKeys.includes(taskStatus)
+    })
+    .sort((left, right) => (left.sortOrder || 0) - (right.sortOrder || 0))
+
+  if (fallbackTasks.length > 0) {
+    mapped.push({
+      key: 'FALLBACK_UNCLASSIFIED',
+      label: t('workItems.statusLabels.fallback', 'Khác / Chưa phân loại'),
+      color: '#f43f5e',
+      icon: 'fa-solid fa-triangle-exclamation',
+      tasks: fallbackTasks,
+      isFallback: true
+    })
+  }
+
+  return mapped
 })
 
 function onDragEnd(event, targetStatus) {
@@ -44,7 +88,7 @@ function onDragEnd(event, targetStatus) {
   const oldStatus = movedTask.statusName
   const newStatus = targetStatus
 
-  if (oldStatus !== newStatus) {
+  if (oldStatus !== newStatus && newStatus !== 'FALLBACK_UNCLASSIFIED') {
     emit('status-changed', {
       issueId: movedTask.id,
       newStatusName: newStatus,
@@ -72,11 +116,13 @@ function onDragEnd(event, targetStatus) {
     }
   }
 
-  emit('task-reordered', {
-    issueId: movedTask.id,
-    sortOrder,
-    newStatusName: newStatus
-  })
+  if (newStatus !== 'FALLBACK_UNCLASSIFIED') {
+    emit('task-reordered', {
+      issueId: movedTask.id,
+      sortOrder,
+      newStatusName: newStatus
+    })
+  }
 }
 
 function getPriorityInfo(priority) {
@@ -143,15 +189,16 @@ async function createTask(statusName) {
     })
     draftTitles.value = { ...draftTitles.value, [statusName]: '' }
     emit('refresh')
-    ElMessage.success('Work item created.')
+    ElMessage.success(t('workItems.created', 'Đã tạo công việc thành công.'))
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || 'Failed to create work item.')
+    ElMessage.error(error.response?.data?.message || t('workItems.createFailed', 'Không thể tạo công việc. Vui lòng thử lại.'))
   } finally {
     creatingByStatus.value = { ...creatingByStatus.value, [statusName]: false }
   }
 }
 
 function handleColumnClick(column) {
+  if (column.key === 'FALLBACK_UNCLASSIFIED') return
   if (!createMode.value) return
   if (!draftTitles.value[column.key]) {
     draftTitles.value = { ...draftTitles.value, [column.key]: '' }
@@ -168,7 +215,7 @@ function handleColumnClick(column) {
       <span class="toolbar-copy">{{ t('workItems.kanban.createModeHint', 'Click column header to quickly add work items.') }}</span>
     </div>
 
-    <div class="kanban-board">
+    <div class="kanban-board" @wheel="handleBoardWheel">
       <div v-for="column in statusColumns" :key="column.key" class="kanban-column" @click="handleColumnClick(column)">
         <div class="column-header">
           <div class="column-header-left">
@@ -176,12 +223,12 @@ function handleColumnClick(column) {
             <span class="column-title">{{ column.label }}</span>
             <span class="column-count">{{ column.tasks.length }}</span>
           </div>
-          <button class="column-add-btn" @click.stop="handleColumnClick(column); createMode = true">
+          <button v-if="column.key !== 'FALLBACK_UNCLASSIFIED'" class="column-add-btn" @click.stop="handleColumnClick(column); createMode = true">
             <i class="fa-solid fa-plus"></i>
           </button>
         </div>
 
-        <div v-if="createMode" class="quick-create" @click.stop>
+        <div v-if="createMode && column.key !== 'FALLBACK_UNCLASSIFIED'" class="quick-create" @click.stop>
           <input
             v-model="draftTitles[column.key]"
             type="text"
@@ -195,14 +242,20 @@ function handleColumnClick(column) {
           </button>
         </div>
 
+        <div v-if="column.isFallback" class="fallback-desc-container" style="padding: 6px 12px; background: rgba(244, 63, 94, 0.05); border-bottom: 1px solid rgba(244, 63, 94, 0.1);">
+          <small style="color: #f43f5e; font-size: 11px; font-style: italic;">
+            {{ t('workItems.kanban.fallbackDesc', 'Các công việc có trạng thái không còn tồn tại trong workflow hiện tại.') }}
+          </small>
+        </div>
+
         <draggable
           :list="column.tasks"
-          group="kanban"
+          :group="{ name: 'kanban', put: column.key !== 'FALLBACK_UNCLASSIFIED' }"
           item-key="id"
           ghost-class="task-ghost"
           drag-class="task-drag"
           :animation="250"
-          :disabled="!dragEnabled"
+          :disabled="!dragEnabled || column.key === 'FALLBACK_UNCLASSIFIED'"
           class="column-body"
           @end="event => onDragEnd(event, column.key)"
         >
@@ -305,8 +358,26 @@ function handleColumnClick(column) {
   display: flex;
   gap: 20px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
+  scroll-behavior: smooth;
   padding-bottom: 12px;
   height: calc(100vh - 200px);
+}
+
+.kanban-board::-webkit-scrollbar { height: 12px; }
+.kanban-board::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-border) 48%, transparent);
+}
+.kanban-board::-webkit-scrollbar-thumb {
+  min-width: 72px;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sp-blue-600) 66%, var(--sp-slate-500)) padding-box;
+}
+.kanban-board::-webkit-scrollbar-thumb:hover {
+  background: var(--sp-blue-600) padding-box;
 }
 
 .kanban-column {
@@ -655,13 +726,19 @@ function handleColumnClick(column) {
 
 @media (max-width: 720px) {
   .kanban-board {
-    height: auto !important;
-    max-height: none !important;
+    height: calc(100vh - 210px) !important;
+    height: calc(100dvh - 210px) !important;
+    min-height: 420px !important;
+    max-height: calc(100dvh - 160px) !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    max-width: 100% !important;
   }
 
   .kanban-column {
-    flex-basis: min(82vw, 284px) !important;
-    min-width: min(82vw, 284px) !important;
+    flex-basis: 284px !important;
+    min-width: 284px !important;
+    height: 100% !important;
   }
 }
 </style>

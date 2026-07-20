@@ -23,6 +23,29 @@
   --sa-radius-md: 10px;
   --sa-shadow-sm: 0 8px 24px rgb(15 35 60 / 0.08);
 
+  /* Shared SprintA surface contract: one accent, restrained elevation, explicit layers. */
+  --sprinta-bg: var(--sa-bg);
+  --sprinta-surface-1: var(--sa-surface);
+  --sprinta-surface-2: var(--sa-surface-soft);
+  --sprinta-border: var(--sa-border);
+  --sprinta-text: var(--sa-text);
+  --sprinta-text-muted: var(--sa-text-muted);
+  --sprinta-primary: var(--sa-primary);
+  --sprinta-radius-sm: 8px;
+  --sprinta-radius-md: 12px;
+  --sprinta-radius-lg: 18px;
+  --sprinta-space-1: 4px;
+  --sprinta-space-2: 8px;
+  --sprinta-space-3: 12px;
+  --sprinta-space-4: 16px;
+  --sprinta-space-5: 20px;
+  --sprinta-z-content: 1;
+  --sprinta-z-pet: 1400;
+  --sprinta-z-popover: 1450;
+  --sprinta-z-ai-panel: 1500;
+  --sprinta-z-overlay: 3900;
+  --sprinta-z-modal: 4000;
+
   /* LIGHT THEME TOKENS */
   --color-bg: var(--sa-bg);           /* Main background (Slate-50) */
   --color-surface: var(--sa-surface);      /* Card/Panel surface */
@@ -85,7 +108,7 @@
   --shadow-drawer: -18px 0 48px rgb(15 23 42 / 0.18);
   --shadow-sticky-column: 10px 0 20px rgb(15 23 42 / 0.08);
   --transition-speed: 0.25s;
-  --z-modal: 2000;
+  --z-modal: 4000;
   --z-popover: 4200;
 
   /* RADIUS SYSTEM (ATLASSIAN STRICT) */
@@ -103,6 +126,15 @@
 
   --accent-color: var(--color-accent);
 }
+
+/* Layer contract: modal > overlay > AI panel/pet > page content. */
+:root {
+  --el-overlay-z-index: 3900;
+  --el-dialog-z-index: 4000;
+}
+
+.el-overlay { z-index: 3900 !important; }
+.el-overlay-dialog { z-index: 4000 !important; }
 
 
 [data-theme='dark'] {

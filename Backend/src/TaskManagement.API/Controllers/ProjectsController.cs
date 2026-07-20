@@ -8,6 +8,7 @@ using TaskManagement.Application.DTOs.Common;
 using TaskManagement.Application.DTOs.Project;
 using TaskManagement.Application.Common;
 using TaskManagement.Application.Interfaces;
+using TaskManagement.Domain.Entities;
 using TaskManagement.Infrastructure.Data;
 
 namespace TaskManagement.API.Controllers
@@ -50,6 +51,13 @@ namespace TaskManagement.API.Controllers
         public sealed class UpdateProjectExecutionRulesRequest
         {
             public ProjectExecutionRulesDto Rules { get; set; } = new();
+        }
+
+        public sealed class UpdateProjectCoverRequest
+        {
+            public string? CoverUrl { get; set; }
+            public string? CoverAltText { get; set; }
+            public string? Icon { get; set; }
         }
 
         private static readonly string[] HiddenProjectRoleOptionNames =
@@ -144,6 +152,34 @@ namespace TaskManagement.API.Controllers
             return JsonSerializer.Serialize(config);
         }
 
+        private static string MergeProjectVisualsIntoNavigationConfig(
+            string? raw,
+            string? coverUrl,
+            string? coverAltText,
+            string? icon,
+            bool removeCover = false)
+        {
+            var config = ParseNavigationConfig(raw);
+            if (removeCover)
+            {
+                config.Remove("cover");
+                config.Remove("coverUrl");
+                config.Remove("coverAltText");
+            }
+            else if (!string.IsNullOrWhiteSpace(coverUrl))
+            {
+                config["cover"] = coverUrl;
+                config["coverAltText"] = coverAltText;
+            }
+
+            if (!string.IsNullOrWhiteSpace(icon))
+            {
+                config["icon"] = icon;
+            }
+
+            return JsonSerializer.Serialize(config);
+        }
+
         private async Task<List<object>> BuildProjectRoleOptionsAsync()
         {
             var preferredOrder = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
@@ -191,6 +227,10 @@ namespace TaskManagement.API.Controllers
                 .AsNoTracking()
                 .Where(project => projects.Select(p => p.Id).Contains(project.Id))
                 .ToDictionaryAsync(project => project.Id, project => ReadFavoriteFlag(project.NavigationConfig));
+            var coverAltTextMap = await _context.Projects
+                .AsNoTracking()
+                .Where(project => projects.Select(p => p.Id).Contains(project.Id))
+                .ToDictionaryAsync(project => project.Id, project => project.CoverAltText);
 
             return Ok(ApiResponse<object>.Success(projects.Select(project => new
             {
@@ -208,6 +248,7 @@ namespace TaskManagement.API.Controllers
                 project.ActiveMemberCount,
                 project.NetworkType,
                 project.Cover,
+                CoverAltText = coverAltTextMap.GetValueOrDefault(project.Id),
                 project.Icon,
                 project.LeadUserId,
                 project.LeadName,
@@ -229,6 +270,10 @@ namespace TaskManagement.API.Controllers
                 .AsNoTracking()
                 .Where(project => projects.Select(p => p.Id).Contains(project.Id))
                 .ToDictionaryAsync(project => project.Id, project => ReadFavoriteFlag(project.NavigationConfig));
+            var coverAltTextMap = await _context.Projects
+                .AsNoTracking()
+                .Where(project => projects.Select(p => p.Id).Contains(project.Id))
+                .ToDictionaryAsync(project => project.Id, project => project.CoverAltText);
 
             return Ok(ApiResponse<object>.Success(projects.Select(project => new
             {
@@ -246,6 +291,7 @@ namespace TaskManagement.API.Controllers
                 project.ActiveMemberCount,
                 project.NetworkType,
                 project.Cover,
+                CoverAltText = coverAltTextMap.GetValueOrDefault(project.Id),
                 project.Icon,
                 project.LeadUserId,
                 project.LeadName,
@@ -267,6 +313,10 @@ namespace TaskManagement.API.Controllers
                     .AsNoTracking()
                     .Where(project => projects.Select(p => p.Id).Contains(project.Id))
                     .ToDictionaryAsync(project => project.Id, project => ReadFavoriteFlag(project.NavigationConfig));
+                var coverAltTextMap = await _context.Projects
+                    .AsNoTracking()
+                    .Where(project => projects.Select(p => p.Id).Contains(project.Id))
+                    .ToDictionaryAsync(project => project.Id, project => project.CoverAltText);
 
                 return Ok(ApiResponse<object>.Success(projects.Select(project => new
                 {
@@ -284,6 +334,7 @@ namespace TaskManagement.API.Controllers
                     project.ActiveMemberCount,
                     project.NetworkType,
                     project.Cover,
+                    CoverAltText = coverAltTextMap.GetValueOrDefault(project.Id),
                     project.Icon,
                     project.LeadUserId,
                     project.LeadName,
@@ -328,6 +379,7 @@ namespace TaskManagement.API.Controllers
                 project.ActiveMemberCount,
                 project.NetworkType,
                 project.Cover,
+                CoverAltText = rawProject?.CoverAltText,
                 project.Icon,
                 project.LeadUserId,
                 project.LeadName,
@@ -369,6 +421,7 @@ namespace TaskManagement.API.Controllers
                     project.ActiveMemberCount,
                     project.NetworkType,
                     project.Cover,
+                    CoverAltText = rawProject?.CoverAltText,
                     project.Icon,
                     project.LeadUserId,
                     project.LeadName,
@@ -608,7 +661,198 @@ namespace TaskManagement.API.Controllers
             return Ok(ApiResponse<object>.Success(new { id = project.Id, favorite }));
         }
 
+        [HttpPost("{id:guid}/cover")]
+        [RequestSizeLimit(6 * 1024 * 1024)]
+        public async Task<IActionResult> UpdateCover(
+            Guid id,
+            [FromForm] IFormFile? file,
+            [FromForm] string? coverUrl,
+            [FromForm] string? coverAltText,
+            [FromForm] string? icon)
+        {
+            return await UpdateProjectCoverInternal(id, file, coverUrl, coverAltText, icon);
+        }
+
+        [HttpPut("{id:guid}/cover")]
+        public async Task<IActionResult> UpdateCoverMetadata(Guid id, [FromBody] UpdateProjectCoverRequest request)
+        {
+            return await UpdateProjectCoverInternal(id, null, request.CoverUrl, request.CoverAltText, request.Icon);
+        }
+
+        private async Task<IActionResult> UpdateProjectCoverInternal(
+            Guid id,
+            IFormFile? file,
+            string? coverUrl,
+            string? coverAltText,
+            string? icon)
+        {
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdString, out var userId))
+                return Unauthorized(ApiResponse<object>.Error("Unauthorized.", 401));
+
+            var project = await _context.Projects
+                .Include(item => item.ProjectMembers)
+                .FirstOrDefaultAsync(item => item.Id == id && !item.IsDeleted);
+
+            if (project == null)
+                return NotFound(ApiResponse<object>.Error("Project not found.", 404));
+
+            if (!await CanUpdateProjectVisuals(project, userId))
+                return StatusCode(403, ApiResponse<object>.Error("Forbidden.", 403));
+
+            var nextCoverUrl = TrimOrNull(coverUrl);
+            if (file != null && file.Length > 0)
+            {
+                var validation = ValidateCoverUpload(file);
+                if (validation != null) return validation;
+
+                var uploadsRoot = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "project-covers");
+                Directory.CreateDirectory(uploadsRoot);
+                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                var fileName = $"{project.Id:N}-{DateTime.UtcNow:yyyyMMddHHmmssfff}{extension}";
+                var filePath = Path.Combine(uploadsRoot, fileName);
+                await using (var stream = System.IO.File.Create(filePath))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                nextCoverUrl = $"/uploads/project-covers/{fileName}";
+            }
+
+            if (string.IsNullOrWhiteSpace(nextCoverUrl) && string.IsNullOrWhiteSpace(icon))
+            {
+                return BadRequest(ApiResponse<object>.Error("Provide a cover file, coverUrl, or icon."));
+            }
+
+            if (!string.IsNullOrWhiteSpace(nextCoverUrl))
+            {
+                project.CoverUrl = nextCoverUrl;
+                project.CoverAltText = TrimOrNull(coverAltText) ?? $"Cover for {project.Name}";
+            }
+
+            project.NavigationConfig = MergeProjectVisualsIntoNavigationConfig(
+                project.NavigationConfig,
+                nextCoverUrl,
+                project.CoverAltText,
+                TrimOrNull(icon));
+            project.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(ApiResponse<object>.Success(new
+            {
+                project.Id,
+                project.CoverUrl,
+                project.CoverAltText,
+                icon = TrimOrNull(icon),
+                project.NavigationConfig
+            }));
+        }
+
+        [HttpDelete("{id:guid}/cover")]
+        public async Task<IActionResult> DeleteCover(Guid id)
+        {
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdString, out var userId))
+                return Unauthorized(ApiResponse<object>.Error("Unauthorized.", 401));
+
+            var project = await _context.Projects
+                .Include(item => item.ProjectMembers)
+                .FirstOrDefaultAsync(item => item.Id == id && !item.IsDeleted);
+
+            if (project == null)
+                return NotFound(ApiResponse<object>.Error("Project not found.", 404));
+
+            if (!await CanUpdateProjectVisuals(project, userId))
+                return StatusCode(403, ApiResponse<object>.Error("Forbidden.", 403));
+
+            project.CoverUrl = null;
+            project.CoverAltText = null;
+            project.NavigationConfig = MergeProjectVisualsIntoNavigationConfig(
+                project.NavigationConfig,
+                null,
+                null,
+                null,
+                removeCover: true);
+            project.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(ApiResponse<object>.Success(new
+            {
+                project.Id,
+                project.CoverUrl,
+                project.CoverAltText,
+                project.NavigationConfig
+            }));
+        }
+
+        private async Task<bool> CanUpdateProjectVisuals(Project project, Guid userId)
+        {
+            var claimRoles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
+            var dbRoles = await _context.UserRoles
+                .AsNoTracking()
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.Role.Name)
+                .ToListAsync();
+
+            if (claimRoles.Concat(dbRoles).Any(role => SystemOverrideRoles.Contains(role, StringComparer.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            if (project.CreatorId == userId)
+            {
+                return true;
+            }
+
+            if (await _context.WorkspaceMembers.AnyAsync(item =>
+                    item.WorkspaceId == project.WorkspaceId &&
+                    item.UserId == userId &&
+                    item.IsActive &&
+                    (item.WorkspaceRole == "OWNER" || item.WorkspaceRole == "ADMIN")))
+            {
+                return true;
+            }
+
+            var projectRole = project.ProjectMembers
+                .FirstOrDefault(item => item.UserId == userId && item.Status && item.LeftAt == null)
+                ?.ProjectRole;
+
+            return !string.IsNullOrWhiteSpace(projectRole) &&
+                   new[] { "PM", "PO", "SM", "PROJECT_MANAGER", "PROJECT_ADMIN", "Project Lead", "Admin" }
+                       .Contains(projectRole, StringComparer.OrdinalIgnoreCase);
+        }
+
+        private IActionResult? ValidateCoverUpload(IFormFile file)
+        {
+            if (file.Length > 5 * 1024 * 1024)
+            {
+                return BadRequest(ApiResponse<object>.Error("Project cover must be 5MB or smaller."));
+            }
+
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            var allowedExtensions = new[] { ".png", ".jpg", ".jpeg", ".webp" };
+            if (!allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+            {
+                return BadRequest(ApiResponse<object>.Error("Project cover must be PNG, JPG, JPEG, or WEBP."));
+            }
+
+            var contentType = (file.ContentType ?? string.Empty).Split(';', 2)[0].Trim();
+            var allowedContentTypes = new[] { "image/png", "image/jpeg", "image/webp" };
+            if (!allowedContentTypes.Contains(contentType, StringComparer.OrdinalIgnoreCase))
+            {
+                return BadRequest(ApiResponse<object>.Error("Invalid project cover content type."));
+            }
+
+            return null;
+        }
+
+        private static string? TrimOrNull(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+
         [HttpPost]
+        // [RequirePermission("projects.dashboard.create")]
         public async Task<IActionResult> Create([FromBody] CreateProjectDto dto)
         {
             try
@@ -716,6 +960,7 @@ namespace TaskManagement.API.Controllers
 
         [HttpPut("{projectId:guid}")]
         [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,SM,Admin")]
+        [RequirePermission("projects.dashboard.edit")]
         public async Task<IActionResult> Update(Guid projectId, [FromBody] UpdateProjectDto dto)
         {
             try
@@ -734,6 +979,7 @@ namespace TaskManagement.API.Controllers
         /// </summary>
         [HttpPut("{projectId:guid}/archive")]
         [ProjectAuthorize("PROJECT_MANAGER,PROJECT_LEAD,PM,PO,SM,Admin")]
+        [RequirePermission("projects.dashboard.delete")]
         public async Task<IActionResult> Archive(Guid projectId)
         {
             try

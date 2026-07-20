@@ -1,32 +1,32 @@
 <template>
   <div>
-    <div class="rewards-page">
+    <div class="rewards-page sp-page-shell">
       <header class="nexus-feature-header">
         <div class="header-info">
-          <p class="eyebrow">Hệ thống điểm</p>
-          <h1>Phần thưởng</h1>
-          <p class="muted">Theo dõi điểm thưởng, cấp độ nghề nghiệp, tỷ lệ đóng góp và thưởng hoàn thành sớm.</p>
+          <p class="eyebrow">{{ t('rewards.eyebrow') }}</p>
+          <h1>{{ t('rewards.title') }}</h1>
+          <p class="muted">{{ t('rewards.subtitle') }}</p>
         </div>
         <button class="refresh-btn" type="button" :disabled="loading" @click="loadRewards">
-          <i class="fa-solid fa-rotate"></i> {{ loading ? 'Đang cập nhật...' : 'Làm mới' }}
+          <i class="fa-solid fa-rotate"></i> {{ loading ? t('rewards.refreshing') : t('rewards.refresh') }}
         </button>
       </header>
 
       <section class="wallet-band">
         <div class="wallet-card">
-          <span class="label">Số dư hiện tại</span>
+          <span class="label">{{ t('rewards.balance') }}</span>
           <strong>{{ wallet.totalPoints }}</strong>
           <span class="unit">điểm</span>
         </div>
         <div class="wallet-card">
-          <span class="label">Cấp độ nghề nghiệp</span>
+          <span class="label">{{ t('rewards.level') }}</span>
           <strong>{{ career.level }}</strong>
           <span class="unit">{{ career.title }}</span>
         </div>
         <div class="wallet-card wide">
           <div class="wallet-card-head">
-            <span class="label">Tiến độ cấp độ</span>
-            <span class="unit">{{ pointsToNext }} điểm đến cấp tiếp theo</span>
+            <span class="label">{{ t('rewards.progress') }}</span>
+            <span class="unit">{{ pointsToNext }} {{ t('rewards.pointsToNext') }}</span>
           </div>
           <div class="progress-container">
             <div class="progress-track">
@@ -40,24 +40,24 @@
       <section class="formula-band">
         <div class="panel">
           <div class="panel-head">
-            <h2>Công thức tính điểm</h2>
+            <h2>{{ t('rewards.formula') }}</h2>
             <span>{{ formula.expression }}</span>
           </div>
           <div class="formula-grid">
             <div class="formula-cell">
-              <span>Độ khó</span>
+            <span>{{ t('rewards.difficulty') }}</span>
               <strong>{{ formula.sample.difficulty }}</strong>
             </div>
             <div class="formula-cell">
-              <span>Thời lượng</span>
+              <span>{{ t('rewards.duration') }}</span>
               <strong>{{ formula.sample.duration }}</strong>
             </div>
             <div class="formula-cell">
-              <span>Tỷ lệ</span>
+              <span>{{ t('rewards.share') }}</span>
               <strong>{{ formula.sample.share }}%</strong>
             </div>
             <div class="formula-cell total">
-              <span>Điểm cuối cùng</span>
+              <span>{{ t('rewards.finalPoints') }}</span>
               <strong>{{ formula.sample.total }}</strong>
             </div>
           </div>
@@ -71,8 +71,8 @@
 
         <div class="panel">
           <div class="panel-head">
-            <h2>Tổng kết</h2>
-            <span>Sprint này</span>
+            <h2>{{ t('rewards.summary') }}</h2>
+            <span>{{ t('rewards.thisSprint') }}</span>
           </div>
           <div class="summary-list">
             <div class="summary-row"><span>Công việc hoàn thành</span><strong>{{ summary.completedTasks }}</strong></div>
@@ -92,7 +92,10 @@
       <main class="rewards-grid">
         <section class="panel">
           <div class="panel-head"><h2>Công việc tiêu biểu</h2><span>Giá trị nhất</span></div>
-          <article v-for="task in displaySpotlightTasks" :key="task.id" class="spotlight-row">
+          <div v-if="!loading && spotlightTasks.length === 0" class="empty">
+            Chưa có công việc tiêu biểu. Hoàn thành công việc thật để hệ thống ghi nhận điểm.
+          </div>
+          <article v-for="task in spotlightTasks" :key="task.id" class="spotlight-row">
             <div class="spotlight-main">
               <strong>{{ task.sequenceId || 'TASK' }}</strong>
               <div class="spotlight-title">{{ task.title }}</div>
@@ -108,8 +111,11 @@
         </section>
 
         <section class="panel">
-          <div class="panel-head"><h2>Thành tích gần đây</h2><span>{{ displayRecentAchievements.length }}</span></div>
-          <article v-for="item in displayRecentAchievements" :key="item.id" class="achievement-row">
+          <div class="panel-head"><h2>Thành tích gần đây</h2><span>{{ recentAchievements.length }}</span></div>
+          <div v-if="!loading && recentAchievements.length === 0" class="empty">
+            Chưa có thành tích nào từ dữ liệu thật.
+          </div>
+          <article v-for="item in recentAchievements" :key="item.id" class="achievement-row">
             <div>
               <strong>{{ item.title }}</strong>
               <div class="muted">{{ item.reason }}</div>
@@ -121,9 +127,12 @@
 
       <section class="rewards-grid lower-grid">
         <section class="panel">
-          <div class="panel-head"><h2>Lịch sử điểm</h2><span>{{ displayTransactions.length }}</span></div>
+          <div class="panel-head"><h2>Lịch sử điểm</h2><span>{{ transactions.length }}</span></div>
           <div v-if="loading" class="empty">Đang tải dữ liệu...</div>
-          <article v-for="tx in displayTransactions" v-else :key="tx.id" class="tx-row">
+          <div v-else-if="transactions.length === 0" class="empty">
+            Chưa có giao dịch điểm. Điểm sẽ xuất hiện khi công việc thật được hoàn thành.
+          </div>
+          <article v-for="tx in transactions" v-else :key="tx.id" class="tx-row">
             <div class="tx-icon" :class="{ negative: tx.amount < 0 }">
               <i :class="tx.amount >= 0 ? 'fa-solid fa-plus' : 'fa-solid fa-minus'"></i>
             </div>
@@ -157,6 +166,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18nStore } from '@/store/useI18nStore'
+
+const { t } = useI18nStore()
 
 import axiosClient from '@/api/axiosClient'
 import UserAvatar from '@/components/common/UserAvatar.vue'
@@ -175,64 +187,6 @@ const spotlightTasks = ref([])
 const recentAchievements = ref([])
 const transactions = ref([])
 const leaderboard = ref([])
-
-const now = Date.now()
-const demoSpotlightTasks = [
-  {
-    id: 'demo-spotlight-1',
-    sequenceId: 'SPR-128',
-    title: 'Hoàn thiện luồng tạo task từ Integration Inbox',
-    estimatedDays: 2,
-    estimatedHours: 8,
-    actualHours: 6,
-    contributionShare: 100,
-    fairPoints: 96,
-    efficiency: 1.25,
-    qualityModifier: 1.1,
-    progressPercent: 100
-  },
-  {
-    id: 'demo-spotlight-2',
-    sequenceId: 'SPR-117',
-    title: 'Đồng bộ Gmail và Google Calendar vào Unified Inbox',
-    estimatedDays: 3,
-    estimatedHours: 12,
-    actualHours: 11,
-    contributionShare: 80,
-    fairPoints: 72,
-    efficiency: 1.09,
-    qualityModifier: 1,
-    progressPercent: 100
-  },
-  {
-    id: 'demo-spotlight-3',
-    sequenceId: 'SPR-104',
-    title: 'Thiết kế lại Rewards dashboard gọn và dễ đọc',
-    estimatedDays: 1,
-    estimatedHours: 5,
-    actualHours: 4,
-    contributionShare: 100,
-    fairPoints: 48,
-    efficiency: 1.2,
-    qualityModifier: 1,
-    progressPercent: 90
-  }
-]
-const demoAchievements = [
-  { id: 'demo-achievement-1', title: 'Hoàn thành đúng hạn', reason: 'Task tích hợp được đưa về trạng thái hoàn thành trước deadline.', amount: 35 },
-  { id: 'demo-achievement-2', title: 'Đóng góp nổi bật', reason: 'Tạo task thật từ dữ liệu lịch/email và giữ nội dung có dấu rõ ràng.', amount: 28 },
-  { id: 'demo-achievement-3', title: 'Cộng tác tốt', reason: 'Có cập nhật tiến độ, giảm lỗi trùng dữ liệu khi đồng bộ lại.', amount: 18 }
-]
-const demoTransactions = [
-  { id: 'demo-tx-1', taskSequenceId: 'SPR-128', taskTitle: 'Hoàn thiện luồng tạo task từ Integration Inbox', reason: 'Điểm cơ bản + thưởng hoàn thành sớm', amount: 96, createdAt: new Date(now - 1000 * 60 * 35).toISOString() },
-  { id: 'demo-tx-2', taskSequenceId: 'SPR-117', taskTitle: 'Đồng bộ Gmail và Google Calendar', reason: 'Điểm đóng góp theo tỷ lệ thực hiện 80%', amount: 72, createdAt: new Date(now - 1000 * 60 * 60 * 3).toISOString() },
-  { id: 'demo-tx-3', taskSequenceId: 'SPR-104', taskTitle: 'Thiết kế Rewards dashboard', reason: 'Điểm chất lượng cho UI không chồng chữ', amount: 48, createdAt: new Date(now - 1000 * 60 * 60 * 8).toISOString() },
-  { id: 'demo-tx-4', taskSequenceId: 'SPR-099', taskTitle: 'Kiểm tra OAuth redirect', reason: 'Phạt nhẹ do cập nhật trễ cấu hình callback', amount: -6, createdAt: new Date(now - 1000 * 60 * 60 * 24).toISOString() }
-]
-
-const displaySpotlightTasks = computed(() => spotlightTasks.value.length ? spotlightTasks.value : demoSpotlightTasks)
-const displayRecentAchievements = computed(() => recentAchievements.value.length ? recentAchievements.value : demoAchievements)
-const displayTransactions = computed(() => transactions.value.length ? transactions.value : demoTransactions)
 
 const formatDate = (value) => (value ? new Date(value).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) : '')
 const pointsToNext = computed(() => Math.max(0, Number(career.value?.nextThreshold || 0) - Number(wallet.value?.totalPoints || 0)))

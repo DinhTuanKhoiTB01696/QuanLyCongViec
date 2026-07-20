@@ -44,6 +44,9 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<TaskType> TaskTypes { get; set; }
         public DbSet<TaskManagement.Domain.Entities.TaskStatus> TaskStatuses { get; set; }
         public DbSet<WorkTask> WorkTasks { get; set; }
+        public DbSet<TaskContingencyPlan> TaskContingencyPlans { get; set; }
+        public DbSet<ContingencyPlan> ContingencyPlans { get; set; }
+        public DbSet<ContingencyPlanTask> ContingencyPlanTasks { get; set; }
         public DbSet<TaskAssignment> TaskAssignments { get; set; }
         public DbSet<TaskDependency> TaskDependencies { get; set; }
 
@@ -55,6 +58,7 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<SiteAuditLog> SiteAuditLogs { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<NotificationPreference> NotificationPreferences { get; set; }
         public DbSet<RecentView> RecentViews { get; set; }
 
         // Group 5: Gamification & Recognition
@@ -67,9 +71,15 @@ namespace TaskManagement.Infrastructure.Data
         // Group 6: AI Integration
         public DbSet<AIPromptTemplate> AIPromptTemplates { get; set; }
         public DbSet<AITokenUsage> AITokenUsages { get; set; }
+        public DbSet<AiPricingPlan> AiPricingPlans { get; set; }
+        public DbSet<AiCreditRule> AiCreditRules { get; set; }
+        public DbSet<AiUsageLedger> AiUsageLedgerEntries { get; set; }
         public DbSet<AIFeedback> AIFeedbacks { get; set; }
         public DbSet<AITrainingDataset> AITrainingDatasets { get; set; }
         public DbSet<TaskVectorEmbedding> TaskVectorEmbeddings { get; set; }
+        public DbSet<AiConversation> AiConversations { get; set; }
+        public DbSet<AiAttachment> AiAttachments { get; set; }
+        public DbSet<AiAttachmentChunk> AiAttachmentChunks { get; set; }
         public DbSet<IntegrationAccount> IntegrationAccounts { get; set; }
         public DbSet<InboxItem> InboxItems { get; set; }
         public DbSet<SyncHistory> SyncHistories { get; set; }
@@ -107,8 +117,14 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<ProjectRisk> ProjectRisks { get; set; }
         public DbSet<ProjectDecision> ProjectDecisions { get; set; }
         public DbSet<EntityFollower> EntityFollowers { get; set; }
+
         public DbSet<DirectMessage> DirectMessages { get; set; }
         public DbSet<ChannelMessage> ChannelMessages { get; set; }
+
+        public DbSet<CustomFieldDefinition> CustomFieldDefinitions { get; set; }
+        public DbSet<CustomFieldValue> CustomFieldValues { get; set; }
+
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -121,6 +137,8 @@ namespace TaskManagement.Infrastructure.Data
             modelBuilder.Entity<Project>().HasQueryFilter(p => !p.IsDeleted);
             modelBuilder.Entity<WorkTask>().HasQueryFilter(wt => !wt.IsDeleted);
             modelBuilder.Entity<Workspace>().HasQueryFilter(w => !w.IsDeleted);
+            modelBuilder.Entity<CustomFieldDefinition>().HasQueryFilter(cfd => !cfd.IsDeleted);
+            modelBuilder.Entity<StickyNote>().HasQueryFilter(note => !note.IsDeleted);
 
             // =============================================
             // 0.5 Department - Project Relationship
@@ -139,6 +157,39 @@ namespace TaskManagement.Infrastructure.Data
             modelBuilder.Entity<DepartmentMember>().HasKey(x => new { x.DepartmentId, x.UserId });
             modelBuilder.Entity<ProjectMember>().HasKey(x => new { x.ProjectId, x.UserId });
             modelBuilder.Entity<TaskAssignment>().HasKey(x => new { x.WorkTaskId, x.UserId });
+
+            modelBuilder.Entity<ContingencyPlan>()
+                .HasOne(cp => cp.WorkTask)
+                .WithMany(wt => wt.ContingencyPlans)
+                .HasForeignKey(cp => cp.WorkTaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ContingencyPlanTask>()
+                .HasOne(cpt => cpt.ContingencyPlan)
+                .WithMany(cp => cp.ContingencyPlanTasks)
+                .HasForeignKey(cpt => cpt.ContingencyPlanId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ContingencyPlanTask>()
+                .HasOne(cpt => cpt.WorkTask)
+                .WithMany()
+                .HasForeignKey(cpt => cpt.WorkTaskId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ContingencyPlanTask>()
+                .HasOne(cpt => cpt.Assignee)
+                .WithMany()
+                .HasForeignKey(cpt => cpt.AssigneeId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<ContingencyPlanTask>()
+                .HasOne(cpt => cpt.ActivatedBy)
+                .WithMany()
+                .HasForeignKey(cpt => cpt.ActivatedById)
+                .OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<TaskDependency>().HasKey(x => new { x.PredecessorTaskId, x.SuccessorTaskId });
             modelBuilder.Entity<UserWallet>().HasKey(x => x.UserId);
             modelBuilder.Entity<TaskVectorEmbedding>().HasKey(x => x.WorkTaskId);
@@ -165,9 +216,41 @@ namespace TaskManagement.Infrastructure.Data
             modelBuilder.Entity<WorkTask>().HasIndex(wt => wt.AssignedUserId);
             modelBuilder.Entity<WorkTask>().HasIndex(wt => new { wt.WorkspaceId, wt.ProjectId });
             modelBuilder.Entity<WorkTask>().HasIndex(wt => wt.SortOrder);
+            modelBuilder.Entity<TaskContingencyPlan>().HasIndex(plan => new { plan.WorkTaskId, plan.Status });
+            modelBuilder.Entity<TaskContingencyPlan>().HasIndex(plan => plan.SupportPersonId);
             modelBuilder.Entity<ProjectMember>().HasIndex(pm => pm.UserId);
             modelBuilder.Entity<TaskDraft>().HasIndex(td => new { td.UserId, td.UpdatedAt });
             modelBuilder.Entity<TaskDraft>().HasIndex(td => new { td.UserId, td.ProjectId, td.UpdatedAt });
+            modelBuilder.Entity<AiConversation>().HasIndex(conversation => new { conversation.UserId, conversation.WorkspaceId, conversation.UpdatedAt });
+            modelBuilder.Entity<AiConversation>().Property(conversation => conversation.Title).HasMaxLength(180);
+            modelBuilder.Entity<AiConversation>().Property(conversation => conversation.MessagesJson).HasColumnType("nvarchar(max)");
+            modelBuilder.Entity<AiAttachment>(entity =>
+            {
+                entity.Property(item => item.FileName).HasMaxLength(255).IsRequired();
+                entity.Property(item => item.StoredFileName).HasMaxLength(100).IsRequired();
+                entity.Property(item => item.MimeType).HasMaxLength(150).IsRequired();
+                entity.Property(item => item.Extension).HasMaxLength(20).IsRequired();
+                entity.Property(item => item.Kind).HasMaxLength(20).IsRequired();
+                entity.Property(item => item.Sha256).HasMaxLength(64).IsRequired();
+                entity.Property(item => item.Status).HasMaxLength(30).IsRequired();
+                entity.Property(item => item.ErrorMessage).HasMaxLength(500);
+                entity.HasIndex(item => new { item.UserId, item.WorkspaceId, item.ConversationId, item.Sha256 });
+                entity.HasIndex(item => new { item.ConversationId, item.CreatedAt });
+                entity.HasOne<AiConversation>()
+                    .WithMany()
+                    .HasForeignKey(item => item.ConversationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<AiAttachmentChunk>(entity =>
+            {
+                entity.Property(item => item.Locator).HasMaxLength(180).IsRequired();
+                entity.Property(item => item.Content).HasMaxLength(2000).IsRequired();
+                entity.HasIndex(item => new { item.AttachmentId, item.ChunkIndex }).IsUnique();
+                entity.HasOne(item => item.Attachment)
+                    .WithMany(item => item.Chunks)
+                    .HasForeignKey(item => item.AttachmentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
             modelBuilder.Entity<IntegrationAccount>().HasIndex(ia => new { ia.UserId, ia.Provider }).IsUnique();
             modelBuilder.Entity<InboxItem>().HasIndex(ii => new { ii.UserId, ii.Provider, ii.ExternalId }).IsUnique();
             modelBuilder.Entity<InboxItem>().HasIndex(ii => new { ii.UserId, ii.Source, ii.CreatedAt });
@@ -535,6 +618,25 @@ namespace TaskManagement.Infrastructure.Data
                 .HasForeignKey(tu => tu.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<AiPricingPlan>().HasIndex(x => x.Code).IsUnique();
+            modelBuilder.Entity<AiPricingPlan>().Property(x => x.Code).HasMaxLength(64);
+            modelBuilder.Entity<AiPricingPlan>().Property(x => x.Name).HasMaxLength(128);
+            modelBuilder.Entity<AiPricingPlan>().Property(x => x.PricingStatus).HasMaxLength(64);
+            modelBuilder.Entity<AiCreditRule>().HasIndex(x => x.ActionType).IsUnique();
+            modelBuilder.Entity<AiCreditRule>().Property(x => x.ActionType).HasMaxLength(128);
+            modelBuilder.Entity<AiUsageLedger>().HasIndex(x => new { x.WorkspaceId, x.OccurredAt });
+            modelBuilder.Entity<AiUsageLedger>().HasIndex(x => new { x.UserId, x.OccurredAt });
+            modelBuilder.Entity<AiUsageLedger>().HasIndex(x => x.IdempotencyKey).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
+            modelBuilder.Entity<AiUsageLedger>()
+                .HasOne(x => x.User).WithMany(x => x.AiUsageLedgerEntries).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<AiUsageLedger>()
+                .HasOne(x => x.Workspace).WithMany().HasForeignKey(x => x.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<AiUsageLedger>()
+                .HasOne(x => x.Project).WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<NotificationPreference>().HasIndex(x => new { x.UserId, x.Category }).IsUnique();
+            modelBuilder.Entity<NotificationPreference>()
+                .HasOne(x => x.User).WithMany(x => x.NotificationPreferences).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+
             modelBuilder.Entity<AIFeedback>()
                 .HasOne(f => f.User)
                 .WithMany(u => u.AIFeedbacks)
@@ -552,6 +654,30 @@ namespace TaskManagement.Infrastructure.Data
                 .WithOne(wt => wt.TaskVectorEmbedding)
                 .HasForeignKey<TaskVectorEmbedding>(tve => tve.WorkTaskId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TaskContingencyPlan>()
+                .HasOne(plan => plan.WorkTask)
+                .WithMany(task => task.TaskContingencyPlans)
+                .HasForeignKey(plan => plan.WorkTaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TaskContingencyPlan>()
+                .HasOne(plan => plan.SupportPerson)
+                .WithMany()
+                .HasForeignKey(plan => plan.SupportPersonId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<TaskContingencyPlan>()
+                .HasOne(plan => plan.CreatedBy)
+                .WithMany()
+                .HasForeignKey(plan => plan.CreatedById)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<TaskContingencyPlan>()
+                .HasOne(plan => plan.UpdatedBy)
+                .WithMany()
+                .HasForeignKey(plan => plan.UpdatedById)
+                .OnDelete(DeleteBehavior.NoAction);
 
             // =============================================
             // 9. Relationships - Time Tracking
@@ -802,6 +928,23 @@ namespace TaskManagement.Infrastructure.Data
                 .HasForeignKey(si => si.WorkspaceId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<StarredItem>()
+                .Property(si => si.ItemType)
+                .IsRequired()
+                .HasMaxLength(64);
+
+            modelBuilder.Entity<StarredItem>()
+                .HasIndex(si => new { si.UserId, si.WorkspaceId, si.ItemType, si.ItemId })
+                .IsUnique();
+
+            modelBuilder.Entity<StarredItem>()
+                .HasIndex(si => si.UserId);
+
+            modelBuilder.Entity<StarredItem>()
+                .ToTable("StarredItems", table => table.HasCheckConstraint(
+                    "CK_StarredItems_ItemType",
+                    "[ItemType] IN ('Goal', 'Project', 'Team', 'User')"));
+
             modelBuilder.Entity<ProjectLink>()
                 .HasOne(pl => pl.Project)
                 .WithMany()
@@ -814,6 +957,20 @@ namespace TaskManagement.Infrastructure.Data
                 .HasForeignKey(pl => pl.CreatorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<StickyNote>(entity =>
+            {
+                entity.Property(note => note.Title).HasMaxLength(180).IsRequired();
+                entity.Property(note => note.Content).HasMaxLength(10000).IsRequired();
+                entity.Property(note => note.Color).HasMaxLength(20).IsRequired();
+                entity.Property(note => note.SourceRoute).HasMaxLength(500);
+                entity.HasIndex(note => new { note.UserId, note.IsDeleted, note.IsPinned, note.UpdatedAt });
+                entity.HasIndex(note => new { note.UserId, note.IsFloating });
+                entity.HasIndex(note => note.WorkspaceId);
+                entity.HasIndex(note => note.ProjectId);
+                entity.HasIndex(note => note.WorkTaskId);
+                entity.HasIndex(note => note.GoalId);
+            });
+
             // =============================================
             // 11. Applying custom configurations
             // =============================================
@@ -822,7 +979,8 @@ namespace TaskManagement.Infrastructure.Data
             modelBuilder.ApplyConfiguration(new Configurations.TenantConfigConfiguration());
             modelBuilder.ApplyConfiguration(new Configurations.RefreshTokenConfiguration());
 
-            modelBuilder.Entity<DirectMessage>()
+
+           modelBuilder.Entity<DirectMessage>()
                 .HasOne(dm => dm.Sender)
                 .WithMany()
                 .HasForeignKey(dm => dm.SenderId)
@@ -845,6 +1003,37 @@ namespace TaskManagement.Infrastructure.Data
                 .WithMany()
                 .HasForeignKey(cm => cm.ChannelId)
                 .OnDelete(DeleteBehavior.Cascade);
+            // Custom Fields Configurations
+            modelBuilder.Entity<CustomFieldDefinition>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.HasOne(x => x.Project)
+                    .WithMany(p => p.CustomFieldDefinitions)
+                    .HasForeignKey(x => x.ProjectId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(x => new { x.ProjectId, x.Key })
+                    .IsUnique()
+                    .HasFilter("[IsDeleted] = 0");
+            });
+
+            modelBuilder.Entity<CustomFieldValue>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.HasOne(x => x.WorkTask)
+                    .WithMany(t => t.CustomFieldValues)
+                    .HasForeignKey(x => x.WorkTaskId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(x => x.FieldDefinition)
+                    .WithMany(fd => fd.CustomFieldValues)
+                    .HasForeignKey(x => x.FieldDefinitionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => new { x.WorkTaskId, x.FieldDefinitionId })
+                    .IsUnique();
+            });
+
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

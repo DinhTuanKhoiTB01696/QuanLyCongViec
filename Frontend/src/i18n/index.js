@@ -29,6 +29,10 @@ const readInitialLanguage = () => {
 
 export const language = ref(readInitialLanguage())
 
+const syncDocumentLanguage = (nextLanguage) => {
+  if (typeof document !== 'undefined') document.documentElement.lang = nextLanguage
+}
+
 const persistLanguage = (nextLanguage) => {
   try {
     localStorage.setItem(STORAGE_KEY, nextLanguage)
@@ -40,6 +44,7 @@ const persistLanguage = (nextLanguage) => {
 }
 
 persistLanguage(language.value)
+syncDocumentLanguage(language.value)
 
 const resolvePath = (source, key) => {
   return key.split('.').reduce((current, part) => {
@@ -63,14 +68,17 @@ export const setLanguage = (nextLanguage) => {
   const normalized = normalizeLanguage(nextLanguage)
   language.value = normalized
   persistLanguage(normalized)
+  syncDocumentLanguage(normalized)
   return normalized
 }
 
 export const t = (key, params = {}) => {
   const currentValue = resolvePath(dictionaries[language.value] || dictionaries.vi, key)
-  const fallbackValue = resolvePath(dictionaries.vi, key) ?? resolvePath(dictionaries.en, key)
-  const value = currentValue ?? fallbackValue
-  return interpolate(value ?? key, params)
+  if (currentValue !== undefined) return interpolate(currentValue, params)
+  // Fallback: thử ngôn ngữ còn lại (en → vi nếu chưa có trong en; vi → en nếu chưa có trong vi)
+  const otherLang = language.value === 'vi' ? 'en' : 'vi'
+  const fallbackValue = resolvePath(dictionaries[otherLang], key)
+  return interpolate(fallbackValue ?? key, params)
 }
 
 export const isSupportedLanguage = (nextLanguage) => SUPPORTED_LANGUAGES.includes(nextLanguage)

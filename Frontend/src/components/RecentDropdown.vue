@@ -11,7 +11,7 @@
 
     <div class="jd-body">
       <div v-if="filteredGroups.length === 0" class="jd-empty">
-        <img src="https://jira-frontend-bifrost.prod-east.frontend.public.atl-paas.net/assets/no-tasks.svg" alt="Empty" onerror="this.style.display='none'" />
+        <i class="fa-solid fa-box-open" style="font-size: 48px; color: var(--color-text-muted); margin-bottom: 16px;"></i>
         <p v-if="searchQuery">No matching items found</p>
         <p v-else>You haven't viewed any items recently</p>
       </div>
@@ -39,7 +39,7 @@
     </div>
 
     <div class="jd-footer">
-      <button @click="viewAllRecent">View all recent items</button>
+      <button @click="viewAllRecent">Xem tất cả hoạt động gần đây</button>
     </div>
   </div>
 </template>

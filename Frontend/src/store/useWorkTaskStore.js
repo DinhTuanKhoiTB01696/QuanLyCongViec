@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import axiosClient from '@/api/axiosClient'
 import { useSiteStore } from './useSiteStore'
 import { useProjectStore } from './useProjectStore'
+import { ensureWorkspaceIdFromState, isValidEntityId, resolveWorkspaceIdFromState } from '@/utils/contextIds'
 
 const normalizeDateOnly = (value) => {
   if (!value) return null
@@ -55,6 +56,9 @@ const normalizeTaskRecord = (task = {}, fallbackProjectId = null) => {
       .filter(item => item.userId)
       .filter((item, index, list) => list.findIndex(candidate => candidate.userId === item.userId) === index),
     statusName: task.statusName || task.StatusName || '',
+    taskStatusId: task.taskStatusId || task.TaskStatusId || null,
+    taskTypeId: task.taskTypeId || task.TaskTypeId || null,
+    rowVersion: task.rowVersion || task.RowVersion || null,
     sequenceId: task.sequenceId || task.SequenceId || null,
     sortOrder: task.sortOrder ?? task.SortOrder ?? 0,
     sprintId: task.sprintId || task.SprintId || null,
@@ -224,15 +228,26 @@ export const useWorkTaskStore = defineStore('workTask', {
         throw err;
       }
     },
-    async updateTaskStatus(projectId, taskId, statusName) {
+    async updateTaskStatus(projectId, taskId, statusName, options = {}) {
       const task = this.tasks.find(t => t.id === taskId);
-      const previousStatus = task?.statusName;
+      const previousTask = task ? { ...task } : null;
+      const rowVersion = options.rowVersion || task?.rowVersion || task?.RowVersion || null;
+      if (!rowVersion) {
+        throw new Error('Task is missing rowVersion. Please reload the task before updating status.')
+      }
       if (task) task.statusName = statusName;
       try {
-        await axiosClient.put(`/projects/${projectId}/WorkTasks/${taskId}/status`, { statusName });
+        const res = await axiosClient.put(`/projects/${projectId}/WorkTasks/${taskId}/status`, {
+          statusName,
+          rowVersion
+        });
+        const updatedTask = normalizeTaskRecord(res.data?.data || {}, projectId);
+        if (task && updatedTask?.id) {
+          Object.assign(task, updatedTask)
+        }
         await this.fetchTasks(projectId);
       } catch (err) {
-        if (task) task.statusName = previousStatus;
+        if (task && previousTask) Object.assign(task, previousTask);
         this.error = err.response?.data?.message || err.message;
         throw err;
       }
@@ -262,40 +277,36 @@ export const useWorkTaskStore = defineStore('workTask', {
       let project = projectStore.currentProject
       if (project && project.id === searchId) {
         const workspaceId = project.workspaceId || project.WorkspaceId
-        if (workspaceId && workspaceId.length >= 36) return workspaceId
+        if (isValidEntityId(workspaceId)) return workspaceId
       }
 
       if (searchId) {
         project = projectStore.projectDetailsById[searchId]
         const workspaceId = project?.workspaceId || project?.WorkspaceId
-        if (workspaceId && workspaceId.length >= 36) return workspaceId
+        if (isValidEntityId(workspaceId)) return workspaceId
       }
 
       if (searchId) {
         project = projectStore.allProjects.find(item => item.id === searchId)
         const workspaceId = project?.workspaceId || project?.WorkspaceId || project?.originalRow?.workspaceId || project?.originalRow?.WorkspaceId
-        if (workspaceId && workspaceId.length >= 36) return workspaceId
+        if (isValidEntityId(workspaceId)) return workspaceId
       }
 
       const taskProject = taskProjectId || projectId
       if (taskProject) {
         project = projectStore.allProjects.find(item => item.id === taskProject)
         const workspaceId = project?.workspaceId || project?.WorkspaceId || project?.originalRow?.workspaceId || project?.originalRow?.WorkspaceId
-        if (workspaceId && workspaceId.length >= 36) return workspaceId
+        if (isValidEntityId(workspaceId)) return workspaceId
       }
 
-      const localId = localStorage.getItem('sprinta_recent_site_id') || localStorage.getItem('recent_site_id')
-      if (localId && localId.length >= 36 && localId !== '00000000-0000-0000-0000-000000000000') return localId
-
-      const siteId = siteStore.activeSite?.id || siteStore.recentSite?.id || siteStore.recentSite?.Id
-      if (siteId && siteId.length >= 36) return siteId
-
-      return null
+      return resolveWorkspaceIdFromState({ siteStore })
     },
     async fetchStarredTasks() {
-      let workspaceId = this.resolveWorkspaceId()
+      const siteStore = useSiteStore()
+      const workspaceId = this.resolveWorkspaceId() || await ensureWorkspaceIdFromState({ siteStore })
       if (!workspaceId) {
-        workspaceId = '00000000-0000-0000-0000-000000000000'
+        this.starredTasks = []
+        return []
       }
       try {
         const response = await axiosClient.get(`/workspaces/${workspaceId}/StarredItems`)
@@ -305,15 +316,18 @@ export const useWorkTaskStore = defineStore('workTask', {
           : Array.isArray(data?.data)
             ? data.data
             : []
+        return this.starredTasks
       } catch (error) {
         console.error('Failed to fetch starred tasks:', error)
+        return []
       }
     },
     async toggleTaskStar(taskOrId) {
       if (!taskOrId) return
       const taskId = typeof taskOrId === 'object' ? taskOrId.id : taskOrId
       const fullTask = typeof taskOrId === 'object' ? taskOrId : this.tasks.find(t => t.id === taskId)
-      const workspaceId = this.resolveWorkspaceId(null, fullTask?.projectId)
+      const siteStore = useSiteStore()
+      const workspaceId = this.resolveWorkspaceId(null, fullTask?.projectId) || await ensureWorkspaceIdFromState({ siteStore })
       if (!workspaceId) {
         console.error('Cannot toggle star: workspace ID is empty')
         return

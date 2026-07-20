@@ -1,12 +1,11 @@
 <template>
-  <div class="people-wrapper">
-    <header class="module-header">
-      <div class="header-content">
-        <h1>Mọi người</h1>
-        <div class="header-actions">
+  <AppPageLayout fluid>
+    <template #header>
+      <AppPageHeader title="Mọi người">
+        <template #actions>
           <button class="primary-btn" @click="openInviteModal">Mời mọi người</button>
-        </div>
-      </div>
+        </template>
+      </AppPageHeader>
       
       <div class="tabs-nav">
         <router-link to="/home/teams" class="tab-link" exact-active-class="active">Dành cho bạn</router-link>
@@ -14,25 +13,14 @@
         <router-link to="/home/teams/kudos" class="tab-link" active-class="active">Khen ngợi</router-link>
         <router-link to="/home/people" class="tab-link" active-class="active">Mọi người</router-link>
       </div>
-    </header>
+    </template>
 
     <div class="module-content">
-      <div class="list-controls" style="display: flex; flex-direction: column; gap: 16px;">
-        <div class="search-box-wrapper" style="width: 100%;">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="text" v-model="searchQuery" placeholder="Tìm kiếm người" class="search-input" />
-        </div>
-        
-        <div v-if="false" class="filter-chips" style="display: flex; flex-wrap: wrap; gap: 8px;">
-          <button class="filter-chip"><i class="fa-solid fa-rocket"></i> Lọc theo Dự án</button>
-          <button class="filter-chip"><i class="fa-solid fa-bullseye"></i> Mục tiêu</button>
-          <button class="filter-chip"><i class="fa-solid fa-users"></i> Nhóm</button>
-          <button class="filter-chip"><i class="fa-solid fa-briefcase"></i> Chức danh</button>
-          <button class="filter-chip"><i class="fa-regular fa-user"></i> Người quản lý</button>
-          <button class="filter-chip"><i class="fa-solid fa-building"></i> Phòng ban</button>
-          <button class="filter-chip"><i class="fa-solid fa-location-dot"></i> Vị trí</button>
-        </div>
-        <div class="filter-chips" style="display: flex; flex-wrap: wrap; gap: 8px;">
+      <AppToolbar>
+        <template #search>
+          <AppSearchInput v-model="searchQuery" placeholder="Tìm kiếm người" />
+        </template>
+        <template #filters>
           <DropdownFilter label="Dự án" :options="projectOptions" v-model="filters.projectId" />
           <DropdownFilter label="Mục tiêu" :options="goalOptions" v-model="filters.goalId" />
           <DropdownFilter label="Nhóm" :options="teamOptions" v-model="filters.teamId" />
@@ -41,8 +29,8 @@
           <DropdownFilter label="Phòng ban" :options="departmentOptions" v-model="filters.department" />
           <DropdownFilter label="Vị trí" :options="locationOptions" v-model="filters.location" />
           <button v-if="hasActiveFilters" class="filter-chip" @click="clearFilters">Xóa lọc</button>
-        </div>
-      </div>
+        </template>
+      </AppToolbar>
 
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; margin-top: 24px;">
         <div style="font-size: 14px; font-weight: 600; color: #172B4D;">{{ filteredUsers.length }} người</div>
@@ -60,7 +48,7 @@
         <!-- Grid View -->
         <div v-if="viewMode === 'grid' && filteredUsers.length > 0" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
           <div class="people-card" v-for="user in filteredUsers" :key="user.id" @click="goToProfile(user.id)" style="border: 1px solid #DFE1E6; border-radius: 3px; padding: 16px; text-align: center; cursor: pointer; transition: background 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; align-items: center;" onmouseover="this.style.boxShadow='0 4px 8px rgba(9, 30, 66, 0.15)'" onmouseout="this.style.boxShadow='none'">
-            <UserAvatar :user="user" :size="48" :fontSize="18" style="margin-bottom: 12px" />
+            <AppAvatar :src="user.avatarUrl" :name="user.fullName" :email="user.email" size="lg" style="margin-bottom: 12px;" />
             <div style="font-size: 14px; font-weight: 500; color: #172B4D; margin-bottom: 4px;">{{ user.fullName }}</div>
             <div v-if="user.email && user.email.includes('@')" style="font-size: 12px; color: #6B778C;">{{ user.email }}</div>
             <div v-if="!user.email || !user.email.includes('@')" style="font-size: 12px; color: #6B778C;">
@@ -85,10 +73,7 @@
             <tr v-for="user in filteredUsers" :key="user.id" @click="goToProfile(user.id)">
               <td>
                 <div class="user-cell">
-                  <UserAvatar :user="user" :size="24" :fontSize="11" class="user-avatar" />
-                  <div class="user-info-stack">
-                    <span class="user-name">{{ user.fullName }}</span>
-                  </div>
+                  <AppUserChip :src="user.avatarUrl" :name="user.fullName" :email="user.email" />
                 </div>
               </td>
               <td>{{ user.position || '-' }}</td>
@@ -100,13 +85,12 @@
         </table>
         
         
-        <div class="empty-state" v-if="filteredUsers.length === 0">
-          <div class="empty-icon-wrapper">
-            <i class="fa-solid fa-user-group"></i>
-          </div>
-          <h3>Không tìm thấy ai</h3>
-          <p>Chúng tôi không tìm thấy ai khớp với tiêu chí tìm kiếm của bạn.</p>
-        </div>
+        <AppEmptyState 
+          v-if="filteredUsers.length === 0"
+          icon="fa-solid fa-user-group"
+          title="Không tìm thấy ai"
+          description="Chúng tôi không tìm thấy ai khớp với tiêu chí tìm kiếm của bạn."
+        />
       </div>
       
       <div class="loading-state" v-else>
@@ -119,48 +103,44 @@
     </div>
 
     <!-- Invite Modal -->
-    <div class="modal-overlay" v-if="isInviteModalOpen" @click.self="closeInviteModal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>Mời mọi người tham gia SprintA</h2>
-          <button class="close-btn" @click="closeInviteModal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <p class="invite-description">Mời thành viên mới vào Không gian làm việc của bạn qua email. Họ sẽ nhận được một email chứa liên kết để tham gia.</p>
-          <div class="form-group">
-            <label>Địa chỉ email</label>
-            <div class="email-input-container" @click="focusEmailInput">
-              <div class="email-chip" v-for="(email, index) in inviteEmails" :key="index">
-                {{ email }}
-                <i class="fa-solid fa-xmark remove-chip" @click.stop="removeEmail(index)"></i>
-              </div>
-              <input 
-                type="text" 
-                v-model="emailInput" 
-                placeholder="Ví dụ: name@example.com" 
-                @keydown.enter.prevent="addEmail"
-                @keydown.space.prevent="addEmail"
-                @keydown.comma.prevent="addEmail"
-                @blur="addEmail"
-                ref="emailInputRef"
-              />
-            </div>
-            <span class="helper-text">Nhập email và nhấn Enter hoặc Dấu phẩy để thêm nhiều người</span>
+    <AppModal
+      v-model="isInviteModalOpen"
+      title="Mời mọi người tham gia SprintA"
+      width="500px"
+      :confirmText="isSending ? 'Đang gửi...' : 'Gửi lời mời'"
+      cancelText="Hủy"
+      :loading="isSending"
+      @confirm="sendInvites"
+      @cancel="closeInviteModal"
+    >
+      <p class="invite-description" style="margin: 0 0 16px 0; font-size: 14px; color: #42526E; line-height: 1.5;">
+        Mời thành viên mới vào Không gian làm việc của bạn qua email. Họ sẽ nhận được một email chứa liên kết để tham gia.
+      </p>
+      
+      <AppFormField label="Địa chỉ email" helpText="Nhập email và nhấn Enter hoặc Dấu phẩy để thêm nhiều người">
+        <div class="email-input-container" @click="focusEmailInput">
+          <div class="email-chip" v-for="(email, index) in inviteEmails" :key="index">
+            {{ email }}
+            <i class="fa-solid fa-xmark remove-chip" @click.stop="removeEmail(index)"></i>
           </div>
-          
-          <div class="success-message" v-if="inviteSuccess">
-            <i class="fa-solid fa-circle-check"></i> Đã gửi lời mời thành công!
-          </div>
+          <input 
+            type="text" 
+            v-model="emailInput" 
+            placeholder="Ví dụ: name@example.com" 
+            @keydown.enter.prevent="addEmail"
+            @keydown.space.prevent="addEmail"
+            @keydown.comma.prevent="addEmail"
+            @blur="addEmail"
+            ref="emailInputRef"
+          />
         </div>
-        <div class="modal-footer">
-          <button class="cancel-btn" @click="closeInviteModal">Hủy</button>
-          <button class="primary-btn" :disabled="(inviteEmails.length === 0 && !emailInput) || isSending" @click="sendInvites">
-            {{ isSending ? 'Đang gửi...' : 'Gửi lời mời' }}
-          </button>
-        </div>
+      </AppFormField>
+      
+      <div class="success-message" v-if="inviteSuccess" style="margin-top: 16px; padding: 12px 16px; background-color: #E3FCEF; color: #006644; border-radius: 3px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500;">
+        <i class="fa-solid fa-circle-check"></i> Đã gửi lời mời thành công!
       </div>
-    </div>
-  </div>
+    </AppModal>
+  </AppPageLayout>
 </template>
 
 <script setup>
@@ -171,9 +151,9 @@ import { useGoalStore } from '@/store/useGoalStore'
 import { useHomeProjectStore } from '@/store/useHomeProjectStore'
 import { useTeamStore } from '@/store/useTeamStore'
 import debounce from 'lodash/debounce'
-import UserAvatar from '@/components/common/UserAvatar.vue'
 import DropdownFilter from '@/components/common/DropdownFilter.vue'
 import axiosClient from '@/api/axiosClient'
+import { AppPageLayout, AppPageHeader, AppToolbar, AppSearchInput, AppEmptyState, AppAvatar, AppUserChip, AppModal, AppFormField } from '@/components/common/Foundation'
 
 const router = useRouter()
 const peopleStore = usePeopleStore()

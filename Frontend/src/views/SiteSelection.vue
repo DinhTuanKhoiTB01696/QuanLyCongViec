@@ -13,7 +13,7 @@
         </div>
       </div>
       <div class="header-right">
-        <button class="pill-btn blue" @click="router.push('/')">{{ t('siteSelection.goToSprintA') }}</button>
+        <button type="button" class="pill-btn blue" @click="router.push('/')">{{ t('siteSelection.goToSprintA') }}</button>
         <div class="user-profile" v-if="userName">
           <div class="user-avatar-circle">{{ userInitials }}</div>
           <span class="user-name-text">{{ userName }}</span>
@@ -76,7 +76,13 @@
             </div>
           </div>
           <div class="site-card-right">
-            <button class="pill-btn orange" @click="goToSpaceProject(recentSite.id)">{{ t('siteSelection.goToSpace') }}</button>
+            <router-link
+              class="pill-btn orange site-entry-link"
+              to="/dashboard"
+              :data-site-id="getSiteId(recentSite)"
+              @click.stop.prevent="goToSpaceProject(getSiteId(recentSite))"
+              @keydown.enter.stop.prevent="goToSpaceProject(getSiteId(recentSite))"
+            >{{ t('siteSelection.goToSpace') }}</router-link>
           </div>
         </div>
 
@@ -188,7 +194,13 @@
                 <div class="site-list-item-url">{{ site.name }}</div>
               </div>
               <div class="site-list-item-right">
-                <button class="pill-btn blue small" @click="goToSpaceProject(site.id)">{{ t('siteSelection.goToSprintA') }}</button>
+                <router-link
+                  class="pill-btn blue small site-entry-link"
+                  to="/dashboard"
+                  :data-site-id="getSiteId(site)"
+                  @click.stop.prevent="goToSpaceProject(getSiteId(site))"
+                  @keydown.enter.stop.prevent="goToSpaceProject(getSiteId(site))"
+                >{{ t('siteSelection.goToSprintA') }}</router-link>
               </div>
             </div>
           </div>
@@ -228,6 +240,8 @@ const siteAvatarText = computed(() => {
   if (!recentSite.value?.name) return '?'
   return recentSite.value.name.substring(0, 2).toUpperCase()
 })
+
+const getSiteId = (site) => site?.id || site?.Id || null
 
 onMounted(async () => {
   await siteStore.fetchSites()
@@ -303,10 +317,20 @@ const submitCreateSite = async () => {
   }
 }
 
-const goToSpaceProject = (siteId) => {
+const setRecentSiteForNavigation = (site) => {
+  const siteId = getSiteId(site)
   if (!siteId) return
-  siteStore.setRecentSite(siteStore.sites.find(s => s.id === siteId) || { id: siteId })
-  router.push('/dashboard')
+  const matchedSite = siteStore.sites.find(s => getSiteId(s) === siteId)
+  siteStore.setRecentSite(matchedSite || { ...site, id: siteId })
+}
+
+const goToSpaceProject = async (siteId) => {
+  if (!siteId) return
+  const site = siteStore.sites.find(s => getSiteId(s) === siteId) || { id: siteId }
+  siteStore.setRecentSite(site)
+  isJoinModalOpen.value = false
+  isCreateModalOpen.value = false
+  await router.push('/dashboard')
 }
 </script>
 
@@ -387,6 +411,13 @@ const goToSpaceProject = (siteId) => {
   cursor: pointer;
   transition: background-color 0.2s;
   font-family: inherit;
+}
+
+.site-entry-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
 }
 
 .pill-btn.blue {
@@ -840,5 +871,72 @@ const goToSpaceProject = (siteId) => {
 .pill-btn.small {
   padding: 6px 16px;
   font-size: 13px;
+}
+
+/* SprintA product controls — remove the mixed Jira/orange visual language. */
+.start-content {
+  width: min(920px, calc(100% - 32px));
+  padding-top: clamp(42px, 7vh, 72px);
+}
+
+.welcome-title {
+  font-size: clamp(38px, 4vw, 58px);
+  line-height: 1.05;
+  letter-spacing: -.045em;
+}
+
+.card-section,
+.explore-section {
+  border: 1px solid color-mix(in srgb, var(--sp-sky-400) 22%, var(--color-border));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-surface) 94%, var(--sp-blue-600) 6%);
+  box-shadow: 0 14px 36px rgb(7 26 51 / .12);
+}
+
+.recent-site-card {
+  min-height: 96px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-surface) 96%, var(--sp-slate-500) 4%);
+}
+
+.pill-btn.orange,
+.pill-btn.blue {
+  min-height: 40px;
+  padding: 9px 18px;
+  border: 1px solid var(--sp-blue-700);
+  border-radius: 10px;
+  color: #fff !important;
+  text-shadow: none;
+  background: var(--sp-blue-700) !important;
+  background-image: none !important;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--sp-blue-700) 22%, transparent);
+}
+
+.pill-btn.orange:hover:not(:disabled),
+.pill-btn.blue:hover:not(:disabled) {
+  border-color: var(--sp-sky-400);
+  background: var(--sp-blue-600) !important;
+  background-image: none !important;
+  transform: translateY(-1px);
+}
+
+.explore-btn:disabled {
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  background: var(--color-surface-hover);
+  opacity: .68;
+  box-shadow: none;
+}
+
+.site-avatar-square {
+  background: linear-gradient(145deg, var(--sp-blue-600), var(--sp-sky-400)) !important;
+  box-shadow: none;
+}
+
+@media (max-height: 760px) and (min-width: 721px) {
+  .start-content { padding-top: 30px; }
+  .welcome-title { font-size: 42px; }
+  .explore-section { margin-top: 22px; padding-block: 18px; }
 }
 </style>

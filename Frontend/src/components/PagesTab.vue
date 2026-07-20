@@ -53,6 +53,33 @@ const imageFileInput = ref(null)
 const stagedImages = ref([]) // { id, src, name }
 const showImageStaging = ref(false)
 
+function normalizePageContent(content) {
+  if (!content) return ''
+  if (typeof content === 'object') return content
+  if (typeof content !== 'string') return ''
+  const trimmed = content.trim()
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return content
+  try {
+    const parsed = JSON.parse(trimmed)
+    return parsed && typeof parsed === 'object' ? parsed : content
+  } catch {
+    return content
+  }
+}
+
+function searchablePageContent(content) {
+  const normalized = normalizePageContent(content)
+  if (typeof normalized === 'string') return normalized
+  const text = []
+  const visit = (node) => {
+    if (!node || typeof node !== 'object') return
+    if (typeof node.text === 'string') text.push(node.text)
+    if (Array.isArray(node.content)) node.content.forEach(visit)
+  }
+  visit(normalized)
+  return text.join(' ')
+}
+
 let saveTimeout = null
 
 const sortBy = ref('date_modified')
@@ -77,7 +104,7 @@ const filteredPages = computed(() => {
     const q = filterSearch.value.toLowerCase()
     result = result.filter(p =>
       (p.title || '').toLowerCase().includes(q) ||
-      (p.content || '').toLowerCase().includes(q)
+      searchablePageContent(p.content).toLowerCase().includes(q)
     )
   }
 
@@ -129,7 +156,7 @@ const editor = useEditor({
     if (saveTimeout) clearTimeout(saveTimeout)
     saving.value = true
     saveTimeout = setTimeout(() => {
-      activePage.value.content = currentEditor.getHTML()
+      activePage.value.content = JSON.stringify(currentEditor.getJSON())
       void savePage()
     }, 900)
   }
@@ -198,7 +225,7 @@ async function openPage(pageId, syncRoute = true) {
     const res = await axiosClient.get(`/projects/${props.projectId}/pages/${pageId}`)
     activePage.value = res.data?.data || null
     if (editor.value && activePage.value) {
-      editor.value.commands.setContent(activePage.value.content || '', false)
+      editor.value.commands.setContent(normalizePageContent(activePage.value.content), false)
       editor.value.setEditable(!activePage.value.isLocked)
     }
     if (syncRoute) {
@@ -217,7 +244,9 @@ async function savePage() {
     saving.value = false
     return
   }
-  const content = editor.value ? editor.value.getHTML() : activePage.value.content || ''
+  const content = editor.value
+    ? JSON.stringify(editor.value.getJSON())
+    : JSON.stringify(normalizePageContent(activePage.value.content) || { type: 'doc', content: [] })
   activePage.value.content = content
   try {
     await axiosClient.put(`/projects/${props.projectId}/pages/${activePage.value.id}`, {
@@ -446,7 +475,7 @@ function pageMenuItems(page) {
         <ProjectPageHeader
           icon="fa-regular fa-file-lines"
           :title="t('Pages')"
-          :description="t('Create and manage project documentation')"
+          :description="t('Tạo và quản lý tài liệu dự án')"
         >
           <template #actions>
             <button class="nexus-btn-primary" @click="createPage"><i class="fa-solid fa-plus"></i> {{ t('Add page') }}</button>
@@ -573,7 +602,7 @@ function pageMenuItems(page) {
 
         <div v-for="page in filteredPages" :key="page.id" class="page-row" @click="openPage(page.id)">
            <div class="pr-left">
-              <i class="fa-regular fa-file-lines doc-icon"></i>
+              <i :class="page.icon || 'fa-regular fa-file-lines'" class="doc-icon" aria-hidden="true"></i>
               <span class="page-title">{{ page.title || t('Untitled') }}</span>
            </div>
             <div class="pr-right hover-actions-container" @click.stop>
@@ -727,7 +756,10 @@ function pageMenuItems(page) {
       <div class="editor-scroll-area">
         <div class="editor-content-container">
           <div class="canvas-inner">
-            <button class="add-icon-btn"><i class="fa-regular fa-face-smile"></i> Add icon</button>
+            <div class="page-icon-fallback" :title="activePage.icon ? 'Biểu tượng trang' : 'Biểu tượng tài liệu mặc định'">
+              <i :class="activePage.icon || 'fa-regular fa-file-lines'" aria-hidden="true"></i>
+              <span>{{ activePage.icon ? 'Biểu tượng trang' : 'Tài liệu' }}</span>
+            </div>
             <input class="editor-title-input" v-model="activePage.title" @input="handleContentInput" :placeholder="t('Untitled')" />
             <editor-content :editor="editor" class="editor-tiptap-content" />
           </div>
@@ -822,11 +854,10 @@ function pageMenuItems(page) {
 .canvas-inner { width: 100%; max-width: 720px; padding: 0 16px; }
 .editor-title-input { background: transparent; border: none !important; font-size: 36px; font-weight: 700; color: var(--color-text-primary); outline: none !important; margin-bottom: 20px; width: 100%; letter-spacing: -0.03em; padding: 0 !important; height: auto !important; box-shadow: none !important; }
 .editor-title-input::placeholder { color: var(--color-text-disabled); opacity: 0.3; }
-.add-icon-btn { background: transparent; border: none; color: var(--color-text-muted); font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 4px 0; opacity: 0.5; transition: opacity 0.2s; }
-.add-icon-btn:hover { opacity: 1; }
+.page-icon-fallback { color: var(--color-text-muted); font-size: 13px; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 4px 0; }
 
 .editor-tiptap-content :deep(.ProseMirror) { min-height: 400px; outline: none; font-size: 16px; line-height: 1.7; color: var(--color-text-primary); }
-.editor-tiptap-content :deep(.ProseMirror p.is-editor-empty:first-child::before) { content: "Press '/' for commands..."; float: left; color: var(--color-text-disabled); pointer-events: none; height: 0; font-style: italic; opacity: 0.5; }
+.editor-tiptap-content :deep(.ProseMirror p.is-editor-empty:first-child::before) { content: "Nhấn '/' để hiển thị lệnh..."; float: left; color: var(--color-text-disabled); pointer-events: none; height: 0; font-style: italic; opacity: 0.5; }
 .editor-tiptap-content :deep(p) { margin-bottom: 1.2em; }
 .editor-tiptap-content :deep(h1) { font-size: 2.2em; font-weight: 800; margin: 1.5em 0 0.8em; }
 .editor-tiptap-content :deep(h2) { font-size: 1.8em; font-weight: 700; margin: 1.2em 0 0.6em; }

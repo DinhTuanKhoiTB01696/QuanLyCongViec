@@ -54,6 +54,14 @@
               </div>
             </div>
 
+            <div v-if="canAccessRoles" class="settings-menu-item" @click="handleCommand('/admin/roles')">
+              <i class="fa-solid fa-shield-halved"></i>
+              <div class="item-info">
+                <span class="item-title">{{ t('Phân quyền', 'Phân quyền') }}</span>
+                <span class="item-desc">{{ t('Manage roles, permissions, and security policies', 'Quản lý vai trò, quyền và chính sách bảo mật') }}</span>
+              </div>
+            </div>
+
             <div v-if="canAccessAdmin" class="settings-menu-item" @click="handleCommand('/admin/configuration')">
               <i class="fa-regular fa-folder-open"></i>
               <div class="item-info">
@@ -83,6 +91,12 @@ const t = i18nStore.t
 const currentUser = computed(() => getStoredUser())
 const canAccessAdmin = computed(() => hasSystemAdminAccess(currentUser.value))
 const canAccessUserDirectory = computed(() => canAccessAdminUserDirectory(currentUser.value))
+
+const canAccessRoles = computed(() => {
+  const user = currentUser.value
+  const perms = user?.permissions || []
+  return perms.includes('admin.roles.can_view') || perms.includes('admin.roles.manage_permissions') || hasSystemAdminAccess(user)
+})
 
 const handleCommand = (path) => {
   const canOpenPath = !path.startsWith('/admin') || canAccessAdmin.value || (['/admin/users', '/admin/roles'].includes(path) && canAccessUserDirectory.value)

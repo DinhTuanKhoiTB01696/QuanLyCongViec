@@ -16,9 +16,24 @@
         :description="t('Manage tasks, bugs, and features')"
       >
         <template #actions>
-          <button class="nexus-btn-primary" @click="openCreateTask('TO DO')">
-            <i class="fa-solid fa-plus"></i> {{ t('Add work item') }}
-          </button>
+          <div class="toolbar-actions-wrapper">
+            <el-button type="info" plain size="default" @click="showDataImportModal = true" :disabled="!canCurrentUserCreateTask" :title="!canCurrentUserCreateTask ? 'Bạn không có quyền nạp công việc' : ''">
+              <i class="fa-solid fa-file-import mr-1"></i> Nạp dữ liệu công việc
+            </el-button>
+            <el-button type="info" plain size="default" @click="handleExportTasks">
+              <i class="fa-solid fa-file-export mr-1"></i> Xuất Excel/CSV
+            </el-button>
+            <button class="nexus-btn-primary" @click="openCreateTask('TO DO')" :disabled="!canCurrentUserCreateTask" :title="!canCurrentUserCreateTask ? 'Bạn không có quyền tạo công việc' : ''">
+              <i class="fa-solid fa-plus"></i> {{ t('Add work item') }}
+            </button>
+          </div>
+          <TaskDataImportModal
+            v-model="showDataImportModal"
+            :projectId="currentProjectId"
+            :projectMembers="projectMembers"
+            :projectStatuses="projectStatuses"
+            @imported="fetchTasks"
+          />
         </template>
       </ProjectPageHeader>
 
@@ -84,8 +99,25 @@
         />
       </div>
 
+      <!-- Global Empty State for Work Items (List/Board views) -->
+      <div v-if="!store.loading && filteredTasksList.length === 0 && (currentTab === 'list' || currentTab === 'board')" class="empty-state-global" style="padding: 60px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--color-surface); border-radius: 12px; border: 1px dashed var(--color-border); margin: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);">
+        <div class="empty-illustration-wrapper" style="font-size: 54px; color: var(--color-text-muted); margin-bottom: 16px; opacity: 0.8;">
+          <i class="fa-solid fa-folder-open"></i>
+        </div>
+        <h3 style="font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin: 0 0 8px 0;">Chưa có công việc nào trong dự án này.</h3>
+        <p style="font-size: 13px; color: var(--color-text-muted); margin: 0 0 20px 0; max-width: 400px; line-height: 1.5;">Hãy tạo công việc đầu tiên hoặc nạp dữ liệu công việc từ Excel/CSV.</p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+          <el-button type="primary" size="default" @click="openCreateTask('TO DO')" :disabled="!canCurrentUserCreateTask">
+            <i class="fa-solid fa-plus mr-1"></i> Tạo công việc mới
+          </el-button>
+          <el-button type="info" plain size="default" @click="showDataImportModal = true" :disabled="!canCurrentUserCreateTask">
+            <i class="fa-solid fa-file-import mr-1"></i> Nạp dữ liệu công việc
+          </el-button>
+        </div>
+      </div>
+
       <!-- Other Tab Views -->
-      <div v-if="currentTab === 'list'" class="list-wrapper" style="padding: 16px;">
+      <div v-if="currentTab === 'list' && filteredTasksList.length > 0" class="list-wrapper" style="padding: 16px;">
          <div class="plane-list-view">
            <div v-for="group in listViewGroups" :key="group.id" class="list-group">
              <div class="group-header" @click="toggleListGroup(group.id)">
@@ -109,7 +141,8 @@
                    </button>
                    <span class="task-id" style="margin-left: 8px;">{{ task.sequenceId || task.id.substring(0,8).toUpperCase() }}</span>
                    <span class="task-title" :style="group.statusName === 'DONE' ? { textDecoration: 'line-through', color: 'var(--color-text-muted)' } : {}">
-                     {{ task.title }}
+                     <span v-if="task.title && task.title.startsWith('[DỰ PHÒNG]')" class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold mr-1 border border-blue-200 uppercase tracking-wider relative top-[-1px]">Dự phòng</span>
+                     {{ task.title && task.title.startsWith('[DỰ PHÒNG]') ? task.title.substring(11).trim() : task.title }}
                    </span>
                  </div>
                  <div class="tr-right" @click.stop>
@@ -183,7 +216,7 @@
                </template>
 
                <div class="add-row-placeholder" @click="openCreateTask(group.statusName)">
-                 <i class="fa-solid fa-plus"></i> New work item
+                 <i class="fa-solid fa-plus"></i> {{ t('New work item', 'Tạo công việc mới') }}
                </div>
              </div>
            </div>
@@ -207,7 +240,11 @@
       </div>
 
       <!-- Kanban Board Layout -->
-      <div class="kanban-wrapper" v-if="currentTab === 'board'">
+      <div
+        class="kanban-wrapper"
+        v-if="currentTab === 'board' && filteredTasksList.length > 0"
+        @wheel="handleKanbanWheel"
+      >
         <!-- Loading indicator -->
         <div class="kanban-loading-bar" v-if="store.loading">
           <i class="fa-solid fa-spinner fa-spin"></i>
@@ -232,18 +269,25 @@
           <div class="col-head">
             <div class="col-title">
               <i :class="col.icon" :style="{ color: col.color }"></i>
-              <span>{{ col.name }}</span>
+              <span>{{ col.label || col.name }}</span>
               <span class="col-count">{{ col.items.length }}</span>
             </div>
-            <i class="fa-solid fa-plus add-btn" @click="openCreateTask(col.name)"></i>
+            <i v-if="canCurrentUserCreateTask && col.name !== 'FALLBACK_UNCLASSIFIED'" class="fa-solid fa-plus add-btn" @click="openCreateTask(col.name)"></i>
+          </div>
+
+          <div v-if="col.isFallback" class="fallback-desc-container" style="padding: 6px 12px; background: rgba(244, 63, 94, 0.05); border-bottom: 1px solid rgba(244, 63, 94, 0.1);">
+            <small style="color: #f43f5e; font-size: 11px; font-style: italic;">
+              {{ t('Các công việc có trạng thái không còn tồn tại trong workflow hiện tại.') }}
+            </small>
           </div>
 
           <div class="col-body">
             <draggable
               class="col-draggable"
               :list="col.items"
-              group="tasks"
+              :group="{ name: 'tasks', put: col.name !== 'FALLBACK_UNCLASSIFIED' }"
               item-key="id"
+              :disabled="!canCurrentUserUpdateTask || col.name === 'FALLBACK_UNCLASSIFIED'"
               @change="(evt) => handleDraggableChange(evt, col)"
             >
               <template #item="{ element }">
@@ -270,7 +314,10 @@
                       </button>
                     </div>
                   </div>
-                  <p class="issue-title" :style="element.statusName === 'DONE' ? { textDecoration: 'line-through', color: 'var(--color-text-muted)' } : {}">{{ element.title }}</p>
+                  <p class="issue-title" :style="element.statusName === 'DONE' ? { textDecoration: 'line-through', color: 'var(--color-text-muted)' } : {}">
+                        <span v-if="element.title && element.title.startsWith('[DỰ PHÒNG]')" class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold mr-1 border border-blue-200 uppercase tracking-wider relative top-[-1px]">Dự phòng</span>
+                        {{ element.title && element.title.startsWith('[DỰ PHÒNG]') ? element.title.substring(11).trim() : element.title }}
+                      </p>
                   <div class="issue-meta mt-2" style="display:flex; align-items:center; gap:8px;" @click.stop>
                      <el-dropdown trigger="click" @command="(val) => updateTask(element, 'statusName', val, element.statusName)">
                        <div class="badge status-badge cursor-pointer hover:bg-[var(--color-border)]" :style="{ '--badge-color': getStatusColor(element.statusName) }">
@@ -402,7 +449,7 @@
                  </button>
                </div>
             </div>
-            <div class="add-btn-bottom" v-else @click="openInlineCreate(col.id)">
+            <div class="add-btn-bottom" v-else-if="col.name !== 'FALLBACK_UNCLASSIFIED'" @click="openInlineCreate(col.id)">
                <i class="fa-solid fa-plus"></i> Thêm công việc
             </div>
           </div>
@@ -551,17 +598,25 @@
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageToolbar from '@/components/common/PageToolbar.vue'
+import TaskDataImportModal from '@/components/tasks/TaskDataImportModal.vue'
 
 // AI 3: CHUYÊN VIÊN GHÉP NỐI LOGIC FRONT-TO-BACK
 import { ref, onMounted, computed, defineAsyncComponent, watch, nextTick, onUnmounted } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
-  import { ElMessage } from 'element-plus'
-  import axiosClient from '@/api/axiosClient'
-  import { broadcastAdminRealtime, subscribeAdminRealtime } from '@/utils/adminRealtime'
-  import { getStoredUserSession } from '@/utils/authSession'
-  import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/projectContext'
-  import { signalRService } from '@/api/signalrService'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import axiosClient from '@/api/axiosClient'
+import { downloadResponseFile, csvWithBom } from '@/utils/downloadFile'
+import { broadcastAdminRealtime, subscribeAdminRealtime } from '@/utils/adminRealtime'
+import { getStoredUserSession } from '@/utils/authSession'
+import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/projectContext'
+import { signalRService } from '@/api/signalrService'
 import { hasSystemAdminAccess, normalizeProjectRole } from '@/utils/permissions'
+import { 
+  getDefaultPermissionMatrix,
+  canCreateTask,
+  canUpdateTask,
+  canDeleteTask 
+} from '@/utils/permissionGuard'
 
 import draggable from 'vuedraggable'
 import TaskDetailModal from '@/components/TaskDetailModal.vue'
@@ -600,6 +655,26 @@ const isForbidden = ref(false)
 const showSubtasks = ref(false)
 const collapsedListGroups = ref({})
 const assigneeSearch = ref('')
+const showDataImportModal = ref(false)
+
+const handleKanbanWheel = (event) => {
+  const board = event.currentTarget
+  if (!board || board.scrollWidth <= board.clientWidth) return
+  if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
+
+  event.preventDefault()
+  board.scrollLeft += event.deltaY
+}
+
+async function handleExportTasks() {
+  try {
+    const res = await axiosClient.get(`/projects/${currentProjectId.value}/WorkTasks/export`, { responseType: 'blob' })
+    downloadResponseFile(res, `SprintA-Tasks-${currentProjectId.value}.csv`, 'text/csv;charset=utf-8')
+    ElMessage.success('Xuất dữ liệu thành công.')
+  } catch (e) {
+    ElMessage.error('Không thể xuất dữ liệu công việc.')
+  }
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -1013,6 +1088,41 @@ const currentProjectRole = computed(() => {
     || project.value?.ProjectRole
 
   return normalizeProjectRole(role)
+})
+
+// ────────────────────────────────────────────
+// SME Permissions Guard State & Computed Guards
+// ────────────────────────────────────────────
+const permissionMatrix = ref(getDefaultPermissionMatrix())
+
+const loadProjectPermissionMatrix = async () => {
+  const pId = getProjectId()
+  if (!pId) return
+  try {
+    const res = await axiosClient.get(`/settings/ProjectPermissions:${pId}`)
+    if (res.data?.data?.rolePermissions) {
+      permissionMatrix.value = JSON.parse(res.data.data.rolePermissions)
+    } else {
+      permissionMatrix.value = getDefaultPermissionMatrix()
+    }
+  } catch (e) {
+    permissionMatrix.value = getDefaultPermissionMatrix()
+  }
+}
+
+const canCurrentUserCreateTask = computed(() => {
+  if (hasSystemAdminAccess(getStoredUserSession())) return true
+  return canCreateTask(permissionMatrix.value, currentProjectRole.value)
+})
+
+const canCurrentUserUpdateTask = computed(() => {
+  if (hasSystemAdminAccess(getStoredUserSession())) return true
+  return canUpdateTask(permissionMatrix.value, currentProjectRole.value)
+})
+
+const canCurrentUserDeleteTask = computed(() => {
+  if (hasSystemAdminAccess(getStoredUserSession())) return true
+  return canDeleteTask(permissionMatrix.value, currentProjectRole.value)
 })
 
 const canCurrentUserSeeTask = (task) => {
@@ -1450,6 +1560,7 @@ const kanbanColumns = computed(() => {
   const groups = taskStatusOptions.value.map((status, index) => ({
     id: `${status.name.toLowerCase().replace(/\s+/g, '-')}-${index}`,
     name: status.name,
+    label: status.label || status.name,
     color: status.color,
     icon: status.icon,
     bgColor: statusBgMap[status.name] || 'rgba(148, 163, 184, 0.04)',
@@ -1474,11 +1585,29 @@ const kanbanColumns = computed(() => {
      });
      return pGroups;
   } else {
+     const definedStatuses = taskStatusOptions.value.map(s => s.name.toUpperCase().trim())
+     const hasFallback = validTasks.some(t => !definedStatuses.includes((t.statusName || 'BACKLOG').toUpperCase().trim()))
+
+     if (hasFallback) {
+       groups.push({
+         id: 'fallback-unclassified-col',
+         name: 'FALLBACK_UNCLASSIFIED',
+         label: tr('Khác / Chưa phân loại', 'Khác / Chưa phân loại'),
+         color: '#f43f5e',
+         icon: 'fa-solid fa-triangle-exclamation',
+         bgColor: 'rgba(244, 63, 94, 0.05)',
+         priorityValue: null,
+         items: [],
+         isFallback: true
+       })
+     }
+
      validTasks.forEach(t => {
        const s = (t.statusName || 'BACKLOG').toUpperCase().trim();
-       let col;
-       col = groups.find(group => group.name === normalizeStatus(s)) || groups[0];
-
+       let col = groups.find(group => group.name === s)
+       if (!col) {
+         col = groups.find(group => group.name === 'FALLBACK_UNCLASSIFIED') || groups[0];
+       }
        col.items.push(t);
      });
      return groups;
@@ -1577,6 +1706,8 @@ const loadInitialData = async (options = {}) => {
     }
 
     await fetchTasks({ reset: false })
+    openTaskFromRouteQuery()
+    await loadProjectPermissionMatrix()
   } catch (error) {
     if (isForbiddenError(error)) {
       isForbidden.value = true
@@ -1627,6 +1758,13 @@ const openTaskDetail = (task) => {
   logViewedTask(task)
   taskDetailHistory.value = []
   selectedTask.value = task;
+}
+
+const openTaskFromRouteQuery = () => {
+  const taskId = route.query.task
+  if (!taskId) return
+  const task = allTasks.value.find(item => `${item.id}` === `${taskId}`)
+  if (task) openTaskDetail(task)
 }
 const openTaskDetailFromModal = (task, options = {}) => {
   logViewedTask(task)
@@ -1853,6 +1991,12 @@ const handleDraggableChange = async (evt, group) => {
       return Number.isFinite(sortOrder) ? sortOrder : fallback;
     };
 
+    if (group.name === 'FALLBACK_UNCLASSIFIED') {
+      ElMessage.warning('Không thể chuyển tác vụ vào cột Khác / Chưa phân loại.');
+      fetchTasks();
+      return;
+    }
+
     // Math cho LexoRank
     let newSortOrder = 65536;
     if (group.items.length === 1) {
@@ -1953,7 +2097,7 @@ const exportAnalyticsCsv = (mode = analyticsInsightMode.value) => {
         [analyticsTableHeading.value, 'Số lượng'],
         ...analyticsBreakdownRows.value.map(item => [item.label, item.count])
       ]
-  const csv = rows.map(row => row.join(',')).join('\n')
+  const csv = csvWithBom(rows)
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -3143,7 +3287,7 @@ onUnmounted(() => {
   backdrop-filter: blur(2px);
 }
 .analytics-panel {
-  width: min(860px, 92vw);
+  width: min(760px, 88vw);
   max-width: 92vw;
   background:
     linear-gradient(180deg, rgba(14, 165, 233, 0.10), transparent 280px),
@@ -3162,7 +3306,7 @@ onUnmounted(() => {
   max-width: 100vw;
 }
 .ap-header {
-  padding: 20px 24px;
+  padding: 14px 18px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -3177,7 +3321,7 @@ onUnmounted(() => {
 .icon-btn:hover { color: var(--color-text-primary); }
 
 .ap-body {
-  padding: 22px 24px 30px;
+  padding: 16px 18px 22px;
   overflow-y: auto;
   flex: 1;
 }
@@ -3195,7 +3339,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  padding: 14px;
+  padding: 11px 12px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 8px;
   background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
@@ -3207,21 +3351,21 @@ onUnmounted(() => {
   width: 3px;
   background: var(--stat-accent, #38bdf8);
 }
-.stat-box:nth-child(1) { --stat-accent: #38bdf8; }
-.stat-box:nth-child(2) { --stat-accent: #3b82f6; }
-.stat-box:nth-child(3) { --stat-accent: #94a3b8; }
-.stat-box:nth-child(4) { --stat-accent: #f59e0b; }
+.stat-box:nth-child(1) { --stat-accent: #41c0f2; }
+.stat-box:nth-child(2) { --stat-accent: #0d519c; }
+.stat-box:nth-child(3) { --stat-accent: #5c6795; }
+.stat-box:nth-child(4) { --stat-accent: #0b4fd9; }
 .stat-box:nth-child(5) { --stat-accent: #22c55e; }
 .stat-box:hover {
   border-color: color-mix(in srgb, var(--stat-accent) 56%, var(--color-border));
   background: color-mix(in srgb, var(--color-surface) 86%, var(--stat-accent) 14%);
 }
 .stat-box .lbl { color: var(--color-text-muted); font-size: 11px; font-weight: 650; line-height: 1.35; }
-.stat-box .val { color: var(--color-text-primary); font-size: 24px; font-weight: 850; line-height: 1; }
+.stat-box .val { color: var(--color-text-primary); font-size: 21px; font-weight: 850; line-height: 1; }
 
 .ap-chart-card {
-  margin-top: 16px;
-  padding: 16px;
+  margin-top: 12px;
+  padding: 13px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 10px;
   background:
@@ -3229,7 +3373,7 @@ onUnmounted(() => {
     color-mix(in srgb, var(--color-surface) 78%, transparent);
 }
 .ap-chart-card h4 { margin: 0; font-size: 14px; font-weight: 800; color: var(--color-text-primary); }
-.chart-container { height: 260px; }
+.chart-container { height: 220px; }
 
 .line-chart-mock {
   position: relative;
@@ -3679,7 +3823,21 @@ onUnmounted(() => {
   background: rgba(15, 23, 42, 0.36) !important;
 }
 
+.toolbar-actions-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 @media (max-width: 760px) {
+  .toolbar-actions-wrapper {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    gap: 8px !important;
+    margin-top: 10px !important;
+  }
+
   .list-wrapper {
     padding: 12px !important;
   }
@@ -3708,6 +3866,29 @@ onUnmounted(() => {
   gap: 14px !important;
   padding: 12px 4px 16px !important;
   scroll-padding: 12px;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
+}
+
+.kanban-wrapper::-webkit-scrollbar {
+  height: 12px !important;
+}
+
+.kanban-wrapper::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sp-blue-600) 8%, var(--color-bg)) !important;
+}
+
+.kanban-wrapper::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, var(--sp-blue-600), var(--sp-sky-400)) padding-box !important;
+}
+
+.kanban-wrapper::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, var(--sp-blue-700), var(--sp-sky-400)) padding-box !important;
 }
 
 .kanban-col {

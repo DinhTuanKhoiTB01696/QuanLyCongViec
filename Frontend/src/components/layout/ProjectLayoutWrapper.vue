@@ -4,8 +4,13 @@
     <header class="project-global-header">
       <div class="pgh-content">
         <div class="pgh-left">
-          <div class="pgh-icon" :style="{ backgroundColor: project?.cover || '#3b82f6' }">
-            {{ project?.icon || '📦' }}
+          <div
+            class="pgh-icon"
+            :style="projectIconStyle"
+            :role="project?.cover ? 'img' : undefined"
+            :aria-label="project?.cover ? (project.coverAltText || `${project.name || 'Project'} cover`) : undefined"
+          >
+            <span :aria-hidden="Boolean(project?.cover)">{{ project?.icon || '📦' }}</span>
           </div>
           <div class="pgh-info">
             <h1 class="pgh-title">{{ demoText(project?.name) || 'Loading Project...' }}</h1>
@@ -66,6 +71,15 @@ const demoText = (value) => translateDemoText(value, language.value)
 
 const projectId = computed(() => route.params.id)
 const project = computed(() => projectStore.currentProject)
+const projectIconStyle = computed(() => {
+  if (project.value?.cover) {
+    return {
+      backgroundImage: `linear-gradient(180deg, rgba(15, 23, 42, 0.12), rgba(15, 23, 42, 0.55)), url("${project.value.cover}")`
+    }
+  }
+
+  return { backgroundColor: '#3b82f6' }
+})
 
 const showCreateTaskModal = ref(false)
 
@@ -76,13 +90,14 @@ const projectNavLinks = computed(() => [
   { name: 'Cycles', path: 'cycles', label: t('Cycles', 'Chu kỳ'), icon: 'fa-solid fa-rotate' },
   { name: 'Modules', path: 'modules', label: t('Modules', 'Phân hệ'), icon: 'fa-solid fa-cubes' },
   { name: 'Reports', path: 'reports', label: t('Reports', 'Báo cáo'), icon: 'fa-solid fa-chart-line' },
+  { name: 'Intakes', path: 'intakes', label: t('Intakes', 'Yêu cầu (Intake)'), icon: 'fa-solid fa-inbox' },
   { name: 'Views', path: 'views', label: t('Views', 'Góc nhìn'), icon: 'fa-regular fa-eye' },
   { name: 'Pages', path: 'pages', label: t('Pages', 'Tài liệu'), icon: 'fa-regular fa-file-lines' },
   { name: 'Members', path: 'members', label: t('Members', 'Thành viên'), icon: 'fa-solid fa-users' }
 ])
 
 const loadProject = async () => {
-  if (projectId.value) {
+  if (projectId.value && route.path.startsWith('/space/')) {
     if (!projectStore.currentProject || projectStore.currentProject.id !== projectId.value) {
       // It's possible the store handles loading details somewhere else, 
       // but we ensure it's loaded if not.
@@ -113,6 +128,8 @@ const createTask = () => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
   background:
     radial-gradient(circle at 18% -10%, color-mix(in srgb, var(--color-accent) 20%, transparent), transparent 32rem),
     radial-gradient(circle at 88% 6%, color-mix(in srgb, #22d3ee 14%, transparent), transparent 28rem),
@@ -127,8 +144,7 @@ const createTask = () => {
   box-shadow: 0 10px 28px color-mix(in srgb, #020617 9%, transparent);
   backdrop-filter: blur(18px);
   flex-shrink: 0;
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 10;
 }
 
@@ -155,6 +171,8 @@ const createTask = () => {
   justify-content: center;
   font-size: 17px;
   flex-shrink: 0;
+  background-position: center;
+  background-size: cover;
   box-shadow:
     0 12px 28px color-mix(in srgb, var(--color-accent) 18%, transparent),
     inset 0 1px 0 rgba(255,255,255,0.22);
@@ -280,7 +298,8 @@ const createTask = () => {
 .project-main-content {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: transparent;
 }
 

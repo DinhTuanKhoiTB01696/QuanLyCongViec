@@ -22,5 +22,14 @@ namespace TaskManagement.Application.Interfaces
         Task ArchiveAsync(Guid id);
         Task RestoreAsync(Guid id);
         Task<bool> ToggleSubscriptionAsync(Guid taskId, Guid userId);
+        Task<IEnumerable<TaskManagement.Application.DTOs.WorkTask.ContingencyPlanDto>> GetContingencyPlansAsync(Guid taskId);
+        Task<TaskManagement.Application.DTOs.WorkTask.ContingencyPlanDto?> GetContingencyPlanByIdAsync(Guid taskId, Guid planId);
+        Task<TaskManagement.Application.DTOs.WorkTask.ContingencyPlanDto> CreateContingencyPlanAsync(Guid taskId, Guid userId, TaskManagement.Application.DTOs.WorkTask.CreateContingencyPlanDto dto);
+        Task<TaskManagement.Application.DTOs.WorkTask.ContingencyPlanDto> UpdateContingencyPlanAsync(Guid taskId, Guid planId, Guid userId, TaskManagement.Application.DTOs.WorkTask.UpdateContingencyPlanDto dto);
+        Task DeleteContingencyPlanAsync(Guid taskId, Guid planId, Guid userId);
+        Task CreateContingencyTaskToPlanAsync(Guid taskId, Guid planId, TaskManagement.Application.DTOs.WorkTask.CreateContingencyTaskDto dto, Guid userId);
+        Task AddContingencyTaskToPlanAsync(Guid taskId, Guid planId, Guid fallbackTaskId, Guid userId);
+        Task RemoveContingencyTaskFromPlanAsync(Guid taskId, Guid planId, Guid fallbackTaskId, Guid userId);
+        Task ActivateContingencyTaskAsync(Guid taskId, Guid planId, Guid fallbackTaskId, Guid userId);
     }
 }

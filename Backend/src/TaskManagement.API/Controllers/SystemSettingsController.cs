@@ -53,7 +53,51 @@ namespace TaskManagement.API.Controllers
         {
             try
             {
-                if (RequiresAdminAccess(group) && !await CurrentUserHasAdminAccessAsync())
+                if (group.StartsWith("ProjectPermissions:", StringComparison.OrdinalIgnoreCase))
+                {
+                    var projectIdStr = group.Substring("ProjectPermissions:".Length).Trim();
+                    if (!Guid.TryParse(projectIdStr, out var projectId))
+                    {
+                        return BadRequest(new { statusCode = 400, message = "ID dự án không hợp lệ." });
+                    }
+
+                    var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                    if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+                    {
+                        return Unauthorized(new { statusCode = 401, message = "Vui lòng đăng nhập." });
+                    }
+
+                    // Check if project exists
+                    var projectExists = await _context.Projects.AnyAsync(p => p.Id == projectId && !p.IsDeleted);
+                    if (!projectExists)
+                    {
+                        return NotFound(new { statusCode = 404, message = "Dự án không tồn tại." });
+                    }
+
+                    // Check if User is Workspace Owner/Admin OR Project Member
+                    var workspaceMember = await _context.WorkspaceMembers
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(wm => wm.UserId == userId && wm.IsActive);
+                    bool isSystemManager = false;
+                    if (workspaceMember != null)
+                    {
+                        var wsRole = workspaceMember.WorkspaceRole.Trim().ToUpperInvariant();
+                        if (wsRole == "OWNER" || wsRole == "ADMIN")
+                        {
+                            isSystemManager = true;
+                        }
+                    }
+
+                    var isProjectMember = await _context.ProjectMembers
+                        .AsNoTracking()
+                        .AnyAsync(pm => pm.ProjectId == projectId && pm.UserId == userId && pm.Status);
+
+                    if (!isSystemManager && !isProjectMember)
+                    {
+                        return StatusCode(403, new { statusCode = 403, message = "Bạn không có quyền truy cập thông tin phân quyền của dự án này." });
+                    }
+                }
+                else if (RequiresAdminAccess(group) && !await CurrentUserHasAdminAccessAsync())
                 {
                     return Forbid();
                 }
@@ -66,9 +110,9 @@ namespace TaskManagement.API.Controllers
 
                 return Ok(new { statusCode = 200, data = data });
             }
-            catch
+            catch (Exception ex)
             {
-                return Ok(new { statusCode = 200, data = new Dictionary<string, string>() });
+                return StatusCode(500, new { statusCode = 500, message = "Lỗi hệ thống: " + ex.Message });
             }
         }
 
@@ -80,38 +124,110 @@ namespace TaskManagement.API.Controllers
         [HttpPut("{group}")]
         public async Task<IActionResult> UpdateSettingsByGroup(string group, [FromBody] UpdateSettingRequest request)
         {
-            if (RequiresAdminAccess(group) && !await CurrentUserHasAdminAccessAsync())
+            try
             {
-                return Forbid();
-            }
-
-            var existingSettings = await _context.SystemSettings
-                .Where(s => s.SettingGroup == group)
-                .ToListAsync();
-
-            foreach (var kvp in request.Settings)
-            {
-                var setting = existingSettings.FirstOrDefault(s => s.Key == kvp.Key);
-                if (setting != null)
+                Guid currentUserId = Guid.Empty;
+                if (group.StartsWith("ProjectPermissions:", StringComparison.OrdinalIgnoreCase))
                 {
-                    setting.Value = kvp.Value;
-                    setting.LastModifiedAt = DateTime.UtcNow;
-                }
-                else
-                {
-                    _context.SystemSettings.Add(new SystemSetting
+                    var projectIdStr = group.Substring("ProjectPermissions:".Length).Trim();
+                    if (!Guid.TryParse(projectIdStr, out var projectId))
                     {
-                        Id = Guid.NewGuid(),
-                        SettingGroup = group,
-                        Key = kvp.Key,
-                        Value = kvp.Value,
-                        LastModifiedAt = DateTime.UtcNow
-                    });
-                }
-            }
+                        return BadRequest(new { statusCode = 400, message = "ID dự án không hợp lệ." });
+                    }
 
-            await _context.SaveChangesAsync();
-            return Ok(new { statusCode = 200, message = "Settings updated successfully" });
+                    var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                    if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out currentUserId))
+                    {
+                        return Unauthorized(new { statusCode = 401, message = "Vui lòng đăng nhập." });
+                    }
+
+                    // Check if project exists
+                    var projectExists = await _context.Projects.AnyAsync(p => p.Id == projectId && !p.IsDeleted);
+                    if (!projectExists)
+                    {
+                        return NotFound(new { statusCode = 404, message = "Dự án không tồn tại." });
+                    }
+
+                    // Check WorkspaceRole
+                    var workspaceMember = await _context.WorkspaceMembers
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(wm => wm.UserId == currentUserId && wm.IsActive);
+                    bool isAuthorized = false;
+                    if (workspaceMember != null)
+                    {
+                        var wsRole = workspaceMember.WorkspaceRole.Trim().ToUpperInvariant();
+                        if (wsRole == "OWNER" || wsRole == "ADMIN")
+                        {
+                            isAuthorized = true;
+                        }
+                    }
+
+                    // Check ProjectRole
+                    if (!isAuthorized)
+                    {
+                        var member = await _context.ProjectMembers
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(pm => pm.ProjectId == projectId && pm.UserId == currentUserId && pm.Status);
+                        if (member != null)
+                        {
+                            var allowedWriteRoles = new[] { "PM", "PO", "PROJECT_MANAGER", "PROJECT_LEAD", "ADMIN" };
+                            var projectRole = member.ProjectRole.Trim().ToUpperInvariant();
+                            isAuthorized = allowedWriteRoles.Contains(projectRole);
+                        }
+                    }
+
+                    if (!isAuthorized)
+                    {
+                        return StatusCode(403, new { statusCode = 403, message = "Bạn không có quyền cập nhật phân quyền dự án." });
+                    }
+
+                    // Log audit log for permissions change
+                    var userFullName = User.FindFirstValue(ClaimTypes.Name) ?? "SprintA User";
+                    await WriteAuditLogAsync(
+                        projectId, 
+                        "ProjectPermissions", 
+                        "UpdateMatrix", 
+                        $"User {userFullName} updated the permission matrix for project {projectId}.", 
+                        currentUserId
+                    );
+                }
+                else if (RequiresAdminAccess(group) && !await CurrentUserHasAdminAccessAsync())
+                {
+                    return Forbid();
+                }
+
+                var existingSettings = await _context.SystemSettings
+                    .Where(s => s.SettingGroup == group)
+                    .ToListAsync();
+
+                foreach (var kvp in request.Settings)
+                {
+                    var setting = existingSettings.FirstOrDefault(s => s.Key == kvp.Key);
+                    if (setting != null)
+                    {
+                        setting.Value = kvp.Value;
+                        setting.LastModifiedAt = DateTime.UtcNow;
+                    }
+                    else
+                    {
+                        _context.SystemSettings.Add(new SystemSetting
+                        {
+                            Id = Guid.NewGuid(),
+                            SettingGroup = group,
+                            Key = kvp.Key,
+                            Value = kvp.Value,
+                            LastModifiedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                return Ok(new { statusCode = 200, message = "Settings updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { statusCode = 500, message = "Lỗi hệ thống: " + ex.Message });
+            }
         }
 
         [HttpGet("admin/default-task-statuses")]
@@ -297,6 +413,29 @@ namespace TaskManagement.API.Controllers
                 .Where(user => user.Id == userId && user.IsActive && !user.IsDeleted)
                 .SelectMany(user => user.UserRoles.Select(ur => ur.Role.Name))
                 .AnyAsync(role => AdminAccessRoles.Contains(role.Trim().ToLowerInvariant()));
+        }
+
+        private async Task WriteAuditLogAsync(Guid entityId, string entityType, string action, string newValue, Guid userId)
+        {
+            try
+            {
+                var auditLog = new SiteAuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    EntityId = entityId,
+                    EntityType = entityType,
+                    Action = action,
+                    NewValue = newValue,
+                    UserId = userId,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.SiteAuditLogs.Add(auditLog);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to write audit log: {ex.Message}");
+            }
         }
 
         private static bool RequiresAdminAccess(string group)

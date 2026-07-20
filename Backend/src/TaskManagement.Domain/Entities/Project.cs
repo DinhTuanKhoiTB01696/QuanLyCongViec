@@ -43,6 +43,8 @@ namespace TaskManagement.Domain.Entities
         public ProjectTemplate? ProjectTemplate { get; set; }
         public string? TemplateType { get; set; }
         public string? NavigationConfig { get; set; }
+        public string? CoverUrl { get; set; }
+        public string? CoverAltText { get; set; }
 
         /// <summary>Mạng lưới dự án: Public (ai trong workspace cũng thấy) / Private (chỉ members)</summary>
         public string NetworkType { get; set; } = "Public";
@@ -62,6 +64,6 @@ namespace TaskManagement.Domain.Entities
         public ICollection<ProjectLesson> Lessons { get; set; } = new List<ProjectLesson>();
         public ICollection<ProjectRisk> Risks { get; set; } = new List<ProjectRisk>();
         public ICollection<ProjectDecision> Decisions { get; set; } = new List<ProjectDecision>();
-
+        public ICollection<CustomFieldDefinition> CustomFieldDefinitions { get; set; } = new List<CustomFieldDefinition>();
     }
 }

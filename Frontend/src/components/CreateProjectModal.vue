@@ -8,9 +8,9 @@
   >
     <template #header="{ close }">
       <div class="dialog-header-standard">
-        <h2 class="dialog-title">Create Project</h2>
+        <h2 class="dialog-title">{{ t('createProject.title') }}</h2>
         <div class="header-actions">
-          <button class="icon-btn-ghost" @click="close" title="Close"><i class="fa-solid fa-xmark"></i></button>
+          <button class="icon-btn-ghost" @click="close" :title="t('createProject.close')"><i class="fa-solid fa-xmark"></i></button>
         </div>
       </div>
     </template>
@@ -18,65 +18,78 @@
     <div class="modal-layout">
       <div class="form-column">
         <div class="form-group">
-          <label class="field-label">Project name</label>
-          <input v-model="form.name" type="text" placeholder="Sprint planning" class="compact-input-field" />
+          <label class="field-label">{{ t('createProject.nameLabel') }}</label>
+          <input v-model="form.name" type="text" :placeholder="t('createProject.namePlaceholder')" class="compact-input-field" />
         </div>
 
         <div class="form-group">
-          <label class="field-label">Key</label>
-          <input v-model="form.key" type="text" maxlength="8" placeholder="SPR" class="compact-input-field" />
+          <label class="field-label">{{ t('createProject.keyLabel') }}</label>
+          <input v-model="form.key" type="text" maxlength="8" :placeholder="t('createProject.keyPlaceholder')" class="compact-input-field" />
         </div>
 
         <div class="form-group">
-          <label class="field-label">Description</label>
-          <textarea v-model="form.description" rows="3" placeholder="What is this project for?" class="compact-textarea-field"></textarea>
+          <label class="field-label">{{ t('createProject.descriptionLabel') }}</label>
+          <textarea v-model="form.description" rows="3" :placeholder="t('createProject.descriptionPlaceholder')" class="compact-textarea-field"></textarea>
         </div>
 
         <div class="split-grid">
           <div class="form-group">
-            <label class="field-label">Start date</label>
+            <label class="field-label">{{ t('createProject.startDateLabel') }}</label>
             <input v-model="form.startDate" type="date" class="compact-input-field" />
           </div>
 
           <div class="form-group">
-            <label class="field-label">Visibility</label>
+            <label class="field-label">{{ t('createProject.networkTypeLabel') }}</label>
             <el-select v-model="form.networkType" class="full-width-select">
-              <el-option label="Public" value="Public" />
-              <el-option label="Private" value="Private" />
+              <el-option :label="t('createProject.networkPublic')" value="Public" />
+              <el-option :label="t('createProject.networkPrivate')" value="Private" />
             </el-select>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="field-label">Icon</label>
+          <label class="field-label">{{ t('createProject.iconLabel') }}</label>
           <input v-model="form.icon" type="text" maxlength="2" placeholder="🚀" class="compact-input-field" style="width: 60px; text-align: center;" />
         </div>
       </div>
 
       <div class="cover-column">
-        <div class="cover-preview" :style="{ backgroundImage: `url(${form.cover})` }">
+        <div class="cover-preview" :class="{ 'has-cover': Boolean(coverPreviewUrl) }" :style="coverPreviewStyle">
           <div class="cover-overlay">
             <span class="preview-badge">{{ form.icon || 'P' }}</span>
-            <strong class="preview-name">{{ form.name || 'Project preview' }}</strong>
+            <strong class="preview-name">{{ form.name || t('createProject.previewFallback') }}</strong>
           </div>
         </div>
 
         <div class="gallery-header">
-          <h4 class="section-title">Cover gallery</h4>
-          <p class="helper-text-muted">Choose a project cover.</p>
+          <h4 class="section-title">{{ t('createProject.coverTitle') }}</h4>
+          <p class="helper-text-muted">{{ t('createProject.coverHelper') }}</p>
         </div>
 
-        <div class="cover-grid">
-          <button
-            v-for="cover in coverOptions"
-            :key="cover"
-            type="button"
-            class="cover-option"
-            :class="{ active: form.cover === cover }"
-            :style="{ backgroundImage: `url(${cover})` }"
-            @click="form.cover = cover"
+        <div class="cover-actions">
+          <input
+            ref="coverInputRef"
+            type="file"
+            class="sr-only"
+            accept="image/png,image/jpeg,image/webp"
+            @change="handleCoverSelected"
           />
+          <button type="button" class="btn-secondary-sm" @click="openCoverPicker">
+            <i class="fa-regular fa-image"></i>
+            Chọn ảnh
+          </button>
+          <button v-if="coverFile" type="button" class="btn-ghost-sm" @click="clearCover">
+            Xóa ảnh
+          </button>
         </div>
+
+        <div class="form-group">
+          <label class="field-label">Mô tả ảnh bìa</label>
+          <input v-model="form.coverAltText" type="text" maxlength="180" placeholder="Ảnh bìa cho dự án" class="compact-input-field" />
+        </div>
+
+        <p v-if="coverFile" class="selected-file">{{ coverFile.name }}</p>
+        <p v-if="coverError" class="field-error">{{ coverError }}</p>
       </div>
     </div>
 
@@ -84,10 +97,10 @@
       <div class="dialog-footer-standard">
         <div class="footer-spacer"></div>
         <div class="footer-actions">
-          <button class="btn-secondary-sm" @click="handleClose">Cancel</button>
+          <button class="btn-secondary-sm" @click="handleClose">{{ t('createProject.cancel') }}</button>
           <button class="btn-primary-sm" :disabled="submitting" @click="handleSubmit">
             <i v-if="submitting" class="fa-solid fa-spinner fa-spin"></i>
-            {{ submitting ? 'Creating...' : 'Create project' }}
+            {{ submitting ? t('createProject.submitting') : t('createProject.submit') }}
           </button>
         </div>
       </div>
@@ -96,9 +109,14 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import axiosClient from '@/api/axiosClient'
+import { useProjectStore } from '@/store/useProjectStore'
+import { useI18n } from '@/composables/useI18n'
+
+const { t } = useI18n()
+
 
 const props = defineProps({
   visible: Boolean
@@ -112,7 +130,14 @@ const visibleComp = computed({
 })
 
 const submitting = ref(false)
-const coverOptions = Array.from({ length: 8 }, (_, index) => `https://picsum.photos/seed/sprinta-cover-${index + 1}/640/360`)
+const coverInputRef = ref(null)
+const coverFile = ref(null)
+const coverPreviewUrl = ref('')
+const coverError = ref('')
+const projectStore = useProjectStore()
+
+const allowedCoverTypes = new Set(['image/png', 'image/jpeg', 'image/webp'])
+const maxCoverSize = 5 * 1024 * 1024
 
 const formatDateOnly = (value) => {
   const date = value instanceof Date ? value : new Date(value)
@@ -129,14 +154,67 @@ const createInitialForm = () => ({
   description: '',
   startDate: formatDateOnly(new Date()),
   networkType: 'Public',
-  cover: coverOptions[0],
+  coverAltText: '',
   icon: '🚀'
 })
 
 const form = ref(createInitialForm())
 
 const resetForm = () => {
+  revokeCoverPreview()
+  coverFile.value = null
+  coverError.value = ''
+  if (coverInputRef.value) coverInputRef.value.value = ''
   form.value = createInitialForm()
+}
+
+const revokeCoverPreview = () => {
+  if (coverPreviewUrl.value) {
+    URL.revokeObjectURL(coverPreviewUrl.value)
+    coverPreviewUrl.value = ''
+  }
+}
+
+const coverPreviewStyle = computed(() => {
+  if (!coverPreviewUrl.value) return {}
+  return { backgroundImage: `url("${coverPreviewUrl.value}")` }
+})
+
+const openCoverPicker = () => {
+  coverInputRef.value?.click()
+}
+
+const clearCover = () => {
+  revokeCoverPreview()
+  coverFile.value = null
+  coverError.value = ''
+  if (coverInputRef.value) coverInputRef.value.value = ''
+}
+
+const handleCoverSelected = (event) => {
+  const [file] = event.target.files || []
+  coverError.value = ''
+
+  if (!file) return
+  if (!allowedCoverTypes.has(file.type)) {
+    coverError.value = 'Ảnh bìa chỉ hỗ trợ PNG, JPG, JPEG hoặc WEBP.'
+    event.target.value = ''
+    return
+  }
+  if (file.size > maxCoverSize) {
+    coverError.value = 'Ảnh bìa phải nhỏ hơn hoặc bằng 5MB.'
+    event.target.value = ''
+    return
+  }
+
+  revokeCoverPreview()
+  coverFile.value = file
+  coverPreviewUrl.value = URL.createObjectURL(file)
+  if (!form.value.coverAltText.trim()) {
+    form.value.coverAltText = form.value.name.trim()
+      ? `Ảnh bìa dự án ${form.value.name.trim()}`
+      : 'Ảnh bìa dự án'
+  }
 }
 
 const handleClose = () => {
@@ -146,7 +224,7 @@ const handleClose = () => {
 
 const handleSubmit = async () => {
   if (!form.value.name.trim()) {
-    ElMessage.warning('Project name is required')
+    ElMessage.warning(t('createProject.nameRequired'))
     return
   }
 
@@ -158,19 +236,49 @@ const handleSubmit = async () => {
       description: form.value.description.trim() || null,
       startDate: form.value.startDate,
       networkType: form.value.networkType,
-      cover: form.value.cover,
       icon: form.value.icon || null
     })
 
-    emit('created', response.data?.data || response.data)
-    ElMessage.success('Project created')
+    const createdProject = response.data?.data || response.data
+    let emittedProject = createdProject
+    const projectId = createdProject?.id || createdProject?.Id
+
+    if (coverFile.value && projectId) {
+      try {
+        const payload = new FormData()
+        payload.append('file', coverFile.value)
+        payload.append('coverAltText', form.value.coverAltText.trim() || `Ảnh bìa dự án ${form.value.name.trim()}`)
+        if (form.value.icon?.trim()) payload.append('icon', form.value.icon.trim())
+
+        const coverResponse = await axiosClient.post(`/projects/${projectId}/cover`, payload)
+        const coverData = coverResponse.data?.data || coverResponse.data
+        emittedProject = {
+          ...createdProject,
+          cover: coverData?.coverUrl || coverData?.CoverUrl || createdProject?.cover,
+          coverAltText: coverData?.coverAltText || coverData?.CoverAltText || form.value.coverAltText,
+          icon: coverData?.icon || form.value.icon || createdProject?.icon
+        }
+      } catch (coverErrorResponse) {
+        await projectStore.fetchAllProjects(true)
+        emit('created', createdProject)
+        ElMessage.error(coverErrorResponse.response?.data?.message || 'Dự án đã tạo nhưng chưa upload được ảnh bìa')
+        handleClose()
+        return
+      }
+    }
+
+    await projectStore.fetchAllProjects(true)
+    emit('created', emittedProject)
+    ElMessage.success(t('createProject.createSuccess'))
     handleClose()
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || 'Could not create project')
+    ElMessage.error(error.response?.data?.message || t('createProject.createFailed'))
   } finally {
     submitting.value = false
   }
 }
+
+onUnmounted(revokeCoverPreview)
 </script>
 
 <style scoped>
@@ -231,6 +339,50 @@ const handleSubmit = async () => {
 .gallery-header { margin-top: 4px; }
 .section-title { font-size: 14px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 4px; }
 .helper-text-muted { font-size: 12px; color: var(--color-text-muted); }
+
+.cover-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-ghost-sm {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-ghost-sm:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.selected-file,
+.field-error {
+  margin: -6px 0 0;
+  font-size: 12px;
+}
+
+.selected-file { color: var(--color-text-muted); }
+.field-error { color: var(--color-danger); }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 .cover-grid {
   display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;

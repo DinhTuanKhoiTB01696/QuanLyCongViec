@@ -1,17 +1,16 @@
 <template>
-  <AdminLayout>
-    <div class="manage-spaces-page" style="padding: 0;">
+  <div class="manage-spaces-page sp-page-shell">
       <!-- Plane Style Header -->
           <header class="spaces-header">
             <div class="sh-left">
               <i class="fa-solid fa-briefcase"></i>
-              <h1>Projects</h1>
+              <h1>{{ t('projects.title') }}</h1>
             </div>
 
         <div class="sh-right">
           <div class="search-box">
              <i class="fa-solid fa-magnifying-glass"></i>
-             <input type="text" placeholder="Search spaces..." v-model="searchQuery" />
+             <input type="text" :placeholder="t('projects.searchPlaceholder')" v-model="searchQuery" />
           </div>
           <div style="display: flex; gap: 4px; border: 1px solid var(--color-border); padding: 4px; border-radius: 8px;">
             <button class="plane-btn-secondary outline-btn" style="border: none; margin: 0; padding: 6px 10px;" :class="{ active: viewMode === 'table' }" type="button" @click="setViewMode('table')" title="List view">
@@ -22,44 +21,48 @@
             </button>
           </div>
           <button class="plane-btn-secondary outline-btn" type="button" @click="toggleSort">
-             <i class="fa-solid fa-arrow-down-short-wide"></i> Created date {{ sortDirection === 'desc' ? '↓' : '↑' }}
+             <i class="fa-solid fa-arrow-down-short-wide"></i> {{ t('projects.createdDate') }} {{ sortDirection === 'desc' ? '↓' : '↑' }}
           </button>
           <div class="project-filter-wrapper">
             <button class="plane-btn-secondary outline-btn" type="button" @click="showProjectFilters = !showProjectFilters" :class="{ active: showProjectFilters || visibilityFilter !== 'all' }">
                <i class="fa-solid fa-filter"></i> {{ filterLabel }}
             </button>
             <div class="project-filter-menu" v-if="showProjectFilters" @click.stop>
-              <div class="filter-title">Visibility</div>
-              <label class="filter-option"><input type="radio" value="all" v-model="visibilityFilter" /> All projects</label>
-              <label class="filter-option"><input type="radio" value="Public" v-model="visibilityFilter" /> Public</label>
-              <label class="filter-option"><input type="radio" value="Private" v-model="visibilityFilter" /> Private</label>
-              <label class="filter-option"><input type="radio" value="starred" v-model="visibilityFilter" /> Starred</label>
-              <button class="clear-filter-btn" type="button" @click="visibilityFilter = 'all'">Clear filters</button>
+              <div class="filter-title">{{ t('projects.visibility') }}</div>
+              <label class="filter-option"><input type="radio" value="all" v-model="visibilityFilter" /> {{ t('projects.allProjects') }}</label>
+              <label class="filter-option"><input type="radio" value="Public" v-model="visibilityFilter" /> {{ t('projects.filterPublic') }}</label>
+              <label class="filter-option"><input type="radio" value="Private" v-model="visibilityFilter" /> {{ t('projects.filterPrivate') }}</label>
+              <label class="filter-option"><input type="radio" value="starred" v-model="visibilityFilter" /> {{ t('projects.filterStarred') }}</label>
+              <button class="clear-filter-btn" type="button" @click="visibilityFilter = 'all'">{{ t('projects.clearFilters') }}</button>
             </div>
           </div>
           <button class="plane-btn-primary" @click="isCreateModalVisible = true">
-            Add Project
+            {{ t('projects.addProject') }}
           </button>
         </div>
       </header>
 
       <section class="projects-scroll-panel">
       <div v-if="loading" class="loading-state">
-         <i class="fa-solid fa-spinner fa-spin"></i> Loading projects...
+         <i class="fa-solid fa-spinner fa-spin"></i> {{ t('projects.loading') }}
       </div>
       <div v-else-if="filteredSpaces.length === 0" class="empty-state">
          <div class="empty-icon-wrap" style="width: 80px; height: 80px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
            <i class="fa-solid fa-folder-open empty-icon" style="margin-bottom: 0;"></i>
          </div>
-         <h3 class="empty-title" style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: var(--color-text-primary);">No projects found</h3>
-         <p style="margin: 0 0 24px 0; font-size: 14px; color: var(--color-text-muted);">It looks like there are no projects here. Let's create your first one!</p>
-         <button class="plane-btn-primary" @click="isCreateModalVisible = true">Create your first project</button>
+         <h3 class="empty-title" style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: var(--color-text-primary);">{{ t('projects.noProjectsFound') }}</h3>
+         <p style="margin: 0 0 24px 0; font-size: 14px; color: var(--color-text-muted);">{{ t('projects.noProjectsDesc') }}</p>
+         <button class="plane-btn-primary" @click="isCreateModalVisible = true">{{ t('projects.createFirst') }}</button>
       </div>
       <div v-else>
         <div v-if="viewMode === 'grid'" class="spaces-grid">
           <div class="project-card" v-for="(space, index) in filteredSpaces" :key="space.id" @click="goToSpace(space.id)">
-            <!-- Cover Image Mock -->
-            <div class="card-cover" :style="{ background: space.cover || coverGradients[index % coverGradients.length] }">
+            <div
+              class="card-cover"
+              :style="projectCoverStyle(space, index)"
+              :role="space.cover ? 'img' : undefined"
+              :aria-label="space.cover ? (space.coverAltText || `${space.name} cover`) : undefined"
+            >
                <div class="card-actions-top" @click.stop>
                  <button class="card-icon-btn" type="button" @click="copySpaceLink(space)"><i class="fa-solid fa-link"></i></button>
                  <button class="card-icon-btn" type="button" :class="{ 'starred': space.starred }" @click="toggleStar(space)"><i :class="space.starred ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i></button>
@@ -84,10 +87,10 @@
               <div class="card-footer" @click.stop>
                  <span class="visibility-pill" :class="space.networkType?.toLowerCase()">
                    <i :class="space.networkType === 'Private' ? 'fa-solid fa-lock' : 'fa-solid fa-globe'"></i>
-                   {{ space.networkType || 'Public' }}
+                   {{ space.networkType === 'Private' ? t('projects.private') : t('projects.public') }}
                  </span>
                  <span style="font-size: 11px; color: var(--color-text-muted); margin-left: auto; margin-right: 8px;">
-                   Created: {{ new Date(space.originalRow?.createdAt || space.originalRow?.createdDate || Date.now()).toLocaleDateString() }}
+                   {{ t('projects.createdLabel') }} {{ new Date(space.originalRow?.createdAt || space.originalRow?.createdDate || Date.now()).toLocaleDateString() }}
                  </span>
                  <el-dropdown trigger="click" v-if="showProjectSettingsButton(space)" @click.stop>
                    <button class="card-icon-btn" type="button"><i class="fa-solid fa-ellipsis"></i></button>
@@ -108,11 +111,11 @@
             <thead>
               <tr style="border-bottom: 2px solid var(--color-border); color: var(--color-text-muted); font-size: 12px;">
                 <th style="padding: 12px 16px; width: 40px;"></th>
-                <th style="padding: 12px 16px;">Name</th>
-                <th style="padding: 12px 16px;">Key</th>
-                <th style="padding: 12px 16px;">Type</th>
-                <th style="padding: 12px 16px;">Lead</th>
-                <th style="padding: 12px 16px;">Created</th>
+                <th style="padding: 12px 16px;">{{ t('projects.colName') }}</th>
+                <th style="padding: 12px 16px;">{{ t('projects.colKey') }}</th>
+                <th style="padding: 12px 16px;">{{ t('projects.colType') }}</th>
+                <th style="padding: 12px 16px;">{{ t('projects.colLead') }}</th>
+                <th style="padding: 12px 16px;">{{ t('projects.colCreated') }}</th>
                 <th style="padding: 12px 16px; width: 50px;"></th>
               </tr>
             </thead>
@@ -125,7 +128,12 @@
                 </td>
                 <td style="padding: 12px 16px;">
                   <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px;" :style="{ background: space.cover || coverGradients[index % coverGradients.length] }">
+                    <div
+                      style="width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px; background-position: center; background-size: cover;"
+                      :style="projectCoverStyle(space, index)"
+                      :role="space.cover ? 'img' : undefined"
+                      :aria-label="space.cover ? (space.coverAltText || `${space.name} cover`) : undefined"
+                    >
                       {{ space.icon || emojiList[index % emojiList.length] || '📦' }}
                     </div>
                     <span style="font-weight: 500; color: #3b82f6;">{{ demoText(space.name) }}</span>
@@ -133,7 +141,7 @@
                 </td>
                 <td style="padding: 12px 16px; font-size: 13px;">{{ space.key }}</td>
                 <td style="padding: 12px 16px; font-size: 13px; color: var(--color-text-muted);">
-                  {{ space.networkType === 'Private' ? 'Team-managed software (Private)' : 'Team-managed software' }}
+                  {{ space.networkType === 'Private' ? t('projects.teamManagedPrivate') : t('projects.teamManaged') }}
                 </td>
                 <td style="padding: 12px 16px;">
                   <div style="display: flex; align-items: center; gap: 8px;">
@@ -151,8 +159,8 @@
                     <button class="card-icon-btn transparent-btn" style="background: transparent; border: none; font-size: 16px; color: var(--color-text-muted);"><i class="fa-solid fa-ellipsis"></i></button>
                     <template #dropdown>
                       <el-dropdown-menu class="plane-dropdown">
-                        <el-dropdown-item @click="goToAdmin(space)"><i class="fa-solid fa-gear" style="margin-right: 8px;"></i> Settings</el-dropdown-item>
-                        <el-dropdown-item @click="archiveProject(space)"><i class="fa-solid fa-box-archive" style="margin-right: 8px;"></i> Archive project</el-dropdown-item>
+                        <el-dropdown-item @click="goToAdmin(space)"><i class="fa-solid fa-gear" style="margin-right: 8px;"></i> {{ t('projects.settings') }}</el-dropdown-item>
+                        <el-dropdown-item @click="archiveProject(space)"><i class="fa-solid fa-box-archive" style="margin-right: 8px;"></i> {{ t('projects.archiveProject') }}</el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
                   </el-dropdown>
@@ -166,14 +174,12 @@
 
       <CreateSpaceModal v-model:visible="isCreateModalVisible" @created="fetchSpaces" />
     </div>
-  </AdminLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
-import AdminLayout from '@/components/layout/AdminLayout.vue'
 import CreateSpaceModal from '@/components/CreateSpaceModal.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useProjectStore } from '@/store/useProjectStore'
@@ -189,7 +195,7 @@ const handleSwitchSettings = (path) => {
 }
 
 const projectStore = useProjectStore()
-const { language } = useI18n()
+const { language, t } = useI18n()
 const loading = ref(false)
 const spaces = ref([])
 const searchQuery = ref('')
@@ -220,12 +226,12 @@ const goToAdmin = (space) => {
 
 const archiveProject = async (space) => {
   try {
-    await ElMessageBox.confirm(`Are you sure you want to archive project "${space.name}"?`, 'Archive Project', { type: 'warning' })
+    await ElMessageBox.confirm(t('projects.archiveConfirm').replace('{name}', space.name), t('projects.archiveTitle'), { type: 'warning' })
     await axiosClient.put(`/projects/${space.id}/archive`)
-    ElMessage.success('Project archived')
+    ElMessage.success(t('projects.archiveSuccess'))
     fetchSpaces()
   } catch (err) {
-    if (err !== 'cancel') ElMessage.error('Failed to archive project')
+    if (err !== 'cancel') ElMessage.error(t('projects.archiveFailed'))
   }
 }
 
@@ -237,7 +243,7 @@ const copySpaceLink = async (space) => {
   const url = `${window.location.origin}/space/${space.id}`
   try {
     await navigator.clipboard.writeText(url)
-    ElMessage.success('Project link copied')
+    ElMessage.success(t('projects.linkCopied'))
   } catch (error) {
     ElMessage.info(url)
   }
@@ -248,10 +254,10 @@ const toggleStar = async (space) => {
   space.starred = nextFavorite
   try {
     await projectStore.updateFavorite(space.id, nextFavorite)
-    ElMessage.success(nextFavorite ? 'Project starred' : 'Project unstarred')
+    ElMessage.success(nextFavorite ? t('projects.projectStarred') : t('projects.projectUnstarred'))
   } catch (error) {
     space.starred = !nextFavorite
-    ElMessage.error('Could not update favorite project')
+    ElMessage.error(t('projects.favoriteFailed'))
   }
 }
 
@@ -264,25 +270,32 @@ const coverGradients = [
 
 const emojiList = ['👇', '🚀', '⚡', '💡', '🔥', '🎯']
 
+const projectCoverStyle = (space, index) => space.cover
+  ? {
+      backgroundImage: `url("${space.cover}")`,
+      backgroundPosition: 'center',
+      backgroundSize: 'cover'
+    }
+  : { background: coverGradients[index % coverGradients.length] }
+
 const fetchSpaces = async () => {
   loading.value = true
   try {
-    const response = await axiosClient.get('/projects/discovery')
-    const data = response.data.data || response.data || []
+    const data = await projectStore.fetchAllProjects(true)
 
-    // Transform data
     spaces.value = data.map(p => ({
       id: p.id,
       starred: Boolean(p.isFavorite),
       name: p.name,
-      key: p.key || p.identifier || p.name.substring(0, 4).toUpperCase(),
-      myRole: p.myRole || p.MyRole || null,
-      projectRole: p.projectRole || p.ProjectRole || null,
-      leadName: p.leadName || p.reporterName || 'Admin',
+      key: p.key || p.name.substring(0, 4).toUpperCase(),
+      myRole: p.myRole || null,
+      projectRole: p.originalRow?.projectRole || p.originalRow?.ProjectRole || null,
+      leadName: p.leadName || 'Admin',
       cover: p.cover,
+      coverAltText: p.coverAltText,
       icon: p.icon,
       networkType: p.networkType || 'Public',
-      originalRow: p
+      originalRow: p.originalRow || p
     }))
   } catch (error) {
     console.error('Fetch spaces error:', error)
@@ -341,11 +354,11 @@ const goToSpace = (id) => {
 }
 
 const filterLabel = computed(() => ({
-  all: 'Filters',
-  Public: 'Public',
-  Private: 'Private',
-  starred: 'Starred'
-}[visibilityFilter.value] || 'Filters'))
+  all: t('projects.filters'),
+  Public: t('projects.filterPublic'),
+  Private: t('projects.filterPrivate'),
+  starred: t('projects.filterStarred')
+}[visibilityFilter.value] || t('projects.filters')))
 </script>
 
 <style scoped>

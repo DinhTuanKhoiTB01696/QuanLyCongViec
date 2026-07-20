@@ -51,7 +51,7 @@ IF NOT EXISTS (SELECT 1 FROM Roles WHERE Name = 'Accountant')
     INSERT INTO Roles (Id, Name, [Description]) VALUES (@RoleAccountant, 'Accountant', 'Accounting access');
 
 -- BCrypt hash for password "Demo@123" (cost=11)
-DECLARE @PwdHash NVARCHAR(200) = '$2a$11$K5F.nGm4rVxfWuAX3CiOCOx5dCcnNEzSX0xGVJTB4xfQHKJBfZGEi';
+DECLARE @PwdHash NVARCHAR(200) = '$2a$11$ycr0ueY4j/IfTPLoc43RbeokkEUNw0hXP6D3hOxZH5xuM2v7BzvTa';
 DECLARE @Now DATETIME2 = GETUTCDATE();
 
 -- User 1: CEO
@@ -160,8 +160,17 @@ VALUES ('D0000001-0001-0001-0001-000000000015', 'vy.tran@novatech.vn', @PwdHash,
     N'HR & Operations Manager', N'TP. Hồ Chí Minh', 'Asia/Ho_Chi_Minh', 1, @Now, @Now, 0, 0, 'org_novatech_001');
 
 -- Dev admin account used by run.bat demos
+UPDATE Users
+SET PasswordHash = @PwdHash,
+    IsActive = 1,
+    IsDeleted = 0,
+    UpdatedAt = @Now
+WHERE Id = 'D0000001-0001-0001-0001-000000000001'
+  AND Email = 'khoi.nguyen@novatech.vn'
+  AND OrganizationId = 'org_novatech_001';
+
 DECLARE @DevAdminId UNIQUEIDENTIFIER = '11111111-0000-0000-0000-000000000001';
-DECLARE @DevPwdHash NVARCHAR(200) = '$2a$11$PsfkHDFFQr9HEIFKlpseb.6bsGDnjA2nziXmnP4KMZJksiPBjti16';
+DECLARE @DevPwdHash NVARCHAR(200) = '$2a$11$6omz2fbVj58ViA6n1ImIa.P5HIr82ygbY7SpuRny1sHU5KnyG1nEq'; -- dev123
 
 IF NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'dev@sprinta.local')
 BEGIN
@@ -1349,26 +1358,29 @@ IF NOT EXISTS (SELECT 1 FROM PerformanceReviews WHERE Id = 'f2600001-0001-0001-0
 GO
 
 -- ============================================================================
--- 24. INTEGRATION ACCOUNTS & SYNC HISTORY
+-- 24. UNIFIED INBOX DEMO (NO FAKE OAUTH CONNECTIONS)
 -- ============================================================================
 DECLARE @NowInteg DATETIME2 = GETUTCDATE();
 
 -- Integration Accounts for CEO (khoi.nguyen)
-IF NOT EXISTS (SELECT 1 FROM IntegrationAccounts WHERE Id = '8A000001-0001-0001-0001-000000000001')
-    INSERT INTO IntegrationAccounts (Id, UserId, Provider, AccountEmail, ExternalAccountId, AccessToken, RefreshToken, AccessTokenExpiresAt, Scopes, IsActive, LastSyncedAt, CreatedAt, UpdatedAt)
-    VALUES ('8A000001-0001-0001-0001-000000000001', 'D0000001-0001-0001-0001-000000000001', 'Google', 'khoi.nguyen@novatech.vn', 'g_123456789', 'access_token_google_mock_123', 'refresh_token_google_mock_123', DATEADD(HOUR, 2, @NowInteg), 'calendar.readonly,userinfo.email', 1, @NowInteg, @NowInteg, @NowInteg);
+UPDATE InboxItems
+SET IntegrationAccountId = NULL,
+    Provider = 'Demo',
+    Source = 'Demo Calendar',
+    UpdatedAt = @NowInteg
+WHERE Id = '88000001-0001-0001-0001-000000000001';
 
-IF NOT EXISTS (SELECT 1 FROM IntegrationAccounts WHERE Id = '8A000001-0001-0001-0001-000000000002')
-    INSERT INTO IntegrationAccounts (Id, UserId, Provider, AccountEmail, ExternalAccountId, AccessToken, RefreshToken, AccessTokenExpiresAt, Scopes, IsActive, LastSyncedAt, CreatedAt, UpdatedAt)
-    VALUES ('8A000001-0001-0001-0001-000000000002', 'D0000001-0001-0001-0001-000000000001', 'GitHub', 'khoi.nguyen@novatech.vn', 'gh_123456789', 'gh_token_mock_123', NULL, NULL, 'repo,notifications', 1, @NowInteg, @NowInteg, @NowInteg);
+DELETE FROM SyncHistories WHERE Id = '37000001-0001-0001-0001-000000000001';
+DELETE FROM IntegrationAccounts
+WHERE Id IN ('8A000001-0001-0001-0001-000000000001', '8A000001-0001-0001-0001-000000000002');
 
--- Sync History
-IF NOT EXISTS (SELECT 1 FROM SyncHistories WHERE Id = '37000001-0001-0001-0001-000000000001')
+-- Legacy mock sync data intentionally disabled: demo inbox is not an OAuth connection.
+IF 1 = 0
     INSERT INTO SyncHistories (Id, UserId, IntegrationAccountId, Provider, Status, ItemsImported, Message, StartedAt, CompletedAt)
     VALUES ('37000001-0001-0001-0001-000000000001', 'D0000001-0001-0001-0001-000000000001', '8A000001-0001-0001-0001-000000000001', 'Google', 'Success', 5, N'Đồng bộ Google Calendar thành công.', DATEADD(MINUTE, -5, @NowInteg), @NowInteg);
 
 -- Inbox Items (Unified Inbox)
-IF NOT EXISTS (SELECT 1 FROM InboxItems WHERE Id = '88000001-0001-0001-0001-000000000001')
+IF 1 = 0
     INSERT INTO InboxItems (Id, UserId, IntegrationAccountId, Source, Provider, ExternalId, Title, Content, StartsAt, EndsAt, IsRead, CreatedAt, UpdatedAt)
     VALUES ('88000001-0001-0001-0001-000000000001', 'D0000001-0001-0001-0001-000000000001', '8A000001-0001-0001-0001-000000000001', 'Google Calendar', 'Google', 'evt_999888777', N'Họp chiến lược phát triển sản phẩm Q3', N'Thảo luận về lộ trình nâng cấp SprintA và kế hoạch marketing.', DATEADD(HOUR, 2, @NowInteg), DATEADD(HOUR, 3, @NowInteg), 0, @NowInteg, @NowInteg);
 GO
@@ -1376,6 +1388,10 @@ GO
 -- ============================================================================
 -- 25. AI INTEGRATION (AI Prompt Templates, tokens & feedbacks)
 -- ============================================================================
+IF NOT EXISTS (SELECT 1 FROM InboxItems WHERE Id = '88000001-0001-0001-0001-000000000001')
+    INSERT INTO InboxItems (Id, UserId, IntegrationAccountId, Source, Provider, ExternalId, Title, Content, StartsAt, EndsAt, IsRead, CreatedAt, UpdatedAt)
+    VALUES ('88000001-0001-0001-0001-000000000001', 'D0000001-0001-0001-0001-000000000001', NULL, 'Demo Calendar', 'Demo', 'demo_calendar_q3_strategy', N'Q3 product strategy review', N'Demo Unified Inbox item. No OAuth account is connected.', DATEADD(HOUR, 2, GETUTCDATE()), DATEADD(HOUR, 3, GETUTCDATE()), 0, GETUTCDATE(), GETUTCDATE());
+
 DECLARE @NowAI DATETIME2 = GETUTCDATE();
 
 -- AI Prompt Templates
@@ -1607,6 +1623,157 @@ IF NOT EXISTS (SELECT 1 FROM SiteAuditLogs WHERE Id = 'bbbbbbbb-5000-0000-0000-0
 GO
 
 PRINT N'✅ Part 9 to 12 complete: Gamification, Integrations, AI, Audit logs';
+GO
+
+-- ============================================================================
+-- 26. CUSTOM FIELD DEFINITIONS (For Demo Project)
+-- ============================================================================
+DECLARE @NowCf DATETIME2 = GETUTCDATE();
+DECLARE @Proj1Id UNIQUEIDENTIFIER = 'C0000001-0001-0001-0001-000000000001';
+
+-- Field 1: Mức ảnh hưởng (Select)
+IF NOT EXISTS (SELECT 1 FROM CustomFieldDefinitions WHERE Id = 'CFD00001-0001-0001-0001-000000000001')
+    INSERT INTO CustomFieldDefinitions (Id, ProjectId, Name, [Key], Type, IsRequired, OptionsJson, IsVisible, SortOrder, IsDeleted, CreatedAt, UpdatedAt)
+    VALUES ('CFD00001-0001-0001-0001-000000000001', @Proj1Id, N'Mức ảnh hưởng', 'muc_anh_huong', 'Select', 0, '["Thấp", "Trung bình", "Cao"]', 1, 0, 0, @NowCf, @NowCf);
+
+-- Field 2: Mã khách hàng (Text)
+IF NOT EXISTS (SELECT 1 FROM CustomFieldDefinitions WHERE Id = 'CFD00001-0001-0001-0001-000000000002')
+    INSERT INTO CustomFieldDefinitions (Id, ProjectId, Name, [Key], Type, IsRequired, OptionsJson, IsVisible, SortOrder, IsDeleted, CreatedAt, UpdatedAt)
+    VALUES ('CFD00001-0001-0001-0001-000000000002', @Proj1Id, N'Mã khách hàng', 'ma_khach_hang', 'Text', 0, NULL, 1, 1, 0, @NowCf, @NowCf);
+
+-- Field 3: Ngày nghiệm thu (Date)
+IF NOT EXISTS (SELECT 1 FROM CustomFieldDefinitions WHERE Id = 'CFD00001-0001-0001-0001-000000000003')
+    INSERT INTO CustomFieldDefinitions (Id, ProjectId, Name, [Key], Type, IsRequired, OptionsJson, IsVisible, SortOrder, IsDeleted, CreatedAt, UpdatedAt)
+    VALUES ('CFD00001-0001-0001-0001-000000000003', @Proj1Id, N'Ngày nghiệm thu', 'ngay_nghiem_thu', 'Date', 0, NULL, 1, 2, 0, @NowCf, @NowCf);
+
+-- Field 4: Cần QA xác nhận (Checkbox)
+IF NOT EXISTS (SELECT 1 FROM CustomFieldDefinitions WHERE Id = 'CFD00001-0001-0001-0001-000000000004')
+    INSERT INTO CustomFieldDefinitions (Id, ProjectId, Name, [Key], Type, IsRequired, OptionsJson, IsVisible, SortOrder, IsDeleted, CreatedAt, UpdatedAt)
+    VALUES ('CFD00001-0001-0001-0001-000000000004', @Proj1Id, N'Cần QA xác nhận', 'can_qa_xac_nhan', 'Checkbox', 0, NULL, 1, 3, 0, @NowCf, @NowCf);
+GO
+
+-- ============================================================================
+-- 27. CUSTOM FIELD VALUES (For Demo Tasks)
+-- ============================================================================
+DECLARE @NowCfv DATETIME2 = GETUTCDATE();
+DECLARE @Task1Id UNIQUEIDENTIFIER = '70000001-0001-0001-0001-000000000001'; -- SPRINT-1
+DECLARE @Task2Id UNIQUEIDENTIFIER = '70000001-0001-0001-0001-000000000002'; -- SPRINT-2
+
+-- Values for SPRINT-1
+IF NOT EXISTS (SELECT 1 FROM CustomFieldValues WHERE WorkTaskId = @Task1Id AND FieldDefinitionId = 'CFD00001-0001-0001-0001-000000000001')
+    INSERT INTO CustomFieldValues (Id, WorkTaskId, FieldDefinitionId, Value, CreatedAt, UpdatedAt)
+    VALUES (NEWID(), @Task1Id, 'CFD00001-0001-0001-0001-000000000001', N'Cao', @NowCfv, @NowCfv);
+
+IF NOT EXISTS (SELECT 1 FROM CustomFieldValues WHERE WorkTaskId = @Task1Id AND FieldDefinitionId = 'CFD00001-0001-0001-0001-000000000002')
+    INSERT INTO CustomFieldValues (Id, WorkTaskId, FieldDefinitionId, Value, CreatedAt, UpdatedAt)
+    VALUES (NEWID(), @Task1Id, 'CFD00001-0001-0001-0001-000000000002', N'KH-NOVATECH', @NowCfv, @NowCfv);
+
+-- Values for SPRINT-2
+IF NOT EXISTS (SELECT 1 FROM CustomFieldValues WHERE WorkTaskId = @Task2Id AND FieldDefinitionId = 'CFD00001-0001-0001-0001-000000000001')
+    INSERT INTO CustomFieldValues (Id, WorkTaskId, FieldDefinitionId, Value, CreatedAt, UpdatedAt)
+    VALUES (NEWID(), @Task2Id, 'CFD00001-0001-0001-0001-000000000001', N'Trung bình', @NowCfv, @NowCfv);
+
+IF NOT EXISTS (SELECT 1 FROM CustomFieldValues WHERE WorkTaskId = @Task2Id AND FieldDefinitionId = 'CFD00001-0001-0001-0001-000000000004')
+    INSERT INTO CustomFieldValues (Id, WorkTaskId, FieldDefinitionId, Value, CreatedAt, UpdatedAt)
+    VALUES (NEWID(), @Task2Id, 'CFD00001-0001-0001-0001-000000000004', N'true', @NowCfv, @NowCfv);
+
+-- Additional active work for the primary SprintA demo project. The fixed
+-- SequenceIds make this section safe to run repeatedly.
+DECLARE @PrimaryProjectId UNIQUEIDENTIFIER = 'C0000001-0001-0001-0001-000000000001';
+DECLARE @PrimaryWorkspaceId UNIQUEIDENTIFIER = 'A0000001-0001-0001-0001-000000000001';
+DECLARE @PrimaryNow DATETIME2 = GETUTCDATE();
+
+IF NOT EXISTS (SELECT 1 FROM ProjectMembers WHERE ProjectId = @PrimaryProjectId AND UserId = 'D0000001-0001-0001-0001-000000000001')
+    INSERT INTO ProjectMembers (ProjectId, UserId, ProjectRole, JoinedAt, Status)
+    VALUES (@PrimaryProjectId, 'D0000001-0001-0001-0001-000000000001', 'PROJECT_MANAGER', @PrimaryNow, 1);
+
+INSERT INTO WorkTasks (Id, ProjectId, TaskTypeId, TaskStatusId, Title, Description, Priority, StoryPoints, ReporterId, AssignedUserId, DueDate, CreatedAt, UpdatedAt, IsDeleted, IsArchived, TotalEstimatedHours, TotalActualHours, SortOrder, SequenceId, WorkspaceId)
+SELECT item.Id, @PrimaryProjectId, item.TaskTypeId, item.TaskStatusId, item.Title, item.Description, item.Priority, item.StoryPoints,
+       'D0000001-0001-0001-0001-000000000003', item.AssignedUserId, DATEADD(DAY, item.DueOffset, @PrimaryNow), @PrimaryNow, @PrimaryNow,
+       0, 0, item.EstimatedHours, item.ActualHours, item.SortOrder, item.SequenceId, @PrimaryWorkspaceId
+FROM (VALUES
+    (CAST('70000001-0001-0001-0001-000000000016' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), N'Define Q3 product analytics baseline', N'Collect current activation, retention, and conversion metrics for the Q3 planning baseline.', 3, CAST(3.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000012' AS UNIQUEIDENTIFIER), -8, 10, 6, 160000, N'SPRINT-16'),
+    (CAST('70000001-0001-0001-0001-000000000017' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000003' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), N'Write acceptance criteria for AI Copilot', N'Document acceptance criteria for context, permissions, and failure states.', 2, CAST(5.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000005' AS UNIQUEIDENTIFIER), -3, 14, 4, 170000, N'SPRINT-17'),
+    (CAST('70000001-0001-0001-0001-000000000018' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000002' AS UNIQUEIDENTIFIER), N'Review design tokens for mobile navigation', N'Prioritize small-screen navigation and touch target consistency.', 3, CAST(3.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000010' AS UNIQUEIDENTIFIER), 1, 12, 0, 180000, N'SPRINT-18'),
+    (CAST('70000001-0001-0001-0001-000000000019' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000002' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000002' AS UNIQUEIDENTIFIER), N'Fix duplicate notification delivery', N'Investigate duplicate SignalR notification events reported by pilot users.', 1, CAST(2.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000007' AS UNIQUEIDENTIFIER), -2, 8, 2, 190000, N'SPRINT-19'),
+    (CAST('70000001-0001-0001-0001-000000000020' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000002' AS UNIQUEIDENTIFIER), N'Prepare customer onboarding checklist', N'Create a repeatable onboarding checklist for the first five enterprise customers.', 3, CAST(3.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000013' AS UNIQUEIDENTIFIER), 3, 10, 0, 200000, N'SPRINT-20'),
+    (CAST('70000001-0001-0001-0001-000000000021' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000003' AS UNIQUEIDENTIFIER), N'Implement project activity digest', N'Build the daily project digest with overdue, review, and blocked work summaries.', 2, CAST(5.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000008' AS UNIQUEIDENTIFIER), -1, 18, 7, 210000, N'SPRINT-21'),
+    (CAST('70000001-0001-0001-0001-000000000022' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000003' AS UNIQUEIDENTIFIER), N'Add audit trail for permission changes', N'Record permission preset changes with actor and timestamp for compliance review.', 2, CAST(5.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000007' AS UNIQUEIDENTIFIER), 2, 16, 5, 220000, N'SPRINT-22'),
+    (CAST('70000001-0001-0001-0001-000000000023' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000003' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000003' AS UNIQUEIDENTIFIER), N'Validate custom field migration', N'Validate all custom field types and values after project migration.', 2, CAST(3.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000009' AS UNIQUEIDENTIFIER), 0, 12, 3, 230000, N'SPRINT-23'),
+    (CAST('70000001-0001-0001-0001-000000000024' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000003' AS UNIQUEIDENTIFIER), N'Optimize project reports query', N'Reduce report load time for projects with more than one thousand tasks.', 2, CAST(8.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000012' AS UNIQUEIDENTIFIER), 4, 24, 8, 240000, N'SPRINT-24'),
+    (CAST('70000001-0001-0001-0001-000000000025' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000002' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000003' AS UNIQUEIDENTIFIER), N'Fix unread inbox badge mismatch', N'Correct the unread item count after filtering the Unified Inbox.', 1, CAST(2.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000006' AS UNIQUEIDENTIFIER), -4, 6, 4, 250000, N'SPRINT-25'),
+    (CAST('70000001-0001-0001-0001-000000000026' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000004' AS UNIQUEIDENTIFIER), N'Review release checklist', N'Confirm quality, security, PWA, and documentation gates before release.', 2, CAST(3.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000004' AS UNIQUEIDENTIFIER), -1, 8, 6, 260000, N'SPRINT-26'),
+    (CAST('70000001-0001-0001-0001-000000000027' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000004' AS UNIQUEIDENTIFIER), N'QA regression for Kanban drag and drop', N'Run regression coverage for ordering, filters, and status transitions.', 2, CAST(5.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000009' AS UNIQUEIDENTIFIER), 1, 16, 9, 270000, N'SPRINT-27'),
+    (CAST('70000001-0001-0001-0001-000000000028' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000004' AS UNIQUEIDENTIFIER), N'Finalize Vietnamese localization review', N'Review Vietnamese copy for common task and project workflows.', 3, CAST(3.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000005' AS UNIQUEIDENTIFIER), 2, 10, 8, 280000, N'SPRINT-28'),
+    (CAST('70000001-0001-0001-0001-000000000029' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000005' AS UNIQUEIDENTIFIER), N'Publish SprintA demo walkthrough', N'Prepare the product walkthrough recording and presenter notes.', 3, CAST(3.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000010' AS UNIQUEIDENTIFIER), -1, 8, 8, 290000, N'SPRINT-29'),
+    (CAST('70000001-0001-0001-0001-000000000030' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000005' AS UNIQUEIDENTIFIER), N'Complete incident response runbook', N'Document ownership, escalation, and recovery steps for production incidents.', 2, CAST(5.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000011' AS UNIQUEIDENTIFIER), 0, 16, 16, 300000, N'SPRINT-30'),
+    (CAST('70000001-0001-0001-0001-000000000031' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000005' AS UNIQUEIDENTIFIER), N'Archive completed beta feedback', N'Classify completed feedback and retain decisions for future roadmap planning.', 4, CAST(2.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000013' AS UNIQUEIDENTIFIER), -10, 6, 6, 310000, N'SPRINT-31'),
+    (CAST('70000001-0001-0001-0001-000000000032' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000005' AS UNIQUEIDENTIFIER), N'Document demo data reset procedure', N'Write the repeatable local reset and validation procedure for demo data.', 3, CAST(2.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000003' AS UNIQUEIDENTIFIER), -6, 6, 6, 320000, N'SPRINT-32'),
+    (CAST('70000001-0001-0001-0001-000000000033' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000005' AS UNIQUEIDENTIFIER), N'Create customer success health dashboard', N'Expose renewal risk and account health signals for customer success review.', 3, CAST(5.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000013' AS UNIQUEIDENTIFIER), -5, 18, 18, 330000, N'SPRINT-33'),
+    (CAST('70000001-0001-0001-0001-000000000034' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000005' AS UNIQUEIDENTIFIER), N'Analyze support request trends', N'Identify recurring support topics and propose self-service improvements.', 3, CAST(3.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000012' AS UNIQUEIDENTIFIER), -7, 10, 10, 340000, N'SPRINT-34'),
+    (CAST('70000001-0001-0001-0001-000000000035' AS UNIQUEIDENTIFIER), CAST('f0000001-0001-0001-0001-000000000001' AS UNIQUEIDENTIFIER), CAST('e0000001-0001-0001-0001-000000000005' AS UNIQUEIDENTIFIER), N'Close SprintA demo readiness review', N'Capture final risks, owners, and release decision for the demo.', 2, CAST(3.0 AS FLOAT), CAST('D0000001-0001-0001-0001-000000000003' AS UNIQUEIDENTIFIER), -1, 8, 8, 350000, N'SPRINT-35')
+) AS item(Id, TaskTypeId, TaskStatusId, Title, Description, Priority, StoryPoints, AssignedUserId, DueOffset, EstimatedHours, ActualHours, SortOrder, SequenceId)
+WHERE NOT EXISTS (SELECT 1 FROM WorkTasks task WHERE task.SequenceId = item.SequenceId AND task.ProjectId = @PrimaryProjectId);
+GO
+
+-- ============================================================================
+-- 28. WAVE A ACTION FIXTURES (stable, realistic, and safe to re-run)
+-- ============================================================================
+-- These records give the Actionable AI demo a known project context for
+-- Cycle, Module, Page, View, Intake and task update/assignment/comment flows.
+DECLARE @WaveANow DATETIME2 = GETUTCDATE();
+DECLARE @WaveAProjectId UNIQUEIDENTIFIER = 'C0000001-0001-0001-0001-000000000001';
+DECLARE @WaveAOwnerId UNIQUEIDENTIFIER = 'D0000001-0001-0001-0001-000000000001';
+
+IF NOT EXISTS (SELECT 1 FROM Sprints WHERE Id = '7A000001-0001-0001-0001-000000000001')
+    INSERT INTO Sprints (Id, ProjectId, Name, StartDate, EndDate, Status, IsFavorite, CreatedAt)
+    VALUES ('7A000001-0001-0001-0001-000000000001', @WaveAProjectId, N'Chu kỳ demo AI: Hoàn thiện trải nghiệm Copilot',
+        DATEADD(DAY, -2, @WaveANow), DATEADD(DAY, 12, @WaveANow), 1, 1, @WaveANow);
+
+IF NOT EXISTS (SELECT 1 FROM Modules WHERE Id = '7A000002-0001-0001-0001-000000000001')
+    INSERT INTO Modules (Id, Name, Description, ProjectId, StartDate, TargetDate, Status, LeadId, CreatedAt, UpdatedAt)
+    VALUES ('7A000002-0001-0001-0001-000000000001', N'Copilot có thể thao tác',
+        N'Hoàn thiện luồng xem trước, xác nhận và thực thi action có kiểm soát cho người dùng demo.',
+        @WaveAProjectId, DATEADD(DAY, -3, @WaveANow), DATEADD(DAY, 12, @WaveANow), 'InProgress', @WaveAOwnerId, @WaveANow, @WaveANow);
+
+IF NOT EXISTS (SELECT 1 FROM Pages WHERE Id = '7A000003-0001-0001-0001-000000000001')
+    INSERT INTO Pages (Id, Title, Content, ProjectId, CreatedById, SortOrder, IsLocked, IsArchived, IsPrivate, IsStarred, CreatedAt, UpdatedAt)
+    VALUES ('7A000003-0001-0001-0001-000000000001', N'Kịch bản demo AI Copilot',
+        N'{"type":"doc","content":[{"type":"heading","attrs":{"level":1},"content":[{"type":"text","text":"Kịch bản demo AI Copilot"}]},{"type":"paragraph","content":[{"type":"text","text":"Tạo chu kỳ, mô-đun, tài liệu, bộ lọc đã lưu và yêu cầu mới. Mọi thay đổi phải được xem trước và xác nhận trước khi thực thi."}]},{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Kiểm tra action chỉ tạo một thực thể khi xác nhận hai lần."}]}]},{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Làm mới trang để xác nhận dữ liệu vẫn được lưu."}]}]}]}]}',
+        @WaveAProjectId, @WaveAOwnerId, 90, 0, 0, 0, 1, @WaveANow, @WaveANow);
+
+IF NOT EXISTS (SELECT 1 FROM ProjectViews WHERE Id = '7A000004-0001-0001-0001-000000000001')
+    INSERT INTO ProjectViews (Id, ProjectId, Name, Description, QueryMetadata, IsFavorite, CreatedById, CreatedAt, UpdatedAt)
+    VALUES ('7A000004-0001-0001-0001-000000000001', @WaveAProjectId, N'Việc cần xử lý trong tuần',
+        N'Hiển thị các công việc chưa hoàn thành, ưu tiên cao hoặc đã quá hạn để điều phối demo.',
+        N'{"status":["BACKLOG","TO DO","IN PROGRESS","IN REVIEW"],"priority":[1,2],"due":"this_week"}', 1, @WaveAOwnerId, @WaveANow, @WaveANow);
+
+IF NOT EXISTS (SELECT 1 FROM Intakes WHERE Id = '7A000005-0001-0001-0001-000000000001')
+    INSERT INTO Intakes (Id, Title, Description, Source, Status, Priority, DesiredDueDate, ProjectId, SubmittedById, ReviewedById, CreatedIssueId, CreatedAt, ReviewedAt)
+    VALUES ('7A000005-0001-0001-0001-000000000001', N'Khách hàng cần xuất báo cáo tiến độ theo tuần',
+        N'Đề nghị thêm báo cáo tuần có trạng thái công việc, tải của thành viên và danh sách việc quá hạn.',
+        'FORM', 'Pending', 2, DATEADD(DAY, 7, @WaveANow), @WaveAProjectId,
+        'D0000001-0001-0001-0001-000000000013', NULL, NULL, @WaveANow, NULL);
+
+IF NOT EXISTS (SELECT 1 FROM WorkTasks WHERE Id = '7A000006-0001-0001-0001-000000000001')
+    INSERT INTO WorkTasks (Id, ProjectId, SprintId, TaskTypeId, TaskStatusId, Title, Description, Priority, StoryPoints, PlannedStartDate, PlannedEndDate, ReporterId, AssignedUserId, DueDate, CreatedAt, UpdatedAt, IsDeleted, IsArchived, TotalEstimatedHours, TotalActualHours, SortOrder, SequenceId, WorkspaceId)
+    VALUES ('7A000006-0001-0001-0001-000000000001', @WaveAProjectId, '7A000001-0001-0001-0001-000000000001',
+        'F0000001-0001-0001-0001-000000000001', 'E0000001-0001-0001-0001-000000000002', N'Xác nhận luồng action Wave A',
+        N'Công việc mẫu để kiểm tra cập nhật trạng thái, ưu tiên, hạn hoàn thành, giao việc và bình luận từ AI Copilot.',
+        2, 3, @WaveANow, DATEADD(DAY, 5, @WaveANow), @WaveAOwnerId, 'D0000001-0001-0001-0001-000000000006', DATEADD(DAY, 5, @WaveANow),
+        @WaveANow, @WaveANow, 0, 0, 8, 0, 360000, 'SPRINT-WAVEA-01', 'A0000001-0001-0001-0001-000000000001');
+
+IF NOT EXISTS (SELECT 1 FROM TaskAssignments WHERE WorkTaskId = '7A000006-0001-0001-0001-000000000001' AND UserId = 'D0000001-0001-0001-0001-000000000006')
+    INSERT INTO TaskAssignments (WorkTaskId, UserId, Status, ProgressPercent, ContributionWeight, EstimatedHours, TotalActualHours, ActualStartDate, ActualEndDate, Description, Priority)
+    VALUES ('7A000006-0001-0001-0001-000000000001', 'D0000001-0001-0001-0001-000000000006', 0, 0, 1.0, 8, 0, @WaveANow, @WaveANow,
+        N'Người phụ trách kiểm tra luồng thao tác AI.', 2);
+
+IF NOT EXISTS (SELECT 1 FROM Comments WHERE Id = '7A000007-0001-0001-0001-000000000001')
+    INSERT INTO Comments (Id, EntityId, EntityType, UserId, Content, CreatedAt, UpdatedAt, IsDeleted)
+    VALUES ('7A000007-0001-0001-0001-000000000001', '7A000006-0001-0001-0001-000000000001', 'WorkTask', @WaveAOwnerId,
+        N'Bình luận mẫu: chỉ thực thi action sau khi người dùng xác nhận trên thẻ xem trước.', @WaveANow, @WaveANow, 0);
+GO
+
 PRINT N'============================================================================';
 PRINT N'🎉 SPRINTA DEMO DATA SEEDED SUCCESSFULLY FOR NOVATECH SOLUTIONS 🎉';
 PRINT N'============================================================================';

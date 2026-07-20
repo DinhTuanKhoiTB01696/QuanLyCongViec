@@ -30,7 +30,7 @@ namespace TaskManagement.API.Filters
 
         public RequirePermissionFilter(string permissionCode, ApplicationDbContext dbContext)
         {
-            _permissionCode = permissionCode?.Trim().ToUpperInvariant() ?? string.Empty;
+            _permissionCode = permissionCode?.Trim().ToLowerInvariant() ?? string.Empty;
             _dbContext = dbContext;
         }
 

@@ -49,7 +49,7 @@
         
         <div class="sheet-footer">
           <router-link :to="viewAllLink" class="view-all-link" @click="closePopup">
-            View all recent items <i class="fa-solid fa-arrow-right"></i>
+            Xem tất cả hoạt động gần đây <i class="fa-solid fa-arrow-right"></i>
           </router-link>
         </div>
       </div>

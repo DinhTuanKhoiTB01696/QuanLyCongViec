@@ -212,7 +212,7 @@ import { useSprintStore } from '@/store/useSprintStore'
 import { useProjectStore } from '@/store/useProjectStore'
 import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/projectContext'
-import { useI18nStore } from '@/store/useI18nStore'
+import { useI18n } from '@/composables/useI18n'
 import { translateDemoText } from '@/utils/demoContentLocale'
 import RecentDropdown from '@/components/RecentDropdown.vue'
 import StarredDropdown from '@/components/StarredDropdown.vue'
@@ -220,9 +220,8 @@ import StatusUpdateModal from '@/components/collaboration/StatusUpdateModal.vue'
 
 const route = useRoute()
 const router = useRouter()
-const i18nStore = useI18nStore()
-const t = (key) => i18nStore.t(key)
-const demoText = (value) => translateDemoText(value, i18nStore.locale)
+const { t, language } = useI18n()
+const demoText = (value) => translateDemoText(value, language.value)
 const showMorePanel = ref(false)
 const projectStore = useProjectStore()
 
@@ -260,7 +259,8 @@ const closeStarredPopover = () => {
   starredVisible.value = false
 }
 const currentProjectId = computed(() => {
-  return route.params.id || getScopedCurrentProjectId() || 'default'
+  if (route.path.startsWith('/space') && route.params.id) return route.params.id
+  return getScopedCurrentProjectId() || 'default'
 })
 
 
@@ -322,7 +322,9 @@ let unsubscribeAdminRealtime = null
 
 onMounted(() => {
   unsubscribeAdminRealtime = subscribeAdminRealtime(async ({ type, payload }) => {
-    const activeProjectId = route.params.id || getScopedCurrentProjectId() || null
+    const activeProjectId = route.path.startsWith('/space') && route.params.id
+      ? route.params.id
+      : getScopedCurrentProjectId() || null
     if (payload?.projectId && activeProjectId && `${payload.projectId}` !== `${activeProjectId}`) {
       await projectStore.fetchAllProjects(true).catch(() => {})
       return

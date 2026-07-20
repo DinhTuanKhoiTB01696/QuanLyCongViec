@@ -62,8 +62,11 @@ namespace TaskManagement.Domain.Entities
         public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
         public ICollection<TimeLog> TimeLogs { get; set; } = new List<TimeLog>();
         public TaskVectorEmbedding? TaskVectorEmbedding { get; set; }
+        public ICollection<TaskContingencyPlan> TaskContingencyPlans { get; set; } = new List<TaskContingencyPlan>();
+        public ICollection<ContingencyPlan> ContingencyPlans { get; set; } = new List<ContingencyPlan>();
         public ICollection<IssueLabel> IssueLabels { get; set; } = new List<IssueLabel>();
         public ICollection<IssueModule> IssueModules { get; set; } = new List<IssueModule>();
         public ICollection<TaskSubscriber> Subscribers { get; set; } = new List<TaskSubscriber>();
+        public ICollection<CustomFieldValue> CustomFieldValues { get; set; } = new List<CustomFieldValue>();
     }
 }

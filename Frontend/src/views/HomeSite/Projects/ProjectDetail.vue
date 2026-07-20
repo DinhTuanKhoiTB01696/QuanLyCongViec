@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="project-detail-wrapper" v-if="project">
     <!-- Module Header (matching the list view) -->
     <header class="module-header">
@@ -33,10 +33,10 @@
             <div class="target-date-badge">
               <i class="fa-regular fa-calendar"></i> {{ project.startDate ? new Date(project.startDate).toLocaleDateString('vi-VN') : 'Chưa có ngày' }}
             </div>
-            <button class="secondary-btn" @click="toggleFollow">
-              {{ project.isFollowing ? 'Đang theo dõi' : 'Theo dõi' }}
+            <button type="button" class="secondary-btn" @click.stop.prevent="toggleFollow" @keydown.enter.stop.prevent="toggleFollow">
+              {{ project.isFollowing ? 'Bỏ theo dõi' : 'Theo dõi' }}
             </button>
-            <button class="secondary-btn" @click="isShareModalOpen = true">
+            <button type="button" class="secondary-btn" @click.stop.prevent="openShareModal" @keydown.enter.stop.prevent="openShareModal">
               <i class="fa-solid fa-share-nodes"></i> Chia sẻ
             </button>
             <button class="icon-btn-header"><i class="fa-solid fa-link"></i></button>
@@ -382,8 +382,7 @@
             <div class="detail-label">Chủ sở hữu</div>
             <div class="detail-value">
               <div class="owner-chip">
-                <UserAvatar :user="projectOwner" :size="24" :fontSize="11" class="owner-avatar-micro" />
-                <span class="owner-name">{{ projectOwner.name }}</span>
+                <AppUserChip :name="projectOwner.name" :src="projectOwner.avatarUrl" compact />
               </div>
             </div>
           </div>
@@ -393,9 +392,8 @@
             <div class="detail-label">Người đóng góp <span class="badge-count">1</span> <button class="icon-btn-micro"><i class="fa-solid fa-plus"></i></button></div>
             <div class="detail-value">
               <div class="owner-chip">
-                  <UserAvatar :user="projectOwner" :size="24" :fontSize="11" class="owner-avatar-micro" />
+                  <AppUserChip :name="projectOwner.name" :src="projectOwner.avatarUrl" compact />
                 <div class="owner-info">
-                  <span class="owner-name">{{ projectOwner.name }}</span>
                   <span class="owner-role">{{ projectOwner.role }}</span>
                 </div>
               </div>
@@ -528,9 +526,12 @@
 
     <!-- Share Modal -->
     <ShareModal 
-      :isOpen="isShareModalOpen" 
-      :projectId="route.params.id" 
-      :projectName="project.title" 
+      :is-open="isShareModalOpen" 
+      :entityId="route.params.id" 
+      entityType="Project"
+      :entityName="project.title"
+      :workspaceId="project.workspaceId"
+      :owner="projectOwner"
       @close="isShareModalOpen = false" 
     />
   </div>
@@ -547,6 +548,7 @@ import RichTextEditor from '@/components/common/RichTextEditor.vue'
 import ShareModal from '@/components/common/ShareModal.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import { AppUserChip } from '@/components/common/Foundation'
 
 const route = useRoute()
 const projectStore = useHomeProjectStore()
@@ -827,6 +829,10 @@ const saveProjectDecision = async () => {
 
 const toggleFollow = async () => {
   if (project.value?.id) await projectStore.toggleFollow(project.value.id)
+}
+
+const openShareModal = () => {
+  isShareModalOpen.value = true
 }
 
 const getStatusClass = (status) => {

@@ -30,6 +30,10 @@
         </div>
       </section>
 
+      <section class="dashboard-focus-widget">
+        <DailyFocusWidget />
+      </section>
+
       <section class="search-panel">
         <div class="search-shell">
           <i class="fa-solid fa-magnifying-glass"></i>
@@ -59,7 +63,7 @@
               <i :class="project.isFavorite ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i>
             </button>
 
-            <div class="project-cover" :style="{ background: project.cover || fallbackCover(project) }">
+            <div class="project-cover" :style="projectCoverStyle(project)" :aria-label="project.coverAltText || project.name">
               <span class="project-icon">{{ project.icon || project.name?.charAt(0)?.toUpperCase() || 'P' }}</span>
             </div>
 
@@ -95,7 +99,7 @@
               <i :class="project.isFavorite ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i>
             </button>
 
-            <div class="project-cover" :style="{ background: project.cover || fallbackCover(project) }">
+            <div class="project-cover" :style="projectCoverStyle(project)" :aria-label="project.coverAltText || project.name">
               <span class="project-icon">{{ project.icon || project.name?.charAt(0)?.toUpperCase() || 'P' }}</span>
             </div>
 
@@ -171,6 +175,7 @@ import axiosClient from '@/api/axiosClient'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useI18n } from '@/composables/useI18n'
 import { translateDemoText } from '@/utils/demoContentLocale'
+import DailyFocusWidget from '@/components/DailyFocusWidget.vue'
 
 const router = useRouter()
 const projectStore = useProjectStore()
@@ -220,6 +225,16 @@ const fallbackCover = (project) => {
   const name = project?.name || ''
   const index = name.length % gradients.length
   return gradients[index]
+}
+
+const projectCoverStyle = (project) => {
+  if (project?.cover) {
+    return {
+      backgroundImage: `linear-gradient(180deg, rgba(15, 23, 42, 0.05), rgba(15, 23, 42, 0.45)), url("${project.cover}")`
+    }
+  }
+
+  return { background: fallbackCover(project) }
 }
 
 const openProject = (projectId) => {
@@ -302,6 +317,7 @@ watch(language, updateTime)
 
 .dashboard-header,
 .hero-panel,
+.dashboard-focus-widget,
 .search-panel,
 .projects-panel {
   max-width: 1180px;
@@ -462,6 +478,8 @@ watch(language, updateTime)
   display: flex;
   align-items: flex-end;
   padding: 16px;
+  background-position: center;
+  background-size: cover;
 }
 
 .project-icon {
@@ -588,6 +606,7 @@ watch(language, updateTime)
 
 .nexus-feature-header,
 .hero-panel,
+.dashboard-focus-widget,
 .search-panel,
 .projects-panel {
   animation: dashboard-rise-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;

@@ -101,13 +101,13 @@ onMounted(async () => {
 
 .route-soft-enter-from {
   opacity: 0;
-  transform: translateY(8px) scale(0.995);
+  transform: translateY(8px);
   filter: blur(2px);
 }
 
 .route-soft-leave-to {
   opacity: 0;
-  transform: translateY(-4px) scale(0.998);
+  transform: translateY(-4px);
   filter: blur(1px);
 }
 

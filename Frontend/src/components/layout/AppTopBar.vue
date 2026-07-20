@@ -49,7 +49,7 @@
 
     <div class="nav-right">
       <!-- Language Flags -->
-      <div class="lang-selector">
+      <div class="lang-selector hidden-mobile">
         <button class="flag-btn" :class="{ active: i18nStore.locale === 'vi' }" @click="i18nStore.setLocale('vi')" title="Tiếng Việt">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" class="flag-svg">
             <rect width="3" height="2" fill="#da251d"/>
@@ -81,7 +81,7 @@
       </button>
 
       <button
-        class="icon-btn theme-toggle-btn"
+        class="icon-btn theme-toggle-btn hidden-mobile"
         :class="{ active: currentTheme === 'dark' }"
         @click="toggleTheme()"
         :title="currentTheme === 'dark' ? 'Dang dung dark mode - bam de sang light mode' : 'Dang dung light mode - bam de sang dark mode'"
@@ -90,11 +90,13 @@
         <i :class="currentTheme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun'"></i>
       </button>
 
-      <button class="icon-btn ai-topbar-btn" @click="emit('toggle-ai')" title="AI Assistant">
-        <i class="fa-solid fa-robot"></i>
+      <button class="icon-btn ai-topbar-btn hidden-mobile" @click="emit('toggle-ai')" title="AI Assistant">
+        <img src="/ai-sprinta/idle.png" alt="" aria-hidden="true" />
       </button>
 
-      <SettingsDropdown />
+      <div class="hidden-mobile">
+        <SettingsDropdown />
+      </div>
       <UserDropdown class="nav-item" />
     </div>
   </header>
@@ -130,14 +132,7 @@ const t = (key) => i18nStore.t(key)
 const demoText = (value) => translateDemoText(value, i18nStore.locale)
 
 const isHomeContext = computed(() => route.path.startsWith('/home') || route.path.startsWith('/sites'))
-const isSpaceContext = computed(() => 
-  route.path.startsWith('/space') || 
-  route.path.startsWith('/dashboard') || 
-  route.path.startsWith('/stickies') || 
-  route.path.startsWith('/rewards') || 
-  route.path.startsWith('/priority') || 
-  route.path.startsWith('/integrations')
-)
+const isSpaceContext = computed(() => !!route.meta.isSpaceContext)
 
 const isModule = (moduleName) => {
   if (moduleName === 'people') {
@@ -154,7 +149,11 @@ let searchTimer = null
 let searchAbortController = null
 let searchRequestId = 0
 
-const currentProjectId = computed(() => route.params.id || getScopedCurrentProjectId() || '')
+const routeProjectId = computed(() => {
+  if (isSpaceContext.value && route.params.id) return route.params.id
+  return getScopedCurrentProjectId() || ''
+})
+const currentProjectId = computed(() => routeProjectId.value)
 const activeProject = computed(() => projectStore.allProjects.find(project => project.id === currentProjectId.value) || projectStore.currentProject)
 const workspaceName = computed(() => demoText(activeProject.value?.name) || 'SprintA')
 const workspaceBadge = computed(() => activeProject.value?.icon || workspaceName.value.charAt(0).toUpperCase())
@@ -274,7 +273,7 @@ let unsubscribeAdminRealtime = null
 
 onMounted(() => {
   unsubscribeAdminRealtime = subscribeAdminRealtime(async ({ type, payload }) => {
-    const activeProjectId = currentProjectId.value || null
+    const activeProjectId = routeProjectId.value || null
 
     if (payload?.projectId && activeProjectId && `${payload.projectId}` !== `${activeProjectId}`) {
       await projectStore.fetchAllProjects(true).catch(() => {})
@@ -651,6 +650,24 @@ onUnmounted(() => {
   color: #ffffff;
 }
 
+.ai-topbar-btn {
+  overflow: hidden;
+  padding: 3px;
+  border-color: rgba(226, 239, 255, 0.18);
+}
+
+.ai-topbar-btn img {
+  width: 25px;
+  height: 25px;
+  object-fit: contain;
+  display: block;
+}
+
+.ai-topbar-btn:hover {
+  border-color: rgba(226, 239, 255, 0.34);
+  background: rgba(255, 255, 255, 0.10);
+}
+
 .theme-toggle-btn.active {
   border-color: rgba(125, 211, 252, 0.42);
   background: rgba(56, 189, 248, 0.16);
@@ -722,8 +739,9 @@ onUnmounted(() => {
   .settings-btn,
   .bot-btn,
   .notification-btn,
-  .user-name {
-    display: none;
+  .user-name,
+  .hidden-mobile {
+    display: none !important;
   }
 }
 
