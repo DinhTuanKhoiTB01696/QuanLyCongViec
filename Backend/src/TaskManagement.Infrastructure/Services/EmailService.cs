@@ -23,23 +23,33 @@ namespace TaskManagement.Infrastructure.Services
             Console.WriteLine($"[DEBUG OTP] Email: {toEmail} -> OTP Code: {otpCode}");
             Console.WriteLine($"=========================================");
 
-            var subject = "Ma xac thuc OTP - SprintA";
+            var subject = "Mã xác thực OTP - SprintA";
             var html = $@"
-                <div style='font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;'>
-                    <h2 style='color: #0f172a; text-align: center;'>Ma xac thuc OTP</h2>
-                    <p style='color: #64748b; text-align: center;'>Su dung ma ben duoi de hoan tat dang ky tai khoan SprintA:</p>
+                <div style='font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background:#ffffff;'>
+                    <div style='text-align:center; margin-bottom: 24px;'>
+                        <span style='font-size:22px; font-weight:700; color:#0ea5e9;'>SprintA</span>
+                    </div>
+                    <h2 style='color: #0f172a; text-align: center; font-size:20px;'>Mã xác thực OTP</h2>
+                    <p style='color: #64748b; text-align: center;'>Sử dụng mã bên dưới để hoàn tất đăng ký tài khoản SprintA:</p>
                     <div style='background: #f1f5f9; border-radius: 12px; padding: 24px; text-align: center; margin: 24px 0;'>
                         <span style='font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #0ea5e9;'>{WebUtility.HtmlEncode(otpCode)}</span>
                     </div>
-                    <p style='color: #94a3b8; font-size: 13px; text-align: center;'>Ma nay co hieu luc trong 5 phut. Khong chia se ma nay voi bat ky ai.</p>
+                    <p style='color: #94a3b8; font-size: 13px; text-align: center;'>Mã này có hiệu lực trong 5 phút. Không chia sẻ mã này với bất kỳ ai.</p>
+                    <hr style='border:none; border-top:1px solid #e2e8f0; margin: 24px 0;'/>
+                    <p style='color: #94a3b8; font-size: 12px; text-align: center; line-height:1.6;'>
+                        Bạn nhận email này vì đang đăng ký hoặc đặt lại mật khẩu tại SprintA.<br/>
+                        Nếu bạn không thực hiện hành động này, hãy bỏ qua email này.
+                    </p>
                 </div>";
+
+            var text = $"Ma xac thuc OTP cua ban la: {otpCode}\n\nMa nay co hieu luc trong 5 phut. Khong chia se ma nay voi bat ky ai.\n\nBan nhan email nay vi dang dang ky hoac dat lai mat khau tai SprintA.";
 
             try
             {
                 // Giới hạn thời gian gửi qua API Resend tối đa 10 giây để tránh bị treo lâu khi mạng có sự cố
                 using (var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(10)))
                 {
-                    await SendResendEmailAsync(toEmail, subject, html, cts.Token);
+                    await SendResendEmailAsync(toEmail, subject, html, text, cts.Token);
                 }
             }
             catch (Exception ex)
@@ -126,7 +136,7 @@ namespace TaskManagement.Infrastructure.Services
                     </table>
                 </div>";
 
-            await SendResendEmailAsync(toEmail, subject, html);
+            await SendResendEmailAsync(toEmail, subject, html, null);
         }
 
         public async Task SendPasswordChangeRequestEmailAsync(
@@ -167,21 +177,24 @@ namespace TaskManagement.Infrastructure.Services
                     <p style='color:#626f86; font-size:13px;'>Please review this request in SprintA and decide whether manual admin support is needed.</p>
                 </div>";
 
-            await SendResendEmailAsync(toEmail, subject, html);
+            await SendResendEmailAsync(toEmail, subject, html, null);
         }
 
-        private async Task SendResendEmailAsync(string toEmail, string subject, string html, System.Threading.CancellationToken cancellationToken = default)
+        private async Task SendResendEmailAsync(string toEmail, string subject, string html, string? text = null, System.Threading.CancellationToken cancellationToken = default)
         {
             var apiKey = _configuration["Resend:ApiKey"]
                 ?? throw new InvalidOperationException("Resend API key is missing.");
             var fromEmail = _configuration["Resend:FromEmail"] ?? "noreply@sprinta.io.vn";
+            var fromDisplay = $"SprintA <{fromEmail}>";
 
             var requestBody = new
             {
-                from = fromEmail,
+                from = fromDisplay,
+                reply_to = "support@sprinta.io.vn",
                 to = new[] { toEmail },
                 subject,
-                html
+                html,
+                text
             };
 
             var json = JsonSerializer.Serialize(requestBody);
