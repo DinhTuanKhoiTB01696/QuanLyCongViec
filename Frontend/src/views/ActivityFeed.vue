@@ -25,11 +25,19 @@
           <span>Thảo luận & Cập nhật hoạt động</span>
         </h3>
         <div class="flex items-center" style="gap: 20px !important;">
-          <div class="flex items-center" style="gap: 8px !important;">
+          <div class="flex items-center" style="gap: 8px !important;" @mouseenter="handleProjectMouseEnter">
             <span class="text-xs text-muted font-medium" style="margin-right: 4px !important;">Dự án:</span>
-            <el-select v-model="selectedPostProject" size="default" class="custom-project-select" style="width: 220px;">
+            <el-select 
+              ref="projectSelectRef"
+              v-model="selectedPostProject" 
+              size="default" 
+              class="custom-project-select" 
+              style="width: 220px;"
+              popper-class="custom-project-dropdown"
+            >
               <!-- Dummy helper reference to trigger default project value assignment on render -->
               <span style="display:none;">{{ unwatchProjects }}</span>
+              <el-option label="— Tất cả dự án —" value="all" />
               <el-option 
                 v-for="proj in sidebarProjects" 
                 :key="proj.id" 
@@ -38,9 +46,16 @@
               />
             </el-select>
           </div>
-          <div class="flex items-center" style="gap: 8px !important;">
+          <div class="flex items-center" style="gap: 8px !important;" @mouseenter="handleTypeMouseEnter">
             <span class="text-xs text-muted font-medium" style="margin-right: 4px !important; margin-left: 6px !important;">Loại:</span>
-            <el-select v-model="selectedPostType" size="default" class="custom-project-select" style="width: 120px;">
+            <el-select 
+              ref="typeSelectRef"
+              v-model="selectedPostType" 
+              size="default" 
+              class="custom-project-select" 
+              style="width: 120px;"
+              popper-class="custom-project-dropdown"
+            >
               <el-option label="Công việc" value="task" />
               <el-option label="Bình luận" value="comment" />
               <el-option label="Trạng thái" value="status" />
@@ -141,26 +156,54 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useProjectStore } from '@/store/useProjectStore'
+import axiosClient from '@/api/axiosClient'
 
 const projectStore = useProjectStore()
+const loading = ref(false)
 
 // Load projects dynamically on mount
 onMounted(() => {
   projectStore.fetchAllProjects()
+  fetchActivities()
 })
 
 const sidebarProjects = computed(() => projectStore.sidebarProjects || [])
 
 const activeFilter = ref('all')
-const selectedPostProject = ref('')
+const selectedPostProject = ref('all')
 const selectedPostType = ref('comment')
 const newPostTarget = ref('')
 const newPostDetail = ref('')
 
+const projectSelectRef = ref(null)
+const typeSelectRef = ref(null)
+
+const handleProjectMouseEnter = () => {
+  if (projectSelectRef.value) {
+    projectSelectRef.value.focus()
+    const isExpanded = projectSelectRef.value.expanded || 
+                       (projectSelectRef.value.states && projectSelectRef.value.states.menuVisible)
+    if (!isExpanded && typeof projectSelectRef.value.toggleMenu === 'function') {
+      projectSelectRef.value.toggleMenu()
+    }
+  }
+}
+
+const handleTypeMouseEnter = () => {
+  if (typeSelectRef.value) {
+    typeSelectRef.value.focus()
+    const isExpanded = typeSelectRef.value.expanded || 
+                       (typeSelectRef.value.states && typeSelectRef.value.states.menuVisible)
+    if (!isExpanded && typeof typeSelectRef.value.toggleMenu === 'function') {
+      typeSelectRef.value.toggleMenu()
+    }
+  }
+}
+
 // Watch projects list to set default project selection
 const unwatchProjects = computed(() => {
   if (sidebarProjects.value.length > 0 && !selectedPostProject.value) {
-    selectedPostProject.value = sidebarProjects.value[0].name
+    selectedPostProject.value = 'all'
   }
   return sidebarProjects.value
 })
@@ -174,67 +217,103 @@ const filterOptions = [
   { label: 'Trạng thái', value: 'status', icon: 'fa-solid fa-face-smile' }
 ]
 
-const activities = ref([
-  {
-    id: 1,
-    userName: 'Nguyễn Tuấn Kiệt',
-    userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=128',
-    type: 'task',
-    description: 'vừa hoàn thành công việc',
-    target: 'Tích hợp mô hình AI Priority',
-    detail: 'Đã hoàn tất tính toán điểm ưu tiên dựa trên trọng số deadline và mức độ quan trọng.',
-    timestamp: new Date(Date.now() - 1000 * 60 * 12), // 12 mins ago
-    project: 'Dự án Alpha'
-  },
-  {
-    id: 2,
-    userName: 'Phạm Minh Tú',
-    userAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=128',
-    type: 'comment',
-    description: 'đã bình luận trong task',
-    target: 'Thiết kế cơ sở dữ liệu phân công',
-    detail: '“Cần bổ sung bảng lịch sử phân công (AssignmentHistory) để tracking chặt chẽ hơn.”',
-    timestamp: new Date(Date.now() - 1000 * 60 * 45), // 45 mins ago
-    project: 'Dự án Beta'
-  },
-  {
-    id: 3,
-    userName: 'Đoàn Minh Quân',
-    userAvatar: '',
-    type: 'status',
-    description: 'đã cập nhật trạng thái làm việc mới',
-    target: '💻 Đang code giao diện Team Collaboration',
-    detail: null,
-    timestamp: new Date(Date.now() - 1000 * 3600 * 1.5), // 1.5 hours ago
-    project: 'Workspace Chung'
-  },
-  {
-    id: 4,
-    userName: 'Lê Tiến Đạt',
-    userAvatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=128',
-    type: 'sprint',
-    description: 'vừa bắt đầu Sprint mới',
-    target: 'Sprint 5 - Hoàn thiện các tính năng cốt lõi',
-    detail: 'Sprint kéo dài từ 01/07/2026 đến 15/07/2026.',
-    timestamp: new Date(Date.now() - 1000 * 3600 * 3), // 3 hours ago
-    project: 'Dự án Alpha'
-  },
-  {
-    id: 5,
-    userName: 'Trần Gia Phát',
-    userAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=128',
-    type: 'task',
-    description: 'đã chuyển trạng thái công việc sang In Progress',
-    target: 'Kéo thả các thẻ Kanban',
-    detail: 'Đang triển khai thư viện vuedraggable.',
-    timestamp: new Date(Date.now() - 1000 * 3600 * 5),
-    project: 'Dự án Alpha'
+const activities = ref([])
+
+const fetchActivities = async () => {
+  loading.value = true
+  try {
+    const res = await axiosClient.get('/auditlogs', {
+      params: {
+        limit: 50
+      }
+    })
+    if (res.data && res.data.data && res.data.data.items) {
+      activities.value = res.data.data.items.map(item => ({
+        id: item.id,
+        userName: item.user,
+        userAvatar: '', 
+        type: item.action === 'create' ? 'task' : (item.action === 'comment' ? 'comment' : (item.action === 'system' ? 'sprint' : 'status')),
+        description: item.summary,
+        target: item.resource,
+        detail: '', 
+        timestamp: item.timestamp,
+        project: item.projectName || 'TaskManagement'
+      }))
+    }
+  } catch (error) {
+    console.error('Cannot load audit logs:', error)
+    // Fallback to mock data if API fails
+    activities.value = [
+      {
+        id: 1,
+        userName: 'Nguyễn Tuấn Kiệt',
+        userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=128',
+        type: 'task',
+        description: 'vừa hoàn thành công việc',
+        target: 'Tích hợp mô hình AI Priority',
+        detail: 'Đã hoàn tất tính toán điểm ưu tiên dựa trên trọng số deadline và mức độ quan trọng.',
+        timestamp: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
+        project: 'Dự án Alpha'
+      },
+      {
+        id: 2,
+        userName: 'Phạm Minh Tú',
+        userAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=128',
+        type: 'comment',
+        description: 'đã bình luận trong task',
+        target: 'Thiết kế cơ sở dữ liệu phân công',
+        detail: '“Cần bổ sung bảng lịch sử phân công (AssignmentHistory) để tracking chặt chẽ hơn.”',
+        timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+        project: 'Dự án Beta'
+      },
+      {
+        id: 3,
+        userName: 'Đoàn Minh Quân',
+        userAvatar: '',
+        type: 'status',
+        description: 'đã cập nhật trạng thái làm việc mới',
+        target: '💻 Đang code giao diện Team Collaboration',
+        detail: null,
+        timestamp: new Date(Date.now() - 1000 * 3600 * 1.5).toISOString(),
+        project: 'Workspace Chung'
+      },
+      {
+        id: 4,
+        userName: 'Lê Tiến Đạt',
+        userAvatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=128',
+        type: 'sprint',
+        description: 'vừa bắt đầu Sprint mới',
+        target: 'Sprint 5 - Hoàn thiện các tính năng cốt lõi',
+        detail: 'Sprint kéo dài từ 01/07/2026 đến 15/07/2026.',
+        timestamp: new Date(Date.now() - 1000 * 3600 * 3).toISOString(),
+        project: 'Dự án Alpha'
+      },
+      {
+        id: 5,
+        userName: 'Trần Gia Phát',
+        userAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=128',
+        type: 'task',
+        description: 'đã chuyển trạng thái công việc sang In Progress',
+        target: 'Kéo thả các thẻ Kanban',
+        detail: 'Đang triển khai thư viện vuedraggable.',
+        timestamp: new Date(Date.now() - 1000 * 3600 * 5).toISOString(),
+        project: 'Dự án Alpha'
+      }
+    ]
+  } finally {
+    loading.value = false
   }
-])
+}
 
 const filteredActivities = computed(() => {
-  if (activeFilter.value === 'all') return activities.value
-  return activities.value.filter(a => a.type === activeFilter.value)
+  let list = activities.value
+  if (selectedPostProject.value && selectedPostProject.value !== 'all') {
+    list = list.filter(a => a.project === selectedPostProject.value)
+  }
+  if (activeFilter.value !== 'all') {
+    list = list.filter(a => a.type === activeFilter.value)
+  }
+  return list
 })
 
 const getTypeIcon = (type) => {
@@ -266,7 +345,8 @@ const formatTimeAgo = (dateObj) => {
   return new Date(dateObj).toLocaleDateString()
 }
 
-const refreshFeed = () => {
+const refreshFeed = async () => {
+  await fetchActivities()
   ElMessage.success('Đã cập nhật bảng tin hoạt động mới nhất')
 }
 
@@ -285,7 +365,7 @@ const submitActivityPost = () => {
     target: newPostTarget.value,
     detail: newPostDetail.value.trim() || null,
     timestamp: new Date(),
-    project: selectedPostProject.value
+    project: selectedPostProject.value === 'all' ? (sidebarProjects.value.length > 0 ? sidebarProjects.value[0].name : 'Workspace Chung') : selectedPostProject.value
   }
 
   // Prepend new activity
@@ -721,5 +801,78 @@ const submitActivityPost = () => {
 .el-popper__arrow::before {
   background: #111c2d !important;
   border-color: rgba(56, 189, 248, 0.2) !important;
+}
+
+/* High specificity overrides for custom dropdown select views */
+body .custom-project-select .el-input__wrapper {
+  background-color: var(--color-surface-hover) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: none !important;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  height: 38px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+body .custom-project-select .el-input__wrapper:hover {
+  border-color: var(--color-primary) !important;
+  background-color: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface-hover)) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 15%, transparent) !important;
+}
+
+body .custom-project-select .el-input__wrapper.is-focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent) !important;
+}
+
+body .custom-project-select .el-input__inner {
+  color: var(--color-text-primary) !important;
+  font-weight: 550 !important;
+  font-size: 13px !important;
+}
+
+.custom-project-dropdown {
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45) !important;
+  border-radius: 10px !important;
+  padding: 4px 0 !important;
+}
+
+.custom-project-dropdown .el-select-dropdown__item {
+  border-radius: 6px !important;
+  margin: 3px 6px !important;
+  padding: 8px 12px !important;
+  height: auto !important;
+  line-height: 1.4 !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  color: var(--color-text-secondary) !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+}
+
+body .custom-project-dropdown .el-select-dropdown__item.hover,
+body .custom-project-dropdown .el-select-dropdown__item:hover,
+body .custom-project-dropdown .el-select-dropdown__item.is-hovering {
+  background-color: color-mix(in srgb, var(--color-primary) 15%, transparent) !important;
+  background: color-mix(in srgb, var(--color-primary) 15%, transparent) !important;
+  color: #ffffff !important;
+  transform: translateX(4px) !important;
+}
+
+body .custom-project-dropdown .el-select-dropdown__item.selected {
+  background-color: var(--color-primary) !important;
+  background: var(--color-primary) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+body .custom-project-dropdown .el-select-dropdown__item.selected.hover,
+body .custom-project-dropdown .el-select-dropdown__item.selected:hover,
+body .custom-project-dropdown .el-select-dropdown__item.selected.is-hovering {
+  background-color: color-mix(in srgb, var(--color-primary) 85%, #000000) !important;
+  background: color-mix(in srgb, var(--color-primary) 85%, #000000) !important;
+  color: #ffffff !important;
+  transform: translateX(4px) !important;
 }
 </style>

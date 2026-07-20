@@ -107,7 +107,8 @@ namespace TaskManagement.Infrastructure.Data
         public DbSet<ProjectRisk> ProjectRisks { get; set; }
         public DbSet<ProjectDecision> ProjectDecisions { get; set; }
         public DbSet<EntityFollower> EntityFollowers { get; set; }
-
+        public DbSet<DirectMessage> DirectMessages { get; set; }
+        public DbSet<ChannelMessage> ChannelMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -820,6 +821,30 @@ namespace TaskManagement.Infrastructure.Data
             modelBuilder.ApplyConfiguration(new Configurations.ProjectDepartmentRoleConfiguration());
             modelBuilder.ApplyConfiguration(new Configurations.TenantConfigConfiguration());
             modelBuilder.ApplyConfiguration(new Configurations.RefreshTokenConfiguration());
+
+            modelBuilder.Entity<DirectMessage>()
+                .HasOne(dm => dm.Sender)
+                .WithMany()
+                .HasForeignKey(dm => dm.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<DirectMessage>()
+                .HasOne(dm => dm.Receiver)
+                .WithMany()
+                .HasForeignKey(dm => dm.ReceiverId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ChannelMessage>()
+                .HasOne(cm => cm.Sender)
+                .WithMany()
+                .HasForeignKey(cm => cm.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ChannelMessage>()
+                .HasOne(cm => cm.Channel)
+                .WithMany()
+                .HasForeignKey(cm => cm.ChannelId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
