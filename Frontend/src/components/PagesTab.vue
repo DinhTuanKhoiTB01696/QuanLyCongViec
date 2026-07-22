@@ -831,7 +831,7 @@ function pageMenuItems(page) {
 .btn-box { width: 28px; height: 28px; }
 
 /* Editor View Refactoring */
-.page-editor-view { display: flex; flex-direction: column; height: 100vh; background: var(--color-bg); overflow: hidden; }
+.page-editor-view { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--color-bg); overflow: hidden; }
 .editor-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; border-bottom: 1px solid var(--color-border); background: var(--color-bg); z-index: 20; }
 .eh-left { display: flex; align-items: center; gap: 12px; }
 .eh-right { display: flex; align-items: center; gap: 8px; }

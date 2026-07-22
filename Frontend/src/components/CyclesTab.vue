@@ -948,9 +948,7 @@ onUnmounted(() => {
   height: 100%;
   color: var(--color-text-primary);
   font-family: inherit;
-  background:
-    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--sp-sky-400) 10%, transparent), transparent 30%),
-    var(--color-bg);
+  background: var(--color-bg);
   min-height: calc(100vh - 100px);
 }
 
@@ -1221,7 +1219,6 @@ onUnmounted(() => {
 
 [data-theme='dark'] .plane-cycles-wrapper {
   background:
-    radial-gradient(circle at 14% 0%, rgba(14, 165, 233, 0.11), transparent 30%),
     linear-gradient(180deg, #07111f, #0f172a 52%, #101827);
 }
 
@@ -1426,9 +1423,7 @@ onUnmounted(() => {
 
 /* Polished cycles experience */
 .plane-cycles-wrapper {
-  background:
-    radial-gradient(circle at 14% 0%, color-mix(in srgb, var(--color-accent) 11%, transparent), transparent 34%),
-    var(--color-bg) !important;
+  background: var(--color-bg) !important;
 }
 
 .cycles-view-header,
@@ -1625,7 +1620,6 @@ onUnmounted(() => {
   background:
     linear-gradient(rgba(203, 213, 225, 0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(203, 213, 225, 0.08) 1px, transparent 1px),
-    radial-gradient(circle at 48% 54%, rgba(59, 130, 246, 0.16), transparent 40%),
     rgba(15, 23, 42, 0.64) !important;
   border-color: rgba(148, 163, 184, 0.18) !important;
 }
@@ -1701,7 +1695,6 @@ onUnmounted(() => {
   background:
     linear-gradient(rgba(71, 85, 105, 0.10) 1px, transparent 1px),
     linear-gradient(90deg, rgba(71, 85, 105, 0.09) 1px, transparent 1px),
-    radial-gradient(circle at 48% 54%, rgba(37, 99, 235, 0.10), transparent 40%),
     #f8fafc !important;
   border-color: rgba(148, 163, 184, 0.28) !important;
 }

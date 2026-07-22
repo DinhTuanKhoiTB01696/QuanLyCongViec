@@ -53,7 +53,6 @@
       <div class="reports-stats-grid">
         <!-- Total Tasks -->
         <div class="report-stat-card total-tasks">
-          <div class="stat-card-glow"></div>
           <div class="stat-card-content">
             <div class="stat-icon-wrapper">
               <i class="fa-solid fa-list-check"></i>
@@ -67,7 +66,6 @@
         
         <!-- Done Tasks -->
         <div class="report-stat-card done-tasks">
-          <div class="stat-card-glow"></div>
           <div class="stat-card-content">
             <div class="stat-icon-wrapper">
               <i class="fa-solid fa-circle-check"></i>
@@ -84,7 +82,6 @@
         
         <!-- In Progress -->
         <div class="report-stat-card in-progress">
-          <div class="stat-card-glow"></div>
           <div class="stat-card-content">
             <div class="stat-icon-wrapper">
               <i class="fa-solid fa-clock-rotate-left"></i>
@@ -98,7 +95,6 @@
         
         <!-- Overdue Tasks -->
         <div class="report-stat-card overdue-tasks" :class="{ 'has-overdue': overdueTasksCount > 0 }">
-          <div class="stat-card-glow"></div>
           <div class="stat-card-content">
             <div class="stat-icon-wrapper">
               <i class="fa-solid fa-triangle-exclamation"></i>
@@ -815,9 +811,9 @@ onMounted(() => {
 .space-reports-page {
   width: 100%;
   max-width: none;
-  margin: 0 auto;
-  padding: 28px clamp(24px, 3.2vw, 56px) 48px;
-  min-height: calc(100vh - 64px);
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
   color: var(--color-text-primary);
   display: flex;
   flex-direction: column;
@@ -947,24 +943,10 @@ onMounted(() => {
 
 .report-stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 28px 64px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.stat-card-glow {
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.04) 0%, transparent 75%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
 
-.report-stat-card:hover .stat-card-glow {
-  opacity: 1;
-}
 
 .stat-card-content {
   display: flex;
@@ -1053,7 +1035,7 @@ onMounted(() => {
 }
 
 .report-card:hover {
-  box-shadow: 0 24px 58px rgba(15, 23, 42, 0.10);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .card-title {

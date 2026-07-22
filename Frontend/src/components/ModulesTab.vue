@@ -599,7 +599,7 @@ onUnmounted(() => {
       <!-- Grid View Mode -->
       <div v-else-if="viewMode === 'grid'" class="module-grid">
         <article class="grid-card" v-for="module in filteredModules" :key="module.id" @click="openModuleTaskView(module)">
-          <div class="grid-card-glow"></div>
+
           
           <div class="grid-card-header">
             <div class="grid-card-title-wrap">
@@ -1022,21 +1022,7 @@ onUnmounted(() => {
   box-shadow: var(--shadow-lg);
 }
 
-.grid-card-glow {
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.03) 0%, transparent 70%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
 
-.grid-card:hover .grid-card-glow {
-  opacity: 1;
-}
 
 .grid-card-header {
   display: flex;

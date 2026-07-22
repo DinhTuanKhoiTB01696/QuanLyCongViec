@@ -18,7 +18,7 @@
       <!-- Space Project Context Navigation -->
       <div v-else-if="isSpaceContext" class="space-nav">
         <div class="workspace-switcher" @click="router.push('/spaces')">
-          <div class="ws-icon">{{ workspaceBadge }}</div>
+          <ProjectAvatar :icon="activeProject?.icon" :background="activeProject?.cover" size="xs" />
           <span class="ws-name">{{ workspaceName }}</span>
           <i class="fa-solid fa-chevron-down ms-1"></i>
         </div>
@@ -116,6 +116,7 @@ import { getScopedCurrentProjectId, setScopedCurrentProjectId } from '@/utils/pr
 import { useI18nStore } from '@/store/useI18nStore'
 import { toggleTheme, currentTheme } from '@/utils/theme'
 import { translateDemoText } from '@/utils/demoContentLocale'
+import ProjectAvatar from '@/components/project/ProjectAvatar.vue'
 
 const emit = defineEmits(['toggle-sidebar', 'toggle-ai', 'toggle-create'])
 

@@ -626,7 +626,8 @@ const openTaskDetail = (task) => {
 .space-timeline-view {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
   background: var(--sa-bg, #ffffff);
   color: var(--sa-text, #1e293b);
   overflow: hidden;
@@ -1133,7 +1134,6 @@ const openTaskDetail = (task) => {
 
 .timeline-chart-wrapper {
   background:
-    radial-gradient(circle at 70% 0%, color-mix(in srgb, var(--color-accent) 5%, transparent), transparent 20rem),
     color-mix(in srgb, var(--color-bg) 74%, #020617) !important;
 }
 

@@ -216,7 +216,7 @@
 }
 
 body {
-  font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   line-height: 1.6;
   background-color: var(--color-bg);
   color: var(--color-text-primary);
@@ -1181,8 +1181,6 @@ textarea {
 /* Site selection welcome screen */
 .start-page-wrapper {
   background:
-    radial-gradient(circle at 18% 10%, color-mix(in srgb, var(--home-accent) 16%, transparent), transparent 30%),
-    radial-gradient(circle at 78% 24%, color-mix(in srgb, var(--home-warning) 10%, transparent), transparent 24%),
     linear-gradient(180deg, var(--home-bg), var(--home-bg-2)) !important;
   color: var(--home-text) !important;
 }
@@ -1244,9 +1242,6 @@ textarea {
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 7% 12%, color-mix(in srgb, var(--home-accent) 16%, transparent), transparent 28%),
-    radial-gradient(circle at 94% 84%, color-mix(in srgb, var(--home-accent-2) 12%, transparent), transparent 30%);
   pointer-events: none;
 }
 
@@ -1388,8 +1383,6 @@ textarea {
 .goals-wrapper,
 .projects-wrapper {
   background:
-    radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--home-accent) 14%, transparent), transparent 30%),
-    radial-gradient(circle at 92% 8%, color-mix(in srgb, var(--home-accent-2) 10%, transparent), transparent 28%),
     linear-gradient(180deg, var(--home-bg), var(--home-bg-2) 54%, var(--home-bg)) !important;
   color: var(--home-text) !important;
 }
@@ -1710,9 +1703,7 @@ a:focus-visible {
 .empty-state-grid,
 .empty-table-state,
 .loading-state {
-  background:
-    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--home-accent) 12%, transparent), transparent 38%),
-    var(--home-panel) !important;
+  background: var(--home-panel) !important;
   border: 1px dashed var(--home-border-strong) !important;
   border-radius: 18px !important;
   color: var(--home-muted) !important;
@@ -1804,9 +1795,7 @@ a:focus-visible {
 .recent-page,
 .starred-page,
 .status-page {
-  background:
-    radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--home-accent-2) 9%, transparent), transparent 28%),
-    var(--home-bg) !important;
+  background: var(--home-bg) !important;
   color: var(--home-text) !important;
 }
 

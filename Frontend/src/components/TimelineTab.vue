@@ -1059,9 +1059,7 @@ function isWeekend(date) {
 
 /* Polished Gantt view */
 .plane-timeline {
-  background:
-    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 32%),
-    var(--color-bg) !important;
+  background: var(--color-bg) !important;
 }
 
 .tl-header {

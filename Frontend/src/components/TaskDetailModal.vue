@@ -1168,117 +1168,133 @@
             </div>
 
             <!-- CONTINGENCY PLAN UI -->
-            <div class="mb-6 contingency-plans-container" v-if="activityTab === 'contingency'">
-              <div v-if="isLoadingContingency" class="text-center py-6 text-muted">
-                 <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
-                 <div class="mt-2 text-sm font-medium">Đang tải kế hoạch...</div>
+            <div class="contingency-plans-container" v-if="activityTab === 'contingency'">
+              <div v-if="isLoadingContingency" class="backup-plan-loading">
+                 <i class="bi bi-arrow-repeat contingency-spinner" aria-hidden="true"></i>
+                 <div>
+                    <strong>Đang tải kế hoạch</strong>
+                    <span>Đang đồng bộ dữ liệu dự phòng...</span>
+                 </div>
               </div>
               <div v-else>
-                  <div class="flex justify-between items-center mb-6">
-                     <h3 class="cm-title" style="margin-bottom: 0;">Danh sách Kế hoạch Dự phòng</h3>
-                     <button class="s-btn s-btn-primary px-4 py-2 text-[13px] font-bold rounded-lg shadow-sm flex items-center hover:-translate-y-0.5 transition-transform" @click="openCreateContingencyForm" v-if="contingencyPlans.length > 0">
-                        <i class="fa-solid fa-plus mr-2"></i> Thêm Kế hoạch
+                  <div class="backup-plan-list-header">
+                     <div>
+                        <h3>Danh sách kế hoạch dự phòng</h3>
+                        <p>Chuẩn bị phương án xử lý và các công việc thay thế khi rủi ro xảy ra.</p>
+                     </div>
+                     <button type="button" class="backup-primary-button" @click="openCreateContingencyForm" v-if="contingencyPlans.length > 0">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                        Thêm kế hoạch
                      </button>
                   </div>
                   
-                  <div v-if="contingencyPlans.length > 0" class="flex flex-col gap-5">
-                     <div class="bg-[var(--bg-primary)] rounded-xl border border-[var(--color-border)] shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden" v-for="plan in contingencyPlans" :key="plan.id">
-                        
-                        <!-- Header Section -->
-                        <div class="p-5 pb-4 border-b border-[var(--color-border)] bg-[var(--color-surface-hover)]/30">
-                           <div class="flex justify-between items-start">
-                              <div class="flex flex-col gap-2">
-                                 <div class="flex items-center gap-3">
-                                    <h4 class="text-base font-bold text-[var(--color-text-primary)] cursor-pointer hover:text-[var(--color-accent)] transition-colors" @click="openContingencyDetail(plan)">
-                                       <i class="fa-solid fa-shield-halved text-[var(--color-text-muted)] mr-2"></i> 
-                                       {{ plan.name }}
-                                    </h4>
-                                    <!-- Risk Badge -->
-                                    <div class="cm-badge" style="cursor: default; padding: 2px 8px; font-size: 11px; text-transform: uppercase;" :style="{
+                  <div v-if="contingencyPlans.length > 0" class="backup-plan-list">
+                     <article class="backup-plan-card" v-for="plan in contingencyPlans" :key="plan.id">
+                        <header class="backup-plan-card-header">
+                           <div class="backup-plan-title-group">
+                              <span class="backup-plan-icon" aria-hidden="true"><i class="bi bi-shield-check"></i></span>
+                              <div class="backup-plan-title-copy">
+                                 <div class="backup-plan-title-row">
+                                    <button type="button" class="backup-plan-title" @click="openContingencyDetail(plan)">{{ plan.name }}</button>
+                                    <span class="backup-risk-badge" :style="{
                                            color: plan.riskLevel === 'Critical' ? '#ef4444' : plan.riskLevel === 'High' ? '#f97316' : plan.riskLevel === 'Medium' ? '#eab308' : '#3b82f6',
                                            backgroundColor: `color-mix(in srgb, ${plan.riskLevel === 'Critical' ? '#ef4444' : plan.riskLevel === 'High' ? '#f97316' : plan.riskLevel === 'Medium' ? '#eab308' : '#3b82f6'} 15%, transparent)`
                                         }">
-                                       <i :class="plan.riskLevel === 'Critical' ? 'fa-solid fa-circle-exclamation' : plan.riskLevel === 'High' ? 'fa-solid fa-chevron-up' : plan.riskLevel === 'Medium' ? 'fa-solid fa-minus' : 'fa-solid fa-arrow-down'"></i>
+                                       <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
                                        {{ plan.riskLevel || 'LOW' }}
-                                    </div>
+                                    </span>
+                                    <span v-if="plan.isActivated" class="backup-active-badge"><i class="bi bi-check-circle" aria-hidden="true"></i> Đã kích hoạt</span>
                                  </div>
+                                 <span class="backup-plan-kicker">Kế hoạch dự phòng</span>
                               </div>
-                              <div class="flex gap-1" v-if="!plan.isActivated">
+                           </div>
+                           <div v-if="!plan.isActivated">
                                  <el-dropdown trigger="click" @command="(cmd) => handleContingencyAction(cmd, plan)">
-                                    <button class="nav-icon-btn bg-transparent border-0 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]" type="button">
-                                       <i class="fa-solid fa-ellipsis-vertical text-lg"></i>
+                                    <button class="backup-menu-button" type="button" aria-label="Tùy chọn kế hoạch">
+                                       <i class="bi bi-three-dots-vertical"></i>
                                     </button>
                                     <template #dropdown>
                                        <el-dropdown-menu class="theme-dropdown">
-                                          <el-dropdown-item command="edit"><i class="fa-solid fa-pen mr-2 text-[var(--color-text-muted)]"></i> Chỉnh sửa</el-dropdown-item>
-                                          <el-dropdown-item command="delete" class="text-red-500"><i class="fa-solid fa-trash mr-2"></i> Xóa kế hoạch</el-dropdown-item>
+                                          <el-dropdown-item command="edit"><i class="bi bi-pencil mr-2"></i> Chỉnh sửa</el-dropdown-item>
+                                          <el-dropdown-item command="delete" class="text-red-500"><i class="bi bi-trash mr-2"></i> Xóa kế hoạch</el-dropdown-item>
                                        </el-dropdown-menu>
                                     </template>
                                  </el-dropdown>
-                              </div>
                            </div>
-                           
-                           <!-- Risk Description -->
-                           <div class="mt-3 text-[13px] text-[var(--color-text-secondary)] leading-relaxed flex gap-2" v-if="plan.riskDescription">
-                              <i class="fa-solid fa-triangle-exclamation mt-1" style="color: #ef4444;"></i>
-                              <div class="whitespace-pre-wrap">{{ plan.riskDescription }}</div>
+                        </header>
+
+                        <div class="backup-plan-description" v-if="plan.riskDescription">
+                           <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                           <div>
+                              <span>Mô tả rủi ro</span>
+                              <p>{{ plan.riskDescription }}</p>
                            </div>
                         </div>
 
-                        <!-- Task List Section -->
-                        <div class="p-5 pt-4 bg-[var(--bg-primary)]">
-                           <div class="flex justify-between items-center mb-4">
-                              <div class="text-[12px] font-bold text-[var(--color-text-primary)] uppercase tracking-wider flex items-center">
-                                 Task Dự Phòng <span class="ml-2 bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] px-2 py-0.5 rounded-full text-[10px]">{{ plan.contingencyTasks?.length || 0 }}</span>
+                        <section class="backup-task-section">
+                           <div class="backup-task-section-header">
+                              <div>
+                                 <i class="bi bi-list-task" aria-hidden="true"></i>
+                                 <span>Task dự phòng</span>
+                                 <strong>{{ plan.contingencyTasks?.length || 0 }}</strong>
                               </div>
-                              <button class="s-btn s-btn-secondary text-[12px] py-1.5 px-3 rounded-md flex items-center gap-1.5 font-semibold hover:bg-[var(--color-surface-hover)] transition-colors" @click="openCreateTaskForm(plan.id)" v-if="!plan.isActivated">
-                                 <i class="fa-solid fa-plus"></i> Thêm Task
-                              </button>
                            </div>
 
-                           <div v-if="plan.contingencyTasks && plan.contingencyTasks.length > 0" class="grid grid-cols-1 gap-3">
-                              <!-- Task Mini-Card -->
-                              <div v-for="task in plan.contingencyTasks" :key="task.id" class="group flex flex-col md:flex-row md:items-center justify-between p-3.5 bg-[var(--bg-secondary)] border border-[var(--color-border)] rounded-lg hover:border-[var(--color-accent)] hover:shadow-sm transition-all duration-200">
-                                 <div class="flex items-center gap-3 mb-3 md:mb-0">
-                                    <div class="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] transition-colors">
-                                       <i class="fa-solid fa-list-check"></i>
-                                    </div>
-                                    <div class="flex flex-col">
-                                       <span class="text-[14px] font-bold text-[var(--color-text-primary)] cursor-pointer hover:text-[var(--color-accent)] transition-colors" @click="openTaskDetail(task)">{{ task.title }}</span>
-                                       <div class="flex items-center mt-1.5 gap-2">
-                                          <div class="cm-badge" style="cursor: default; padding: 2px 6px; font-size: 10px; font-weight: 600;" :style="{ color: getStatusColor(task.statusName), backgroundColor: `color-mix(in srgb, ${getStatusColor(task.statusName)} 15%, transparent)` }">
-                                             <i :class="getStatusIcon(task.statusName)"></i>
-                                             {{ getStatusLabel(task.statusName) }}
-                                          </div>
-                                       </div>
+                           <div v-if="plan.contingencyTasks && plan.contingencyTasks.length > 0" class="backup-task-list">
+                              <article v-for="task in plan.contingencyTasks" :key="task.id" class="backup-task-card">
+                                 <span class="backup-task-icon" aria-hidden="true"><i class="bi bi-check2-square"></i></span>
+                                 <div class="backup-task-content">
+                                    <button type="button" class="backup-task-title" @click="openTaskDetail(task)">{{ task.title }}</button>
+                                    <div class="backup-task-meta">
+                                       <span class="backup-status-badge" :style="{ color: getStatusColor(task.statusName), backgroundColor: `color-mix(in srgb, ${getStatusColor(task.statusName)} 13%, transparent)` }">
+                                          <i class="bi bi-circle-half" aria-hidden="true"></i>
+                                          {{ getStatusLabel(task.statusName) }}
+                                       </span>
+                                       <span class="backup-priority-badge">
+                                          <i class="bi bi-flag" aria-hidden="true"></i>
+                                          {{ task.priority === 1 ? 'Khẩn cấp' : (task.priority === 2 ? 'Cao' : (task.priority === 4 ? 'Thấp' : 'Trung bình')) }}
+                                       </span>
+                                       <span class="backup-assignee">
+                                          <i class="bi bi-person" aria-hidden="true"></i>
+                                          {{ task.assigneeName || task.assignedToName || task.assignees?.[0]?.fullName || 'Chưa phân công' }}
+                                       </span>
                                     </div>
                                  </div>
-                                 <div class="flex items-center">
-                                    <button v-if="!task.isActivated && !plan.isActivated" class="s-btn s-btn-primary py-1.5 px-4 text-[12px] font-bold rounded-md shadow-sm w-full md:w-auto hover:-translate-y-0.5 transition-transform" @click.stop="confirmActivateTask(plan, task)">
+                                 <div class="backup-task-actions">
+                                    <button v-if="!task.isActivated && !plan.isActivated" class="backup-activate-button" type="button" @click.stop="confirmActivateTask(plan, task)">
+                                       <i class="bi bi-play-circle" aria-hidden="true"></i>
                                        Kích hoạt
                                     </button>
-                                    <div v-else-if="task.isActivated" class="cm-badge bg-green-50 text-green-600 border border-green-200 px-3 py-1.5 text-[11px] font-bold rounded-md flex items-center justify-center w-full md:w-auto">
-                                       <i class="fa-solid fa-check mr-1.5"></i> Đã kích hoạt
-                                    </div>
+                                    <span v-else-if="task.isActivated" class="backup-task-activated"><i class="bi bi-check-circle" aria-hidden="true"></i> Đã kích hoạt</span>
                                  </div>
+                              </article>
+                              <button v-if="!plan.isActivated" type="button" class="backup-add-task-button" @click="openCreateTaskForm(plan.id)">
+                                 <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                                 Thêm Task dự phòng
+                              </button>
+                           </div>
+                           <div v-else class="backup-task-empty">
+                              <span class="backup-task-empty-icon" aria-hidden="true"><i class="bi bi-list-check"></i></span>
+                              <div>
+                                 <strong>Chưa có task dự phòng</strong>
+                                 <p>Thêm công việc sẽ được sử dụng khi kế hoạch này được kích hoạt.</p>
                               </div>
+                              <button v-if="!plan.isActivated" type="button" class="backup-add-task-button" @click="openCreateTaskForm(plan.id)">
+                                 <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                                 Tạo Task đầu tiên
+                              </button>
                            </div>
-                           <div v-else class="text-center py-6 border-2 border-dashed border-[var(--color-border)] rounded-lg bg-[var(--bg-secondary)]/50">
-                              <p class="text-[13px] text-[var(--color-text-muted)] italic">Chưa có task dự phòng nào.</p>
-                           </div>
-                        </div>
-
-                     </div>
+                        </section>
+                     </article>
                   </div>
                   
-                  <div v-else class="text-center py-16 px-4 text-[var(--color-text-muted)] border-2 border-dashed border-[var(--color-border)] hover:border-[var(--color-accent)]/50 transition-colors rounded-2xl bg-[var(--bg-secondary)] flex flex-col items-center justify-center group cursor-pointer" @click="openCreateContingencyForm">
-                     <div class="w-16 h-16 rounded-full bg-[var(--bg-primary)] shadow-sm flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
-                        <i class="fa-solid fa-shield-halved text-3xl text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] transition-colors"></i>
-                     </div>
-                     <h4 class="text-[var(--color-text-primary)] text-lg font-bold mb-2">Chưa có kế hoạch dự phòng</h4>
-                     <p class="text-[13px] opacity-80 mb-6 max-w-[320px] leading-relaxed">Một kế hoạch dự phòng giúp nhóm chuẩn bị sẵn các phương án fallback tự động khi công việc gặp rủi ro.</p>
-                     <button class="s-btn s-btn-primary px-6 py-2.5 text-[13px] font-bold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center hover:-translate-y-0.5">
-                        <i class="fa-solid fa-plus mr-2"></i> Tạo kế hoạch đầu tiên
+                  <div v-else class="backup-plan-empty">
+                     <span class="backup-plan-empty-icon" aria-hidden="true"><i class="bi bi-shield-check"></i></span>
+                     <h4>Chưa có kế hoạch dự phòng</h4>
+                     <p>Tạo phương án xử lý sẵn để nhóm chủ động ứng phó khi công việc phát sinh rủi ro.</p>
+                     <button type="button" class="backup-primary-button" @click="openCreateContingencyForm">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                        Tạo kế hoạch đầu tiên
                      </button>
                   </div>
                </div>
@@ -1460,144 +1476,200 @@
     </div>
   </div>
     <!-- CONTINGENCY DIALOGS -->
-<transition name="fade">
-  <div class="task-modal-overlay" v-if="showContingencyForm" @mousedown.self="showContingencyForm = false" style="z-index: 999999;">
-    <div class="create-centered-modal transform transition-all scale-100 opacity-100" style="max-width: 550px; padding: 24px;">
-      <div class="flex items-center justify-between mb-5">
-         <h3 class="cm-title" style="margin-bottom: 0;">{{ editingContingencyPlanId ? 'Cập nhật Kế hoạch' : 'Kế hoạch dự phòng mới' }}</h3>
-         <div class="cm-badge">
-           <i class="fa-solid fa-shield-halved" style="color: #3b82f6"></i> DỰ PHÒNG
-         </div>
-      </div>
-
-      <div class="cm-form-group flex flex-col gap-4 mb-4">
-        <div>
-           <label class="block text-[12px] font-bold text-[var(--color-text-secondary)] mb-1.5 ml-1 uppercase tracking-wide">Tên Kế hoạch</label>
-           <input type="text" class="cm-inputbox transition-colors focus:border-[var(--color-accent)]" style="font-size: 14px; padding: 10px 14px;" placeholder="Nhập tên kế hoạch dự phòng..." v-model="contingencyPlanForm.name" />
+<Teleport to="body">
+  <transition name="fade">
+    <div class="task-modal-overlay contingency-plan-overlay" v-if="showContingencyForm" @mousedown.self="showContingencyForm = false">
+    <div class="contingency-plan-modal" role="dialog" aria-modal="true" aria-labelledby="contingency-plan-title">
+      <header class="contingency-plan-header">
+        <span class="contingency-plan-heading-icon" aria-hidden="true">
+          <i class="bi bi-shield-check"></i>
+        </span>
+        <div class="contingency-plan-heading-copy">
+          <h2 id="contingency-plan-title">Kế hoạch dự phòng</h2>
+          <p>Tạo phương án xử lý khi xảy ra rủi ro</p>
         </div>
-        
-        <div>
-           <label class="block text-[12px] font-bold text-[var(--color-text-secondary)] mb-1.5 ml-1 uppercase tracking-wide">Mô tả rủi ro</label>
-           <textarea class="cm-textareabox !min-h-[80px] transition-colors focus:border-[var(--color-accent)]" style="font-size: 14px; padding: 10px 14px;" placeholder="Mô tả cụ thể rủi ro (VD: Khi server gặp sự cố...)" v-model="contingencyPlanForm.riskDescription"></textarea>
-        </div>
-      </div>
+        <button type="button" class="contingency-plan-close" aria-label="Đóng" @click="showContingencyForm = false">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </header>
 
-      <div class="cm-toolbar-row mb-5">
-         <div class="w-full">
-            <label class="block text-[12px] font-bold text-[var(--color-text-secondary)] mb-1.5 ml-1 uppercase tracking-wide">Mức độ nguy hiểm</label>
-            <el-dropdown trigger="click" @command="(cmd) => contingencyPlanForm.riskLevel = cmd" class="w-full">
-               <div class="t-btn w-full justify-between hover:bg-[var(--bg-secondary)] transition-colors" style="border: 1px solid var(--color-border); padding: 8px 14px; height: 42px; background: var(--bg-primary);">
-                  <div class="flex items-center">
-                     <i class="fa-solid fa-triangle-exclamation mr-2" :style="{color: contingencyPlanForm.riskLevel === 'Critical' ? '#ef4444' : contingencyPlanForm.riskLevel === 'High' ? '#f97316' : contingencyPlanForm.riskLevel === 'Medium' ? '#eab308' : '#3b82f6'}"></i> 
-                     <span class="font-semibold">{{ contingencyPlanForm.riskLevel || 'Chọn mức độ' }}</span>
-                  </div>
-                  <i class="fa-solid fa-chevron-down text-[10px] text-gray-400"></i>
-               </div>
-               <template #dropdown>
-                  <el-dropdown-menu class="theme-dropdown w-full" style="min-width: 200px;">
-                     <el-dropdown-item command="Critical"><i class="fa-solid fa-circle-exclamation mr-2 text-red-500"></i> Critical (Nghiêm trọng)</el-dropdown-item>
-                     <el-dropdown-item command="High"><i class="fa-solid fa-chevron-up mr-2 text-orange-500"></i> High (Cao)</el-dropdown-item>
-                     <el-dropdown-item command="Medium"><i class="fa-solid fa-minus mr-2 text-yellow-500"></i> Medium (Trung bình)</el-dropdown-item>
-                     <el-dropdown-item command="Low"><i class="fa-solid fa-arrow-down mr-2 text-blue-500"></i> Low (Thấp)</el-dropdown-item>
-                  </el-dropdown-menu>
-               </template>
+      <div class="contingency-plan-body">
+        <section class="contingency-plan-section">
+          <div class="contingency-section-heading">
+            <i class="bi bi-card-text" aria-hidden="true"></i>
+            <span>Thông tin kế hoạch</span>
+          </div>
+          <div class="contingency-field">
+            <label for="contingency-plan-name">Tên kế hoạch</label>
+            <input id="contingency-plan-name" type="text" class="contingency-input" placeholder="Nhập tên kế hoạch dự phòng..." v-model="contingencyPlanForm.name" />
+          </div>
+          <div class="contingency-field">
+            <label for="contingency-risk-description">Mô tả rủi ro</label>
+            <textarea id="contingency-risk-description" class="contingency-textarea" placeholder="Mô tả cụ thể rủi ro (VD: Khi server gặp sự cố...)" v-model="contingencyPlanForm.riskDescription"></textarea>
+          </div>
+        </section>
+
+        <section class="contingency-plan-section">
+          <div class="contingency-section-heading">
+            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+            <span>Đánh giá rủi ro</span>
+          </div>
+          <div class="contingency-field">
+            <label>Mức độ nguy hiểm</label>
+            <el-dropdown trigger="click" @command="(cmd) => contingencyPlanForm.riskLevel = cmd" class="contingency-risk-dropdown">
+              <div class="contingency-risk-trigger">
+                <span class="contingency-risk-value">
+                  <i class="bi bi-exclamation-triangle" :style="{color: contingencyPlanForm.riskLevel === 'Critical' ? '#ef4444' : contingencyPlanForm.riskLevel === 'High' ? '#f97316' : contingencyPlanForm.riskLevel === 'Medium' ? '#eab308' : '#3b82f6'}"></i>
+                  <span>{{ contingencyPlanForm.riskLevel || 'Chọn mức độ' }}</span>
+                </span>
+                <i class="bi bi-chevron-down" aria-hidden="true"></i>
+              </div>
+              <template #dropdown>
+                <el-dropdown-menu class="theme-dropdown" style="min-width: 240px;">
+                  <el-dropdown-item command="Critical"><i class="bi bi-exclamation-circle-fill mr-2 text-red-500"></i> Critical (Nghiêm trọng)</el-dropdown-item>
+                  <el-dropdown-item command="High"><i class="bi bi-arrow-up mr-2 text-orange-500"></i> High (Cao)</el-dropdown-item>
+                  <el-dropdown-item command="Medium"><i class="bi bi-dash mr-2 text-yellow-500"></i> Medium (Trung bình)</el-dropdown-item>
+                  <el-dropdown-item command="Low"><i class="bi bi-arrow-down mr-2 text-blue-500"></i> Low (Thấp)</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
             </el-dropdown>
-         </div>
-      </div>
+          </div>
+        </section>
 
-      <div class="cm-form-group mb-6">
-         <label class="block text-[12px] font-bold text-[var(--color-text-secondary)] mb-1.5 ml-1 uppercase tracking-wide">Ghi chú chi tiết</label>
-         <div class="cm-editor-wrapper bg-[var(--bg-primary)] min-h-[120px] max-h-[250px] overflow-y-auto p-2 border border-[var(--color-border)] rounded-lg transition-colors focus-within:border-[var(--color-accent)] focus-within:ring-1 focus-within:ring-[var(--color-accent)]">
+        <section class="contingency-plan-section">
+          <div class="contingency-section-heading">
+            <i class="bi bi-journal-text" aria-hidden="true"></i>
+            <span>Ghi chú chi tiết</span>
+          </div>
+          <div class="contingency-plan-editor">
             <editor-content :editor="recoveryPlanEditor" />
-         </div>
+          </div>
+        </section>
       </div>
 
-      <div class="flex justify-end items-center gap-3 pt-2">
-         <button class="px-5 py-2.5 rounded-lg text-[13px] font-bold text-[var(--color-text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors" @click="showContingencyForm = false">Hủy bỏ</button>
-         <button class="s-btn s-btn-primary px-6 py-2.5 text-[13px] font-bold rounded-lg shadow-md hover:shadow-lg transition-all" @click="saveContingencyPlan" :disabled="isSavingContingency">
-            <i class="fa-solid fa-spinner fa-spin mr-2" v-if="isSavingContingency"></i>
-            {{ editingContingencyPlanId ? 'Cập nhật' : 'Tạo kế hoạch' }}
-         </button>
+      <footer class="contingency-plan-footer">
+        <button type="button" class="contingency-cancel-button" @click="showContingencyForm = false">
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+          Hủy
+        </button>
+        <button type="button" class="contingency-save-button" @click="saveContingencyPlan" :disabled="isSavingContingency">
+          <i class="bi bi-arrow-repeat contingency-spinner" v-if="isSavingContingency" aria-hidden="true"></i>
+          <i class="bi bi-shield-check" v-else aria-hidden="true"></i>
+          {{ editingContingencyPlanId ? 'Cập nhật' : 'Tạo kế hoạch' }}
+        </button>
+      </footer>
       </div>
     </div>
-  </div>
-</transition>
+  </transition>
+</Teleport>
 
-<!-- Thêm Task Dự Phòng Dialog (Style giống Tạo Công Việc Mới) -->
-<transition name="fade">
-  <div class="task-modal-overlay" v-if="showTaskForm" @mousedown.self="showTaskForm = false" style="z-index: 999999;">
-    <div class="create-centered-modal">
-      <h3 class="cm-title">Thêm Task Dự Phòng</h3>
-      
-      <div class="cm-badge-row">
-         <div class="cm-badge">
-           <i class="fa-solid fa-shield-halved" style="color: #3b82f6"></i> TASK DỰ PHÒNG
-         </div>
-      </div>
+<!-- Thêm Task Dự Phòng Dialog -->
+<Teleport to="body">
+  <transition name="fade">
+    <div class="task-modal-overlay contingency-task-overlay" v-if="showTaskForm" @mousedown.self="showTaskForm = false">
+      <div class="contingency-task-modal" role="dialog" aria-modal="true" aria-labelledby="contingency-task-title">
+        <header class="contingency-task-header">
+          <span class="contingency-task-heading-icon" aria-hidden="true"><i class="bi bi-list-check"></i></span>
+          <div class="contingency-task-heading-copy">
+            <h2 id="contingency-task-title">Thêm Task dự phòng</h2>
+            <p>Tạo công việc sẽ được sử dụng khi phương án dự phòng kích hoạt</p>
+          </div>
+          <button type="button" class="contingency-task-close" aria-label="Đóng" @click="showTaskForm = false"><i class="bi bi-x-lg"></i></button>
+        </header>
 
-      <div class="cm-form-group">
-        <input type="text" class="cm-inputbox" placeholder="Tiêu đề" v-model="taskForm.title" />
-        <textarea class="cm-textareabox" placeholder="Thêm mô tả..." v-model="taskForm.description"></textarea>
-      </div>
+        <div class="contingency-task-body">
+          <section class="contingency-task-section">
+            <div class="contingency-task-section-heading"><i class="bi bi-card-text" aria-hidden="true"></i><span>Thông tin Task</span></div>
+            <div class="contingency-field">
+              <label for="contingency-task-name">Tiêu đề</label>
+              <input id="contingency-task-name" type="text" class="contingency-input" placeholder="Nhập tiêu đề Task dự phòng..." v-model="taskForm.title" />
+            </div>
+          </section>
 
-      <div class="cm-toolbar-row">
-         <!-- STATUS -->
-         <div class="t-btn disabled"><i class="fa-regular fa-circle-dot" style="color: #F59E0B"></i> <span>Trạng thái</span> Cần làm</div>
+          <section class="contingency-task-section">
+            <div class="contingency-task-section-heading"><i class="bi bi-sliders" aria-hidden="true"></i><span>Trạng thái và độ ưu tiên</span></div>
+            <div class="contingency-task-select-grid">
+              <div class="contingency-field">
+                <label>Trạng thái</label>
+                <div class="contingency-task-select is-disabled">
+                  <span><i class="bi bi-circle-half" aria-hidden="true"></i>Cần làm</span>
+                  <i class="bi bi-lock" aria-hidden="true"></i>
+                </div>
+              </div>
+              <div class="contingency-field">
+                <label>Độ ưu tiên</label>
+                <el-dropdown trigger="click" @command="(cmd) => taskForm.priority = cmd" class="contingency-task-dropdown">
+                  <div class="contingency-task-select">
+                    <span>
+                      <i class="bi bi-flag" aria-hidden="true"></i>
+                      {{ taskForm.priority === 1 ? 'Khẩn cấp' : (taskForm.priority === 2 ? 'Cao' : (taskForm.priority === 3 ? 'Trung bình' : 'Thấp')) }}
+                    </span>
+                    <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                  </div>
+                  <template #dropdown>
+                    <el-dropdown-menu class="theme-dropdown">
+                      <el-dropdown-item :command="1"><i class="bi bi-flag-fill mr-2" style="color: #ef4444"></i> Khẩn cấp</el-dropdown-item>
+                      <el-dropdown-item :command="2"><i class="bi bi-flag-fill mr-2" style="color: #f59e0b"></i> Cao</el-dropdown-item>
+                      <el-dropdown-item :command="3"><i class="bi bi-flag mr-2" style="color: #3b82f6"></i> Trung bình</el-dropdown-item>
+                      <el-dropdown-item :command="4"><i class="bi bi-flag mr-2" style="color: var(--color-text-muted)"></i> Thấp</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </div>
+            </div>
+          </section>
 
-         <!-- PRIORITY -->
-         <el-dropdown trigger="click" @command="(cmd) => taskForm.priority = cmd">
-           <div class="t-btn">
-               <i class="fa-solid fa-angles-up text-red-500" v-if="taskForm.priority === 1"></i>
-               <i class="fa-solid fa-chevron-up text-yellow-500" v-else-if="taskForm.priority === 2"></i>
-               <i class="fa-solid fa-minus text-blue-500" v-else-if="taskForm.priority === 3"></i>
-               <i class="fa-solid fa-arrow-down text-gray-500" v-else></i>
-               <span>Độ ưu tiên</span> 
-               {{ taskForm.priority === 1 ? 'Khẩn cấp' : (taskForm.priority === 2 ? 'Cao' : (taskForm.priority === 3 ? 'Trung bình' : 'Thấp')) }}
-           </div>
-           <template #dropdown>
-             <el-dropdown-menu class="theme-dropdown">
-               <el-dropdown-item :command="1"><i class="fa-solid fa-angles-up mr-2" style="color: #ef4444"></i> Khẩn cấp</el-dropdown-item>
-               <el-dropdown-item :command="2"><i class="fa-solid fa-chevron-up mr-2" style="color: #f59e0b"></i> Cao</el-dropdown-item>
-               <el-dropdown-item :command="3"><i class="fa-solid fa-minus mr-2" style="color: #3b82f6"></i> Trung bình</el-dropdown-item>
-               <el-dropdown-item :command="4"><i class="fa-solid fa-arrow-down mr-2" style="color: var(--color-text-muted)"></i> Thấp</el-dropdown-item>
-             </el-dropdown-menu>
-           </template>
-         </el-dropdown>
+          <section class="contingency-task-section">
+            <div class="contingency-task-section-heading"><i class="bi bi-person" aria-hidden="true"></i><span>Người thực hiện</span></div>
+            <div class="contingency-field">
+              <label>Phân công</label>
+              <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="260" @show="assigneeSearch = ''">
+                <template #reference>
+                  <div class="contingency-task-select">
+                    <span><i class="bi bi-person" aria-hidden="true"></i>{{ projectMembers.find(m => m.userId === taskForm.assigneeId)?.fullName || 'Chọn người thực hiện' }}</span>
+                    <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                  </div>
+                </template>
+                <div class="popover-content">
+                  <input type="text" v-model="assigneeSearch" class="popover-search" placeholder="Tìm người thực hiện..." />
+                  <div class="popover-list">
+                    <div class="popover-item flex items-center justify-between transition-colors cursor-pointer" v-for="user in projectMembers" :key="user.id" @click="taskForm.assigneeId = user.userId">
+                      <div class="flex items-center gap-2"><i class="bi bi-person-circle" aria-hidden="true"></i><span class="user-name">{{ user.fullName || user.email }}</span></div>
+                      <i class="bi bi-check-lg text-blue-500" v-if="taskForm.assigneeId === user.userId"></i>
+                    </div>
+                  </div>
+                </div>
+              </el-popover>
+            </div>
+          </section>
 
-         <!-- ASSIGNEE -->
-         <el-popover placement="bottom-start" trigger="click" popper-class="plane-popover" :width="220" @show="assigneeSearch = ''">
-           <template #reference>
-             <div class="t-btn"><i class="fa-regular fa-user"></i> <span>Người thực hiện</span> {{ projectMembers.find(m => m.userId === taskForm.assigneeId)?.fullName || 'Người thực hiện' }}</div>
-           </template>
-           <div class="popover-content">
-             <input type="text" v-model="assigneeSearch" class="popover-search" placeholder="Tìm người thực hiện..." />
-             <div class="popover-list">
-               <div class="popover-item flex items-center justify-between transition-colors cursor-pointer" v-for="user in projectMembers" :key="user.id" @click="taskForm.assigneeId = user.userId">
-                   <div class="flex items-center gap-2">
-                       <span class="user-name">{{ user.fullName || user.email }}</span>
-                   </div>
-                   <i class="fa-solid fa-check text-blue-500" v-if="taskForm.assigneeId === user.userId"></i>
-               </div>
-             </div>
-           </div>
-         </el-popover>
-      </div>
+          <section class="contingency-task-section">
+            <div class="contingency-task-section-heading"><i class="bi bi-text-paragraph" aria-hidden="true"></i><span>Mô tả</span></div>
+            <div class="contingency-field">
+              <label for="contingency-task-description">Mô tả chi tiết</label>
+              <textarea id="contingency-task-description" class="contingency-textarea" placeholder="Thêm mô tả cho Task dự phòng..." v-model="taskForm.description"></textarea>
+            </div>
+          </section>
+        </div>
 
-      <div class="mt-4 flex justify-between items-center pt-4 border-t border-[var(--border-color)]">
-         <div class="flex items-center gap-2">
+        <footer class="contingency-task-footer">
+          <label class="contingency-create-more">
             <el-switch v-model="createContingencyContinuously" />
-            <span class="text-sm font-medium text-[var(--color-text-muted)]">Tạo liên tục</span>
-         </div>
-         <div class="flex gap-3">
-             <button class="s-btn hover:bg-[var(--bg-tertiary)] rounded-full px-6 py-2 transition-all font-bold text-[var(--color-text-primary)]" @click="showTaskForm = false">Hủy</button>
-             <button class="s-btn s-btn-primary rounded-full px-6 py-2 shadow-sm hover:shadow-md transition-all font-bold text-white flex items-center" @click="saveContingencyTask" :disabled="isSavingTask" style="background-color: #0ea5e9;">
-                <i class="fa-solid fa-spinner fa-spin mr-2" v-if="isSavingTask"></i> Lưu
-             </button>
-         </div>
+            <span>Tạo liên tục</span>
+          </label>
+          <div class="contingency-task-footer-actions">
+            <button type="button" class="contingency-cancel-button" @click="showTaskForm = false"><i class="bi bi-x-lg" aria-hidden="true"></i>Hủy</button>
+            <button type="button" class="contingency-save-button" @click="saveContingencyTask" :disabled="isSavingTask">
+              <i class="bi bi-arrow-repeat contingency-spinner" v-if="isSavingTask" aria-hidden="true"></i>
+              <i class="bi bi-check2" v-else aria-hidden="true"></i>
+              Lưu Task
+            </button>
+          </div>
+        </footer>
       </div>
     </div>
-  </div>
-</transition>
+  </transition>
+</Teleport>
 
 <el-drawer v-model="showContingencyDetail" size="500px" title="Chi tiết Kế hoạch dự phòng" class="theme-drawer" :teleported="false">
    <div v-if="viewingContingencyPlan" class="p-5 flex flex-col gap-6">
@@ -1609,7 +1681,7 @@
       </div>
       
       <div class="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-color)]">
-         <div class="text-[12px] font-bold text-[var(--color-danger)] uppercase tracking-wider mb-2 flex items-center"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Rủi ro (Cho rủi ro gì)</div>
+         <div class="text-[12px] font-bold text-[var(--color-danger)] uppercase tracking-wider mb-2 flex items-center"><i class="bi bi-exclamation-triangle mr-2"></i> Rủi ro (Cho rủi ro gì)</div>
          <p class="text-[14px] text-[var(--color-text-primary)] leading-relaxed">{{ viewingContingencyPlan.riskDescription }}</p>
       </div>
 
@@ -1619,7 +1691,7 @@
       </div>
       
       <div class="bg-[var(--color-accent)]/5 rounded-xl p-4 border border-[var(--color-accent)]/20">
-         <div class="text-[12px] font-bold text-[var(--color-accent)] uppercase tracking-wider mb-2 flex items-center"><i class="fa-solid fa-list-check mr-2"></i> Danh sách Task dự phòng</div>
+         <div class="text-[12px] font-bold text-[var(--color-accent)] uppercase tracking-wider mb-2 flex items-center"><i class="bi bi-list-check mr-2"></i> Danh sách Task dự phòng</div>
          <div v-if="viewingContingencyPlan.contingencyTasks && viewingContingencyPlan.contingencyTasks.length > 0" class="flex flex-col gap-2">
             <div v-for="task in viewingContingencyPlan.contingencyTasks" :key="task.id" class="bg-[var(--bg-primary)] p-3 rounded-lg border border-[var(--border-color)]">
                <div class="font-semibold text-[13px] text-[var(--color-text-primary)]">{{ task.title }}</div>
@@ -4863,6 +4935,1127 @@ const parseOptions = (json) => {
   box-shadow: var(--shadow-popover);
 }
 
+.contingency-plans-container {
+  margin-bottom: 24px;
+  color: var(--color-text-primary);
+}
+
+.backup-plan-loading {
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+}
+
+.backup-plan-loading > .bi {
+  color: var(--color-accent);
+  font-size: 24px;
+}
+
+.backup-plan-loading div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.backup-plan-loading strong {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.backup-plan-loading span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.backup-plan-list-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.backup-plan-list-header h3 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+
+.backup-plan-list-header p {
+  max-width: 560px;
+  margin: 5px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.backup-primary-button,
+.backup-add-task-button,
+.backup-activate-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 10px;
+  outline: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.backup-primary-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 86%, #0369a1);
+  color: #ffffff;
+  background: var(--color-accent);
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+.backup-primary-button:hover,
+.backup-activate-button:hover {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--color-accent) 86%, #0369a1);
+  box-shadow: 0 7px 16px color-mix(in srgb, var(--color-accent) 24%, transparent);
+}
+
+.backup-plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.backup-plan-card {
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: var(--color-surface);
+  box-shadow: 0 4px 14px rgb(15 23 42 / 0.045);
+  transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+}
+
+.backup-plan-card:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 34%, #e2e8f0);
+  box-shadow: 0 10px 26px rgb(15 23 42 / 0.075);
+  transform: translateY(-1px);
+}
+
+.backup-plan-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+}
+
+.backup-plan-title-group {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.backup-plan-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
+}
+
+.backup-plan-icon .bi {
+  font-size: 19px;
+}
+
+.backup-plan-title-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.backup-plan-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.backup-plan-title {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  color: var(--color-text-primary);
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+
+.backup-plan-title:hover {
+  color: var(--color-accent);
+}
+
+.backup-plan-kicker {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.backup-risk-badge,
+.backup-active-badge,
+.backup-status-badge,
+.backup-priority-badge,
+.backup-task-activated {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 3px 8px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.backup-risk-badge {
+  text-transform: uppercase;
+}
+
+.backup-active-badge,
+.backup-task-activated {
+  color: #059669;
+  background: #ecfdf5;
+}
+
+.backup-menu-button {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  outline: none;
+  color: var(--color-text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.backup-menu-button:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+  background: var(--color-surface-hover);
+}
+
+.backup-plan-description {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 20px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-surface-hover) 62%, var(--color-surface));
+}
+
+.backup-plan-description > .bi {
+  margin-top: 2px;
+  color: #f59e0b;
+  font-size: 15px;
+}
+
+.backup-plan-description span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.backup-plan-description p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.backup-task-section {
+  padding: 20px;
+}
+
+.backup-task-section-header {
+  margin-bottom: 12px;
+}
+
+.backup-task-section-header > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.backup-task-section-header .bi {
+  color: var(--color-accent);
+  font-size: 15px;
+}
+
+.backup-task-section-header strong {
+  min-width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-hover);
+  font-size: 11px;
+}
+
+.backup-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.backup-task-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--color-surface-hover) 28%, var(--color-surface));
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.backup-task-card:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 34%, #e2e8f0);
+  box-shadow: 0 7px 18px rgb(15 23 42 / 0.065);
+  transform: translateY(-1px);
+}
+
+.backup-task-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 9%, var(--color-surface));
+}
+
+.backup-task-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.backup-task-title {
+  max-width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  outline: none;
+  color: var(--color-text-primary);
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.backup-task-title:hover {
+  color: var(--color-accent);
+}
+
+.backup-task-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 7px;
+}
+
+.backup-priority-badge {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.backup-assignee {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.backup-task-actions {
+  flex: 0 0 auto;
+}
+
+.backup-activate-button {
+  width: 160px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--color-accent);
+  color: #ffffff;
+  background: var(--color-accent);
+}
+
+.backup-add-task-button {
+  align-self: flex-start;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  color: var(--color-accent);
+  background: transparent;
+}
+
+.backup-add-task-button:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 20%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 7%, var(--color-surface));
+}
+
+.backup-task-empty,
+.backup-plan-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.backup-task-empty {
+  min-height: 190px;
+  padding: 24px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--color-surface-hover) 40%, var(--color-surface));
+}
+
+.backup-task-empty-icon,
+.backup-plan-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 9%, var(--color-surface));
+}
+
+.backup-task-empty-icon {
+  width: 42px;
+  height: 42px;
+  margin-bottom: 10px;
+  border-radius: 11px;
+  font-size: 20px;
+}
+
+.backup-task-empty strong {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.backup-task-empty p {
+  max-width: 380px;
+  margin: 5px 0 12px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.backup-task-empty .backup-add-task-button {
+  align-self: center;
+}
+
+.backup-plan-empty {
+  min-height: 310px;
+  padding: 36px 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: var(--color-surface);
+  box-shadow: 0 4px 14px rgb(15 23 42 / 0.045);
+}
+
+.backup-plan-empty-icon {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  border-radius: 14px;
+  font-size: 26px;
+}
+
+.backup-plan-empty h4 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.backup-plan-empty p {
+  max-width: 440px;
+  margin: 7px 0 18px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.contingency-plan-overlay,
+.contingency-task-overlay {
+  z-index: 999999;
+  padding: 48px 16px;
+  box-sizing: border-box;
+}
+
+.contingency-plan-modal,
+.contingency-task-modal {
+  width: min(720px, 92vw);
+  max-height: calc(100vh - 96px);
+  max-height: calc(100dvh - 96px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  background: var(--color-surface-elevated);
+  border: 1px solid color-mix(in srgb, var(--color-border) 90%, transparent);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgb(15 23 42 / 0.2);
+}
+
+.contingency-task-modal {
+  width: min(700px, 92vw);
+}
+
+.contingency-plan-header {
+  min-height: 76px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 22px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+}
+
+.contingency-plan-heading-icon {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
+}
+
+.contingency-plan-heading-icon .bi {
+  font-size: 21px;
+  line-height: 1;
+}
+
+.contingency-plan-heading-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.contingency-plan-heading-copy h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.contingency-plan-heading-copy p {
+  margin: 3px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.contingency-plan-close {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  outline: none;
+  color: var(--color-text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: color 180ms ease, background-color 180ms ease;
+}
+
+.contingency-plan-close:hover {
+  color: var(--color-text-primary);
+  background: var(--color-surface-hover);
+}
+
+.contingency-plan-close:focus-visible,
+.contingency-cancel-button:focus-visible,
+.contingency-save-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+
+.contingency-plan-body {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 22px 24px 26px;
+  scrollbar-gutter: stable;
+}
+
+.contingency-plan-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.contingency-plan-section + .contingency-plan-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+}
+
+.contingency-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+
+.contingency-section-heading .bi {
+  color: var(--color-accent);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.contingency-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.contingency-field label {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.contingency-input,
+.contingency-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--color-input-border, var(--color-border));
+  border-radius: 11px;
+  outline: none;
+  color: var(--color-text-primary);
+  background: var(--color-input-bg, var(--color-surface));
+  font: inherit;
+  font-size: 14px;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.contingency-input {
+  height: 44px;
+  padding: 0 14px;
+}
+
+.contingency-textarea {
+  min-height: 140px;
+  padding: 12px 14px;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.contingency-input::placeholder,
+.contingency-textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.contingency-input:focus,
+.contingency-textarea:focus,
+.contingency-plan-editor:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+
+.contingency-risk-dropdown {
+  width: 100%;
+}
+
+.contingency-risk-trigger {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--color-input-border, var(--color-border));
+  border-radius: 11px;
+  color: var(--color-text-primary);
+  background: var(--color-input-bg, var(--color-surface));
+  cursor: pointer;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.contingency-risk-trigger:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-surface-hover) 55%, var(--color-surface));
+}
+
+.contingency-risk-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.contingency-risk-trigger > .bi-chevron-down {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.contingency-plan-editor {
+  min-height: 140px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  border: 1px solid var(--color-input-border, var(--color-border));
+  border-radius: 11px;
+  background: var(--color-input-bg, var(--color-surface));
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.contingency-plan-editor :deep(.ProseMirror) {
+  min-height: 112px;
+  outline: none;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.contingency-plan-footer {
+  min-height: 72px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  box-sizing: border-box;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+}
+
+.contingency-cancel-button,
+.contingency-save-button {
+  min-height: 42px;
+  padding: 0 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 10px;
+  outline: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.contingency-cancel-button {
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+}
+
+.contingency-cancel-button:hover {
+  border-color: color-mix(in srgb, var(--color-text-muted) 55%, var(--color-border));
+  color: var(--color-text-primary);
+  background: var(--color-surface-hover);
+}
+
+.contingency-save-button {
+  min-width: 142px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 85%, #0369a1);
+  color: #ffffff;
+  background: var(--color-accent);
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--color-accent) 22%, transparent);
+}
+
+.contingency-save-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--color-accent) 86%, #0369a1);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--color-accent) 28%, transparent);
+}
+
+.contingency-save-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  box-shadow: none;
+}
+
+.contingency-task-header {
+  min-height: 76px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 22px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+}
+
+.contingency-task-heading-icon {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
+}
+
+.contingency-task-heading-icon .bi {
+  font-size: 21px;
+}
+
+.contingency-task-heading-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.contingency-task-heading-copy h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.contingency-task-heading-copy p {
+  margin: 3px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.contingency-task-close {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  outline: none;
+  color: var(--color-text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: color 180ms ease, background-color 180ms ease;
+}
+
+.contingency-task-close:hover {
+  color: var(--color-text-primary);
+  background: var(--color-surface-hover);
+}
+
+.contingency-task-close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+
+.contingency-task-body {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 22px 24px 26px;
+  scrollbar-gutter: stable;
+}
+
+.contingency-task-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.contingency-task-section + .contingency-task-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+}
+
+.contingency-task-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.contingency-task-section-heading .bi {
+  color: var(--color-accent);
+  font-size: 16px;
+}
+
+.contingency-task-select-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.contingency-task-dropdown {
+  width: 100%;
+}
+
+.contingency-task-select {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--color-input-border, var(--color-border));
+  border-radius: 11px;
+  color: var(--color-text-primary);
+  background: var(--color-input-bg, var(--color-surface));
+  cursor: pointer;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.contingency-task-select:hover:not(.is-disabled) {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-surface-hover) 55%, var(--color-surface));
+}
+
+.contingency-task-select > span {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contingency-task-select > span > .bi {
+  flex: 0 0 auto;
+  color: var(--color-accent);
+}
+
+.contingency-task-select > .bi:last-child {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.contingency-task-select.is-disabled {
+  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-surface-hover) 58%, var(--color-surface));
+  cursor: default;
+}
+
+.contingency-task-footer {
+  min-height: 72px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 22px;
+  box-sizing: border-box;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+}
+
+.contingency-create-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.contingency-task-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.contingency-spinner {
+  animation: contingency-spin 0.8s linear infinite;
+}
+
+@keyframes contingency-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 540px) {
+  .contingency-plan-overlay,
+  .contingency-task-overlay {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .contingency-plan-modal,
+  .contingency-task-modal {
+    width: 100%;
+  }
+
+  .contingency-plan-header,
+  .contingency-plan-footer,
+  .contingency-task-header,
+  .contingency-task-footer {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .contingency-plan-body,
+  .contingency-task-body {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .contingency-plan-heading-copy h2,
+  .contingency-task-heading-copy h2 {
+    font-size: 18px;
+  }
+
+  .contingency-plan-footer,
+  .contingency-task-footer-actions {
+    gap: 8px;
+  }
+
+  .contingency-task-select-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contingency-task-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .contingency-task-footer-actions {
+    width: 100%;
+  }
+
+  .contingency-cancel-button,
+  .contingency-save-button {
+    flex: 1;
+    min-width: 0;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+}
+
+@media (max-width: 760px) {
+  .backup-plan-list-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .backup-plan-list-header .backup-primary-button {
+    align-self: flex-start;
+  }
+
+  .backup-task-card {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .backup-task-content {
+    width: calc(100% - 46px);
+  }
+
+  .backup-task-actions {
+    width: 100%;
+    padding-left: 46px;
+  }
+
+  .backup-activate-button {
+    width: 160px;
+  }
+}
+
+[data-theme='dark'] .backup-plan-card,
+[data-theme='dark'] .backup-task-card,
+[data-theme='dark'] .backup-plan-empty {
+  border-color: var(--color-border);
+}
+
 .cm-title {
   font-size: 20px;
   font-weight: 800;
@@ -5172,8 +6365,6 @@ const parseOptions = (json) => {
   border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
   border-radius: 14px;
   background:
-    radial-gradient(circle at 12% 0%, color-mix(in srgb, #38bdf8 14%, transparent), transparent 34%),
-    radial-gradient(circle at 90% 12%, color-mix(in srgb, #a78bfa 12%, transparent), transparent 30%),
     linear-gradient(180deg, rgba(255,255,255,0.045), transparent),
     color-mix(in srgb, var(--color-surface-elevated) 82%, transparent);
   box-shadow:
@@ -5266,8 +6457,6 @@ const parseOptions = (json) => {
 
 [data-theme='light'] .props-grid {
   background:
-    radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.12), transparent 34%),
-    radial-gradient(circle at 90% 12%, rgba(167, 139, 250, 0.10), transparent 30%),
     rgba(255, 255, 255, 0.82);
   box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
 }
@@ -6247,7 +7436,6 @@ const parseOptions = (json) => {
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 10px;
   background:
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.10), transparent 36%),
     color-mix(in srgb, var(--color-surface) 78%, transparent);
 }
 
@@ -6404,6 +7592,13 @@ body .el-popper {
 }
 body .el-select-dropdown {
     z-index: 999999 !important;
+}
+body:has(.contingency-plan-overlay) .ai-floating-btn,
+body:has(.contingency-plan-overlay) .ai-selection-popover,
+body:has(.contingency-task-overlay) .ai-floating-btn,
+body:has(.contingency-task-overlay) .ai-selection-popover {
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 .contingency-plans-container .contingency-card {
     padding: 20px !important;

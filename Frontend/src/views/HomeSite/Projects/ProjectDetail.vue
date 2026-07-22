@@ -22,7 +22,7 @@
         <!-- Entity Main info -->
         <div class="header-main">
           <div class="title-block">
-            <div class="project-emoji-large">{{ project.icon || '😎' }}</div>
+            <ProjectAvatar :icon="project.icon" :background="project.cover" size="lg" />
             <h1>{{ project.title }}</h1>
           </div>
           
@@ -549,6 +549,7 @@ import ShareModal from '@/components/common/ShareModal.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import { AppUserChip } from '@/components/common/Foundation'
+import ProjectAvatar from '@/components/project/ProjectAvatar.vue'
 
 const route = useRoute()
 const projectStore = useHomeProjectStore()

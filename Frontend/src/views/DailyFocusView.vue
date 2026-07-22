@@ -395,10 +395,7 @@ onMounted(loadTasks)
 .df-page {
   min-height: 100vh;
   padding: 22px 24px 32px;
-  background:
-    radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--color-danger) 8%, transparent), transparent 28%),
-    radial-gradient(circle at 85% 6%, color-mix(in srgb, var(--color-warning) 8%, transparent), transparent 24%),
-    var(--color-bg);
+  background: var(--color-bg);
   color: var(--color-text-primary);
   animation: df-rise 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }

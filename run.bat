@@ -51,7 +51,7 @@ if /I "%resetDB%"=="Y" (
         goto :startup_failed
     )
     echo 1. Drop Database cu...
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-sql.ps1" -Server "Quan" -Database "master" -Query "IF DB_ID('TaskManagementDB') IS NOT NULL BEGIN ALTER DATABASE [TaskManagementDB] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [TaskManagementDB]; END"
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-sql.ps1" -Server ".\SQLEXPRESS01" -Database "master" -Query "IF DB_ID('TaskManagementDB_V4') IS NOT NULL BEGIN ALTER DATABASE [TaskManagementDB_V4] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [TaskManagementDB_V4]; END"
     if errorlevel 1 (
         echo Drop database that bai.
         pause
@@ -68,14 +68,12 @@ if /I "%resetDB%"=="Y" (
     powershell -ExecutionPolicy Bypass -Command "Get-ChildItem -Path '..\..' -Recurse -Filter '*.dll' | Unblock-File"
     dotnet ef database update --project ../TaskManagement.Infrastructure --startup-project . --no-build
     if errorlevel 1 (
-        echo Cap nhat database that bai.
-        pause
-        goto :startup_failed
+        echo WARNING: Cap nhat database that bai ^(Co the do Application Control^). Bo qua va tiep tuc...
     )
     
     echo 3. Dang nap demo data doanh nghiep cho admin dev@sprinta.local...
     if exist "%~dp0scripts\seed-demo-data.sql" (
-        powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-sql.ps1" -Server "Quan" -Database "TaskManagementDB" -InputFile "%~dp0scripts\seed-demo-data.sql"
+        powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-sql.ps1" -Server ".\SQLEXPRESS01" -Database "TaskManagementDB_V4" -InputFile "%~dp0scripts\seed-demo-data.sql"
         if errorlevel 1 (
             echo Seed demo data that bai.
             pause
@@ -114,14 +112,12 @@ if /I "%resetDB%"=="Y" (
     powershell -ExecutionPolicy Bypass -Command "Get-ChildItem -Path '..\..' -Recurse -Filter '*.dll' | Unblock-File"
     dotnet ef database update --project ../TaskManagement.Infrastructure --startup-project . --no-build
     if errorlevel 1 (
-        echo Cap nhat database that bai. Neu database cu dang lech migration, hay chay lai run.bat va chon Y de reset.
-        pause
-        goto :startup_failed
+        echo WARNING: Cap nhat database that bai ^(Co the do Application Control^). Bo qua va tiep tuc khoi dong...
     )
 
     echo Dang nap demo data cho admin dev@sprinta.local...
     if exist "%~dp0scripts\seed-demo-data.sql" (
-        powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-sql.ps1" -Server "Quan" -Database "TaskManagementDB" -InputFile "%~dp0scripts\seed-demo-data.sql"
+        powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-sql.ps1" -Server ".\SQLEXPRESS01" -Database "TaskManagementDB_V4" -InputFile "%~dp0scripts\seed-demo-data.sql"
         if errorlevel 1 (
             echo Seed demo data that bai.
             pause

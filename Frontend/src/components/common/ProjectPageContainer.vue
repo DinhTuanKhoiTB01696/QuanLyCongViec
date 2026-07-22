@@ -18,7 +18,7 @@
 }
 .project-page-inner {
   width: 100%;
-  padding: 18px 24px 20px;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -26,11 +26,12 @@
   min-height: 100%;
   flex: 1;
   overflow: auto;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
 }
 
 @media (max-width: 768px) {
   .project-page-inner {
-    padding: 16px 12px;
     gap: 12px;
   }
 }

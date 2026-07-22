@@ -1187,8 +1187,6 @@ onUnmounted(() => {
   min-height: 100%;
   padding: 16px 22px 28px;
   background:
-    radial-gradient(circle at 8% -8%, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 36rem),
-    radial-gradient(circle at 92% 2%, color-mix(in srgb, #22d3ee 16%, transparent), transparent 32rem),
     linear-gradient(180deg, color-mix(in srgb, var(--color-bg) 72%, var(--color-surface)), var(--color-bg));
   color: var(--color-text-primary);
 }
@@ -1869,9 +1867,7 @@ button:disabled {
   padding: 28px;
   border: 1px dashed color-mix(in srgb, var(--color-accent) 28%, var(--color-border));
   border-radius: 14px;
-  background:
-    radial-gradient(circle at top, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 17rem),
-    var(--color-surface-hover);
+  background: var(--color-surface-hover);
   text-align: center;
 }
 

@@ -4,14 +4,7 @@
     <header class="project-global-header">
       <div class="pgh-content">
         <div class="pgh-left">
-          <div
-            class="pgh-icon"
-            :style="projectIconStyle"
-            :role="project?.cover ? 'img' : undefined"
-            :aria-label="project?.cover ? (project.coverAltText || `${project.name || 'Project'} cover`) : undefined"
-          >
-            <span :aria-hidden="Boolean(project?.cover)">{{ project?.icon || '📦' }}</span>
-          </div>
+          <ProjectAvatar :icon="project?.icon" :background="project?.cover" size="md" />
           <div class="pgh-info">
             <h1 class="pgh-title">{{ demoText(project?.name) || 'Loading Project...' }}</h1>
             <p class="pgh-desc" v-if="project?.description">{{ demoText(project.description) }}</p>
@@ -62,6 +55,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useProjectStore } from '@/store/useProjectStore'
 import { useI18n } from '@/composables/useI18n'
 import { translateDemoText } from '@/utils/demoContentLocale'
+import ProjectAvatar from '@/components/project/ProjectAvatar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -71,15 +65,6 @@ const demoText = (value) => translateDemoText(value, language.value)
 
 const projectId = computed(() => route.params.id)
 const project = computed(() => projectStore.currentProject)
-const projectIconStyle = computed(() => {
-  if (project.value?.cover) {
-    return {
-      backgroundImage: `linear-gradient(180deg, rgba(15, 23, 42, 0.12), rgba(15, 23, 42, 0.55)), url("${project.value.cover}")`
-    }
-  }
-
-  return { backgroundColor: '#3b82f6' }
-})
 
 const showCreateTaskModal = ref(false)
 
@@ -129,10 +114,9 @@ const createTask = () => {
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  max-height: 100%;
   overflow: hidden;
   background:
-    radial-gradient(circle at 18% -10%, color-mix(in srgb, var(--color-accent) 20%, transparent), transparent 32rem),
-    radial-gradient(circle at 88% 6%, color-mix(in srgb, #22d3ee 14%, transparent), transparent 28rem),
     linear-gradient(180deg, color-mix(in srgb, var(--color-bg) 76%, var(--color-surface)), var(--color-bg));
   color: var(--color-text-primary);
 }
@@ -141,7 +125,7 @@ const createTask = () => {
   border-bottom: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 90%, transparent), color-mix(in srgb, var(--color-surface) 78%, transparent));
-  box-shadow: 0 10px 28px color-mix(in srgb, #020617 9%, transparent);
+  box-shadow: 0 3px 10px color-mix(in srgb, #020617 7%, transparent);
   backdrop-filter: blur(18px);
   flex-shrink: 0;
   position: relative;
@@ -171,8 +155,6 @@ const createTask = () => {
   justify-content: center;
   font-size: 17px;
   flex-shrink: 0;
-  background-position: center;
-  background-size: cover;
   box-shadow:
     0 12px 28px color-mix(in srgb, var(--color-accent) 18%, transparent),
     inset 0 1px 0 rgba(255,255,255,0.22);
@@ -298,15 +280,25 @@ const createTask = () => {
 .project-main-content {
   flex: 1;
   min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  padding: 18px;
+  overflow: hidden;
   background: transparent;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+}
+
+@media (max-width: 768px) {
+  .project-main-content {
+    padding: 12px;
+  }
 }
 
 [data-theme='dark'] .project-global-header {
   background:
     linear-gradient(180deg, rgba(20, 34, 52, 0.92), rgba(17, 28, 45, 0.82));
-  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
 }
 
 [data-theme='dark'] .nav-active {

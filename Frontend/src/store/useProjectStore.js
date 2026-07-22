@@ -196,6 +196,16 @@ export const useProjectStore = defineStore('project', {
         const response = await axiosClient.get('/projects/discovery');
         const rows = response.data?.data || response.data || [];
         this.allProjects = dedupeProjects(rows.map(mapProjectRow));
+        const currentId = resolveProjectId(this.currentProject)
+        const currentAppearance = currentId
+          ? this.allProjects.find(project => project.id === currentId)
+          : null
+        if (currentAppearance) {
+          this.applyProjectAppearance(currentId, {
+            icon: currentAppearance.icon,
+            cover: currentAppearance.cover
+          })
+        }
         return this.allProjects;
       } catch (err) {
         this.error = err.message || 'Failed to fetch projects';
@@ -203,6 +213,42 @@ export const useProjectStore = defineStore('project', {
         return [];
       } finally {
         this.loading = false;
+      }
+    },
+    applyProjectAppearance(projectId, appearance = {}) {
+      if (!projectId) return
+
+      const nextIcon = appearance.icon ?? null
+      const nextCover = appearance.cover ?? null
+      const mergeAppearance = project => {
+        if (!project || resolveProjectId(project) !== projectId) return project
+        return {
+          ...project,
+          icon: nextIcon,
+          Icon: nextIcon,
+          cover: nextCover,
+          Cover: nextCover,
+          originalRow: project.originalRow
+            ? {
+                ...project.originalRow,
+                icon: nextIcon,
+                Icon: nextIcon,
+                cover: nextCover,
+                Cover: nextCover
+              }
+            : project.originalRow
+        }
+      }
+
+      this.allProjects = this.allProjects.map(mergeAppearance)
+      this.currentProject = mergeAppearance(this.currentProject)
+
+      const cachedProject = this.projectDetailsById[projectId]
+      if (cachedProject) {
+        this.projectDetailsById = {
+          ...this.projectDetailsById,
+          [projectId]: mergeAppearance(cachedProject)
+        }
       }
     },
     toggleProject(projectId) {

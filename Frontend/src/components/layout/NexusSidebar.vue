@@ -172,7 +172,7 @@
               class="nav-link proj-folder"
               :class="{ active: currentProjectId === project.id }"
             >
-              <span class="proj-icon" :style="{ background: projectColor(project) }">{{ projectIcon(project) }}</span>
+              <ProjectAvatar :icon="project.icon" :background="project.cover" size="xs" />
               <span class="truncate">{{ demoText(project.name) }}</span>
             </router-link>
           </li>
@@ -182,14 +182,23 @@
 
     <!-- Bottom Actions -->
     <div class="sidebar-bottom">
-      <!-- Status Update Trigger widget -->
-      <div class="user-status-widget mb-2" @click="statusModalOpen = true" style="cursor: pointer;">
-        <div class="flex items-center gap-2 p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition border border-dashed border-slate-300 dark:border-slate-700">
-          <span class="text-base flex-shrink-0">{{ userEmoji || '💻' }}</span>
-          <span class="text-xs truncate text-secondary font-medium" style="max-width: 140px;">
-            {{ userStatusText || 'Cập nhật trạng thái...' }}
-          </span>
-        </div>
+      <div
+        class="user-status-card"
+        role="button"
+        tabindex="0"
+        aria-label="Cập nhật trạng thái"
+        @click="statusModalOpen = true"
+        @keydown.enter="statusModalOpen = true"
+        @keydown.space.prevent="statusModalOpen = true"
+      >
+        <span class="status-card-icon" aria-hidden="true">
+          <i class="bi bi-laptop"></i>
+        </span>
+        <span class="status-card-copy">
+          <span class="status-card-title">{{ userStatusText || 'Đang làm việc' }}</span>
+          <span class="status-card-subtitle">Active now</span>
+        </span>
+        <span class="status-card-badge" aria-label="Đang hoạt động"></span>
       </div>
     </div>
 
@@ -217,6 +226,7 @@ import { translateDemoText } from '@/utils/demoContentLocale'
 import RecentDropdown from '@/components/RecentDropdown.vue'
 import StarredDropdown from '@/components/StarredDropdown.vue'
 import StatusUpdateModal from '@/components/collaboration/StatusUpdateModal.vue'
+import ProjectAvatar from '@/components/project/ProjectAvatar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -420,14 +430,14 @@ const triggerCreateTask = async () => {
   color: var(--color-text-primary);
   border: 1px solid var(--color-border);
   border-radius: var(--sa-radius-md);
-  min-height: 32px;
-  padding: 6px 8px;
+  min-height: 36px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-size: 12.5px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: var(--sa-shadow-sm);
@@ -455,11 +465,11 @@ const triggerCreateTask = async () => {
 .nav-link {
   display: flex;
   align-items: center;
-  min-height: 32px;
-  padding: 6px 8px;
+  min-height: 36px;
+  padding: 8px 10px;
   color: var(--color-text-secondary);
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   border-radius: 8px;
   text-decoration: none;
   cursor: pointer;
@@ -470,7 +480,7 @@ const triggerCreateTask = async () => {
 .nav-link i:first-child {
   width: 16px;
   font-size: 13px;
-  margin-right: 8px;
+  margin-right: 12px;
   text-align: center;
   color: color-mix(in srgb, var(--sa-primary) 42%, var(--color-text-secondary));
 }
@@ -516,6 +526,17 @@ const triggerCreateTask = async () => {
 .proj-folder {
   color: var(--color-text-primary);
   margin-bottom: 2px;
+  gap: 10px;
+  padding-left: 12px;
+}
+
+.proj-folder :deep(.project-avatar) {
+  flex: 0 0 28px;
+  color: #ffffff !important;
+}
+
+.proj-folder :deep(.project-avatar > i) {
+  color: #ffffff !important;
 }
 
 .proj-folder.active {
@@ -538,9 +559,90 @@ const triggerCreateTask = async () => {
 }
 
 .sidebar-bottom {
-  padding: 10px;
+  flex-shrink: 0;
+  padding: 12px 16px 16px;
   border-top: 1px solid var(--color-border);
   background: color-mix(in srgb, var(--sa-sidebar) 84%, var(--sa-surface));
+}
+
+.user-status-card {
+  width: 100%;
+  min-height: 58px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 12px;
+  outline: none;
+  background: color-mix(in srgb, var(--sa-primary) 7%, var(--sa-surface));
+  cursor: pointer;
+  transition: background-color 220ms ease, box-shadow 220ms ease;
+}
+
+.user-status-card:hover {
+  background: color-mix(in srgb, var(--sa-primary) 10%, var(--sa-surface));
+  box-shadow: 0 6px 16px rgb(15 23 42 / 0.06);
+}
+
+.user-status-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sa-primary) 22%, transparent);
+}
+
+.status-card-icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--sa-primary) 14%, var(--sa-surface));
+  color: var(--sa-primary);
+}
+
+.status-card-icon .bi {
+  font-size: 19px;
+  line-height: 1;
+}
+
+.status-card-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.status-card-title,
+.status-card-subtitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-card-title {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.status-card-subtitle {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.status-card-badge {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgb(34 197 94 / 0.14);
 }
 
 .community-link {

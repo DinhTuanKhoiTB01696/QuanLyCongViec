@@ -3,6 +3,7 @@ import axiosClient from '@/api/axiosClient'
 import { useSiteStore } from './useSiteStore'
 import { useProjectStore } from './useProjectStore'
 import { ensureWorkspaceIdFromState, isValidEntityId, resolveWorkspaceIdFromState } from '@/utils/contextIds'
+import { getProjectBackgroundStyle } from '@/config/projectAppearance'
 
 const normalizeDateOnly = (value) => {
   if (!value) return null
@@ -376,7 +377,7 @@ export const useWorkTaskStore = defineStore('workTask', {
         sequenceId: task.sequenceId,
         projectId: task.projectId,
         projectName: task.projectName || proj?.name || 'Project',
-        projectColor: task.projectColor || proj?.cover || '#3b82f6',
+        projectColor: task.projectColor || getProjectBackgroundStyle(proj?.cover),
         createdAt: task.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         statusName: task.statusName || 'TO DO',

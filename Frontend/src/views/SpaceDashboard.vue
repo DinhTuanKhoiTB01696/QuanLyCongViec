@@ -30,9 +30,7 @@
 
           <!-- Project Info -->
           <div class="header-project-badge">
-            <div class="hpb-avatar" :style="{ backgroundColor: project?.avatarColor || '#0c66e4' }">
-              {{ project?.initials || project?.key?.substring(0, 2) || 'P' }}
-            </div>
+            <ProjectAvatar :icon="project?.icon" :background="project?.cover" size="md" />
             <div class="hpb-details">
               <span class="hpb-key">{{ project?.key }}</span>
               <span class="hpb-name">{{ project?.name }}</span>
@@ -240,6 +238,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import ProjectPageHeader from '@/components/common/ProjectPageHeader.vue'
+import ProjectAvatar from '@/components/project/ProjectAvatar.vue'
 
 import { useI18nStore } from '@/store/useI18nStore'
 
@@ -1069,12 +1068,6 @@ watch(projectId, () => {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
-}
-
-@keyframes overview-glow-drift {
-  0% { transform: translate3d(-1%, -1%, 0) scale(1); opacity: 0.55; }
-  50% { transform: translate3d(1.5%, 1%, 0) scale(1.02); opacity: 0.85; }
-  100% { transform: translate3d(0.5%, -0.5%, 0) scale(1.01); opacity: 0.65; }
 }
 
 @keyframes overview-border-flow {

@@ -4,13 +4,13 @@
           <header class="spaces-header">
             <div class="sh-left">
               <i class="fa-solid fa-briefcase"></i>
-              <h1>{{ t('projects.title') }}</h1>
+              <h1>{{ t('Projects') }}</h1>
             </div>
 
         <div class="sh-right">
           <div class="search-box">
              <i class="fa-solid fa-magnifying-glass"></i>
-             <input type="text" :placeholder="t('projects.searchPlaceholder')" v-model="searchQuery" />
+             <input type="text" :placeholder="t('Search spaces...')" v-model="searchQuery" />
           </div>
           <div style="display: flex; gap: 4px; border: 1px solid var(--color-border); padding: 4px; border-radius: 8px;">
             <button class="plane-btn-secondary outline-btn" style="border: none; margin: 0; padding: 6px 10px;" :class="{ active: viewMode === 'table' }" type="button" @click="setViewMode('table')" title="List view">
@@ -21,49 +21,53 @@
             </button>
           </div>
           <button class="plane-btn-secondary outline-btn" type="button" @click="toggleSort">
-             <i class="fa-solid fa-arrow-down-short-wide"></i> {{ t('projects.createdDate') }} {{ sortDirection === 'desc' ? '↓' : '↑' }}
+             <i class="fa-solid fa-arrow-down-short-wide"></i> Created date {{ sortDirection === 'desc' ? '↓' : '↑' }}
           </button>
           <div class="project-filter-wrapper">
             <button class="plane-btn-secondary outline-btn" type="button" @click="showProjectFilters = !showProjectFilters" :class="{ active: showProjectFilters || visibilityFilter !== 'all' }">
                <i class="fa-solid fa-filter"></i> {{ filterLabel }}
             </button>
             <div class="project-filter-menu" v-if="showProjectFilters" @click.stop>
-              <div class="filter-title">{{ t('projects.visibility') }}</div>
-              <label class="filter-option"><input type="radio" value="all" v-model="visibilityFilter" /> {{ t('projects.allProjects') }}</label>
-              <label class="filter-option"><input type="radio" value="Public" v-model="visibilityFilter" /> {{ t('projects.filterPublic') }}</label>
-              <label class="filter-option"><input type="radio" value="Private" v-model="visibilityFilter" /> {{ t('projects.filterPrivate') }}</label>
-              <label class="filter-option"><input type="radio" value="starred" v-model="visibilityFilter" /> {{ t('projects.filterStarred') }}</label>
-              <button class="clear-filter-btn" type="button" @click="visibilityFilter = 'all'">{{ t('projects.clearFilters') }}</button>
+              <div class="filter-title">Visibility</div>
+              <label class="filter-option"><input type="radio" value="all" v-model="visibilityFilter" /> All projects</label>
+              <label class="filter-option"><input type="radio" value="Public" v-model="visibilityFilter" /> Public</label>
+              <label class="filter-option"><input type="radio" value="Private" v-model="visibilityFilter" /> Private</label>
+              <label class="filter-option"><input type="radio" value="starred" v-model="visibilityFilter" /> Starred</label>
+              <button class="clear-filter-btn" type="button" @click="visibilityFilter = 'all'">Clear filters</button>
             </div>
           </div>
           <button class="plane-btn-primary" @click="isCreateModalVisible = true">
-            {{ t('projects.addProject') }}
+            {{ t('Add Project') }}
           </button>
         </div>
       </header>
 
       <section class="projects-scroll-panel">
       <div v-if="loading" class="loading-state">
-         <i class="fa-solid fa-spinner fa-spin"></i> {{ t('projects.loading') }}
+         <i class="fa-solid fa-spinner fa-spin"></i> {{ t('Loading projects...') }}
       </div>
       <div v-else-if="filteredSpaces.length === 0" class="empty-state">
          <div class="empty-icon-wrap" style="width: 80px; height: 80px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
            <i class="fa-solid fa-folder-open empty-icon" style="margin-bottom: 0;"></i>
          </div>
-         <h3 class="empty-title" style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: var(--color-text-primary);">{{ t('projects.noProjectsFound') }}</h3>
-         <p style="margin: 0 0 24px 0; font-size: 14px; color: var(--color-text-muted);">{{ t('projects.noProjectsDesc') }}</p>
-         <button class="plane-btn-primary" @click="isCreateModalVisible = true">{{ t('projects.createFirst') }}</button>
+         <h3 class="empty-title" style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: var(--color-text-primary);">{{ t('No projects found') }}</h3>
+         <p style="margin: 0 0 24px 0; font-size: 14px; color: var(--color-text-muted);">It looks like there are no projects here. Let's create your first one!</p>
+         <button class="plane-btn-primary" @click="isCreateModalVisible = true">{{ t('Create your first project') }}</button>
       </div>
       <div v-else>
         <div v-if="viewMode === 'grid'" class="spaces-grid">
           <div class="project-card" v-for="(space, index) in filteredSpaces" :key="space.id" @click="goToSpace(space.id)">
-            <div
-              class="card-cover"
-              :style="projectCoverStyle(space, index)"
-              :role="space.cover ? 'img' : undefined"
-              :aria-label="space.cover ? (space.coverAltText || `${space.name} cover`) : undefined"
-            >
+            <!-- Cover Image Mock -->
+            <div class="card-cover" :style="{ background: projectCover(space) }">
                <div class="card-actions-top" @click.stop>
+                 <button
+                   v-if="showProjectSettingsButton(space)"
+                   class="card-icon-btn appearance-edit-btn"
+                   type="button"
+                   title="Customize project"
+                   aria-label="Customize project"
+                   @click="openAppearanceEditor(space)"
+                 ><i class="bi bi-pencil"></i></button>
                  <button class="card-icon-btn" type="button" @click="copySpaceLink(space)"><i class="fa-solid fa-link"></i></button>
                  <button class="card-icon-btn" type="button" :class="{ 'starred': space.starred }" @click="toggleStar(space)"><i :class="space.starred ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i></button>
                </div>
@@ -71,7 +75,8 @@
 
             <div class="card-body">
               <!-- Floating Project Icon -->
-              <div class="floating-icon">
+              <ProjectAvatar class="floating-project-avatar" :icon="space.icon" :background="space.cover" size="card" />
+              <div class="floating-icon legacy-project-icon" aria-hidden="true">
                 <span class="emoji">{{ space.icon || emojiList[index % emojiList.length] || '👇' }}</span>
               </div>
 
@@ -87,10 +92,10 @@
               <div class="card-footer" @click.stop>
                  <span class="visibility-pill" :class="space.networkType?.toLowerCase()">
                    <i :class="space.networkType === 'Private' ? 'fa-solid fa-lock' : 'fa-solid fa-globe'"></i>
-                   {{ space.networkType === 'Private' ? t('projects.private') : t('projects.public') }}
+                   {{ space.networkType || 'Public' }}
                  </span>
                  <span style="font-size: 11px; color: var(--color-text-muted); margin-left: auto; margin-right: 8px;">
-                   {{ t('projects.createdLabel') }} {{ new Date(space.originalRow?.createdAt || space.originalRow?.createdDate || Date.now()).toLocaleDateString() }}
+                   Created: {{ new Date(space.originalRow?.createdAt || space.originalRow?.createdDate || Date.now()).toLocaleDateString() }}
                  </span>
                  <el-dropdown trigger="click" v-if="showProjectSettingsButton(space)" @click.stop>
                    <button class="card-icon-btn" type="button"><i class="fa-solid fa-ellipsis"></i></button>
@@ -111,11 +116,11 @@
             <thead>
               <tr style="border-bottom: 2px solid var(--color-border); color: var(--color-text-muted); font-size: 12px;">
                 <th style="padding: 12px 16px; width: 40px;"></th>
-                <th style="padding: 12px 16px;">{{ t('projects.colName') }}</th>
-                <th style="padding: 12px 16px;">{{ t('projects.colKey') }}</th>
-                <th style="padding: 12px 16px;">{{ t('projects.colType') }}</th>
-                <th style="padding: 12px 16px;">{{ t('projects.colLead') }}</th>
-                <th style="padding: 12px 16px;">{{ t('projects.colCreated') }}</th>
+                <th style="padding: 12px 16px;">Name</th>
+                <th style="padding: 12px 16px;">Key</th>
+                <th style="padding: 12px 16px;">Type</th>
+                <th style="padding: 12px 16px;">Lead</th>
+                <th style="padding: 12px 16px;">Created</th>
                 <th style="padding: 12px 16px; width: 50px;"></th>
               </tr>
             </thead>
@@ -128,12 +133,8 @@
                 </td>
                 <td style="padding: 12px 16px;">
                   <div style="display: flex; align-items: center; gap: 12px;">
-                    <div
-                      style="width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px; background-position: center; background-size: cover;"
-                      :style="projectCoverStyle(space, index)"
-                      :role="space.cover ? 'img' : undefined"
-                      :aria-label="space.cover ? (space.coverAltText || `${space.name} cover`) : undefined"
-                    >
+                    <ProjectAvatar :icon="space.icon" :background="space.cover" size="xs" />
+                    <div class="legacy-project-icon" style="width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px;" :style="{ background: space.cover || coverGradients[index % coverGradients.length] }">
                       {{ space.icon || emojiList[index % emojiList.length] || '📦' }}
                     </div>
                     <span style="font-weight: 500; color: #3b82f6;">{{ demoText(space.name) }}</span>
@@ -141,7 +142,7 @@
                 </td>
                 <td style="padding: 12px 16px; font-size: 13px;">{{ space.key }}</td>
                 <td style="padding: 12px 16px; font-size: 13px; color: var(--color-text-muted);">
-                  {{ space.networkType === 'Private' ? t('projects.teamManagedPrivate') : t('projects.teamManaged') }}
+                  {{ space.networkType === 'Private' ? 'Team-managed software (Private)' : 'Team-managed software' }}
                 </td>
                 <td style="padding: 12px 16px;">
                   <div style="display: flex; align-items: center; gap: 8px;">
@@ -155,12 +156,20 @@
                   {{ new Date(space.originalRow?.createdAt || space.originalRow?.createdDate || Date.now()).toLocaleDateString() }}
                 </td>
                 <td style="padding: 12px 16px;" @click.stop>
+                  <button
+                    v-if="showProjectSettingsButton(space)"
+                    class="card-icon-btn transparent-btn table-appearance-btn"
+                    type="button"
+                    title="Customize project"
+                    aria-label="Customize project"
+                    @click="openAppearanceEditor(space)"
+                  ><i class="bi bi-pencil"></i></button>
                   <el-dropdown trigger="click" v-if="showProjectSettingsButton(space)">
                     <button class="card-icon-btn transparent-btn" style="background: transparent; border: none; font-size: 16px; color: var(--color-text-muted);"><i class="fa-solid fa-ellipsis"></i></button>
                     <template #dropdown>
                       <el-dropdown-menu class="plane-dropdown">
-                        <el-dropdown-item @click="goToAdmin(space)"><i class="fa-solid fa-gear" style="margin-right: 8px;"></i> {{ t('projects.settings') }}</el-dropdown-item>
-                        <el-dropdown-item @click="archiveProject(space)"><i class="fa-solid fa-box-archive" style="margin-right: 8px;"></i> {{ t('projects.archiveProject') }}</el-dropdown-item>
+                        <el-dropdown-item @click="goToAdmin(space)"><i class="fa-solid fa-gear" style="margin-right: 8px;"></i> Settings</el-dropdown-item>
+                        <el-dropdown-item @click="archiveProject(space)"><i class="fa-solid fa-box-archive" style="margin-right: 8px;"></i> Archive project</el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
                   </el-dropdown>
@@ -173,6 +182,11 @@
       </section>
 
       <CreateSpaceModal v-model:visible="isCreateModalVisible" @created="fetchSpaces" />
+      <ProjectAppearanceDialog
+        v-model:visible="isAppearanceModalVisible"
+        :project="selectedAppearanceProject"
+        @saved="handleAppearanceSaved"
+      />
     </div>
 </template>
 
@@ -181,6 +195,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
 import CreateSpaceModal from '@/components/CreateSpaceModal.vue'
+import ProjectAvatar from '@/components/project/ProjectAvatar.vue'
+import ProjectAppearanceDialog from '@/components/project/ProjectAppearanceDialog.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useProjectStore } from '@/store/useProjectStore'
 import { canAccessProjectSettings, getProjectSettingsDeniedMessage, getStoredUser } from '@/utils/permissions'
@@ -188,6 +204,7 @@ import { subscribeAdminRealtime } from '@/utils/adminRealtime'
 import { getProjectSettingsWindowName, openNamedAppWindow, PROJECT_ADMIN_WINDOW_NAME } from '@/utils/windowTabs'
 import { useI18n } from '@/composables/useI18n'
 import { translateDemoText } from '@/utils/demoContentLocale'
+import { getProjectBackgroundStyle } from '@/config/projectAppearance'
 
 const router = useRouter()
 const handleSwitchSettings = (path) => {
@@ -203,6 +220,8 @@ const sortDirection = ref('desc')
 const showProjectFilters = ref(false)
 const visibilityFilter = ref('all')
 const isCreateModalVisible = ref(false)
+const isAppearanceModalVisible = ref(false)
+const selectedAppearanceProject = ref(null)
 const viewMode = ref(localStorage.getItem('spaces_view_mode') || 'table')
 
 const setViewMode = (mode) => {
@@ -215,6 +234,21 @@ const demoText = (value) => translateDemoText(value, language.value)
 const canManageSpace = (space) => canAccessProjectSettings(space, currentUser.value)
 const showProjectSettingsButton = (space) => canManageSpace(space)
 
+const projectCover = (space) => getProjectBackgroundStyle(space?.cover)
+
+const openAppearanceEditor = (space) => {
+  selectedAppearanceProject.value = space
+  isAppearanceModalVisible.value = true
+}
+
+const handleAppearanceSaved = async (updatedProject) => {
+  const index = spaces.value.findIndex(space => space.id === updatedProject.id)
+  if (index >= 0) {
+    spaces.value.splice(index, 1, { ...spaces.value[index], icon: updatedProject.icon, cover: updatedProject.cover })
+  }
+  await projectStore.fetchAllProjects(true).catch(() => {})
+}
+
 const goToAdmin = (space) => {
   if (!canManageSpace(space)) {
     ElMessage.warning(getProjectSettingsDeniedMessage())
@@ -226,12 +260,12 @@ const goToAdmin = (space) => {
 
 const archiveProject = async (space) => {
   try {
-    await ElMessageBox.confirm(t('projects.archiveConfirm').replace('{name}', space.name), t('projects.archiveTitle'), { type: 'warning' })
+    await ElMessageBox.confirm(`Are you sure you want to archive project "${space.name}"?`, 'Archive Project', { type: 'warning' })
     await axiosClient.put(`/projects/${space.id}/archive`)
-    ElMessage.success(t('projects.archiveSuccess'))
+    ElMessage.success('Project archived')
     fetchSpaces()
   } catch (err) {
-    if (err !== 'cancel') ElMessage.error(t('projects.archiveFailed'))
+    if (err !== 'cancel') ElMessage.error('Failed to archive project')
   }
 }
 
@@ -243,7 +277,7 @@ const copySpaceLink = async (space) => {
   const url = `${window.location.origin}/space/${space.id}`
   try {
     await navigator.clipboard.writeText(url)
-    ElMessage.success(t('projects.linkCopied'))
+    ElMessage.success('Project link copied')
   } catch (error) {
     ElMessage.info(url)
   }
@@ -254,10 +288,10 @@ const toggleStar = async (space) => {
   space.starred = nextFavorite
   try {
     await projectStore.updateFavorite(space.id, nextFavorite)
-    ElMessage.success(nextFavorite ? t('projects.projectStarred') : t('projects.projectUnstarred'))
+    ElMessage.success(nextFavorite ? 'Project starred' : 'Project unstarred')
   } catch (error) {
     space.starred = !nextFavorite
-    ElMessage.error(t('projects.favoriteFailed'))
+    ElMessage.error('Could not update favorite project')
   }
 }
 
@@ -270,32 +304,25 @@ const coverGradients = [
 
 const emojiList = ['👇', '🚀', '⚡', '💡', '🔥', '🎯']
 
-const projectCoverStyle = (space, index) => space.cover
-  ? {
-      backgroundImage: `url("${space.cover}")`,
-      backgroundPosition: 'center',
-      backgroundSize: 'cover'
-    }
-  : { background: coverGradients[index % coverGradients.length] }
-
 const fetchSpaces = async () => {
   loading.value = true
   try {
-    const data = await projectStore.fetchAllProjects(true)
+    const response = await axiosClient.get('/projects/discovery')
+    const data = response.data.data || response.data || []
 
+    // Transform data
     spaces.value = data.map(p => ({
       id: p.id,
       starred: Boolean(p.isFavorite),
       name: p.name,
-      key: p.key || p.name.substring(0, 4).toUpperCase(),
-      myRole: p.myRole || null,
-      projectRole: p.originalRow?.projectRole || p.originalRow?.ProjectRole || null,
-      leadName: p.leadName || 'Admin',
-      cover: p.cover,
-      coverAltText: p.coverAltText,
-      icon: p.icon,
+      key: p.key || p.identifier || p.name.substring(0, 4).toUpperCase(),
+      myRole: p.myRole || p.MyRole || null,
+      projectRole: p.projectRole || p.ProjectRole || null,
+      leadName: p.leadName || p.reporterName || 'Admin',
+      cover: p.cover || p.Cover,
+      icon: p.icon || p.Icon,
       networkType: p.networkType || 'Public',
-      originalRow: p.originalRow || p
+      originalRow: p
     }))
   } catch (error) {
     console.error('Fetch spaces error:', error)
@@ -354,11 +381,11 @@ const goToSpace = (id) => {
 }
 
 const filterLabel = computed(() => ({
-  all: t('projects.filters'),
-  Public: t('projects.filterPublic'),
-  Private: t('projects.filterPrivate'),
-  starred: t('projects.filterStarred')
-}[visibilityFilter.value] || t('projects.filters')))
+  all: 'Filters',
+  Public: 'Public',
+  Private: 'Private',
+  starred: 'Starred'
+}[visibilityFilter.value] || 'Filters'))
 </script>
 
 <style scoped>
@@ -473,8 +500,6 @@ const filterLabel = computed(() => ({
   font-family: 'Inter', -apple-system, sans-serif;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 14% 0%, rgba(56, 189, 248, 0.12), transparent 32%),
-    radial-gradient(circle at 88% 0%, rgba(34, 197, 94, 0.10), transparent 28%),
     linear-gradient(180deg, #f8fbff, #eef5fb 54%, #f8fafc);
 }
 
@@ -669,25 +694,41 @@ const filterLabel = computed(() => ({
 
 .card-actions-top {
   display: flex;
-  gap: 8px;
+  gap: 7px;
+}
+
+.appearance-edit-btn {
+  color: #0f172a;
+}
+
+.table-appearance-btn {
+  display: inline-flex;
+  margin-right: 4px;
+  color: var(--color-text-muted) !important;
 }
 
 .card-icon-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: var(--color-text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  color: #172b4d;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
-  backdrop-filter: blur(4px);
+  font-size: 14px;
+  transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.14);
 }
-.card-icon-btn:hover { background: rgba(0,0,0,0.5); color: var(--color-text-primary); }
+.card-icon-btn:hover {
+  background: #ffffff;
+  color: #0c66e4;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.2);
+}
 .card-icon-btn.starred { color: #EAB308; }
 .card-icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
@@ -711,6 +752,31 @@ const filterLabel = computed(() => ({
   margin-top: -18px;
   margin-bottom: 12px;
   font-size: 18px;
+}
+
+.legacy-project-icon {
+  display: none !important;
+}
+
+.floating-project-avatar {
+  width: 52px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+  flex-basis: 52px !important;
+  padding: 12px !important;
+  font-size: 24px !important;
+  margin-top: -22px;
+  margin-bottom: 12px;
+  border: 2px solid #ffffff;
+  color: #ffffff !important;
+  box-shadow: 0 9px 22px rgba(15, 23, 42, 0.2);
+}
+
+.floating-project-avatar :deep(i) {
+  color: #ffffff !important;
 }
 
 .proj-title-row {
@@ -837,8 +903,6 @@ const filterLabel = computed(() => ({
 
 [data-theme='dark'] .manage-spaces-page {
   background:
-    radial-gradient(circle at 14% 0%, rgba(56, 189, 248, 0.13), transparent 32%),
-    radial-gradient(circle at 88% 0%, rgba(34, 197, 94, 0.08), transparent 28%),
     linear-gradient(180deg, #07111f, #0f172a 54%, #101827);
 }
 

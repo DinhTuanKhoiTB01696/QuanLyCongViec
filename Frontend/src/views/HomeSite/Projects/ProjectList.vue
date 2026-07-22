@@ -62,7 +62,7 @@
             <tr v-for="proj in filteredProjects" :key="proj.id" @click="goToProject(proj.id)">
               <td>
                 <div class="project-title-cell">
-                  <span class="project-emoji">😎</span>
+                  <ProjectAvatar :icon="proj.icon" :background="proj.cover" size="sm" />
                   <span class="project-title">{{ proj.title }}</span>
                 </div>
               </td>
@@ -98,7 +98,7 @@
         <div class="project-card-list" v-else-if="filteredProjects.length > 0">
           <article class="project-row-card" v-for="proj in filteredProjects" :key="proj.id" @click="goToProject(proj.id)">
             <div class="project-row-main">
-              <div class="project-row-icon">{{ proj.icon || '😎' }}</div>
+              <ProjectAvatar :icon="proj.icon" :background="proj.cover" size="md" />
               <div class="project-row-text">
                 <h3>{{ proj.title }}</h3>
                 <p>{{ proj.owner || proj.ownerName || labels.noOwner }}</p>
@@ -199,6 +199,7 @@ import { useSiteStore } from '@/store/useSiteStore'
 import { isValidEntityId } from '@/utils/contextIds'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import DropdownFilter from '@/components/common/DropdownFilter.vue'
+import ProjectAvatar from '@/components/project/ProjectAvatar.vue'
 
 const router = useRouter()
 const projectStore = useHomeProjectStore()

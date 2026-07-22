@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axiosClient from '@/api/axiosClient'
 import { ElMessage } from 'element-plus'
+import ProjectPageHeader from '@/components/common/ProjectPageHeader.vue'
 
 const props = defineProps({
   projectId: { type: String, required: true }
@@ -127,16 +128,17 @@ function navigateToTask(taskId) {
 <template>
   <div class="intake-portal">
     <!-- Header -->
-    <div class="intake-header">
-      <div class="header-titles">
-        <p class="intake-purpose">Yêu cầu là hàng chờ để người có quyền duyệt và chuyển thành công việc. Thành viên vẫn tạo task trực tiếp nếu có quyền.</p>
-        <h3>📥 Hộp thư yêu cầu (Intake Inbox)</h3>
-        <p class="subtitle text-xs text-[var(--color-text-muted)] mt-1">Duyệt các yêu cầu công việc được gửi từ nhân viên và chuyển thành công việc chính thức</p>
-      </div>
-      <button class="nexus-btn-primary" @click="showCreate = true">
-        <i class="fa-solid fa-plus mr-1"></i> Gửi yêu cầu mới
-      </button>
-    </div>
+    <ProjectPageHeader
+      icon="fa-solid fa-inbox"
+      title="Hộp thư yêu cầu"
+      description="Duyệt các yêu cầu công việc được gửi từ nhân viên và chuyển thành công việc chính thức"
+    >
+      <template #actions>
+        <button class="nexus-btn-primary" @click="showCreate = true">
+          <i class="fa-solid fa-plus mr-1"></i> Gửi yêu cầu mới
+        </button>
+      </template>
+    </ProjectPageHeader>
 
     <!-- Inbox List -->
     <div v-loading="loading" class="intake-content-area">
@@ -329,30 +331,12 @@ function navigateToTask(taskId) {
 <style scoped>
 .intake-portal {
   width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   font-family: 'Inter', system-ui, sans-serif;
   color: var(--color-text-primary);
-}
-
-.intake-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.intake-header h3 {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--color-text-primary);
-  margin: 0;
-}
-
-.intake-purpose {
-  max-width: 720px;
-  margin: 6px 0 0;
-  color: var(--color-text-muted);
-  font-size: 12px;
-  line-height: 1.5;
 }
 
 .intake-content-area {
@@ -388,7 +372,8 @@ function navigateToTask(taskId) {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
 }
 
@@ -538,5 +523,11 @@ function navigateToTask(taskId) {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .intake-portal {
+    gap: 12px;
+  }
 }
 </style>

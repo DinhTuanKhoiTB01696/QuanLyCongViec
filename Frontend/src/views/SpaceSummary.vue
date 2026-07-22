@@ -243,7 +243,6 @@
       <div
         class="kanban-wrapper"
         v-if="currentTab === 'board' && filteredTasksList.length > 0"
-        @wheel="handleKanbanWheel"
       >
         <!-- Loading indicator -->
         <div class="kanban-loading-bar" v-if="store.loading">
@@ -314,7 +313,7 @@
                       </button>
                     </div>
                   </div>
-                  <p class="issue-title" :style="element.statusName === 'DONE' ? { textDecoration: 'line-through', color: 'var(--color-text-muted)' } : {}">
+                  <p class="issue-title" :title="element.title" :style="element.statusName === 'DONE' ? { textDecoration: 'line-through', color: 'var(--color-text-muted)' } : {}">
                         <span v-if="element.title && element.title.startsWith('[DỰ PHÒNG]')" class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold mr-1 border border-blue-200 uppercase tracking-wider relative top-[-1px]">Dự phòng</span>
                         {{ element.title && element.title.startsWith('[DỰ PHÒNG]') ? element.title.substring(11).trim() : element.title }}
                       </p>
@@ -628,6 +627,7 @@ import { useWorkTaskStore } from '@/store/useWorkTaskStore';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useI18nStore } from '@/store/useI18nStore';
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import { getProjectBackgroundStyle } from '@/config/projectAppearance'
 
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
@@ -656,15 +656,6 @@ const showSubtasks = ref(false)
 const collapsedListGroups = ref({})
 const assigneeSearch = ref('')
 const showDataImportModal = ref(false)
-
-const handleKanbanWheel = (event) => {
-  const board = event.currentTarget
-  if (!board || board.scrollWidth <= board.clientWidth) return
-  if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
-
-  event.preventDefault()
-  board.scrollLeft += event.deltaY
-}
 
 async function handleExportTasks() {
   try {
@@ -1745,7 +1736,7 @@ const logViewedTask = (task) => {
     sequenceId: task.sequenceId,
     projectId: task.projectId || getProjectId(),
     projectName: project.value?.name || 'Project',
-    projectColor: project.value?.cover || '#3b82f6',
+    projectColor: getProjectBackgroundStyle(project.value?.cover),
     updatedAt: new Date().toISOString(),
     statusName: task.statusName,
     priority: task.priority
@@ -2447,7 +2438,8 @@ onUnmounted(() => {
   flex: 1;
   height: 100%;
   min-height: 0;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding: 12px 4px 16px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 20%, transparent), transparent 220px);
@@ -2708,7 +2700,8 @@ onUnmounted(() => {
   min-height: 0;
   max-height: none;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior-y: contain;
+  touch-action: pan-x pan-y;
   padding-right: 6px;
   position: relative;
   scrollbar-width: thin;
@@ -2802,6 +2795,11 @@ onUnmounted(() => {
   letter-spacing: 0.02em;
 }
 .issue-title {
+  display: -webkit-box;
+  max-height: calc(2 * 1.42em);
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   margin: 0;
   font-size: 13px;
   font-weight: 800;
@@ -2902,8 +2900,8 @@ onUnmounted(() => {
 .plane-board-container > .list-wrapper,
 .plane-board-container > .calendar-wrapper,
 .plane-board-container > .timeline-wrapper {
-  padding-left: 24px;
-  padding-right: 24px;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .ic-top {
@@ -3369,7 +3367,6 @@ onUnmounted(() => {
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 10px;
   background:
-    radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 34%),
     color-mix(in srgb, var(--color-surface) 78%, transparent);
 }
 .ap-chart-card h4 { margin: 0; font-size: 14px; font-weight: 800; color: var(--color-text-primary); }
@@ -3585,9 +3582,7 @@ onUnmounted(() => {
 
 /* Polished list view and analytics panel */
 .list-wrapper {
-  background:
-    radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--color-accent) 5%, transparent), transparent 28%),
-    var(--color-bg);
+  background: var(--color-bg);
 }
 
 .list-group {
@@ -3688,9 +3683,7 @@ onUnmounted(() => {
 }
 
 .analytics-panel {
-  background:
-    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 34%),
-    var(--color-bg) !important;
+  background: var(--color-bg) !important;
 }
 
 .ap-header {
@@ -3738,10 +3731,7 @@ onUnmounted(() => {
 }
 
 .analytics-panel {
-  background:
-    radial-gradient(circle at 82% 0%, color-mix(in srgb, #22c55e 12%, transparent), transparent 30%),
-    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--color-accent) 14%, transparent), transparent 34%),
-    var(--color-bg) !important;
+  background: var(--color-bg) !important;
 }
 
 .ap-header {
@@ -3857,8 +3847,6 @@ onUnmounted(() => {
 /* SprintA premium board pass */
 .plane-board-container {
   background:
-    radial-gradient(circle at 6% -12%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 32rem),
-    radial-gradient(circle at 88% 0%, color-mix(in srgb, #22d3ee 12%, transparent), transparent 30rem),
     linear-gradient(180deg, color-mix(in srgb, var(--color-bg) 70%, var(--color-surface)), var(--color-bg)) !important;
 }
 

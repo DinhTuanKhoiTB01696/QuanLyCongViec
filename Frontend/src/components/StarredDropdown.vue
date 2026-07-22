@@ -23,10 +23,7 @@
             @click="goToProject(project)"
           >
             <div class="jd-item-icon">
-              <span
-                class="proj-icon"
-                :style="{ background: projectColor(project) }"
-              >{{ project.icon || project.name?.charAt(0)?.toUpperCase() || 'P' }}</span>
+              <ProjectAvatar :icon="project.icon" :background="project.cover" size="sm" />
             </div>
             <div class="jd-item-content">
               <div class="jd-item-title">{{ project.name || 'Space' }}</div>
@@ -74,6 +71,7 @@ import { useRouter } from 'vue-router'
 import { useWorkTaskStore } from '@/store/useWorkTaskStore'
 import { useProjectStore } from '@/store/useProjectStore'
 import axiosClient from '@/api/axiosClient'
+import ProjectAvatar from '@/components/project/ProjectAvatar.vue'
 
 const emit = defineEmits(['close'])
 const router = useRouter()

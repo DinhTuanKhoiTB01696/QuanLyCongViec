@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import axiosClient from '@/api/axiosClient'
 
 import { useActivityStore } from '@/store/useActivityStore'
@@ -39,13 +39,28 @@ const fetchProfile = async () => {
     const data = res.data?.data
     if (data) {
       userProfile.value = {
-        fullName: data.fullName || '—',
-        email: data.email || '—',
+        fullName: data.fullName || null,
+        displayName: data.displayName || null,
+        email: data.email || null,
         avatarUrl: data.avatarUrl,
         avatarColor: data.avatarColor,
-        initials: data.initials || (data.fullName ? data.fullName.substring(0, 1).toUpperCase() : (data.email ? data.email.substring(0, 1).toUpperCase() : '—')),
-        joinedOn: '—',
-        timezone: '—'
+        initials: data.initials || (() => {
+          const n = data.fullName || data.email;
+          if (!n) return 'U';
+          const parts = n.trim().split(/\s+/).filter(Boolean);
+          if (parts.length >= 2) return (parts[0][0] + parts.at(-1)[0]).toUpperCase();
+          return n[0]?.toUpperCase() || 'U';
+        })(),
+        joinedOn: data.createdAt ? new Date(data.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null,
+        timezone: data.timezone || null,
+        department: data.department || null,
+        organization: data.organization || null,
+        jobTitle: data.jobTitle || null,
+        location: data.location || null,
+        roles: data.roles || (data.roleName ? [data.roleName] : []),
+        lastActive: data.lastActive || null,
+        bio: data.bio || null,
+        createdAtRaw: data.createdAt
       }
     }
   } catch (e) {
@@ -116,10 +131,39 @@ const fetchMyTasks = async () => {
   }
 }
 
+let timeInterval = null
 onMounted(async () => {
   await fetchProjects()
   fetchProfile()
   fetchMyTasks()
+  timeInterval = setInterval(() => {
+    currentTime.value = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+  }, 1000)
+  currentTime.value = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+})
+
+onUnmounted(() => {
+  if (timeInterval) clearInterval(timeInterval)
+})
+
+const currentTime = ref('')
+
+const calculateMemberFor = (dateStr) => {
+  if (!dateStr) return ''
+  const joined = new Date(dateStr)
+  if (isNaN(joined.getTime())) return ''
+  const diffDays = Math.ceil(Math.abs(new Date() - joined) / (1000 * 60 * 60 * 24))
+  if (diffDays < 30) return `${diffDays} days`
+  const diffMonths = Math.floor(diffDays / 30)
+  if (diffMonths < 12) return `${diffMonths} month${diffMonths > 1 ? 's' : ''}`
+  const diffYears = Math.floor(diffMonths / 12)
+  return `${diffYears} year${diffYears > 1 ? 's' : ''}`
+}
+
+const completionRate = computed(() => {
+  const total = workload.value.backlog + workload.value.notStarted + workload.value.workingOn + workload.value.completed + workload.value.canceled
+  if (total === 0) return 0
+  return Math.round((workload.value.completed / total) * 100)
 })
 
 const overview = computed(() => ({
@@ -312,27 +356,37 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 
 <template>
   <div>
-    <div class="yw-container">
-      <div class="yw-main">
-        <header class="yw-header flex-between">
-          <span class="yw-title"><i class="fa-regular fa-user"></i> Your work</span>
-        </header>
+    <div class="jira-dashboard">
+      <div class="yw-grid">
+      <div class="main-content-column">
+        <section class="yw-content-card sprinta-section-panel sprinta-section-panel-blue">
+          <header class="yw-header flex-between items-center mb-6">
+            <h2 class="section-title">
+              <div class="icon-glass">
+                <i class="bi bi-person"></i>
+              </div>
+              Your work
+            </h2>
+          </header>
 
+          <div class="yw-tabs">
+            <button
+              v-for="tab in tabs"
+              :key="tab"
+              class="tab-btn"
+              :class="{ active: activeTab === tab }"
+              @click="activeTab = tab"
+            >
+              {{ tabLabel(tab) }}
+            </button>
+          </div>
 
-        <div class="yw-tabs">
-          <button
-            v-for="tab in tabs"
-            :key="tab"
-            class="tab-btn"
-            :class="{ active: activeTab === tab }"
-            @click="activeTab = tab"
-          >
-            {{ tabLabel(tab) }}
-          </button>
-        </div>
-
-        <div class="yw-scrollable" v-if="activeTab === 'Summary'">
-          <h3 class="section-title mt-4">{{ t('yourWork.overview') }}</h3>
+          <div class="yw-scrollable" v-if="activeTab === 'Summary'">
+          <section class="yw-section">
+            <h3 class="yw-section-title">
+              <span class="yw-section-icon"><i class="fa-solid fa-chart-pie"></i></span>
+              {{ t('yourWork.overview') }}
+            </h3>
           <div class="yw-cards-row">
             <div class="yw-card">
               <div class="card-icon"><i class="fa-solid fa-plus"></i></div>
@@ -356,9 +410,14 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
               </div>
             </div>
           </div>
+          </section>
 
-          <h3 class="section-title mt-4">{{ t('yourWork.workload') }}</h3>
-          <div class="yw-workload-row">
+          <section class="yw-section">
+            <h3 class="yw-section-title">
+              <span class="yw-section-icon"><i class="fa-solid fa-layer-group"></i></span>
+              {{ t('yourWork.workload') }}
+            </h3>
+            <div class="yw-workload-row">
             <div class="wl-card">
               <div class="wl-lbl"><span class="dbox bg-gray"></span> {{ t('yourWork.backlog') }}</div>
               <div class="wl-val">{{ workload.backlog }}</div>
@@ -380,10 +439,14 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
               <div class="wl-val">{{ workload.canceled }}</div>
             </div>
           </div>
+          </section>
 
-          <div class="yw-two-cols mt-4">
-            <div class="chart-col">
-              <h3 class="section-title">{{ t('yourWork.byPriority') }}</h3>
+          <div class="yw-two-cols">
+            <section class="chart-col flex-1">
+              <h3 class="yw-section-title">
+                <span class="yw-section-icon"><i class="fa-solid fa-angles-up"></i></span>
+                {{ t('yourWork.byPriority') }}
+              </h3>
               <div class="empty-chart" v-if="myTasks.length === 0">
                 <i class="fa-solid fa-chart-simple chart-icon"></i>
                 <span>{{ t('yourWork.empty') }}</span>
@@ -394,10 +457,13 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
                 height="220"
                 :options="priorityChartOptions"
                 :series="prioritySeries"
-              />
-            </div>
-            <div class="chart-col">
-              <h3 class="section-title">{{ t('yourWork.byState') }}</h3>
+              </apexchart>
+            </section>
+            <section class="chart-col flex-1">
+              <h3 class="yw-section-title">
+                <span class="yw-section-icon"><i class="fa-solid fa-bars-progress"></i></span>
+                {{ t('yourWork.byState') }}
+              </h3>
               <div class="empty-chart" v-if="myTasks.length === 0">
                 <i class="fa-solid fa-chart-column chart-icon"></i>
                 <span>{{ t('yourWork.empty') }}</span>
@@ -408,12 +474,16 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
                 height="170"
                 :options="stateChartOptions"
                 :series="stateSeries"
-              />
-            </div>
+              </apexchart>
+            </section>
           </div>
 
-          <h3 class="section-title mt-4">{{ t('yourWork.recentActivity') }}</h3>
-          <div class="list-body">
+          <section class="yw-section">
+            <h3 class="yw-section-title">
+              <span class="yw-section-icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
+              {{ t('yourWork.recentActivity') }}
+            </h3>
+            <div class="list-body">
             <div class="list-row" style="cursor: default;" v-for="activity in recentActivity" :key="activity.id">
               <div class="lr-left">
                 <span class="lr-id" style="min-width: 30px;"><i class="fa-solid fa-clock-rotate-left" style="color: #A1A1AA"></i></span>
@@ -425,12 +495,14 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
                 </div>
               </div>
             </div>
-          </div>
+            </div>
+          </section>
         </div>
 
         <div class="yw-scrollable" v-else-if="['Assigned', 'Created', 'Subscribed'].includes(activeTab)">
-          <div class="list-header mt-4">
-            <i class="fa-solid fa-circle-dashed f-icon"></i>
+          <section class="yw-section">
+            <div class="list-header">
+            <span class="yw-section-icon"><i class="fa-solid fa-circle-dashed"></i></span>
             <span class="lh-title">{{ t('yourWork.allWorkItems') }}</span>
             <span class="lh-count">{{ listData.length }}</span>
           </div>
@@ -485,13 +557,18 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
                 <div class="lr-badge cursor-not-allowed"><i class="fa-solid fa-table-cells-large"></i> {{ item.modules }}</div>
                 <div class="lr-badge cursor-not-allowed"><i class="fa-solid fa-arrows-spin"></i> {{ item.cycle }}</div>
               </div>
+              </div>
             </div>
-          </div>
+          </section>
         </div>
 
         <div class="yw-scrollable" v-else-if="activeTab === 'Activity'">
-          <div class="activity-page-header mt-4 flex-between">
-            <h3 class="section-title" style="margin: 0;">{{ t('yourWork.recentActivity') }}</h3>
+          <section class="yw-section">
+            <div class="activity-page-header flex-between mb-4">
+            <h3 class="yw-section-title" style="margin: 0;">
+              <span class="yw-section-icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
+              {{ t('yourWork.recentActivity') }}
+            </h3>
             <button class="plane-primary-btn" @click="downloadWordActivity">{{ t('yourWork.downloadActivity') }}</button>
           </div>
 
@@ -507,61 +584,166 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
                 </div>
               </div>
             </div>
-          </div>
+            </div>
+          </section>
         </div>
+        </section>
       </div>
 
       <div class="yw-sidebar">
-        <div class="cover-image">
-          <button class="edit-cover"><i class="fa-solid fa-pencil"></i></button>
-        </div>
-        <div class="profile-info">
-          <UserAvatar :user="userProfile" :size="56" :fontSize="24" class="avatar-lg" style="position: absolute; top: -28px;" />
-          <div class="user-details">
-            <h2 class="user-name">{{ userProfile.fullName }}</h2>
-            <p class="user-handle">({{ userProfile.email }})</p>
+        <div class="profile-info-scroll">
+          <div class="cover-image">
+            <button class="edit-cover"><i class="fa-solid fa-pencil"></i></button>
           </div>
+          <div class="profile-info">
+            <UserAvatar :user="userProfile" :size="56" :fontSize="24" class="avatar-lg" style="position: absolute; top: -28px; left: 50%; transform: translateX(-50%);" />
+            
+            <!-- Section 1: Profile Header -->
+            <div class="ps-header">
+              <h2 class="user-name">{{ userProfile.fullName || 'Not specified' }}</h2>
+              <p class="user-display-name" v-if="userProfile.displayName">{{ userProfile.displayName }}</p>
+              <p class="user-handle">{{ userProfile.email || 'Not specified' }}</p>
+              <div class="role-badges" v-if="userProfile.roles && userProfile.roles.length">
+                <span class="role-badge" v-for="role in userProfile.roles" :key="role">{{ role }}</span>
+              </div>
+            </div>
 
-          <div class="info-row mt-4">
-            <span class="info-lbl">Joined on</span>
-            <span class="info-val">{{ userProfile.joinedOn }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-lbl">Timezone</span>
-            <span class="info-val">{{ userProfile.timezone }}</span>
-          </div>
+            <div class="ps-divider"></div>
 
-          <div class="workspace-row mt-4">
-            <i class="fa-solid fa-briefcase ws-icon"></i>
-            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">{{ projectList[0]?.name || '—' }}</span>
-            <i class="fa-solid fa-chevron-down ms-auto" style="font-size: 10px; color: #71717A;"></i>
+            <!-- Section 2: Work Information -->
+            <div class="ps-section">
+              <div class="info-row">
+                <span class="info-lbl">Department</span>
+                <span class="info-val">{{ userProfile.department || 'Not specified' }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-lbl">Organization</span>
+                <span class="info-val">{{ userProfile.organization || 'Not specified' }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-lbl">Job Title</span>
+                <span class="info-val">{{ userProfile.jobTitle || 'Not specified' }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-lbl">Location</span>
+                <span class="info-val">{{ userProfile.location || 'Not specified' }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-lbl">Timezone</span>
+                <span class="info-val text-right">
+                  <template v-if="userProfile.timezone">
+                    {{ userProfile.timezone }}<br><span class="time-now">{{ currentTime }}</span>
+                  </template>
+                  <template v-else>Not specified</template>
+                </span>
+              </div>
+            </div>
+
+            <div class="ps-divider"></div>
+
+            <!-- Section 3: Member Information -->
+            <div class="ps-section">
+              <div class="info-row">
+                <span class="info-lbl">Joined</span>
+                <span class="info-val">{{ userProfile.joinedOn || 'Not specified' }}</span>
+              </div>
+              <div class="info-row" v-if="userProfile.createdAtRaw">
+                <span class="info-lbl">Member for</span>
+                <span class="info-val">{{ calculateMemberFor(userProfile.createdAtRaw) }}</span>
+              </div>
+              <div class="info-row" v-if="userProfile.lastActive">
+                <span class="info-lbl">Last Active</span>
+                <span class="info-val">{{ userProfile.lastActive }}</span>
+              </div>
+            </div>
+
+            <div class="ps-divider"></div>
+
+            <!-- Section 4: Task Statistics -->
+            <div class="ps-section">
+              <div class="stats-grid">
+                <div class="stat-box">
+                  <span class="stat-lbl">Created</span>
+                  <span class="stat-val">{{ overview.created }}</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-lbl">Assigned</span>
+                  <span class="stat-val">{{ overview.assigned }}</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-lbl">Completed</span>
+                  <span class="stat-val">{{ workload.completed }}</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-lbl">Following</span>
+                  <span class="stat-val">{{ overview.subscribed }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="ps-divider"></div>
+
+            <!-- Section 5: Performance -->
+            <div class="ps-section">
+              <div class="info-row">
+                <span class="info-lbl">Completion Rate</span>
+                <span class="info-val" style="color: var(--color-success); font-weight: 700;">{{ completionRate }}%</span>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar-fill" :style="{ width: completionRate + '%' }"></div>
+              </div>
+            </div>
+
+            <div class="ps-divider"></div>
+
+            <!-- Section 6: Workspace -->
+            <div class="ps-section">
+              <div class="ws-card">
+                <div class="ws-card-icon">
+                  <i class="fa-solid fa-briefcase"></i>
+                </div>
+                <div class="ws-card-info">
+                  <div class="ws-name">{{ projectList[0]?.name || 'Not specified' }}</div>
+                  <div class="ws-meta" v-if="projectList[0]">
+                    <span v-if="projectList[0].memberCount !== undefined">{{ projectList[0].memberCount }} Members &bull; </span>
+                    <span v-if="projectList.length">{{ projectList.length }} Projects</span>
+                  </div>
+                </div>
+                <i class="fa-solid fa-chevron-right ws-chevron"></i>
+              </div>
+            </div>
+
+            <div class="ps-divider"></div>
+
+            <!-- Section 7: Quick Actions -->
+            <div class="ps-section">
+              <div class="quick-actions">
+                <router-link to="/profile" class="qa-btn"><i class="fa-regular fa-user"></i> Edit Profile</router-link>
+                <router-link to="/profile" class="qa-btn"><i class="fa-solid fa-gear"></i> Account Settings</router-link>
+                <router-link to="/profile" class="qa-btn"><i class="fa-solid fa-shield-halved"></i> Security</router-link>
+              </div>
+            </div>
+
+            <!-- Section 8: Bio -->
+            <template v-if="userProfile.bio">
+              <div class="ps-divider"></div>
+              <div class="ps-section bio-section">
+                <h4 class="bio-title">Working Principle</h4>
+                <p class="bio-text">"{{ userProfile.bio }}"</p>
+              </div>
+            </template>
+            
           </div>
         </div>
+      </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.yw-container {
-  display: flex;
-  height: 100vh;
-  background: var(--color-bg);
-  color: var(--color-text-primary);
-  font-family: 'Inter', sans-serif;
-  overflow: hidden;
-}
-
-.yw-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 0 32px;
-  overflow-y: auto;
-}
 
 .yw-header {
-  padding: 24px 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -777,14 +959,31 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 }
 .edit-cover:hover { background: rgba(0, 0, 0, 0.7); }
 
+.profile-info-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.profile-info-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.profile-info-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
 .profile-info {
   padding: 0 24px 24px;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .avatar-lg {
   position: absolute;
   top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
   width: 56px;
   height: 56px;
   background: var(--color-accent);
@@ -799,45 +998,121 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.user-details { margin-top: 40px; }
-.user-name { font-size: 16px; font-weight: 600; margin: 0; color: var(--color-text-primary); }
-.user-handle { font-size: 12px; color: var(--color-text-muted); margin: 4px 0 0 0; }
+.ps-header {
+  margin-top: 40px;
+  text-align: center;
+}
+.user-name { font-size: 16px; font-weight: 700; margin: 0; color: var(--color-text-primary); }
+.user-display-name { font-size: 13px; color: var(--color-text-primary); margin: 4px 0 0 0; font-weight: 500; }
+.user-handle { font-size: 13px; color: var(--color-text-muted); margin: 2px 0 0 0; }
+.role-badges { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 12px; }
+.role-badge { background: color-mix(in srgb, var(--color-accent) 12%, transparent); color: var(--color-accent); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 12px; }
 
-.info-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; }
+.ps-divider {
+  height: 1px;
+  background: var(--color-border);
+  opacity: 0.6;
+  margin: 20px 0;
+}
+
+.ps-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 2px; }
 .info-lbl { color: var(--color-text-muted); }
 .info-val { color: var(--color-text-primary); font-weight: 500; }
+.text-right { text-align: right; }
+.time-now { font-size: 11px; color: var(--color-accent); font-weight: 600; }
 
-.workspace-row { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; padding-top: 16px; border-top: 1px solid var(--color-border); cursor: pointer; }
-.ws-icon { color: #F59E0B; }
-.ms-auto { margin-left: auto; }
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.stat-box {
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.stat-lbl { font-size: 12px; color: var(--color-text-muted); font-weight: 500; }
+.stat-val { font-size: 18px; color: var(--color-text-primary); font-weight: 700; }
 
-/* SprintA your-work refresh */
-.yw-container {
-  height: calc(100vh - 56px);
-  background:
-    radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.16), transparent 34%),
-    radial-gradient(circle at 86% 4%, rgba(34, 197, 94, 0.1), transparent 30%),
-    linear-gradient(180deg, #f8fbff, #eef5fb 52%, #f8fafc);
-  font-family: inherit;
+.progress-bar-container {
+  height: 6px;
+  background: var(--color-surface-hover);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--color-success);
+  border-radius: 4px;
+  transition: width 0.4s ease;
 }
 
-.yw-main {
-  padding: 0 clamp(22px, 3vw, 44px);
+.ws-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-hover);
+  cursor: pointer;
+  transition: all 0.2s;
 }
+.ws-card:hover { border-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 4%, transparent); }
+.ws-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-warning) 15%, transparent);
+  color: var(--color-warning);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.ws-card-info { flex: 1; overflow: hidden; }
+.ws-name { font-size: 13px; font-weight: 600; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ws-meta { font-size: 11px; color: var(--color-text-muted); margin-top: 2px; }
+.ws-chevron { font-size: 10px; color: var(--color-text-muted); }
 
-.yw-header {
-  padding-top: 30px;
+.quick-actions { display: flex; flex-direction: column; gap: 8px; }
+.qa-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  background: var(--color-surface-hover);
+  transition: all 0.2s;
 }
+.qa-btn:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); color: var(--color-accent); }
+.qa-btn i { font-size: 14px; width: 16px; text-align: center; color: var(--color-text-muted); }
+.qa-btn:hover i { color: var(--color-accent); }
 
-.yw-title {
-  font-size: clamp(24px, 2vw, 34px);
-  font-weight: 900;
-  color: #0f172a;
-}
+.bio-section { gap: 8px; }
+.bio-title { font-size: 12px; font-weight: 600; color: var(--color-text-muted); margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+.bio-text { font-size: 13px; color: var(--color-text-primary); font-style: italic; line-height: 1.5; margin: 0; }
 
-.yw-title i {
-  color: #0284c7;
-}
+
+
+
 
 .yw-tabs {
   gap: 8px;
@@ -863,11 +1138,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
   background: linear-gradient(135deg, rgba(56, 189, 248, 0.16), rgba(14, 165, 233, 0.08));
 }
 
-.section-title {
-  color: #0f172a;
-  font-size: 17px;
-  font-weight: 900;
-}
+/* Removed local section-title override */
 
 .yw-card,
 .wl-card,
@@ -976,12 +1247,12 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 
 .yw-sidebar {
   border-left: 1px solid rgba(148, 163, 184, 0.24);
+  padding-top: 32px;
 }
 
 .cover-image {
   height: 132px;
   background:
-    radial-gradient(circle at 25% 16%, rgba(250, 204, 21, 0.45), transparent 18%),
     linear-gradient(135deg, #dbeafe, #e0f2fe 42%, #dcfce7);
 }
 
@@ -1021,11 +1292,6 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 }
 
 @media (max-width: 1100px) {
-  .yw-container {
-    height: auto;
-    flex-direction: column;
-    overflow: visible;
-  }
 
   .yw-sidebar {
     width: auto;
@@ -1036,13 +1302,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
   }
 }
 
-[data-theme='dark'] .yw-container {
-  background:
-    radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.16), transparent 34%),
-    radial-gradient(circle at 86% 4%, rgba(34, 197, 94, 0.1), transparent 30%),
-    linear-gradient(180deg, #07111f, #0f172a 52%, #101827);
-  color: #e2e8f0;
-}
+
 
 [data-theme='dark'] .yw-title,
 [data-theme='dark'] .section-title,
@@ -1102,22 +1362,12 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 
 [data-theme='dark'] .cover-image {
   background:
-    radial-gradient(circle at 25% 16%, rgba(250, 204, 21, 0.28), transparent 18%),
     linear-gradient(135deg, #0f172a, #164e63 42%, #064e3b);
 }
 
-/* Compact density */
-.yw-container {
-  min-height: calc(100vh - var(--sa-topbar-height, 52px)) !important;
-}
 
-.yw-main {
-  padding: 0 var(--sa-page-x, 24px) 24px !important;
-}
 
-.yw-header {
-  padding-top: 18px !important;
-}
+/* Removed yw-main override */
 
 .yw-title {
   font-size: clamp(22px, 2vw, 30px) !important;
@@ -1137,10 +1387,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
   font-size: 12.5px !important;
 }
 
-.section-title {
-  font-size: 15px !important;
-  margin-bottom: 12px !important;
-}
+/* Removed 15px section-title override */
 
 .overview-grid,
 .workload-grid,
@@ -1206,9 +1453,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 }
 
 @media (max-width: 1100px) {
-  .yw-main {
-    padding: 0 14px 18px !important;
-  }
+  
 
   .yw-sidebar {
     width: 100% !important;
@@ -1216,13 +1461,8 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 }
 
 @media (max-width: 720px) {
-  .yw-container {
-    display: block !important;
-  }
 
-  .yw-main {
-    padding: 0 12px 16px !important;
-  }
+  
 
   .overview-grid,
   .workload-grid,
@@ -1232,6 +1472,550 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 
   .yw-tabs {
     overflow-x: auto !important;
+  }
+}
+
+/* Match For You page wrapper spacing exactly; Your Work only adds a two-column grid inside it. */
+.jira-dashboard {
+  position: relative;
+  width: 100%;
+  max-width: 1120px;
+  min-height: calc(100vh - 60px);
+  margin: 0 auto;
+  padding: 18px var(--sa-page-x, 24px) 30px !important;
+  display: flex;
+  flex-direction: column !important;
+  gap: 22px !important;
+  background:
+    linear-gradient(180deg, #f8fcff 0%, #eef6fb 48%, #f8fafc 100%) !important;
+}
+
+.yw-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 24px;
+  align-items: start;
+  width: 100%;
+}
+
+.main-content-column {
+  display: grid;
+  gap: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding-bottom: 100px;
+}
+
+.main-content-column > section {
+  margin: 0 !important;
+}
+
+.yw-content-card {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 36px 32px 32px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(12, 102, 228, 0.15) !important;
+  background: var(--color-surface, #ffffff) !important;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.07) !important;
+}
+
+.yw-header {
+  margin-bottom: 0 !important;
+}
+
+.yw-scrollable {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding-bottom: 0;
+}
+
+.yw-section,
+.chart-col {
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.yw-section .section-title,
+.chart-col .section-title {
+  font-size: 15px;
+  line-height: 1.2;
+  text-shadow: none;
+}
+
+.yw-card,
+.wl-card,
+.empty-chart,
+.list-body,
+.list-row {
+  border-color: rgba(148, 163, 184, 0.18) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.yw-card,
+.wl-card {
+  border-radius: 10px !important;
+  transform: none !important;
+}
+
+.yw-card::before {
+  display: none !important;
+}
+
+.yw-card:hover,
+.wl-card:hover,
+.chart-col:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.list-body {
+  overflow: visible;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+.list-row {
+  border-width: 1px 0 0 0 !important;
+  border-radius: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.list-row:hover {
+  background: rgba(14, 165, 233, 0.04) !important;
+  transform: none !important;
+}
+
+.yw-sidebar {
+  position: sticky;
+  top: 18px;
+  width: 280px !important;
+  max-height: none;
+  align-self: start;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.24) !important;
+  border-radius: 10px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.82)),
+    #ffffff !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+  padding-top: 0;
+}
+
+.profile-info-scroll {
+  overflow: visible;
+}
+
+.ps-divider {
+  margin: 18px 0;
+}
+
+.stat-box,
+.ws-card,
+.qa-btn,
+.progress-bar-container {
+  background: transparent;
+}
+
+[data-theme='dark'] .jira-dashboard {
+  background:
+    linear-gradient(180deg, #0f172a 0%, #111827 52%, #0b1120 100%) !important;
+}
+
+[data-theme='dark'] .yw-content-card,
+[data-theme='dark'] .yw-sidebar {
+  border-color: rgba(148, 163, 184, 0.2) !important;
+  background:
+    linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.86)),
+    #0f172a !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28) !important;
+}
+
+@media (max-width: 1100px) {
+  .yw-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .yw-sidebar {
+    position: static;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .jira-dashboard {
+    padding-inline: var(--sa-page-x, 16px) !important;
+  }
+
+  .yw-content-card {
+    padding: 28px 20px !important;
+  }
+
+  .yw-cards-row,
+  .yw-workload-row,
+  .yw-two-cols {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Reference alignment: Your Work uses the For You shell, card, header, and section scale. */
+.jira-dashboard {
+  background:
+    linear-gradient(180deg, #f8fcff 0%, #eef6fb 48%, #f8fafc 100%) !important;
+}
+
+.yw-grid {
+  gap: 24px;
+}
+
+.yw-content-card {
+  gap: 24px !important;
+  padding: 36px 32px 32px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(12, 102, 228, 0.15) !important;
+  background: var(--color-surface, #ffffff) !important;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.07) !important;
+}
+
+.yw-header {
+  min-height: 34px;
+  margin: 0 !important;
+}
+
+.yw-header .section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  color: #0f172a;
+  font-size: clamp(21px, 1.65vw, 28px) !important;
+  font-weight: 900;
+  line-height: 1.12 !important;
+  letter-spacing: -0.015em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.74);
+}
+
+.yw-tabs {
+  display: flex;
+  gap: 6px !important;
+  width: max-content !important;
+  max-width: 100%;
+  min-height: 42px;
+  margin: 0 !important;
+  padding: 4px !important;
+  overflow-x: auto;
+  border: 1px solid rgba(148, 163, 184, 0.2) !important;
+  border-radius: 9px !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08) !important;
+}
+
+.tab-btn {
+  flex: 0 0 auto;
+  min-height: 34px !important;
+  padding: 0 16px !important;
+  border-radius: 7px !important;
+  color: #475569 !important;
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.tab-btn.active {
+  color: #0369a1 !important;
+  background:
+    linear-gradient(135deg, rgba(34, 211, 238, 0.20), rgba(45, 212, 191, 0.14)) !important;
+}
+
+.yw-scrollable {
+  gap: 28px !important;
+}
+
+.yw-section,
+.chart-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.yw-section-title,
+.list-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 2px !important;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.yw-section-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+  color: #ffffff;
+  font-size: 13px;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.25);
+}
+
+.lh-title {
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.lh-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.yw-cards-row,
+.yw-workload-row,
+.yw-two-cols {
+  gap: 14px !important;
+}
+
+.yw-card,
+.wl-card {
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+.yw-card {
+  min-height: 92px !important;
+  padding: 16px !important;
+}
+
+.wl-card {
+  min-height: 66px !important;
+  padding: 14px 16px !important;
+}
+
+.card-icon {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 9px !important;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(14, 165, 233, 0.08)) !important;
+  color: #0284c7 !important;
+  font-size: 18px !important;
+}
+
+.card-lbl,
+.wl-lbl {
+  color: #64748b !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+.card-val,
+.wl-val {
+  color: #0f172a !important;
+  font-size: 24px !important;
+  font-weight: 900 !important;
+  line-height: 1.1;
+}
+
+.chart-col {
+  padding: 18px !important;
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+.empty-chart {
+  border-color: rgba(148, 163, 184, 0.18) !important;
+  border-radius: 10px !important;
+  background: rgba(248, 250, 252, 0.78) !important;
+}
+
+.list-body {
+  overflow: hidden !important;
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+}
+
+.list-row {
+  min-height: 52px !important;
+  margin: 0 !important;
+  padding: 10px 12px !important;
+  border-width: 0 0 1px 0 !important;
+  border-color: rgba(148, 163, 184, 0.16) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.list-row:last-child {
+  border-bottom: 0 !important;
+}
+
+.list-row:hover {
+  background: rgba(14, 165, 233, 0.04) !important;
+  transform: none !important;
+}
+
+.lr-title {
+  color: #0f172a !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+
+.lr-id,
+.lr-badge {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+.yw-sidebar {
+  border-radius: 10px !important;
+  border: 1px solid rgba(148, 163, 184, 0.24) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.82)),
+    #ffffff !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+[data-theme='dark'] .jira-dashboard {
+  background:
+    linear-gradient(180deg, #06111f, #0f172a 52%, #101827) !important;
+}
+
+[data-theme='dark'] .yw-content-card,
+[data-theme='dark'] .yw-sidebar,
+[data-theme='dark'] .yw-tabs,
+[data-theme='dark'] .yw-card,
+[data-theme='dark'] .wl-card,
+[data-theme='dark'] .chart-col,
+[data-theme='dark'] .list-body {
+  border-color: rgba(148, 163, 184, 0.2) !important;
+  background:
+    linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.86)),
+    #0f172a !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28) !important;
+}
+
+[data-theme='dark'] .yw-header .section-title,
+[data-theme='dark'] .yw-section-title,
+[data-theme='dark'] .lh-title,
+[data-theme='dark'] .card-val,
+[data-theme='dark'] .wl-val,
+[data-theme='dark'] .lr-title {
+  color: #f8fafc !important;
+  text-shadow: none !important;
+}
+
+[data-theme='dark'] .tab-btn,
+[data-theme='dark'] .card-lbl,
+[data-theme='dark'] .wl-lbl,
+[data-theme='dark'] .lh-count {
+  color: #94a3b8 !important;
+}
+
+[data-theme='dark'] .tab-btn.active {
+  color: #7dd3fc !important;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(14, 165, 233, 0.08)) !important;
+}
+
+[data-theme='dark'] .list-row {
+  border-color: rgba(148, 163, 184, 0.16) !important;
+}
+
+@media (max-width: 720px) {
+  .yw-content-card {
+    padding: 28px 20px !important;
+  }
+
+  .yw-tabs {
+    width: 100% !important;
+  }
+}
+
+/* Fill the workspace width while keeping the profile column fixed and nearby. */
+.jira-dashboard {
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 18px !important;
+}
+
+.yw-grid {
+  grid-template-columns: minmax(0, 1fr) 280px !important;
+  gap: 16px !important;
+}
+
+.yw-sidebar {
+  width: 280px !important;
+  min-width: 280px;
+  max-width: 280px;
+}
+
+.yw-section-title,
+.list-header {
+  gap: 7px;
+}
+
+.yw-section-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-size: 10px;
+  box-shadow: none;
+}
+
+.card-icon {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 7px !important;
+  font-size: 13px !important;
+}
+
+@media (max-width: 860px) {
+  .jira-dashboard {
+    padding: 12px !important;
+  }
+
+  .yw-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .yw-sidebar {
+    position: static;
+    justify-self: start;
+    width: 280px !important;
+    min-width: 280px;
+    max-width: 280px;
+    margin: 0 !important;
   }
 }
 </style>

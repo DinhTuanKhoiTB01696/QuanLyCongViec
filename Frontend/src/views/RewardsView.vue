@@ -1,12 +1,14 @@
 <template>
   <div>
-    <div class="rewards-page sp-page-shell">
-      <header class="nexus-feature-header">
-        <div class="header-info">
-          <p class="eyebrow">{{ t('rewards.eyebrow') }}</p>
-          <h1>{{ t('rewards.title') }}</h1>
-          <p class="muted">{{ t('rewards.subtitle') }}</p>
-        </div>
+    <div class="jira-dashboard rewards-page-shell">
+      <section class="rewards-page rewards-surface sp-page-shell sprinta-section-panel sprinta-section-panel-blue">
+      <header class="section-header rewards-page-header">
+        <h1 class="rewards-page-title">
+          <span class="icon-glass rewards-page-icon" aria-hidden="true">
+            <i class="fa-solid fa-trophy"></i>
+          </span>
+          {{ t('rewards.title') }}
+        </h1>
         <button class="refresh-btn" type="button" :disabled="loading" @click="loadRewards">
           <i class="fa-solid fa-rotate"></i> {{ loading ? t('rewards.refreshing') : t('rewards.refresh') }}
         </button>
@@ -14,18 +16,18 @@
 
       <section class="wallet-band">
         <div class="wallet-card">
-          <span class="label">{{ t('rewards.balance') }}</span>
+          <span class="label"><i class="fa-solid fa-coins" aria-hidden="true"></i>{{ t('rewards.balance') }}</span>
           <strong>{{ wallet.totalPoints }}</strong>
           <span class="unit">điểm</span>
         </div>
         <div class="wallet-card">
-          <span class="label">{{ t('rewards.level') }}</span>
+          <span class="label"><i class="fa-solid fa-ranking-star" aria-hidden="true"></i>{{ t('rewards.level') }}</span>
           <strong>{{ career.level }}</strong>
           <span class="unit">{{ career.title }}</span>
         </div>
         <div class="wallet-card wide">
           <div class="wallet-card-head">
-            <span class="label">{{ t('rewards.progress') }}</span>
+            <span class="label"><i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i>{{ t('rewards.progress') }}</span>
             <span class="unit">{{ pointsToNext }} {{ t('rewards.pointsToNext') }}</span>
           </div>
           <div class="progress-container">
@@ -38,10 +40,9 @@
       </section>
 
       <section class="formula-band">
-        <div class="panel">
+        <div class="panel formula-panel">
           <div class="panel-head">
             <h2>{{ t('rewards.formula') }}</h2>
-            <span>{{ formula.expression }}</span>
           </div>
           <div class="formula-grid">
             <div class="formula-cell">
@@ -61,11 +62,14 @@
               <strong>{{ formula.sample.total }}</strong>
             </div>
           </div>
-          <p class="helper-copy">{{ formula.sample.note }}</p>
+          <p class="helper-copy">{{ formula.sample?.note ? t(formula.sample.note) : '' }}</p>
           <div class="policy-list">
-            <div class="summary-row"><span>Quy tắc thực tế</span><strong>{{ formula.actualHoursRule }}</strong></div>
-            <div class="summary-row"><span>Nhiều người thực hiện</span><strong>{{ formula.policy?.multiAssignee }}</strong></div>
-            <div class="summary-row"><span>Chuyển tiếp</span><strong>{{ formula.policy?.carryOver }}</strong></div>
+            <div class="summary-row"><span>{{ t('rewards.actualHoursRule') }}</span><strong>{{ formula.actualHoursRule ? t(formula.actualHoursRule) : '' }}</strong></div>
+            <div class="summary-row"><span>{{ t('rewards.multiAssignee') }}</span><strong>{{ formula.policy?.multiAssignee ? t(formula.policy.multiAssignee) : '' }}</strong></div>
+            <div class="summary-row"><span>{{ t('rewards.carryOver') }}</span><strong>{{ formula.policy?.carryOver ? t(formula.policy.carryOver) : '' }}</strong></div>
+          </div>
+          <div class="formula-expression">
+            {{ formula.expression ? t(formula.expression) : '' }}
           </div>
         </div>
 
@@ -93,6 +97,7 @@
         <section class="panel">
           <div class="panel-head"><h2>Công việc tiêu biểu</h2><span>Giá trị nhất</span></div>
           <div v-if="!loading && spotlightTasks.length === 0" class="empty">
+            <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
             Chưa có công việc tiêu biểu. Hoàn thành công việc thật để hệ thống ghi nhận điểm.
           </div>
           <article v-for="task in spotlightTasks" :key="task.id" class="spotlight-row">
@@ -113,6 +118,7 @@
         <section class="panel">
           <div class="panel-head"><h2>Thành tích gần đây</h2><span>{{ recentAchievements.length }}</span></div>
           <div v-if="!loading && recentAchievements.length === 0" class="empty">
+            <i class="fa-regular fa-star" aria-hidden="true"></i>
             Chưa có thành tích nào từ dữ liệu thật.
           </div>
           <article v-for="item in recentAchievements" :key="item.id" class="achievement-row">
@@ -130,6 +136,7 @@
           <div class="panel-head"><h2>Lịch sử điểm</h2><span>{{ transactions.length }}</span></div>
           <div v-if="loading" class="empty">Đang tải dữ liệu...</div>
           <div v-else-if="transactions.length === 0" class="empty">
+            <i class="fa-regular fa-clock" aria-hidden="true"></i>
             Chưa có giao dịch điểm. Điểm sẽ xuất hiện khi công việc thật được hoàn thành.
           </div>
           <article v-for="tx in transactions" v-else :key="tx.id" class="tx-row">
@@ -158,6 +165,7 @@
             <span class="leader-points">{{ item.totalPoints }} điểm</span>
           </article>
         </section>
+      </section>
       </section>
     </div>
   </div>
@@ -659,8 +667,6 @@ small,
 /* SprintA visual refresh */
 .rewards-page {
   background:
-    radial-gradient(circle at 6% 0%, rgba(56, 189, 248, 0.18), transparent 32%),
-    radial-gradient(circle at 88% 8%, rgba(34, 197, 94, 0.12), transparent 30%),
     linear-gradient(180deg, #f8fbff 0%, #eef5fb 46%, #f8fafc 100%);
   padding: 34px clamp(20px, 3vw, 44px);
   font-family: inherit;
@@ -676,22 +682,10 @@ small,
   background:
     linear-gradient(135deg, rgba(14, 165, 233, 0.16), transparent 45%),
     linear-gradient(100deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.76));
-  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.nexus-feature-header::after {
-  content: "";
-  position: absolute;
-  right: 24px;
-  top: 22px;
-  width: 90px;
-  height: 90px;
-  border-radius: 24px;
-  background:
-    linear-gradient(135deg, #facc15, #22c55e);
-  opacity: 0.16;
-  transform: rotate(8deg);
-}
+
 
 .eyebrow {
   color: #0284c7;
@@ -745,7 +739,7 @@ h1 {
   position: absolute;
   inset: 0 0 auto;
   height: 4px;
-  background: linear-gradient(90deg, #38bdf8, #22c55e, #facc15);
+  background: #27c2f1;
   opacity: 0.9;
 }
 
@@ -753,7 +747,7 @@ h1 {
 .panel:hover {
   transform: translateY(-3px);
   border-color: rgba(14, 165, 233, 0.42);
-  box-shadow: 0 24px 62px rgba(15, 23, 42, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .wallet-card strong,
@@ -775,7 +769,7 @@ h1 {
 }
 
 .progress-fill {
-  background: linear-gradient(90deg, #06b6d4, #22c55e, #facc15);
+  background: #27c2f1;
   box-shadow: 0 0 18px rgba(34, 197, 94, 0.35);
 }
 
@@ -855,8 +849,6 @@ h1 {
 
 [data-theme='dark'] .rewards-page {
   background:
-    radial-gradient(circle at 6% 0%, rgba(56, 189, 248, 0.16), transparent 32%),
-    radial-gradient(circle at 88% 8%, rgba(34, 197, 94, 0.1), transparent 30%),
     linear-gradient(180deg, #07111f 0%, #0f172a 46%, #101827 100%);
   color: #e2e8f0;
 }
@@ -943,11 +935,7 @@ h1 {
   margin-bottom: 16px !important;
 }
 
-.nexus-feature-header::after {
-  width: 58px !important;
-  height: 58px !important;
-  border-radius: 12px !important;
-}
+
 
 h1 {
   font-size: clamp(24px, 2.2vw, 34px) !important;
@@ -1067,15 +1055,10 @@ h1 {
   }
 }
 
-@keyframes rewards-progress-glow {
-  0%, 100% { filter: saturate(1); }
-  50% { filter: saturate(1.25) brightness(1.08); }
-}
+
 
 .rewards-page {
   background:
-    radial-gradient(circle at 10% 0%, rgba(56, 189, 248, 0.18), transparent 30%),
-    radial-gradient(circle at 84% 8%, rgba(250, 204, 21, 0.13), transparent 28%),
     linear-gradient(180deg, #06111f, #0f172a 50%, #101827) !important;
 }
 
@@ -1101,18 +1084,13 @@ h1 {
 
 .nexus-feature-header {
   background:
-    radial-gradient(circle at 78% 20%, rgba(250, 204, 21, 0.14), transparent 18%),
     linear-gradient(135deg, rgba(56, 189, 248, 0.14), rgba(15, 23, 42, 0.84) 42%),
     rgba(15, 23, 42, 0.92) !important;
   border-color: rgba(56, 189, 248, 0.24) !important;
-  box-shadow: 0 30px 90px rgba(2, 8, 23, 0.34) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
 }
 
-.nexus-feature-header::after {
-  background:
-    linear-gradient(135deg, rgba(250, 204, 21, 0.32), rgba(34, 197, 94, 0.20)) !important;
-  box-shadow: 0 18px 44px rgba(250, 204, 21, 0.16);
-}
+
 
 .wallet-card,
 .panel {
@@ -1131,7 +1109,7 @@ h1 {
   position: absolute;
   inset: 0 0 auto 0;
   height: 3px;
-  background: linear-gradient(90deg, #38bdf8, #2dd4bf, #facc15);
+  background: #27c2f1;
 }
 
 .wallet-card:hover,
@@ -1155,9 +1133,7 @@ h1 {
 .progress-track span,
 .progress-bar span,
 .level-progress span {
-  animation: rewards-progress-glow 2.8s ease-in-out infinite;
-  background: linear-gradient(90deg, #22c55e, #38bdf8, #facc15) !important;
-  box-shadow: 0 0 24px rgba(56, 189, 248, 0.22);
+  background: #27c2f1 !important;
 }
 
 .formula-cell {
@@ -1256,18 +1232,15 @@ h1 {
 
 [data-theme='light'] .rewards-page {
   background:
-    radial-gradient(circle at 10% 0%, rgba(56, 189, 248, 0.16), transparent 30%),
-    radial-gradient(circle at 84% 8%, rgba(250, 204, 21, 0.13), transparent 28%),
     linear-gradient(180deg, #f8fcff 0%, #eef6fb 52%, #f8fafc 100%) !important;
 }
 
 [data-theme='light'] .nexus-feature-header {
   background:
-    radial-gradient(circle at 78% 20%, rgba(250, 204, 21, 0.18), transparent 18%),
     linear-gradient(135deg, rgba(255,255,255,0.98), rgba(240,249,255,0.82)),
     #ffffff !important;
   border-color: rgba(56, 189, 248, 0.22) !important;
-  box-shadow: 0 28px 80px rgba(14, 165, 233, 0.12) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
 }
 
 [data-theme='light'] .wallet-card,
@@ -1276,7 +1249,7 @@ h1 {
     linear-gradient(135deg, rgba(255,255,255,0.98), rgba(248,250,252,0.88)),
     #ffffff !important;
   border-color: rgba(148, 163, 184, 0.20) !important;
-  box-shadow: 0 22px 58px rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
 }
 
 [data-theme='light'] .formula-cell {
@@ -1316,8 +1289,6 @@ h1 {
 
 [data-theme='dark'] .rewards-page {
   background:
-    radial-gradient(circle at 10% 0%, rgba(56, 189, 248, 0.18), transparent 30%),
-    radial-gradient(circle at 84% 8%, rgba(250, 204, 21, 0.13), transparent 28%),
     linear-gradient(180deg, #06111f, #0f172a 50%, #101827) !important;
 }
 
@@ -1644,6 +1615,645 @@ h1 {
     transition: none !important;
   }
 }
+
+/* Match the Stickies/For You shell and keep one surface behind all Rewards content. */
+.rewards-page-shell {
+  position: relative;
+  width: 100%;
+  max-width: 1120px;
+  min-height: calc(100vh - var(--sa-topbar-height, 52px));
+  margin: 0 auto;
+  padding: 18px var(--sa-page-x, 24px) 30px !important;
+  background: linear-gradient(180deg, #f8fcff 0%, #eef6fb 48%, #f8fafc 100%) !important;
+}
+
+.rewards-page.rewards-surface {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: calc(100vh - 112px);
+  margin: 0 !important;
+  padding: 36px 32px 32px !important;
+  border: 1px solid rgba(12, 102, 228, 0.15) !important;
+  border-radius: 16px !important;
+  background: var(--color-surface, #ffffff) !important;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.07) !important;
+}
+
+.rewards-page-header {
+  min-height: 40px !important;
+  margin: 0 0 24px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.rewards-page-title {
+  min-width: 0;
+  margin: 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #0f172a !important;
+  font-size: clamp(21px, 1.65vw, 28px) !important;
+  font-weight: 900 !important;
+  line-height: 1.12 !important;
+  letter-spacing: 0 !important;
+}
+
+.rewards-page-icon {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+}
+
+.rewards-page-header .refresh-btn {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+[data-theme='dark'] .rewards-page-title {
+  color: #f8fafc !important;
+}
+
+[data-theme='dark'] .rewards-page-shell {
+  background: linear-gradient(180deg, #06111f, #0f172a 52%, #101827) !important;
+}
+
+[data-theme='dark'] .rewards-page.rewards-surface {
+  border-color: rgba(148, 163, 184, 0.2) !important;
+  background:
+    linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.86)),
+    #0f172a !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28) !important;
+}
+
+@media (max-width: 640px) {
+  .rewards-page-shell {
+    padding: 12px !important;
+  }
+
+  .rewards-page.rewards-surface {
+    padding: 28px 20px !important;
+  }
+}
+
+/* Keep the Rewards surface equally spaced from the top and both sides. */
+.rewards-page-shell {
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 18px !important;
+}
+
+@media (max-width: 640px) {
+  .rewards-page-shell {
+    padding: 12px !important;
+  }
+}
+
+/* Premium enterprise pass: one restrained accent and one card system. */
+.rewards-surface {
+  --reward-accent: #27c2f1;
+  --reward-accent-strong: #0798c7;
+  --reward-accent-soft: rgba(39, 194, 241, 0.10);
+  --reward-border: rgba(15, 23, 42, 0.08);
+  --reward-border-strong: rgba(15, 23, 42, 0.12);
+  --reward-surface: #ffffff;
+  --reward-surface-subtle: #f8fafc;
+  --reward-text: #0f172a;
+  --reward-muted: #64748b;
+  --reward-radius: 10px;
+  --reward-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  --reward-shadow-hover: 0 12px 28px rgba(15, 23, 42, 0.085);
+}
+
+.rewards-page.rewards-surface {
+  border-color: var(--reward-border) !important;
+  background: var(--reward-surface) !important;
+  box-shadow: var(--reward-shadow) !important;
+}
+
+.wallet-band {
+  display: grid !important;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(320px, 2fr);
+  gap: 16px !important;
+  margin-bottom: 18px !important;
+}
+
+.formula-band,
+.rewards-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  align-items: stretch !important;
+  gap: 16px !important;
+  margin-bottom: 18px !important;
+}
+
+.formula-band > .panel {
+  height: 100%;
+}
+
+.formula-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.formula-expression {
+  display: flex;
+  min-height: 70px;
+  margin-top: auto;
+  padding: 16px 20px;
+  align-items: center;
+  justify-content: flex-end;
+  border-top: 1px solid var(--reward-border);
+  background: var(--reward-surface-subtle);
+  color: var(--reward-muted);
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.lower-grid {
+  margin-bottom: 0 !important;
+}
+
+.wallet-card,
+.panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--reward-border) !important;
+  border-radius: var(--reward-radius) !important;
+  background: var(--reward-surface) !important;
+  box-shadow: var(--reward-shadow) !important;
+  backdrop-filter: none !important;
+  animation: none !important;
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease !important;
+}
+
+.wallet-card::before,
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 2px auto !important;
+  width: auto !important;
+  height: 3px !important;
+  border-radius: var(--reward-radius) var(--reward-radius) 0 0;
+  background: var(--reward-accent) !important;
+  opacity: 1 !important;
+}
+
+.wallet-card:hover,
+.panel:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(39, 194, 241, 0.28) !important;
+  box-shadow: var(--reward-shadow-hover) !important;
+}
+
+.wallet-card {
+  min-width: 0;
+  min-height: 124px;
+  padding: 22px !important;
+}
+
+.wallet-card.wide {
+  flex: initial;
+}
+
+.wallet-card .label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  color: var(--reward-muted) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1.3;
+}
+
+.wallet-card .label i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--reward-accent-soft);
+  color: var(--reward-accent-strong);
+  font-size: 11px;
+}
+
+.wallet-card strong {
+  min-height: 0;
+  padding: 0;
+  color: var(--reward-text) !important;
+  font-size: 30px !important;
+  font-weight: 800 !important;
+  line-height: 1;
+  letter-spacing: 0 !important;
+  text-shadow: none !important;
+}
+
+.wallet-card .unit {
+  margin-left: 9px;
+  color: var(--reward-muted) !important;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.wallet-card-head {
+  align-items: center !important;
+  gap: 16px;
+}
+
+.wallet-card-head .label {
+  margin-bottom: 0;
+}
+
+.progress-container {
+  gap: 14px;
+  margin-top: 17px;
+}
+
+.progress-track {
+  height: 9px !important;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  border-radius: 999px !important;
+  background: #e7eef6 !important;
+  box-shadow: none !important;
+}
+
+.progress-fill {
+  border-radius: inherit;
+  background: var(--reward-accent) !important;
+  box-shadow: none !important;
+  transition: width 600ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+
+.progress-text {
+  min-width: 38px;
+  color: var(--reward-accent-strong) !important;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.panel-head {
+  min-height: 62px;
+  padding: 17px 20px !important;
+  align-items: center !important;
+  gap: 16px !important;
+  border-bottom: 1px solid var(--reward-border) !important;
+  background: var(--reward-surface-subtle) !important;
+}
+
+.panel-head h2 {
+  margin: 0;
+  color: var(--reward-text) !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  line-height: 1.3 !important;
+}
+
+.panel-head span {
+  color: var(--reward-muted) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1.4;
+}
+
+.formula-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  align-items: stretch;
+  gap: 12px !important;
+  padding: 20px 20px 0 !important;
+}
+
+.formula-cell {
+  display: flex;
+  min-width: 0;
+  min-height: 112px;
+  padding: 16px !important;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid var(--reward-border) !important;
+  border-radius: 8px !important;
+  background: var(--reward-surface-subtle) !important;
+  box-shadow: none !important;
+  transition: border-color 220ms ease, background 220ms ease !important;
+}
+
+.formula-cell:hover {
+  transform: none !important;
+  border-color: rgba(39, 194, 241, 0.32) !important;
+  background: #f5fbfd !important;
+}
+
+.formula-cell span {
+  min-height: 0;
+  margin: 0 0 16px;
+  color: var(--reward-muted) !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  line-height: 1.35;
+}
+
+.formula-cell strong {
+  color: var(--reward-text) !important;
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  line-height: 1;
+  letter-spacing: 0 !important;
+}
+
+.formula-cell.total {
+  border-color: rgba(39, 194, 241, 0.24) !important;
+  background: rgba(39, 194, 241, 0.075) !important;
+}
+
+.formula-cell.total strong {
+  color: #087da3 !important;
+}
+
+.helper-copy {
+  margin: 0;
+  padding: 18px 20px 14px !important;
+  color: var(--reward-muted) !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.55 !important;
+}
+
+.policy-list,
+.summary-list {
+  padding: 6px 20px 16px !important;
+}
+
+.summary-row {
+  min-height: 44px;
+  gap: 18px;
+  padding: 11px 0 !important;
+  border-bottom: 1px solid var(--reward-border) !important;
+  background: transparent !important;
+  font-size: 13px;
+  line-height: 1.45 !important;
+  transition: background 200ms ease !important;
+}
+
+.summary-row:hover {
+  transform: none !important;
+  background: rgba(39, 194, 241, 0.045) !important;
+}
+
+.summary-row span {
+  color: var(--reward-muted) !important;
+  font-weight: 500;
+}
+
+.summary-row strong {
+  min-width: 54px;
+  color: var(--reward-text) !important;
+  font-weight: 750;
+  text-align: right;
+}
+
+.summary-list .summary-row:nth-child(6),
+.summary-list .summary-row:nth-child(10) {
+  background: transparent !important;
+}
+
+.spotlight-row,
+.achievement-row,
+.tx-row,
+.leader-row {
+  margin: 0 18px !important;
+  padding: 14px 2px !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--reward-border) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: background 200ms ease !important;
+}
+
+.spotlight-row:hover,
+.achievement-row:hover,
+.tx-row:hover,
+.leader-row:hover {
+  transform: none !important;
+  border-color: var(--reward-border) !important;
+  background: rgba(39, 194, 241, 0.045) !important;
+}
+
+.spotlight-title,
+.tx-title,
+.leader-main strong,
+.achievement-row strong {
+  color: var(--reward-text) !important;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.tx-reason,
+.leader-main small,
+.spotlight-main small,
+time {
+  color: var(--reward-muted) !important;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.empty {
+  display: flex;
+  min-height: 126px;
+  padding: 24px !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--reward-muted) !important;
+  font-size: 12.5px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.empty > i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(39, 194, 241, 0.18);
+  border-radius: 8px;
+  background: var(--reward-accent-soft);
+  color: var(--reward-accent-strong);
+  font-size: 16px;
+}
+
+.chip,
+.refresh-btn,
+.tx-icon,
+.rank,
+.achievement-points {
+  border-radius: 8px !important;
+}
+
+.chip {
+  border-color: rgba(39, 194, 241, 0.18) !important;
+  background: var(--reward-accent-soft) !important;
+  color: #087da3 !important;
+  box-shadow: none !important;
+}
+
+.chip.muted {
+  border-color: var(--reward-border) !important;
+  background: var(--reward-surface-subtle) !important;
+  color: var(--reward-muted) !important;
+}
+
+.refresh-btn {
+  min-height: 36px;
+  padding: 0 14px !important;
+  border: 1px solid rgba(39, 194, 241, 0.3) !important;
+  background: #ffffff !important;
+  color: #087da3 !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
+  transition: background 220ms ease, border-color 220ms ease, box-shadow 220ms ease !important;
+}
+
+.refresh-btn:hover {
+  transform: none !important;
+  border-color: rgba(39, 194, 241, 0.52) !important;
+  background: #f3fbfe !important;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.07) !important;
+}
+
+[data-theme='dark'] .rewards-surface {
+  --reward-border: rgba(148, 163, 184, 0.16);
+  --reward-border-strong: rgba(148, 163, 184, 0.24);
+  --reward-surface: #111c2d;
+  --reward-surface-subtle: #162235;
+  --reward-text: #f1f5f9;
+  --reward-muted: #9aa9bd;
+  --reward-shadow: 0 8px 24px rgba(2, 8, 23, 0.24);
+  --reward-shadow-hover: 0 12px 30px rgba(2, 8, 23, 0.32);
+}
+
+[data-theme='dark'] .rewards-page.rewards-surface,
+[data-theme='dark'] .wallet-card,
+[data-theme='dark'] .panel {
+  border-color: var(--reward-border) !important;
+  background: var(--reward-surface) !important;
+  box-shadow: var(--reward-shadow) !important;
+}
+
+[data-theme='dark'] .panel-head,
+[data-theme='dark'] .formula-cell,
+[data-theme='dark'] .chip.muted {
+  border-color: var(--reward-border) !important;
+  background: var(--reward-surface-subtle) !important;
+}
+
+[data-theme='dark'] .formula-cell:hover,
+[data-theme='dark'] .summary-row:hover,
+[data-theme='dark'] .spotlight-row:hover,
+[data-theme='dark'] .achievement-row:hover,
+[data-theme='dark'] .tx-row:hover,
+[data-theme='dark'] .leader-row:hover {
+  background: rgba(39, 194, 241, 0.07) !important;
+}
+
+[data-theme='dark'] .formula-cell.total {
+  border-color: rgba(39, 194, 241, 0.28) !important;
+  background: rgba(39, 194, 241, 0.09) !important;
+}
+
+[data-theme='dark'] .formula-cell.total strong,
+[data-theme='dark'] .progress-text,
+[data-theme='dark'] .chip {
+  color: #70d8f7 !important;
+}
+
+[data-theme='dark'] .progress-track {
+  border-color: rgba(148, 163, 184, 0.08);
+  background: #253349 !important;
+}
+
+[data-theme='dark'] .refresh-btn {
+  border-color: rgba(39, 194, 241, 0.28) !important;
+  background: #162235 !important;
+  color: #70d8f7 !important;
+}
+
+@media (max-width: 1100px) {
+  .wallet-band {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .wallet-card.wide {
+    grid-column: 1 / -1;
+  }
+
+  .formula-band,
+  .rewards-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .rewards-page.rewards-surface {
+    padding: 24px 18px !important;
+  }
+
+  .wallet-band {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .wallet-card.wide {
+    grid-column: auto;
+  }
+
+  .formula-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .panel-head {
+    align-items: flex-start !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .rewards-page-header,
+  .wallet-card-head {
+    align-items: stretch !important;
+    flex-direction: column;
+  }
+
+  .rewards-page-header .refresh-btn {
+    align-self: flex-start;
+    margin-left: 0;
+  }
+
+  .formula-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wallet-card,
+  .panel,
+  .progress-fill {
+    transition: none !important;
+  }
+}
+
 </style>
 
 
