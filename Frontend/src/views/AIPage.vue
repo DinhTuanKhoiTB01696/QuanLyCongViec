@@ -279,7 +279,7 @@ import { useSprintStore } from '@/store/useSprintStore'
 import { useI18nStore } from '@/store/useI18nStore'
 import { broadcastAdminRealtime } from '@/utils/adminRealtime'
 import { signalRService } from '@/api/signalrService'
-import { hasSystemAdminAccess, normalizeProjectRole } from '@/utils/permissions'
+import { hasProjectWritePermission, normalizeProjectRole } from '@/utils/permissions'
 import { getScopedCurrentProjectId } from '@/utils/projectContext'
 import { clearLegacyGitHubCredentialStorage, runWithEphemeralGitHubToken } from '@/utils/githubCredentials'
 
@@ -289,7 +289,6 @@ const workTaskStore = useWorkTaskStore()
 const sprintStore = useSprintStore()
 const i18nStore = useI18nStore()
 const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-const aiManagerProjectRoles = ['pm', 'po', 'sm', 'admin', 'project_manager', 'project_lead', 'scrum_master']
 const showCustomizeModal = ref(false)
 const sidebarPreferences = ref({ audit: true, users: true })
 
@@ -361,11 +360,7 @@ const currentProjectRole = computed(() => normalizeProjectRole(
 ))
 
 const canManageProjectAi = computed(() => {
-  if (hasSystemAdminAccess(currentUser)) {
-    return true
-  }
-
-  return Boolean(currentProjectRole.value && aiManagerProjectRoles.includes(currentProjectRole.value))
+  return hasProjectWritePermission(currentProjectRole.value)
 })
 
 const canCreateIntoProject = computed(() => Boolean(currentProjectId.value && repoAnalysis.value && canManageProjectAi.value))

@@ -36,6 +36,7 @@ backend-run.out
 backend-run.err
 Backend/src/TaskManagement.API/uploads/
 Backend/src/TaskManagement.API/private-uploads/
+Backend/src/TaskManagement.API/data-protection-keys/
 .codex-test/
 
 # NuGet Packages

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using TaskManagement.API.Filters;
+using TaskManagement.API.Security;
 using TaskManagement.Application.DTOs.Common;
 using TaskManagement.Application.DTOs.Project;
 using TaskManagement.Application.Common;
@@ -22,10 +23,6 @@ namespace TaskManagement.API.Controllers
         private readonly IProjectService _projectService;
         private readonly ApplicationDbContext _context;
         private readonly IDataProtector _integrationSecretProtector;
-        private static readonly string[] SystemOverrideRoles =
-        {
-            "SuperAdmin", "Admin", "System Admin", "Organization Admin", "AccessAdmin", "Access Admin"
-        };
 
         public ProjectsController(
             IProjectService projectService,
@@ -612,6 +609,7 @@ namespace TaskManagement.API.Controllers
                     Notes = item.Notes,
                     UpdatedAt = item.UpdatedAt
                 };
+
                 existing.Value = JsonSerializer.Serialize(storedItem);
                 existing.Description = $"Project integration settings for {item.DisplayName}";
                 existing.LastModifiedAt = DateTime.UtcNow;
@@ -637,6 +635,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPut("{id:guid}/favorite")]
+        [ProjectAuthorize(ResourcePermissionCodes.ProjectWrite)]
         public async Task<IActionResult> UpdateFavorite(Guid id, [FromBody] JsonElement payload)
         {
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -649,21 +648,6 @@ namespace TaskManagement.API.Controllers
 
             if (project == null)
                 return NotFound(ApiResponse<object>.Error("Project not found.", 404));
-
-            var claimRoles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
-            var dbRoles = await _context.UserRoles
-                .AsNoTracking()
-                .Where(ur => ur.UserId == userId)
-                .Select(ur => ur.Role.Name)
-                .ToListAsync();
-
-            var hasSystemOverride = claimRoles
-                .Concat(dbRoles)
-                .Any(role => SystemOverrideRoles.Contains(role, StringComparer.OrdinalIgnoreCase));
-
-            var isMember = project.ProjectMembers.Any(pm => pm.UserId == userId && pm.Status);
-            if (!isMember && !hasSystemOverride)
-                return StatusCode(403, ApiResponse<object>.Error("Forbidden.", 403));
 
             var favorite = true;
             if (payload.ValueKind == JsonValueKind.Object &&
@@ -681,6 +665,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPost("{id:guid}/cover")]
+        [ProjectAuthorize(ResourcePermissionCodes.ProjectWrite)]
         [RequestSizeLimit(6 * 1024 * 1024)]
         public async Task<IActionResult> UpdateCover(
             Guid id,
@@ -693,6 +678,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpPut("{id:guid}/cover")]
+        [ProjectAuthorize(ResourcePermissionCodes.ProjectWrite)]
         public async Task<IActionResult> UpdateCoverMetadata(Guid id, [FromBody] UpdateProjectCoverRequest request)
         {
             return await UpdateProjectCoverInternal(id, null, request.CoverUrl, request.CoverAltText, request.Icon);
@@ -716,24 +702,20 @@ namespace TaskManagement.API.Controllers
             if (project == null)
                 return NotFound(ApiResponse<object>.Error("Project not found.", 404));
 
-            if (!await CanUpdateProjectVisuals(project, userId))
-                return StatusCode(403, ApiResponse<object>.Error("Forbidden.", 403));
-
             var nextCoverUrl = TrimOrNull(coverUrl);
             if (file != null && file.Length > 0)
             {
                 var validation = ValidateCoverUpload(file);
                 if (validation != null) return validation;
+                ValidatedUpload validated;
+                try { validated = await UploadSecurity.ReadPublicImageAsync(file); }
+                catch (InvalidDataException exception) { return BadRequest(ApiResponse<object>.Error(exception.Message)); }
 
                 var uploadsRoot = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "project-covers");
                 Directory.CreateDirectory(uploadsRoot);
-                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-                var fileName = $"{project.Id:N}-{DateTime.UtcNow:yyyyMMddHHmmssfff}{extension}";
-                var filePath = Path.Combine(uploadsRoot, fileName);
-                await using (var stream = System.IO.File.Create(filePath))
-                {
-                    await file.CopyToAsync(stream);
-                }
+                var fileName = $"{Guid.NewGuid():N}{validated.Extension}";
+                var filePath = UploadSecurity.ResolveUnderRoot(uploadsRoot, fileName);
+                await System.IO.File.WriteAllBytesAsync(filePath, validated.Bytes);
 
                 nextCoverUrl = $"/uploads/project-covers/{fileName}";
             }
@@ -768,6 +750,7 @@ namespace TaskManagement.API.Controllers
         }
 
         [HttpDelete("{id:guid}/cover")]
+        [ProjectAuthorize(ResourcePermissionCodes.ProjectWrite)]
         public async Task<IActionResult> DeleteCover(Guid id)
         {
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -780,9 +763,6 @@ namespace TaskManagement.API.Controllers
 
             if (project == null)
                 return NotFound(ApiResponse<object>.Error("Project not found.", 404));
-
-            if (!await CanUpdateProjectVisuals(project, userId))
-                return StatusCode(403, ApiResponse<object>.Error("Forbidden.", 403));
 
             project.CoverUrl = null;
             project.CoverAltText = null;
@@ -802,43 +782,6 @@ namespace TaskManagement.API.Controllers
                 project.CoverAltText,
                 project.NavigationConfig
             }));
-        }
-
-        private async Task<bool> CanUpdateProjectVisuals(Project project, Guid userId)
-        {
-            var claimRoles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
-            var dbRoles = await _context.UserRoles
-                .AsNoTracking()
-                .Where(ur => ur.UserId == userId)
-                .Select(ur => ur.Role.Name)
-                .ToListAsync();
-
-            if (claimRoles.Concat(dbRoles).Any(role => SystemOverrideRoles.Contains(role, StringComparer.OrdinalIgnoreCase)))
-            {
-                return true;
-            }
-
-            if (project.CreatorId == userId)
-            {
-                return true;
-            }
-
-            if (await _context.WorkspaceMembers.AnyAsync(item =>
-                    item.WorkspaceId == project.WorkspaceId &&
-                    item.UserId == userId &&
-                    item.IsActive &&
-                    (item.WorkspaceRole == "OWNER" || item.WorkspaceRole == "ADMIN")))
-            {
-                return true;
-            }
-
-            var projectRole = project.ProjectMembers
-                .FirstOrDefault(item => item.UserId == userId && item.Status && item.LeftAt == null)
-                ?.ProjectRole;
-
-            return !string.IsNullOrWhiteSpace(projectRole) &&
-                   new[] { "PM", "PO", "SM", "PROJECT_MANAGER", "PROJECT_ADMIN", "Project Lead", "Admin" }
-                       .Contains(projectRole, StringComparer.OrdinalIgnoreCase);
         }
 
         private IActionResult? ValidateCoverUpload(IFormFile file)
@@ -925,7 +868,7 @@ namespace TaskManagement.API.Controllers
                     {
                         a.Id,
                         a.FileName,
-                        a.FileUrl,
+                        FileUrl = $"/api/private-attachments/comments/{a.Id}",
                         a.ContentType,
                         a.FileSize,
                         a.CreatedAt
@@ -1343,6 +1286,7 @@ namespace TaskManagement.API.Controllers
                 UpdatedAt = item?.UpdatedAt == default ? DateTime.UtcNow : item?.UpdatedAt ?? DateTime.UtcNow
             };
         }
+
         private string? ResolveStoredIntegrationSecret(
             ProjectIntegrationSetting requested,
             ProjectIntegrationSetting? existing)
