@@ -1321,6 +1321,15 @@ const loadConversations = async (reset = true) => {
     conversations.value = reset ? items : [...conversations.value, ...items]
     conversationHasMore.value = conversations.value.length < (payload.total || 0)
     if (conversationHasMore.value) conversationPage.value += 1
+  } catch (error) {
+    const status = error?.response?.status
+    const message = status === 429
+      ? 'Lịch sử trò chuyện đang bị giới hạn tạm thời. Hãy thử lại sau vài giây.'
+      : status === 403
+        ? 'Bạn không có quyền xem lịch sử trò chuyện trong workspace này.'
+        : 'Không thể tải lịch sử trò chuyện.'
+    ElMessage.warning(message)
+    conversationHasMore.value = false
   } finally {
     conversationLoading.value = false
   }
@@ -1803,6 +1812,9 @@ const actionDetails = (action) => {
 
 const cancelAiAction = async (action) => {
   if (action.loading || action.uiStatus === 'success') return
+  if (action.serverActionId) {
+    await axiosClient.post(`/ai/actions/${action.serverActionId}/cancel`)
+  }
   action.uiStatus = 'cancelled'
   action.error = ''
   await persistConversation()
@@ -1929,16 +1941,23 @@ const executeAiAction = async (action) => {
   action.error = ''
   try {
     action.idempotencyKey ||= `${action.type}-${crypto.randomUUID()}`
-    const response = await axiosClient.post('/ai/actions/execute', {
-      type: action.type,
-      idempotencyKey: action.idempotencyKey,
-      workspaceId: currentWorkspaceId.value || null,
-      projectId: currentProjectId.value || actionPayload(action).projectId || null,
-      payload: actionPayload(action)
-    })
+    if (!action.serverActionId) {
+      const previewResponse = await axiosClient.post('/ai/actions/preview', {
+        type: action.type,
+        idempotencyKey: action.idempotencyKey,
+        workspaceId: currentWorkspaceId.value || null,
+        projectId: currentProjectId.value || actionPayload(action).projectId || null,
+        payload: actionPayload(action)
+      })
+      action.serverActionId = previewResponse.data?.data?.actionId
+      if (!action.serverActionId) throw new Error('Backend khÃ´ng táº¡o Ä‘Æ°á»£c action preview.')
+      await persistConversation()
+    }
+    const response = await axiosClient.post(`/ai/actions/${action.serverActionId}/confirm`)
     const root = response.data || {}
     const payload = root?.data ?? root
-    const result = payload?.data ?? payload?.result ?? payload
+    const actionResult = payload?.result ?? payload
+    const result = actionResult?.data ?? actionResult?.result ?? actionResult
     const failed = root?.success === false || root?.succeeded === false || payload?.success === false || payload?.succeeded === false || Boolean(root?.error || payload?.error)
     const hasResult = result && typeof result === 'object' && Object.keys(result).length > 0 && !result.error
     const confirmed = root?.success === true || root?.succeeded === true || payload?.success === true || payload?.succeeded === true
